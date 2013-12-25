@@ -8,17 +8,23 @@ import glob
 
 ###################################################
 
-snout = cv2.imread("HIGGS/snout3.png", 0)
+# Read the snout image and make it binary and nice.
+org_snout = cv2.imread("HIGGS/snout4.png", 0)
+ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
+kernel = np.ones((3,3), np.uint8)
+snout = cv2.erode(threshimg, kernel, iterations = 3)
+snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
+
 if not os.path.exists("HIGGS/output/"):
-    os.makedirs("HIGGS/output/");
+    os.makedirs("HIGGS/output/")
 
 for infile in glob.glob("HIGGS/higgs*.png"):
     path, filename_wext = os.path.split(infile)
     filename, fileext = os.path.splitext(filename_wext)
     img = cv2.imread(infile)
 
-    # Resize the image so it's easier to display.
-    simg = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
+    # We only deal in grayscale.
+    simg = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
     simg_gray = cv2.cvtColor(simg, cv2.COLOR_BGR2GRAY)
     
     cv2.imwrite("HIGGS/output/%s_01original%s" % (filename, fileext), simg)
@@ -30,7 +36,6 @@ for infile in glob.glob("HIGGS/higgs*.png"):
     cv2.imwrite("HIGGS/output/%s_03binary%s" % (filename, fileext), threshimg)
 
     # Noise removal.
-    kernel = np.ones((3,3),np.uint8)
     nonoise_img = cv2.erode(threshimg, kernel, iterations = 3)
     cv2.imshow('No noise', nonoise_img)
     cv2.imwrite("HIGGS/output/%s_04nonoise%s" % (filename, fileext), nonoise_img)
