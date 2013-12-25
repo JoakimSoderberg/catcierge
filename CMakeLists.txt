@@ -1,11 +1,16 @@
-cmake_minimum_required (VERSION 2.6) 
-project (CurveMatching) 
+cmake_minimum_required(VERSION 2.6) 
+project(catsnatch C) 
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-find_package(OpenCV  REQUIRED)
+find_package(OpenCV REQUIRED)
 
-message("OpenCV ${OpenCV_FOUND}")
-add_executable(test test.c)
+set(PROG_SRC main.c)
+set(LIB_SRC catsnatch.c)
 
-target_link_libraries(test ${OpenCV_LIBS})
+add_library(catsnatch ${LIB_SRC})
+add_executable(catsnatch_tester ${PROG_SRC})
+
+target_link_libraries(catsnatch ${OpenCV_LIBS})
+add_dependencies(catsnatch_tester catsnatch)
+target_link_libraries(catsnatch_tester catsnatch)
