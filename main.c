@@ -14,15 +14,41 @@ int main(int argc, char **argv)
 	CvRect match_rect;
 	CvScalar match_color;
 	int match_res = 0;
+	int i;
+	int show = 0;
 
-	if (argc < 3)
+	if (argc < 4)
 	{
-		fprintf(stderr, "Usage: %s <snout image> <input image>\n", argv[0]);
+		fprintf(stderr, "Usage: %s [--show] --snout <snout image> <input image>\n", argv[0]);
 		return -1;
 	}
 
-	snout_path = argv[1];
-	img_path = argv[2];
+	for (i = 0; i < argc; i++)
+	{
+		if (!strcmp(argv[i], "--show"))
+		{
+			show = 1;
+		}
+		else if (!strcmp(argv[i], "--snout"))
+		{
+			if (argc >= (i + 1))
+			{
+				i++;
+				snout_path = argv[i];
+				continue;
+			}
+		}
+
+		img_path = argv[i];
+	}
+
+	if (!snout_path)
+	{
+		fprintf(stderr, "No snout image specified\n");
+		return -1;
+	}
+
+	//img_path = argv[2];
 
 	if (catsnatch_init(&ctx, snout_path))
 	{
@@ -51,8 +77,12 @@ int main(int argc, char **argv)
 	}
 
 	cvRectangleR(img, match_rect, match_color, 1, 8, 0);
-	cvShowImage("hej", img);
-	cvWaitKey(0);
+	
+	if (show)
+	{
+		cvShowImage("hej", img);
+		cvWaitKey(0);
+	}
 
 	catsnatch_destroy(&ctx);
 

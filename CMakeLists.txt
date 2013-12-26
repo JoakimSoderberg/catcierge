@@ -37,7 +37,17 @@ if (RPI)
 	find_package(JPEG)
 	find_package(TIFF)
 	find_package(GTK2)
-	set(LIBS ${JASPER_LIBRARIES} ${OPENEXR_LIBRARIES} ${GTK2_LIBRARIES} ${TIFF_LIBRARIES} ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES} ${OpenCV_LIBS} stdc++ rt)
+
+	set(LIBS 
+		${JASPER_LIBRARIES}
+		${OPENEXR_LIBRARIES}
+		${GTK2_LIBRARIES}
+		${TIFF_LIBRARIES}
+		${JPEG_LIBRARIES}
+		${ZLIB_LIBRARIES}
+		${OpenCV_LIBS} 
+		stdc++ 
+		rt)
 else()
 	find_package(OpenCV REQUIRED)
 	set(LIBS ${OpenCV_LIBS})
@@ -54,3 +64,4 @@ add_executable(catsnatch_tester ${PROG_SRC})
 target_link_libraries(catsnatch ${LIBS})
 add_dependencies(catsnatch_tester catsnatch)
 target_link_libraries(catsnatch_tester catsnatch)
+
