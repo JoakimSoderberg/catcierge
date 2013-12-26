@@ -43,6 +43,8 @@ else()
 	set(LIBS ${OpenCV_LIBS})
 endif()
 
+message("${OpenCV_LIBS}")
+
 set(PROG_SRC main.c)
 set(LIB_SRC catsnatch.c)
 

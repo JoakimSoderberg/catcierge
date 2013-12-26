@@ -7,21 +7,12 @@
 
 static int _catsnatch_prepare_img(catsnatch_t *ctx, const IplImage *src, IplImage *dst)
 {
-	/*
-	IplImage *src_gray = cvCloneImage(src);
-	IplImage *src_thr = NULL; cvCloneImage(src);
-	IplImage *src_erode = cvCloneImage(src);
-	*/
-
-//	assert(!dst);
 	IplImage *tmp = cvCreateImage(cvGetSize(src), 8, 1);
 	IplImage *tmp2 = cvCreateImage(cvGetSize(src), 8, 1);
 	assert(ctx);
 	assert(ctx->snout);
 	assert(ctx->kernel);
 	assert(src != dst);
-
-	//*dst = cvCreateImage(cvGetSize(src), 8, 1);
 
 	cvCvtColor(src, tmp, CV_BGR2GRAY);
 	cvThreshold(tmp, tmp2, 35, 255, CV_THRESH_BINARY);
@@ -55,13 +46,19 @@ int catsnatch_init(catsnatch_t *ctx, const char *snout_path)
 		return -1;
 	}
 
-	ctx->snout = cvCreateImage(cvGetSize(snout_prep), 8, 1);
+	if (!(ctx->snout = cvCreateImage(cvGetSize(snout_prep), 8, 1)))
+	{
+		cvReleaseImage(&snout_prep);
+		return -1;
+	}
 
 	if (_catsnatch_prepare_img(ctx, snout_prep, ctx->snout))
 	{
 		fprintf(stderr, "Failed to prepare snout image: %s\n", snout_path);
 		return -1;
 	}
+
+	cvReleaseImage(&snout_prep);
 
 	return 0;
 }
