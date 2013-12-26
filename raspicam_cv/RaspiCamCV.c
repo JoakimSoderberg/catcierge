@@ -34,9 +34,8 @@
 #include <string.h>
 #include <memory.h>
 
-//new
-#include <cv.h>
-#include <highgui.h>
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/highgui/highgui_c.h>
 #include "time.h"
 
 #include "bcm_host.h"

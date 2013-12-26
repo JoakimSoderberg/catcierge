@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.6) 
 project(catsnatch) 
 
-option(RPI "Build for raspberry pi" ON)
+option(RPI "Build stuff for raspberry parts. Otherwise only the catsnatch stuff is built." ON)
+set(RPI_USERLAND "/home/pi/dev/userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -47,13 +48,12 @@ if (RPI)
 		${ZLIB_LIBRARIES}
 		${OpenCV_LIBS} 
 		stdc++ 
-		rt)
+		rt
+		)
 else()
 	find_package(OpenCV REQUIRED)
 	set(LIBS ${OpenCV_LIBS})
 endif()
-
-message("${OpenCV_LIBS}")
 
 set(PROG_SRC main.c)
 set(LIB_SRC catsnatch.c)
@@ -61,7 +61,45 @@ set(LIB_SRC catsnatch.c)
 add_library(catsnatch ${LIB_SRC})
 add_executable(catsnatch_tester ${PROG_SRC})
 
+if (RPI)
+	message("${RPI_USERLAND}")
+	include_directories(
+		${RPI_USERLAND}/host_applications/linux/libs/bcm_host/include/
+		${RPI_USERLAND}/host_applications/linux/apps/raspicam/
+		${RPI_USERLAND}/interface/vcos/pthreads/
+		${RPI_USERLAND}/interface/vmcs_host/linux/
+		${RPI_USERLAND}/interface/mmal/
+		${RPI_USERLAND}/interface/khronos/include/
+		${RPI_USERLAND}
+		)
+
+	# Raspicam lib.
+	file(GLOB RASPICAM_SRC ${RPI_USERLAND}/host_applications/linux/apps/raspicam/*.c)
+	list(APPEND RASPICAM_SRC raspicam_cv/RaspiCamCV.c)
+
+	add_library(raspicamcv ${RASPICAM_SRC})
+
+	set(RASPICAM_LIBS
+		${RPI_USERLAND}/build/lib/libmmal_core.so
+		${RPI_USERLAND}/build/lib/libmmal.so
+		${RPI_USERLAND}/build/lib/libmmal_util.so
+		${RPI_USERLAND}/build/lib/libvcos.so
+		${RPI_USERLAND}/build/lib/libbcm_host.so
+		)
+
+	target_link_libraries(raspicamcv ${RASPICAM_LIBS})
+
+	# Raspicam test app.
+	set(RASPICAM_TEST_SRC raspicam_cv/RaspiCamTest.c)
+	add_executable(raspicam_test ${RASPICAM_TEST_SRC})
+	add_dependencies(raspicam_test raspicamcv)
+	target_link_libraries(raspicam_test raspicamcv ${LIBS})
+
+	#target_link_libraries(catsnatch_tester raspicamcv)
+endif()
+
 target_link_libraries(catsnatch ${LIBS})
+
 add_dependencies(catsnatch_tester catsnatch)
 target_link_libraries(catsnatch_tester catsnatch)
 
