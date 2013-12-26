@@ -48,7 +48,11 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	//img_path = argv[2];
+	if (!img_path)
+	{
+		fprintf(stderr, "No input image specified\n");
+		return -1;
+	}
 
 	if (catsnatch_init(&ctx, snout_path))
 	{
@@ -59,6 +63,7 @@ int main(int argc, char **argv)
 	if (!(img = cvLoadImage(img_path, 1)))
 	{
 		fprintf(stderr, "Failed to load match image: %s\n", img_path);
+		goto fail;
 	}
 
 	if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
@@ -83,7 +88,7 @@ int main(int argc, char **argv)
 		cvShowImage("hej", img);
 		cvWaitKey(0);
 	}
-
+fail:
 	catsnatch_destroy(&ctx);
 
 	return 0;
