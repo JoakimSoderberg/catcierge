@@ -50,18 +50,7 @@ if (RPI)
 		stdc++ 
 		rt
 		)
-else()
-	find_package(OpenCV REQUIRED)
-	set(LIBS ${OpenCV_LIBS})
-endif()
 
-set(PROG_SRC main.c)
-set(LIB_SRC catsnatch.c)
-
-add_library(catsnatch ${LIB_SRC})
-add_executable(catsnatch_tester ${PROG_SRC})
-
-if (RPI)
 	message("${RPI_USERLAND}")
 	include_directories(
 		${RPI_USERLAND}/host_applications/linux/libs/bcm_host/include/
@@ -94,12 +83,19 @@ if (RPI)
 	add_executable(raspicam_test ${RASPICAM_TEST_SRC})
 	add_dependencies(raspicam_test raspicamcv)
 	target_link_libraries(raspicam_test raspicamcv ${LIBS})
-
-	#target_link_libraries(catsnatch_tester raspicamcv)
+else()
+	find_package(OpenCV REQUIRED)
+	set(LIBS ${OpenCV_LIBS})
 endif()
 
+# Catsnatch lib.
+set(LIB_SRC catsnatch.c)
+add_library(catsnatch ${LIB_SRC})
 target_link_libraries(catsnatch ${LIBS})
 
+# Test program for the catsnatch matcher.
+set(PROG_SRC main.c)
+add_executable(catsnatch_tester ${PROG_SRC})
 add_dependencies(catsnatch_tester catsnatch)
 target_link_libraries(catsnatch_tester catsnatch)
 
