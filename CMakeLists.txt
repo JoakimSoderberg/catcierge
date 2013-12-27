@@ -94,7 +94,7 @@ add_library(catsnatch ${LIB_SRC})
 target_link_libraries(catsnatch ${LIBS})
 
 # Test program for the catsnatch matcher.
-set(PROG_SRC main.c)
+set(PROG_SRC catsnatch_tester.c)
 add_executable(catsnatch_tester ${PROG_SRC})
 add_dependencies(catsnatch_tester catsnatch)
 target_link_libraries(catsnatch_tester catsnatch)
