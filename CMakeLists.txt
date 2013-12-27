@@ -60,6 +60,7 @@ if (RPI)
 		${RPI_USERLAND}/interface/mmal/
 		${RPI_USERLAND}/interface/khronos/include/
 		${RPI_USERLAND}
+		raspicam_cv
 		)
 
 	# Raspicam lib.
@@ -98,4 +99,11 @@ set(PROG_SRC catsnatch_tester.c)
 add_executable(catsnatch_tester ${PROG_SRC})
 add_dependencies(catsnatch_tester catsnatch)
 target_link_libraries(catsnatch_tester catsnatch)
+
+# Capture program for the catsnacher.
+set(GRABBER_SRC catsnatch_grabber.c)
+add_executable(catsnatch_grabber ${GRABBER_SRC})
+add_dependencies(catsnatch_grabber catsnatch raspicamcv)
+target_link_libraries(catsnatch_grabber catsnatch raspicamcv)
+
 

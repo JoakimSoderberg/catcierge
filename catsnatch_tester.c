@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	for (i = 0; i < argc; i++)
+	for (i = 1; i < argc; i++)
 	{
 		if (!strcmp(argv[i], "--show"))
 		{
@@ -74,10 +74,12 @@ int main(int argc, char **argv)
 
 	if (!match_res)
 	{
+		printf("Match!\n");
 		match_color = CV_RGB(0, 255, 0);
 	}
 	else
 	{
+		printf("No match!\n");
 		match_color = CV_RGB(255, 0, 0);
 	}
 

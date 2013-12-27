@@ -4,6 +4,7 @@
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
 #include <assert.h>
+#include <unistd.h>
 
 static int _catsnatch_prepare_img(catsnatch_t *ctx, const IplImage *src, IplImage *dst)
 {
@@ -29,6 +30,12 @@ int catsnatch_init(catsnatch_t *ctx, const char *snout_path)
 	IplImage *snout_prep = NULL;
 	assert(ctx);
 	memset(ctx, 0, sizeof(catsnatch_t));
+
+	if (access(snout_path, F_OK) == -1)
+	{
+		fprintf(stderr, "No such file %s\n", snout_path);
+		return -1;
+	}
 	
 	if (!(ctx->storage = cvCreateMemStorage(0)))
 	{
@@ -129,14 +136,12 @@ int catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect)
 	if (max_val >= 0.9)
 	{
 		// Match. No prey in the cats mouth!
-		printf("Match!\n");
-		res = 0;
+		res = 1;
 	}
 	else
 	{
 		// No Match. Either the cat has prey or it's something else.
-		printf("No match!\n");
-		res = 1;
+		res = 0;
 	}
 
 	*match_rect = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
