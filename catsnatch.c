@@ -152,3 +152,50 @@ int catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect)
 	return res;
 }
 
+int catsnatch_is_matchable(catsnatch_t *ctx, IplImage *img)
+{
+	CvSize size;
+	int w;
+	int h;
+	int x;
+	int y;
+	int expected_sum;
+	IplImage *tmp = NULL;
+	IplImage *tmp2 = NULL;
+	CvScalar sum;
+	assert(ctx);
+
+	// Get a suitable Region Of Interest (ROI)
+	// in the center of the image.
+	// (This should contain only the white background)
+	size = cvGetSize(img);
+	w = (int)(size.width * 0.1);
+	h = (int)(size.height * 0.1);
+	x = (size.width - w) / 2;
+	y = (size.height - h) / 2;
+
+	// When there is nothing in our ROI, we
+	// expect the thresholded image to be completely
+	// white. 255 signifies white.
+	expected_sum = (w * h) * 255;
+
+	tmp = cvCreateImage(cvSize(w, h), 8, 1);
+	tmp2 = cvCreateImage(cvSize(w, h), 8, 1);
+
+	cvSetImageROI(img, cvRect(x, y, w, h));
+
+	// Get a binary image and sum the pixel values.
+	cvCvtColor(img, tmp, CV_BGR2GRAY);
+	cvThreshold(tmp, tmp2, 35, 255, CV_THRESH_BINARY);
+	sum = cvSum(tmp2);
+
+	cvSetImageROI(img, cvRect(0, 0, size.width, size.height));
+
+	cvReleaseImage(&tmp);
+	cvReleaseImage(&tmp2);
+
+	return (int)sum.val[0] != expected_sum;
+}
+
+
+

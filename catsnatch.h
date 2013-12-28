@@ -17,4 +17,6 @@ void catsnatch_destroy(catsnatch_t *ctx);
 
 int catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect);
 
+int catsnatch_is_matchable(catsnatch_t *ctx, IplImage *img);
+
 #endif // __CATSNATCH_H__

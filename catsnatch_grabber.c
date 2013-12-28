@@ -27,6 +27,7 @@ int main(int argc, char **argv)
 	CvScalar match_color;
 	int match_res = 0;
 	int show = 0;
+	int do_match = 0;
 	int i;
 	RaspiCamCvCapture *capture = NULL;
 
@@ -73,27 +74,36 @@ int main(int argc, char **argv)
 	{
 		img = raspiCamCvQueryFrame(capture);
 
-		// Wait until the middle frame
-
-		if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
+		// Wait until the middle of the frame is black.
+		if ((do_match = catsnatch_is_matchable(&ctx, img)) < 0)
 		{
-			fprintf(stderr, "Error when matching frame!\n");
+			fprintf(stderr, "Failed to detect matchableness\n");
 			continue;
 		}
 
-		if (match_res)
+		if (do_match)
 		{
-			printf("Match!\n");
+			if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
+			{
+				fprintf(stderr, "Error when matching frame!\n");
+				continue;
+			}
+
+			printf("%sMatch!\n", match_res ? "" : "No ");
 		}
 		else
 		{
-			printf("No match!\n");
+			printf("Nothing in view...\n");
 		}
 
 		if (show)
 		{
-			match_color = match_res ? CV_RGB(255, 0, 0) : CV_RGB(0, 255, 0);
-			cvRectangleR(img, match_rect, match_color, 1, 8, 0);
+			if (do_match)
+			{
+				match_color = match_res ? CV_RGB(255, 0, 0) : CV_RGB(0, 255, 0);
+				cvRectangleR(img, match_rect, match_color, 1, 8, 0);
+			}
+
 			cvShowImage("catsnatch", img);
 		}
 	} while (running);
