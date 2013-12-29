@@ -140,6 +140,9 @@ int main(int argc, char **argv)
 			{
 				printf("End of lockout!\n");
 				lockout = 0;
+
+				gpio_write(DOOR_PIN, 0);
+				gpio_write(BACKLIGHT_PIN, 1);
 			}
 
 			goto skiploop;
@@ -181,6 +184,7 @@ int main(int argc, char **argv)
 				{
 					// Make sure the door is open.
 					gpio_write(DOOR_PIN, 0);
+					gpio_write(BACKLIGHT_PIN, 1);
 				}
 				else
 				{
