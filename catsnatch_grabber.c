@@ -20,7 +20,7 @@
 
 #define MATCH_THRESH 0.8			// The threshold signifying a good match returned by catsnatch_match.
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
-#define DEFAULT_MATCH_WAIT 	 30				// How long to wait after a match try before we match again.
+#define DEFAULT_MATCH_WAIT 	 30		// How long to wait after a match try before we match again.
 
 char *snout_path = NULL;
 int running = 1;	// Main loop is running (SIGINT will kill it).
@@ -41,6 +41,7 @@ IplImage *match_images[MATCH_MAX_COUNT];
 int match_count = 0;
 struct timeval match_start;
 int match_time = DEFAULT_MATCH_WAIT;
+double last_match_time;
 
 // FPS.
 unsigned int fps = 0;
@@ -49,18 +50,41 @@ struct timeval end;
 unsigned int frames = 0;
 double elapsed = 0.0;
 
+static void log_print(FILE *fd, const char *fmt, ...)
+{
+	struct tm *tm;
+	time_t t;
+	char time_str[256];
+	va_list ap;
+
+	t = time(NULL);
+	tm = localtime(&t);
+
+	strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm);
+
+	va_start(ap, fmt);
+	if (show_fps)
+	{
+		fprintf(fd, "[%s] %d fps  ", time_str, fps);
+	}
+	else
+	{
+		fprintf(fd, "[%s]  ", time_str);
+	}
+	vprintf(fmt, ap);
+	va_end(ap);
+}
+
+#define CATLOG(fmt, ...) log_print(stdout, fmt, ##__VA_ARGS__)
+#define CATERR(fmt, ...) log_print(stderr, fmt, ##__VA_ARGS__)
+
 static void sig_handler(int signo)
 {
 	if (signo == SIGINT)
 	{
-		printf("Received SIGINT, stopping...\n");
+		CATLOG("Received SIGINT, stopping...\n");
 		running = 0;
 	}
-}
-
-static void log_print(const char *fmt, ...)
-{
-
 }
 
 static int do_lockout()
@@ -86,14 +110,14 @@ static int setup_gpio()
 	// Set export for pins.
 	if (gpio_export(DOOR_PIN) || gpio_set_direction(DOOR_PIN, OUT))
 	{
-		fprintf(stderr, "Failed to export and set direction for door pin\n");
+		CATERR("Failed to export and set direction for door pin\n");
 		ret = -1;
 		goto fail;
 	}
 
 	if (gpio_export(BACKLIGHT_PIN) || gpio_set_direction(BACKLIGHT_PIN, OUT))
 	{
-		fprintf(stderr, "Failed to export and set direction for backlight pin\n");
+		CATERR("Failed to export and set direction for backlight pin\n");
 		ret = -1;
 		goto fail;
 	}
@@ -108,7 +132,7 @@ fail:
 		// Check if we're root.
 		if (getuid() != 0)
 		{
-			fprintf(stderr, "You might have to run as root!\n");
+			CATERR("You might have to run as root!\n");
 		}
 	}
 
@@ -159,8 +183,6 @@ static void should_we_lockout(double match_res)
 
 static int enough_time_since_last_match()
 {
-	double last_match_time;
-
 	// No match has been made so it's time!
 	if (match_start.tv_sec == 0)
 	{
@@ -182,7 +204,7 @@ static int enough_time_since_last_match()
 	return 0;
 }
 
-static void print_status()
+static void calculate_fps()
 {
 	frames++;
 	gettimeofday(&end, NULL);
@@ -193,22 +215,27 @@ static void print_status()
 	if (elapsed >= 1.0)
 	{
 		char buf[32];
+		char spinner[] = "\\|/-\\|/-";
+		static int spinidx = 0;
 
 		if (lockout)
 		{
-			printf("Lockout for %f more seconds.\n", (lockout_time - lockout_elapsed));
+			CATLOG("Lockout for %d more seconds.\n", (int)(lockout_time - lockout_elapsed));
+		}
+		else if (match_start.tv_sec)
+		{
+			CATLOG("Waiting for match for %d more seconds.\n", (int)(match_time - last_match_time));
+		}
+		else
+		{
+			CATLOG("%c\n", spinner[spinidx++ % (sizeof(spinner) - 1)]);
 		}
 
+		printf("\033[999D");
+		printf("\033[1A");
+		printf("\033[0K");
+
 		fps = frames;
-		printf("%d fps\n", fps);
-		/*
-		snprintf(buf, sizeof(buf), "%d fps", frames);
-		printf("\033[1;40H");
-		printf("%s", buf);
-		//printf("%d fps\n", frames);
-		//printf("\033[20D"); // Move cursor to beginning of row.
-		//printf("\033[1A");	// Move the cursor back up.
-		*/
 		frames = 0;
 		elapsed = 0.0;
 	}
@@ -271,6 +298,7 @@ int main(int argc, char **argv)
 	double match_res = 0;
 	int do_match = 0;
 	int i;
+	int enough_time = 0;
 	RaspiCamCvCapture *capture = NULL;
 
 	if (argc < 2)
@@ -289,7 +317,7 @@ int main(int argc, char **argv)
 
 	if (signal(SIGINT, sig_handler) == SIG_ERR)
 	{
-		fprintf(stderr, "Failed to set SIGINT handler\n");
+		CATERR("Failed to set SIGINT handler\n");
 	}
 
 	parse_cmdargs(argc, argv);
@@ -302,21 +330,21 @@ int main(int argc, char **argv)
 	printf("--------------------------------------------------------------------------------\n");
 	printf("Settings:\n");
 	printf("--------------------------------------------------------------------------------\n");
-	printf("  Snout image: %s\n", snout_path);
-	printf("  Show video: %d\n", show);
-	printf("  Lock time: %d seconds\n", lockout_time);
+	printf("    Snout image: %s\n", snout_path);
+	printf("     Show video: %d\n", show);
+	printf("      Lock time: %d seconds\n", lockout_time);
 	printf("  Match timeout: %d seconds\n", match_time);
 	printf("--------------------------------------------------------------------------------\n");
 
 	if (setup_gpio())
 	{
-		fprintf(stderr, "Failed to setup GPIO pins\n");
+		CATERR("Failed to setup GPIO pins\n");
 		return -1;
 	}
 
 	if (catsnatch_init(&ctx, snout_path))
 	{
-		fprintf(stderr, "Failed to init catsnatch lib!\n");
+		CATERR("Failed to init catsnatch lib!\n");
 		return -1;
 	}
 	
@@ -343,7 +371,7 @@ int main(int argc, char **argv)
 
 			if (lockout_elapsed >= lockout_time)
 			{
-				printf("End of lockout!\n");
+				CATLOG("End of lockout!\n");
 				lockout = 0;
 				do_unlock();
 			}
@@ -354,23 +382,25 @@ int main(int argc, char **argv)
 		// Wait until the middle of the frame is black.
 		if ((do_match = catsnatch_is_matchable(&ctx, img)) < 0)
 		{
-			fprintf(stderr, "Failed to detect matchableness\n");
+			CATERR("Failed to detect matchableness\n");
 			goto skiploop;
 		}
+
+		enough_time = enough_time_since_last_match();
 
 		if (do_match)
 		{
 			// Wait for a timeout in that case until we try to match again.
-			if (enough_time_since_last_match())
+			if (enough_time)
 			{
 				// We have something to match against. 
 				if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
 				{
-					fprintf(stderr, "Error when matching frame!\n");
+					CATERR("Error when matching frame!\n");
 					goto skiploop;
 				}
 
-				printf("%d fps    %f %sMatch\n", fps, match_res, (match_res >= MATCH_THRESH) ? "!!!!!!!" : "No ");
+				CATLOG("%f %sMatch\n", match_res, (match_res >= MATCH_THRESH) ? "!!!!!!!" : "No ");
 
 				should_we_lockout(match_res);
 			}
@@ -389,7 +419,7 @@ int main(int argc, char **argv)
 		}
 		
 skiploop:
-		print_status();
+		calculate_fps();
 	} while (running);
 
 	raspiCamCvReleaseCapture(&capture);
