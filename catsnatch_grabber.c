@@ -25,7 +25,9 @@
 char *snout_path = NULL;
 int running = 1;	// Main loop is running (SIGINT will kill it).
 int show = 0;		// Show the output video (X11 only).
-int show_fps = 1;
+int show_fps = 1;	// Show FPS in log output.
+int saveimg = 1;	// Save match images to disk.
+int highlight_match = 0; // Highlight the match in saved images.
 struct timeval now = {0, 0};
 
 // Lockout (when there's an invalid match).
@@ -37,11 +39,18 @@ struct timeval lockout_start = {0, 0};
 // Consecutive matches decide lockout status.
 int matches[4];
 #define MATCH_MAX_COUNT (sizeof(matches) / sizeof(matches[0]))
-IplImage *match_images[MATCH_MAX_COUNT];
 int match_count = 0;
 struct timeval match_start;
 int match_time = DEFAULT_MATCH_WAIT;
 double last_match_time;
+
+typedef struct match_image_s
+{
+	char path[512];
+	IplImage *img;
+} match_image_t;
+
+match_image_t match_images[MATCH_MAX_COUNT];
 
 // FPS.
 unsigned int fps = 0;
@@ -50,17 +59,30 @@ struct timeval end;
 unsigned int frames = 0;
 double elapsed = 0.0;
 
-static void log_print(FILE *fd, const char *fmt, ...)
+static char *get_time_str_fmt(char *time_str, size_t len, const char *fmt)
 {
 	struct tm *tm;
 	time_t t;
-	char time_str[256];
-	va_list ap;
 
 	t = time(NULL);
 	tm = localtime(&t);
 
-	strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm);
+	strftime(time_str, len, fmt, tm);
+
+	return time_str;
+}
+
+static char *get_time_str(char *time_str, size_t len)
+{
+	return get_time_str_fmt(time_str, len, "%Y-%m-%d %H:%M:%S");
+}
+
+static void log_print(FILE *fd, const char *fmt, ...)
+{
+	char time_str[256];
+	va_list ap;
+
+	get_time_str(time_str, sizeof(time_str));
 
 	va_start(ap, fmt);
 	if (show_fps)
@@ -139,6 +161,19 @@ fail:
 	return ret;
 }
 
+static void save_images()
+{
+	int i;
+	
+	for (i = 0; i < MATCH_MAX_COUNT; i++)
+	{
+		CATLOG("Saving image %s\n", match_images[i].path);
+		cvSaveImage(match_images[i].path, match_images[i].img, 0);
+		cvReleaseImage(&match_images[i].img);
+		match_images[i].img = NULL;
+	}
+}
+
 static void should_we_lockout(double match_res)
 {
 	int i;
@@ -196,8 +231,15 @@ static int enough_time_since_last_match()
 
 	if (last_match_time >= match_time)
 	{
+		CATLOG("End of match wait...\n");
 		match_start.tv_sec = 0;
 		match_start.tv_usec = 0;
+
+		if (saveimg)
+		{
+			save_images();
+		}
+
 		return 1;
 	}
 
@@ -224,7 +266,7 @@ static void calculate_fps()
 		}
 		else if (match_start.tv_sec)
 		{
-			CATLOG("Waiting for match for %d more seconds.\n", (int)(match_time - last_match_time));
+			CATLOG("Waiting to match again for %d more seconds.\n", (int)(match_time - last_match_time));
 		}
 		else
 		{
@@ -250,6 +292,16 @@ static void parse_cmdargs(int argc, char **argv)
 		if (!strcmp(argv[i], "--show"))
 		{
 			show = 1;
+		}
+
+		if (!strcmp(argv[i], "--save"))
+		{
+			saveimg = 1;
+		}
+
+		if (!strcmp(argv[i], "--highlight"))
+		{
+			highlight_match = 1;
 		}
 
 		if (!strcmp(argv[i], "--show_fps"))
@@ -291,6 +343,7 @@ static void parse_cmdargs(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+	char time_str[256];
 	catsnatch_t ctx;
 	IplImage* img = NULL;
 	CvRect match_rect;
@@ -309,6 +362,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
 		fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
 		fprintf(stderr, " --show_fps             Show FPS.\n");
+		fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
+		fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
 		fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
 		fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
 		fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n\n");
@@ -332,6 +387,8 @@ int main(int argc, char **argv)
 	printf("--------------------------------------------------------------------------------\n");
 	printf("    Snout image: %s\n", snout_path);
 	printf("     Show video: %d\n", show);
+	printf("   Save matches: %d\n", saveimg);
+	printf("Highlight match: %d\n", highlight_match);
 	printf("      Lock time: %d seconds\n", lockout_time);
 	printf("  Match timeout: %d seconds\n", match_time);
 	printf("--------------------------------------------------------------------------------\n");
@@ -374,6 +431,11 @@ int main(int argc, char **argv)
 				CATLOG("End of lockout!\n");
 				lockout = 0;
 				do_unlock();
+
+				if (saveimg)
+				{
+					save_images();
+				}
 			}
 
 			goto skiploop;
@@ -386,33 +448,48 @@ int main(int argc, char **argv)
 			goto skiploop;
 		}
 
+		// Wait for a timeout in that case until we try to match again.
 		enough_time = enough_time_since_last_match();
 
-		if (do_match)
+		if (do_match && enough_time)
 		{
-			// Wait for a timeout in that case until we try to match again.
-			if (enough_time)
+			// We have something to match against. 
+			if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
 			{
-				// We have something to match against. 
-				if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
+				CATERR("Error when matching frame!\n");
+				goto skiploop;
+			}
+
+			CATLOG("%f %sMatch\n", match_res, (match_res >= MATCH_THRESH) ? "!!!!!!!" : "No ");
+			should_we_lockout(match_res);
+
+			if (saveimg)
+			{
+				// Draw a white rectangle over the best match.
+				if (highlight_match)
 				{
-					CATERR("Error when matching frame!\n");
-					goto skiploop;
+					cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
 				}
 
-				CATLOG("%f %sMatch\n", match_res, (match_res >= MATCH_THRESH) ? "!!!!!!!" : "No ");
+				// Save match image.
+				if (saveimg)
+				{
+					get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
+					snprintf(match_images[match_count].path, 
+						sizeof(match_images[match_count].path), 
+						"%smatch_%s__%d.png", (match_res >= MATCH_THRESH) ? "" : "no", time_str, match_count);
 
-				should_we_lockout(match_res);
+					match_images[match_count].img = cvCloneImage(img);
+				}
 			}
 		}
 
 		if (show)
 		{
-			// Draw the match with a green rectangle. (Red if no match).
+			// Always highlight when showing in GUI.
 			if (do_match)
 			{
-				match_color = (match_res >= MATCH_THRESH) ? CV_RGB(255, 0, 0) : CV_RGB(0, 255, 0);
-				cvRectangleR(img, match_rect, match_color, 1, 8, 0);
+				cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
 			}
 
 			cvShowImage("catsnatch", img);
@@ -427,6 +504,18 @@ skiploop:
 	if (show)
 	{
 		cvDestroyWindow("catsnatch");
+	}
+
+	if (saveimg)
+	{
+		for (i = 0; i < MATCH_MAX_COUNT; i++)
+		{
+			if (match_images[i].img)
+			{
+				cvReleaseImage(&match_images[i].img);
+				match_images[i].img = NULL;
+			}
+		}
 	}
 
 	catsnatch_destroy(&ctx);
