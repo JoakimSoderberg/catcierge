@@ -116,12 +116,12 @@ static void default_status(RASPIVID_STATE *state)
 
    // Now set anything non-zero
    state->finished          = 0;
-   state->width 			= 640;      // use a multiple of 320 (640, 1280)
-   state->height 			= 480;		// use a multiple of 240 (480, 960)
-   state->bitrate 			= 17000000; // This is a decent default bitrate for 1080p
+   state->width 			= 320;      // use a multiple of 320 (640, 1280)
+   state->height 			= 240;		// use a multiple of 240 (480, 960)
+   state->bitrate 			= 500000; //17000000; // This is a decent default bitrate for 1080p
    state->framerate 		= VIDEO_FRAME_RATE_NUM;
    state->immutableInput 	= 1;
-   state->graymode 			= 0;		// Gray (1) much faster than color (0)
+   state->graymode 			= 1;		// Gray (1) much faster than color (0)
    
    // Set up the camera_parameters to default
    raspicamcontrol_set_defaults(&state->camera_parameters);
@@ -534,6 +534,22 @@ void raspiCamCvReleaseCapture(RaspiCamCvCapture ** capture)
 
 void raspiCamCvSetCaptureProperty(RaspiCamCvCapture * capture, int property_id, double value)
 {
+	RASPIVID_STATE *state = capture->pState;
+
+	// TODO: Recreate the capture instance to use these new settings...
+	switch (property_id)
+	{
+		case CV_CAP_PROP_FRAME_WIDTH:
+		{
+			//state->height = (int)value;
+			break;
+		}
+		case CV_CAP_PROP_FRAME_HEIGHT:
+		{
+			//state->width = (int)value;
+			break;
+		}
+	}
 }
 
 IplImage * raspiCamCvQueryFrame(RaspiCamCvCapture * capture)

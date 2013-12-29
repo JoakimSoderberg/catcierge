@@ -15,7 +15,7 @@ int catsnatch_init(catsnatch_t *ctx, const char *snout_path);
 
 void catsnatch_destroy(catsnatch_t *ctx);
 
-int catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect);
+double catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect);
 
 int catsnatch_is_matchable(catsnatch_t *ctx, IplImage *img);
 

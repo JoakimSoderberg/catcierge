@@ -101,7 +101,9 @@ add_dependencies(catsnatch_tester catsnatch)
 target_link_libraries(catsnatch_tester catsnatch)
 
 # Capture program for the catsnacher.
-set(GRABBER_SRC catsnatch_grabber.c)
+set(GRABBER_SRC 
+	catsnatch_grabber.c 
+	catsnatch_gpio.c)
 add_executable(catsnatch_grabber ${GRABBER_SRC})
 add_dependencies(catsnatch_grabber catsnatch raspicamcv)
 target_link_libraries(catsnatch_grabber catsnatch raspicamcv)

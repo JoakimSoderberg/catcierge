@@ -8,18 +8,34 @@
 
 static int _catsnatch_prepare_img(catsnatch_t *ctx, const IplImage *src, IplImage *dst)
 {
-	IplImage *tmp = cvCreateImage(cvGetSize(src), 8, 1);
-	IplImage *tmp2 = cvCreateImage(cvGetSize(src), 8, 1);
+	const IplImage *img_gray = NULL;
+	IplImage *tmp = NULL;
+	IplImage *tmp2 = NULL;
 	assert(ctx);
 	assert(ctx->snout);
 	assert(ctx->kernel);
 	assert(src != dst);
 
-	cvCvtColor(src, tmp, CV_BGR2GRAY);
-	cvThreshold(tmp, tmp2, 35, 255, CV_THRESH_BINARY);
+	if (src->nChannels != 1)
+	{
+		tmp = cvCreateImage(cvGetSize(src), 8, 1);
+		cvCvtColor(src, tmp, CV_BGR2GRAY);
+		img_gray = tmp;
+	}
+	else
+	{
+		img_gray = src;
+	}
+
+	tmp2 = cvCreateImage(cvGetSize(src), 8, 1);
+	cvThreshold(img_gray, tmp2, 35, 255, CV_THRESH_BINARY);
 	cvErode(tmp2, dst, ctx->kernel, 3);
 
-	cvReleaseImage(&tmp);
+	if (src->nChannels != 1)
+	{
+		cvReleaseImage(&tmp);
+	}
+
 	cvReleaseImage(&tmp2);
 
 	return 0;
@@ -93,9 +109,8 @@ void catsnatch_destroy(catsnatch_t *ctx)
 	}
 }
 
-int catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect)
+double catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect)
 {
-	int res = 0;
 	IplImage *img_cpy = NULL;
 	IplImage *img_prep = NULL;
 	IplImage *matchres = NULL;
@@ -132,24 +147,12 @@ int catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect)
 	cvMatchTemplate(img_cpy, ctx->snout, matchres, CV_TM_CCOEFF_NORMED);
 	cvMinMaxLoc(matchres, &min_val, &max_val, &min_loc, &max_loc, NULL);
 
-	// From testing this seems like a good threshold.
-	if (max_val >= 0.9)
-	{
-		// Match. No prey in the cats mouth!
-		res = 1;
-	}
-	else
-	{
-		// No Match. Either the cat has prey or it's something else.
-		res = 0;
-	}
-
 	*match_rect = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
 
 	cvReleaseImage(&img_cpy);
 	cvReleaseImage(&img_prep);
 
-	return res;
+	return max_val;
 }
 
 int catsnatch_is_matchable(catsnatch_t *ctx, IplImage *img)
@@ -179,19 +182,31 @@ int catsnatch_is_matchable(catsnatch_t *ctx, IplImage *img)
 	// white. 255 signifies white.
 	expected_sum = (w * h) * 255;
 
-	tmp = cvCreateImage(cvSize(w, h), 8, 1);
-	tmp2 = cvCreateImage(cvSize(w, h), 8, 1);
-
 	cvSetImageROI(img, cvRect(x, y, w, h));
 
+	// Only covert to grayscale if needed.
+	if (img->nChannels != 1)
+	{
+		tmp = cvCreateImage(cvSize(w, h), 8, 1);
+		cvCvtColor(img, tmp, CV_BGR2GRAY);
+	}
+	else
+	{
+		tmp = img;
+	}
+
 	// Get a binary image and sum the pixel values.
-	cvCvtColor(img, tmp, CV_BGR2GRAY);
+	tmp2 = cvCreateImage(cvSize(w, h), 8, 1);
 	cvThreshold(tmp, tmp2, 35, 255, CV_THRESH_BINARY);
 	sum = cvSum(tmp2);
 
 	cvSetImageROI(img, cvRect(0, 0, size.width, size.height));
 
-	cvReleaseImage(&tmp);
+	if (img->nChannels != 1)
+	{
+		cvReleaseImage(&tmp);
+	}
+
 	cvReleaseImage(&tmp2);
 
 	return (int)sum.val[0] != expected_sum;
