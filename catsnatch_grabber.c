@@ -17,10 +17,33 @@
 #define DOOR_PIN		PIBORG1
 #define BACKLIGHT_PIN	PIBORG2
 
-int running = 1;
-int lockout_enabled = 0;
+#define MATCH_THRESH 0.8
+#define LOCKOUT_TIME 30
 
-void sig_handler(int signo)
+char *snout_path = NULL;
+int running = 1;	// Main loop is running (SIGINT will kill it).
+int show = 0;		// Show the output.
+struct timeval now = {0, 0};
+
+// Lockout (when there's an invalid match).
+int lockout_enabled = 0;
+int lockout = 0;
+double lockout_elapsed = 0.0;
+struct timeval lockout_start = {0, 0};
+
+// Consecutive matches decide lockout status.
+int matches[4];
+#define MATCH_MAX_COUNT (sizeof(matches) / sizeof(matches[0]))
+int match_count = 0;
+struct timeval match_start;
+
+// FPS.
+struct timeval start;
+struct timeval end;
+unsigned int frames = 0;
+double elapsed = 0.0;
+
+static void sig_handler(int signo)
 {
 	if (signo == SIGINT)
 	{
@@ -29,23 +52,23 @@ void sig_handler(int signo)
 	}
 }
 
-int do_lockout()
+static int do_lockout()
 {
 	if (lockout_enabled)
 	{
 		gpio_write(DOOR_PIN, 1);
 	}
-	
+
 	gpio_write(BACKLIGHT_PIN, 1);
 }
 
-int do_unlock()
+static int do_unlock()
 {
 	gpio_write(DOOR_PIN, 0);
 	gpio_write(BACKLIGHT_PIN, 1);
 }
 
-int setup_gpio()
+static int setup_gpio()
 {
 	// Set export for pins.
 	if (gpio_export(DOOR_PIN) || gpio_set_direction(DOOR_PIN, OUT))
@@ -67,43 +90,66 @@ int setup_gpio()
 	return 0;
 }
 
-int main(int argc, char **argv)
+static void should_we_lockout(double match_res)
 {
-	#define MATCH_THRESH 0.8
-	catsnatch_t ctx;
-	char *snout_path = NULL;
-	IplImage* img = NULL;
-	CvRect match_rect;
-	CvScalar match_color;
-	struct timeval start;
-	struct timeval end;
-	double match_res = 0;
-	int show = 0;
-	int do_match = 0;
 	int i;
-	unsigned int frames = 0;
-	double elapsed = 0.0;
-	RaspiCamCvCapture *capture = NULL;
-	int matches[4];
-	#define MATCH_MAX_COUNT (sizeof(matches) / sizeof(matches[0]))
-	int match_count = 0;
-	int first_match = 0;
-	int lockout = 0;
-	double lockout_elapsed = 0.0;
-	struct timeval lockout_start = {0, 0};
-	struct timeval lockout_end = {0, 0};
-	#define LOCKOUT_TIME 30
 
-	if (argc < 2)
-	{
-		fprintf(stderr, "Usage: %s [--show] [snout image]\n", argv[0]);
-		return -1;
-	}
+	// Keep track of consecutive frames and their match status. 
+	// If 2 out of 4 are OK, keep the door open, otherwise CLOSE!
+	matches[match_count] = (int)(match_res >= MATCH_THRESH);
+	match_count++;
 
-	if (signal(SIGINT, sig_handler) == SIG_ERR)
+	if (match_count >= MATCH_MAX_COUNT)
 	{
-		fprintf(stderr, "Failed to set SIGINT handler\n");
+		int count = 0;
+
+		for (i = 0; i < MATCH_MAX_COUNT; i++)
+		{
+			count += matches[i];
+		}
+
+		if (count >= (MATCH_MAX_COUNT - 2))
+		{
+			// Make sure the door is open.
+			do_unlock();
+		}
+		else
+		{
+			do_lockout();
+			lockout = 1;
+			gettimeofday(&lockout_start, NULL);
+		}
+
+		match_count = 0;
 	}
+}
+
+static void print_status()
+{
+	frames++;
+	gettimeofday(&end, NULL);
+
+	elapsed += (end.tv_sec - start.tv_sec) + 
+				((end.tv_usec - start.tv_usec) / 1000000.0);
+
+	if (elapsed >= 1.0)
+	{
+		if (lockout)
+		{
+			printf("Lockout for %f more seconds.\n", (LOCKOUT_TIME - lockout_elapsed));
+		}
+
+		printf("%d fps\n", frames);
+		//printf("\033[20D"); // Move cursor to beginning of row.
+		//printf("\033[1A");	// Move the cursor back up.
+		frames = 0;
+		elapsed = 0.0;
+	}
+}
+
+static void parse_cmdargs(int argc, char **argv)
+{
+	int i;
 
 	for (i = 1; i < argc; i++)
 	{
@@ -119,6 +165,31 @@ int main(int argc, char **argv)
 
 		snout_path = argv[i];
 	}
+}
+
+int main(int argc, char **argv)
+{
+	catsnatch_t ctx;
+	IplImage* img = NULL;
+	CvRect match_rect;
+	CvScalar match_color;
+	double match_res = 0;
+	int do_match = 0;
+	int i;
+	RaspiCamCvCapture *capture = NULL;
+
+	if (argc < 2)
+	{
+		fprintf(stderr, "Usage: %s [--lockout] [--show] [snout image]\n", argv[0]);
+		return -1;
+	}
+
+	if (signal(SIGINT, sig_handler) == SIG_ERR)
+	{
+		fprintf(stderr, "Failed to set SIGINT handler\n");
+	}
+
+	parse_cmdargs(argc, argv);
 
 	if (!snout_path)
 	{
@@ -153,10 +224,10 @@ int main(int argc, char **argv)
 		// Skip all matching in lockout.
 		if (lockout)
 		{
-			gettimeofday(&lockout_end, NULL);
+			gettimeofday(&now, NULL);
 
-			lockout_elapsed = (lockout_end.tv_sec - lockout_start.tv_sec) + 
-							 ((lockout_end.tv_usec - lockout_start.tv_usec) / 1000000.0);
+			lockout_elapsed = (now.tv_sec - lockout_start.tv_sec) + 
+							 ((now.tv_usec - lockout_start.tv_usec) / 1000000.0);
 
 			if (lockout_elapsed >= LOCKOUT_TIME)
 			{
@@ -177,6 +248,9 @@ int main(int argc, char **argv)
 
 		if (do_match)
 		{
+			// TODO: Don't try to match if match_count is MAX. 
+			// Wait for a timeout in that case until we try to match again.
+
 			// We have something to match against. 
 			if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
 			{
@@ -186,34 +260,7 @@ int main(int argc, char **argv)
 
 			printf("%f %sMatch\n", match_res, (match_res >= MATCH_THRESH) ? "!!!!!!!" : "No ");
 
-			// Keep track of consecutive frames and their match status. 
-			// If 3 out of 4 are OK, keep the door open, otherwise CLOSE!
-			matches[match_count] = (int)(match_res >= MATCH_THRESH);
-			match_count++;
-
-			if (match_count >= MATCH_MAX_COUNT)
-			{
-				int count = 0;
-
-				for (i = 0; i < MATCH_MAX_COUNT; i++)
-				{
-					count += matches[i];
-				}
-
-				if (count >= MATCH_MAX_COUNT)
-				{
-					// Make sure the door is open.
-					do_unlock();
-				}
-				else
-				{
-					do_lockout();
-					lockout = 1;
-					gettimeofday(&lockout_start, NULL);
-				}
-
-				match_count = 0;
-			}
+			should_we_lockout(match_res);
 		}
 		else
 		{
@@ -222,6 +269,7 @@ int main(int argc, char **argv)
 
 		if (show)
 		{
+			// Draw the match with a green rectangle. (Red if no match).
 			if (do_match)
 			{
 				match_color = (match_res >= MATCH_THRESH) ? CV_RGB(255, 0, 0) : CV_RGB(0, 255, 0);
@@ -232,25 +280,7 @@ int main(int argc, char **argv)
 		}
 		
 skiploop:
-		frames++;
-		gettimeofday(&end, NULL);
-
-		elapsed += (end.tv_sec - start.tv_sec) + 
-					((end.tv_usec - start.tv_usec) / 1000000.0);
-
-		if (elapsed >= 1.0)
-		{
-			if (lockout)
-			{
-				printf("Lockout for %f more seconds.\n", (LOCKOUT_TIME - lockout_elapsed));
-			}
-
-			printf("%d fps\n", frames);
-			//printf("\033[20D"); // Move cursor to beginning of row.
-			//printf("\033[1A");	// Move the cursor back up.
-			frames = 0;
-			elapsed = 0.0;
-		}
+		print_status();
 	} while (running);
 
 	raspiCamCvReleaseCapture(&capture);
