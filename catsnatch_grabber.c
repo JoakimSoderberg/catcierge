@@ -18,6 +18,7 @@
 #define BACKLIGHT_PIN	PIBORG2
 
 int running = 1;
+int lockout_enabled = 0;
 
 void sig_handler(int signo)
 {
@@ -26,6 +27,22 @@ void sig_handler(int signo)
 		printf("Received SIGINT, stopping...\n");
 		running = 0;
 	}
+}
+
+int do_lockout()
+{
+	if (lockout_enabled)
+	{
+		gpio_write(DOOR_PIN, 1);
+	}
+	
+	gpio_write(BACKLIGHT_PIN, 1);
+}
+
+int do_unlock()
+{
+	gpio_write(DOOR_PIN, 0);
+	gpio_write(BACKLIGHT_PIN, 1);
 }
 
 int setup_gpio()
@@ -75,7 +92,7 @@ int main(int argc, char **argv)
 	double lockout_elapsed = 0.0;
 	struct timeval lockout_start = {0, 0};
 	struct timeval lockout_end = {0, 0};
-	#define LOCKOUT_TIME 5
+	#define LOCKOUT_TIME 30
 
 	if (argc < 2)
 	{
@@ -93,6 +110,11 @@ int main(int argc, char **argv)
 		if (!strcmp(argv[i], "--show"))
 		{
 			show = 1;
+		}
+
+		if (!strcmp(argv[i], "--lockout"))
+		{
+			lockout_enabled = 1;
 		}
 
 		snout_path = argv[i];
@@ -140,9 +162,7 @@ int main(int argc, char **argv)
 			{
 				printf("End of lockout!\n");
 				lockout = 0;
-
-				gpio_write(DOOR_PIN, 0);
-				gpio_write(BACKLIGHT_PIN, 1);
+				do_unlock();
 			}
 
 			goto skiploop;
@@ -183,12 +203,11 @@ int main(int argc, char **argv)
 				if (count >= MATCH_MAX_COUNT)
 				{
 					// Make sure the door is open.
-					gpio_write(DOOR_PIN, 0);
-					gpio_write(BACKLIGHT_PIN, 1);
+					do_unlock();
 				}
 				else
 				{
-					gpio_write(DOOR_PIN, 1);
+					do_lockout();
 					lockout = 1;
 					gettimeofday(&lockout_start, NULL);
 				}
