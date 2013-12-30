@@ -11,11 +11,13 @@
 
 #include <termios.h>
 #include <signal.h>
-#include <unistd.h> 
+#include <unistd.h>
+
+#define EXAMPLE_RFID_STR "999_000000001007_1_0_AEC4_000000\r\n"
 
 typedef struct catsnatch_rfid_s catsnatch_rfid_t;
 
-typedef void (*catsnatch_rfid_read_f)(catsnatch_rfid_t *rfid, const char *cat_tag);
+typedef void (*catsnatch_rfid_read_f)(catsnatch_rfid_t *rfid, int incomplete, const char *data);
 
 typedef enum catsnatch_rfid_state_e
 {
@@ -28,7 +30,7 @@ typedef enum catsnatch_rfid_state_e
 
 const char *catsnatch_rfid_error_str(int errorcode);
 
-typedef struct catsnatch_rfid_s
+struct catsnatch_rfid_s
 {
 	char name[256];
 	const char *serial_path;
@@ -38,16 +40,25 @@ typedef struct catsnatch_rfid_s
 	char buf[1024];
 	catsnatch_rfid_read_f cb;
 	catsnatch_rfid_state_t state;
-} catsnatch_rfid_t;
+};
 
 #define RFID_IN 0
 #define RFID_OUT 1
+#define RFID_COUNT 2
 
 typedef struct catsnatch_rfid_context_s
 {
 	fd_set readfs;
 	int maxfd;
-	catsnatch_rfid_t *rfids[2];
+	catsnatch_rfid_t *rfids[RFID_COUNT];
 } catsnatch_rfid_context_t;
+
+int catsnatch_rfid_init(const char *name, catsnatch_rfid_t *rfid, const char *serial_path, catsnatch_rfid_read_f read_cb);
+void catsnatch_rfid_destroy(catsnatch_rfid_t *rfid);
+int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx);
+void catsnatch_rfix_ctx_set_inner(catsnatch_rfid_context_t *ctx, catsnatch_rfid_t *rfid);
+void catsnatch_rfid_ctx_set_outter(catsnatch_rfid_context_t * ctx, catsnatch_rfid_t *rfid);
+int catsnatch_rfid_open(catsnatch_rfid_t *rfid);
+int catsnatch_rfid_write_rat(catsnatch_rfid_t *rfid);
 
 #endif // __CATSNATCH_RFID_H__

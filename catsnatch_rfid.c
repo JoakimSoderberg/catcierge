@@ -9,6 +9,7 @@
 #include <time.h>
 #include <errno.h>
 #include <sys/types.h> 
+#include <sys/socket.h>
 #include "catsnatch_rfid.h"
 
 #define _POSIX_SOURCE 1 // POSIX compliant source.
@@ -35,6 +36,7 @@ int catsnatch_rfid_init(const char *name, catsnatch_rfid_t *rfid, const char *se
 	rfid->cb = read_cb;
 	rfid->bytes_read = 0;
 	rfid->offset = 0;
+	rfid->state = CAT_DISCONNECTED;
 
 	return 0;
 }
@@ -46,11 +48,17 @@ void catsnatch_rfid_destroy(catsnatch_rfid_t *rfid)
 	if (rfid->fd > 0)
 	{
 		close(rfid->fd);
+		rfid->fd = -1;
 	}
+
+	printf("Disconnected %s RFID reader (%s)\n", rfid->name, rfid->serial_path);
+
+	rfid->state = CAT_DISCONNECTED;
 }
 
 static int catsnatch_rfid_read(catsnatch_rfid_t *rfid)
 {
+	int ret = 0;
 	int is_error = 0;
 	int errorcode;
 	const char *error_msg = NULL;
@@ -61,12 +69,19 @@ static int catsnatch_rfid_read(catsnatch_rfid_t *rfid)
 		if ((errno != EWOULDBLOCK) && (errno != EAGAIN))
 		{
 			fprintf(stderr, "Read error %d: %s\n", errno, strerror(errno));
-			return -1;
+			ret = -1;
+			goto fail;
 		}
 
+		fprintf(stderr, "Need more\n");
 		// TODO: Add CAT_NEED_MORE state here and handle that.
 		return -1;
 	}
+
+	printf("Read %ld bytes\n", rfid->bytes_read);
+
+	rfid->buf[rfid->bytes_read] = '\0';
+	printf("%s\n", rfid->buf);
 
 	if (rfid->bytes_read == 0)
 	{
@@ -81,46 +96,53 @@ static int catsnatch_rfid_read(catsnatch_rfid_t *rfid)
 		errorcode = atoi(&rfid->buf[1]);
 		error_msg = catsnatch_rfid_error_str(errorcode);
 
-		fprintf(stderr, "%s RFID reader: Error %d on read: %s\n", 
+		fprintf(stderr, "%s RFID reader, error %d on read: %s\n", 
 				rfid->name, errorcode, error_msg);
 	}
 
 	if (rfid->state == CAT_CONNECTED)
 	{
-		// We have issued a RAT (Read Animal Tag) command to the
-		// RFID reader, and are awaiting an OK.
-		if (!strncmp(rfid->buf, "OK", 2))
-		{
-			printf("Listening for Animal Tags on %s RFID reader", rfid->name);
-			rfid->state = CAT_AWAITING_TAG;
-			return 0;
-		}
-		else
-		{
-			fprintf(stderr, "Failed to issue RAT (Read Animal Tag) command.\n");
-			rfid->state = CAT_ERROR;
-			return -1;
-		}
+		printf("Started listening for cats on %s (%s)\n", rfid->name, rfid->serial_path);
+		rfid->state = CAT_AWAITING_TAG;
 	}
 	else if (rfid->state == CAT_AWAITING_TAG)
 	{
-		char *end = strstr(rfid->buf, "\r\n");
-		int found = (end != NULL);
-
-		*end = '\0';
-		
-		if (!found)
+		if (!is_error)
 		{
-			fprintf(stderr, "Got incomplete tag string: %s\n", rfid->buf);
+			int incomplete = (rfid->bytes_read < 17);
+
+			rfid->cb(rfid, incomplete, rfid->buf);
 		}
 		else
 		{
-			rfid->cb(rfid, rfid->buf);
-			return 0;
+			fprintf(stderr, "Error reading tag: %s\n", error_msg);
+		}
+	}
+	else
+	{
+		fprintf(stderr, "Invalid state on read: %d\n", rfid->state);
+	}
+
+fail:
+	rfid->bytes_read = 0;
+	rfid->offset = 0;
+	return ret;
+}
+
+static void _set_maxfd(catsnatch_rfid_context_t *ctx)
+{
+	int i;
+	int max_fd = 0;
+
+	for (i = 0; i < RFID_COUNT; i++)
+	{
+		if (ctx->rfids[i] && (ctx->rfids[i]->fd > max_fd))
+		{
+			max_fd = ctx->rfids[i]->fd;
 		}
 	}
 
-	return -1;
+	ctx->maxfd = max_fd + 1;
 }
 
 int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx)
@@ -129,12 +151,16 @@ int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx)
 	int res = 0;
 	struct timeval tv = {0, 0};
 
+	_set_maxfd(ctx);
+
 	if (!ctx->rfids[RFID_IN] && !ctx->rfids[RFID_OUT])
 	{
 		return -1;
 	}
 
-	for (i = 0; i < 2; i++)
+	FD_ZERO(&ctx->readfs);
+
+	for (i = 0; i < RFID_COUNT; i++)
 	{
 		if (ctx->rfids[i] && (ctx->rfids[i]->fd > 0))
 		{
@@ -147,34 +173,18 @@ int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx)
 		return 0; // No input available.
 	}
 
-	for (i = 0; i < 2; i++)
+	for (i = 0; i < RFID_COUNT; i++)
 	{
 		if (ctx->rfids[i] && FD_ISSET(ctx->rfids[i]->fd, &ctx->readfs))
 		{
 			if (catsnatch_rfid_read(ctx->rfids[i]) < 0)
 			{
-
+				return -1;
 			}
 		}
 	}
 
 	return 0;
-}
-
-static void _set_maxfd(catsnatch_rfid_context_t *ctx)
-{
-	if (ctx->rfids[RFID_IN] && ctx->rfids[RFID_OUT])
-	{
-		ctx->maxfd = MAX(ctx->rfids[RFID_IN]->fd, ctx->rfids[RFID_OUT]->fd) + 1;
-	}
-	else if (ctx->rfids[RFID_IN])
-	{
-		ctx->maxfd = ctx->rfids[RFID_IN]->fd + 1;
-	}
-	else if (ctx->rfids[RFID_OUT])
-	{
-		ctx->maxfd = ctx->rfids[RFID_OUT]->fd + 1;
-	}
 }
 
 void catsnatch_rfix_ctx_set_inner(catsnatch_rfid_context_t *ctx, catsnatch_rfid_t *rfid)
@@ -191,48 +201,65 @@ void catsnatch_rfid_ctx_set_outter(catsnatch_rfid_context_t * ctx, catsnatch_rfi
 	_set_maxfd(ctx);
 }
 
+int catsnatch_rfid_write_rat(catsnatch_rfid_t *rfid)
+{
+	const char buf[] = "RAT\r\n";
+	ssize_t bytes = write(rfid->fd, buf, sizeof(buf));
+
+	printf("Sent RAT request\n");
+
+	if (bytes < 0)
+	{
+		fprintf(stderr, "Failed to write %d: %s\n", errno, strerror(errno));
+		return -1;
+	}
+
+	return 0;
+}
+
 int catsnatch_rfid_open(catsnatch_rfid_t *rfid)
 {
 	struct termios options;
 	assert(rfid);
 
-	if ((rfid->fd = open(rfid->serial_path, O_RDWR | O_NOCTTY | O_NONBLOCK /*O_NDELAY*/)) < 0)
+	if ((rfid->fd = open(rfid->serial_path, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
 	{
-		fprintf(stderr, "Failed top open RFID serial port %s\n", rfid->serial_path);
+		fprintf(stderr, "Failed to open RFID serial port %s\n", rfid->serial_path);
 		return -1;
 	}
 
-	// Non-blocking.
-	//fcntl(rfid->fd, F_SETFL, FNDELAY);
+	printf("Opened serial port %s on fd %d\n", rfid->serial_path, rfid->fd);
 
-	fcntl(rfid->fd, F_SETFL, FASYNC);
+	fcntl(rfid->fd, F_SETFL, 0);
 
-	tcgetattr(rfid->fd, &options);
+	memset(&options, 0, sizeof(options));
 
 	// Set baud rate.
 	cfsetispeed(&options, B9600);
 	cfsetospeed(&options, B9600);
 
-	/*
-	// Set the Charactor size
-	options.c_cflag &= ~CSIZE; // Mask the character size bits.
-	options.c_cflag |= CS8;    // Select 8 data bits.
-	*/
-	// Set parity - No Parity (8N1).
-	options.c_cflag &= ~PARENB;
-	options.c_cflag &= ~CSTOPB;
-	options.c_cflag &= ~CSIZE;
-	options.c_cflag |= CS8;
+	options.c_iflag = 0;
+    options.c_oflag = 0; // Raw output.
+    options.c_cflag = CS8 | CREAD | CLOCAL;
+    options.c_lflag = 0;
+    //options.c_lflag |= ICANON;
 
-	options.c_oflag = 0; // Raw output.
-	options.c_lflag = ICANON; // Cannonical processing. Disable echo, and don't send signals.
-
-	options.c_iflag = IGNPAR // Ignore bytes with parity error.
-					| ICRNL; // Convert carriage return to newline.
+	options.c_cc[VTIME]	= 0;
+	options.c_cc[VMIN]	= 1; //strlen(EXAMPLE_RFID_STR);
 
 	// Flush the line and set the options.
 	tcflush(rfid->fd, TCIFLUSH);
 	tcsetattr(rfid->fd, TCSANOW, &options);
+
+	// Set the reader in RAT mode.
+	if (catsnatch_rfid_write_rat(rfid))
+	{
+		fprintf(stderr, "Failed to write RAT command\n");
+		catsnatch_rfid_destroy(rfid);
+		return -1;
+	}
+
+	rfid->state = CAT_CONNECTED;
 
 	return 0;
 }

@@ -105,6 +105,10 @@ add_executable(catsnatch_tester ${PROG_SRC})
 add_dependencies(catsnatch_tester catsnatch)
 target_link_libraries(catsnatch_tester catsnatch)
 
+# Test program for the catsnatch rfid readers.
+set(RFID_SRC catsnatch_rfid_tester.c catsnatch_rfid.c)
+add_executable(catsnatch_rfid_tester ${RFID_SRC})
+
 # Capture program for the catsnacher.
 set(GRABBER_SRC 
 	catsnatch_grabber.c 
