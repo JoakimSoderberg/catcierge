@@ -187,14 +187,14 @@ int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx)
 	return 0;
 }
 
-void catsnatch_rfix_ctx_set_inner(catsnatch_rfid_context_t *ctx, catsnatch_rfid_t *rfid)
+void catsnatch_rfid_ctx_set_inner(catsnatch_rfid_context_t *ctx, catsnatch_rfid_t *rfid)
 {
 	assert(ctx);
 	ctx->rfids[RFID_IN] = rfid;
 	_set_maxfd(ctx);
 }
 
-void catsnatch_rfid_ctx_set_outter(catsnatch_rfid_context_t * ctx, catsnatch_rfid_t *rfid)
+void catsnatch_rfid_ctx_set_outer(catsnatch_rfid_context_t * ctx, catsnatch_rfid_t *rfid)
 {
 	assert(ctx);
 	ctx->rfids[RFID_OUT] = rfid;

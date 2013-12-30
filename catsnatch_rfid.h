@@ -56,8 +56,8 @@ typedef struct catsnatch_rfid_context_s
 int catsnatch_rfid_init(const char *name, catsnatch_rfid_t *rfid, const char *serial_path, catsnatch_rfid_read_f read_cb);
 void catsnatch_rfid_destroy(catsnatch_rfid_t *rfid);
 int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx);
-void catsnatch_rfix_ctx_set_inner(catsnatch_rfid_context_t *ctx, catsnatch_rfid_t *rfid);
-void catsnatch_rfid_ctx_set_outter(catsnatch_rfid_context_t * ctx, catsnatch_rfid_t *rfid);
+void catsnatch_rfid_ctx_set_inner(catsnatch_rfid_context_t *ctx, catsnatch_rfid_t *rfid);
+void catsnatch_rfid_ctx_set_outer(catsnatch_rfid_context_t * ctx, catsnatch_rfid_t *rfid);
 int catsnatch_rfid_open(catsnatch_rfid_t *rfid);
 int catsnatch_rfid_write_rat(catsnatch_rfid_t *rfid);
 

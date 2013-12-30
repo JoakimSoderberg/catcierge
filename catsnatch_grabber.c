@@ -9,6 +9,9 @@
 #include <time.h>
 #include "catsnatch_gpio.h"
 #include <stdarg.h>
+#ifdef WITH_RFID
+#include "catsnatch_rfid.h"
+#endif // WITH_RFID
 
 #define PIBORG1	4
 #define PIBORG2	18
@@ -36,7 +39,7 @@ int lockout = 0;
 double lockout_elapsed = 0.0;
 struct timeval lockout_start = {0, 0};
 
-// Consecutive matches decide lockout status.
+// Consecutive matches decides lockout status.
 int matches[4];
 #define MATCH_MAX_COUNT (sizeof(matches) / sizeof(matches[0]))
 int match_count = 0;
@@ -58,6 +61,33 @@ struct timeval start;
 struct timeval end;
 unsigned int frames = 0;
 double elapsed = 0.0;
+
+#ifdef WITH_RFID
+char *rfid_inner_path;
+char *rfid_outer_path;
+catsnatch_rfid_t rfid_in;
+catsnatch_rfid_t rfid_out;
+catsnatch_rfid_context_t rfid_ctx;
+
+typedef enum rfid_direction_s
+{
+	RFID_DIR_UNKNOWN = -1,
+	RFID_DIR_IN = 0,
+	RFID_DIR_OUT = 1
+} rfid_direction_t;
+
+typedef struct rfid_match_s
+{
+	int triggered;
+	char data[128];
+	int incomplete;
+	const char *time_str;
+} rfid_match_t;
+
+int rfid_direction = RFID_DIR_UNKNOWN;
+rfid_match_t rfid_in_match;
+rfid_match_t rfid_out_match;
+#endif // WITH_RFID
 
 static char *get_time_str_fmt(char *time_str, size_t len, const char *fmt)
 {
@@ -164,7 +194,7 @@ fail:
 static void save_images()
 {
 	int i;
-	
+
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
 		CATLOG("Saving image %s\n", match_images[i].path);
@@ -234,6 +264,12 @@ static int enough_time_since_last_match()
 		CATLOG("End of match wait...\n");
 		match_start.tv_sec = 0;
 		match_start.tv_usec = 0;
+
+		#ifdef WITH_RFID
+		memset(&rfid_in_match, 0, sizeof(rfid_in_match));
+		memset(&rfid_out_match, 0, sizeof(rfid_out_match));
+		rfid_direction = RFID_DIR_UNKNOWN;
+		#endif // WITH_RFID
 
 		if (saveimg)
 		{
@@ -337,9 +373,75 @@ static void parse_cmdargs(int argc, char **argv)
 			}
 		}
 
+		if (!strcmp(argv[i], "--rfid_in"))
+		{
+			if (argc >= (i + 1))
+			{
+				i++;
+				rfid_inner_path = argv[i];
+				continue;
+			}
+		}
+
+		if (!strcmp(argv[i], "--rfid_out"))
+		{
+			if (argc >= (i + 1))
+			{
+				i++;
+				rfid_outer_path = argv[i];
+				continue;
+			}
+		}
+
 		snout_path = argv[i];
 	}
 }
+
+#ifdef WITH_RFID
+
+void rfid_set_direction(rfid_match_t *current, rfid_match_t *other, 
+						rfid_direction_t dir, const char *dir_str, catsnatch_rfid_t *rfid, 
+						int incomplete, const char *data)
+{
+	CATLOG("%s RFID: %s%s\n", rfid->name, data, incomplete ? " (incomplete)": "");
+
+	// Update the match if we get a complete tag.
+	if (current->incomplete &&  (strlen(data) > strlen(current->data)))
+	{
+		strcpy(current->data, data);
+		current->incomplete = incomplete;
+	}
+
+	// If we have already triggered this reader
+	// then don't set the direction again.
+	// (Since this could screw things up).
+	if (current->triggered)
+		return;
+
+	// The other reader triggered first so we know the direction.
+	if (other->triggered)
+	{
+		rfid_direction = dir;
+		CATLOG("%s RFID: Direction %s\n", rfid->name, dir_str);
+	}
+
+	current->incomplete = incomplete;
+	current->triggered = 1;
+	current->incomplete = incomplete;
+	strcpy(current->data, data);
+}
+
+void rfid_inner_read_cb(catsnatch_rfid_t *rfid, int incomplete, const char *data)
+{
+	rfid_set_direction(&rfid_in_match, &rfid_out_match, RFID_DIR_IN, "IN", rfid, incomplete, data);
+}
+
+void rfid_outer_read_cb(catsnatch_rfid_t *rfid, int incomplete, const char *data)
+{
+	rfid_set_direction(&rfid_out_match, &rfid_in_match, RFID_DIR_OUT, "OUT", rfid, incomplete, data);
+
+}
+#endif // WITH_RFID
 
 int main(int argc, char **argv)
 {
@@ -364,6 +466,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, " --show_fps             Show FPS.\n");
 		fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
 		fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
+		#ifdef WITH_RFID
+		fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
+		fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
+		#endif // WITH_RFID
 		fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
 		fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
 		fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n\n");
@@ -391,7 +497,27 @@ int main(int argc, char **argv)
 	printf("Highlight match: %d\n", highlight_match);
 	printf("      Lock time: %d seconds\n", lockout_time);
 	printf("  Match timeout: %d seconds\n", match_time);
+	#ifdef WITH_RFID
+	printf("     Inner RFID: %s\n", rfid_inner_path);
+	printf("     Outer RFID: %s\n", rfid_outer_path);
+	#endif // WITH_RFID
 	printf("--------------------------------------------------------------------------------\n");
+
+	#ifdef WITH_RFID
+	if (rfid_inner_path)
+	{
+		catsnatch_rfid_init("Inner", &rfid_in, rfid_inner_path, rfid_inner_read_cb);
+		catsnatch_rfid_ctx_set_inner(&rfid_ctx, &rfid_in);
+		catsnatch_rfid_open(&rfid_in);
+	}
+
+	if (rfid_outer_path)
+	{
+		catsnatch_rfid_init("Outer", &rfid_out, rfid_outer_path, rfid_outer_read_cb);
+		catsnatch_rfid_ctx_set_outer(&rfid_ctx, &rfid_out);
+		catsnatch_rfid_open(&rfid_out);
+	}
+	#endif // WITH_RFID
 
 	if (setup_gpio())
 	{
@@ -519,6 +645,11 @@ skiploop:
 	}
 
 	catsnatch_destroy(&ctx);
+
+	#ifdef WITH_RFID
+	catsnatch_rfid_destroy(&rfid_in);
+	catsnatch_rfid_destroy(&rfid_out);
+	#endif // WITH_RFID
 
 	return 0;
 }
