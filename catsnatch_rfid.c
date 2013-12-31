@@ -145,6 +145,18 @@ static void _set_maxfd(catsnatch_rfid_context_t *ctx)
 	ctx->maxfd = max_fd + 1;
 }
 
+int catsnatch_rfid_ctx_init(catsnatch_rfid_context_t *ctx)
+{
+	memset(ctx, 0, sizeof(catsnatch_rfid_context_t));
+	return 0;
+}
+
+int catsnatch_rfid_ctx_destroy(catsnatch_rfid_context_t *ctx)
+{
+	memset(ctx, 0, sizeof(catsnatch_rfid_context_t));
+	return 0;
+}
+
 int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx)
 {
 	int i;

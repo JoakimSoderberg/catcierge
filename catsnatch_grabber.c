@@ -504,6 +504,8 @@ int main(int argc, char **argv)
 	printf("--------------------------------------------------------------------------------\n");
 
 	#ifdef WITH_RFID
+	catsnatch_rfid_ctx_init(&ctx);
+
 	if (rfid_inner_path)
 	{
 		catsnatch_rfid_init("Inner", &rfid_in, rfid_inner_path, rfid_inner_read_cb);
@@ -650,6 +652,7 @@ skiploop:
 	#ifdef WITH_RFID
 	catsnatch_rfid_destroy(&rfid_in);
 	catsnatch_rfid_destroy(&rfid_out);
+	catsnatch_rfid_ctx_destroy(&rfid_ctx);
 	#endif // WITH_RFID
 
 	return 0;
