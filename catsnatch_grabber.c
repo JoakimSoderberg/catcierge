@@ -587,7 +587,6 @@ int main(int argc, char **argv)
 			}
 
 			CATLOG("%f %sMatch\n", match_res, (match_res >= MATCH_THRESH) ? "" : "No ");
-			should_we_lockout(match_res);
 
 			if (saveimg)
 			{
@@ -609,6 +608,8 @@ int main(int argc, char **argv)
 					match_images[match_count].img = cvCloneImage(img);
 				}
 			}
+
+			should_we_lockout(match_res);
 		}
 
 		if (show)
