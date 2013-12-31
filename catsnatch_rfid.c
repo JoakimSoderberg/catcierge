@@ -78,7 +78,7 @@ static int catsnatch_rfid_read(catsnatch_rfid_t *rfid)
 		return -1;
 	}
 
-	printf("Read %ld bytes\n", rfid->bytes_read);
+	printf("%s RFID Read %ld bytes\n", rfid->name, rfid->bytes_read);
 
 	rfid->buf[rfid->bytes_read] = '\0';
 	printf("%s\n", rfid->buf);
@@ -167,7 +167,7 @@ int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx)
 			FD_SET(ctx->rfids[i]->fd, &ctx->readfs);
 		}
 	}
-	
+
 	if (!(res = select(ctx->maxfd, &ctx->readfs, NULL, NULL, &tv)))
 	{
 		return 0; // No input available.
@@ -194,7 +194,7 @@ void catsnatch_rfid_ctx_set_inner(catsnatch_rfid_context_t *ctx, catsnatch_rfid_
 	_set_maxfd(ctx);
 }
 
-void catsnatch_rfid_ctx_set_outer(catsnatch_rfid_context_t * ctx, catsnatch_rfid_t *rfid)
+void catsnatch_rfid_ctx_set_outer(catsnatch_rfid_context_t *ctx, catsnatch_rfid_t *rfid)
 {
 	assert(ctx);
 	ctx->rfids[RFID_OUT] = rfid;

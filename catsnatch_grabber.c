@@ -541,7 +541,8 @@ int main(int argc, char **argv)
 	do
 	{
 		gettimeofday(&start, NULL);
-
+		
+		catsnatch_rfid_ctx_service(&rfid_ctx);
 		img = raspiCamCvQueryFrame(capture);
 
 		// Skip all matching in lockout.
