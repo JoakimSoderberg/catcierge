@@ -3,6 +3,7 @@
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <catsnatch_config.h>
 #include "catsnatch.h"
 #include "RaspiCamCV.h"
 #include <signal.h>
@@ -12,6 +13,10 @@
 #ifdef WITH_RFID
 #include "catsnatch_rfid.h"
 #endif // WITH_RFID
+
+#ifdef WITH_INI
+#include "alini/alini.h"
+#endif
 
 #define PIBORG1	4
 #define PIBORG2	18
@@ -25,8 +30,13 @@
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 30		// How long to wait after a match try before we match again.
 
+int in_loop = 0;
 char *snout_path = NULL;
 char *output_path = NULL;
+#ifdef WITH_INI
+char *config_path = NULL;
+alini_parser_t *parser;
+#endif // WITH_INI
 int running = 1;	// Main loop is running (SIGINT will kill it).
 int show = 0;		// Show the output video (X11 only).
 int show_fps = 1;	// Show FPS in log output.
@@ -137,6 +147,10 @@ static void sig_handler(int signo)
 	{
 		CATLOG("Received SIGINT, stopping...\n");
 		running = 0;
+
+		// Force a quit if we're not in the loop.
+		if (!in_loop)
+			exit(0);
 	}
 }
 
@@ -322,96 +336,174 @@ static void calculate_fps()
 	}
 }
 
-static void parse_cmdargs(int argc, char **argv)
+static int parse_setting(const char *key, char *value)
+{
+	if (!strcmp(key, "show"))
+	{
+		show = 1;
+		return 0;
+	}
+
+	if (!strcmp(key, "save"))
+	{
+		saveimg = 1;
+		return 0;
+	}
+
+	if (!strcmp(key, "highlight"))
+	{
+		highlight_match = 1;
+		return 0;
+	}
+
+	if (!strcmp(key, "show_fps"))
+	{
+		show_fps = 1;
+		return 0;
+	}
+
+	if (!strcmp(key, "lockout"))
+	{
+		if (value)
+		{
+			lockout_time = atoi(value);
+		}
+		else
+		{
+			lockout_time = DEFAULT_LOCKOUT_TIME;
+		}
+
+		return 0;
+	}
+
+	if (!strcmp(key, "matchtime"))
+	{
+		if (value)
+		{
+			match_time = atoi(value);
+		}
+		else
+		{
+			match_time = DEFAULT_MATCH_WAIT;
+		}
+
+		return 0;
+	}
+
+	if (!strcmp(key, "output"))
+	{
+		if (value)
+		{
+			output_path = value;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "rfid_in"))
+	{
+		if (value)
+		{
+			rfid_inner_path = value;
+			return 0;
+		}
+		
+		return -1;
+	}
+
+	if (!strcmp(key, "rfid_out"))
+	{
+		if (value)
+		{
+			rfid_outer_path = value;
+			return 0;
+		}
+		
+		return -1;
+	}
+
+	if (!strcmp(key, "snout_path"))
+	{
+		if (value)
+		{
+			printf("Setting snout_path to %s\n", value);
+			snout_path = value;
+		}
+		return 0;
+	}
+
+	return -1;
+}
+
+#ifdef WITH_INI
+
+int temp_config_count = 0;
+#define MAX_TEMP_CONFIG_VALUES 128
+char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
+
+static void alini_cb(alini_parser_t *parser, char *section, char *key, char *value)
+{
+	char *value_cpy = NULL;
+	//printf("Parse config: %s = %s\n", key, value);
+
+	// We must make a copy of the string and keep it so that
+	// it won't dissapear after the parser has done its thing.
+	if (temp_config_count >= MAX_TEMP_CONFIG_VALUES)
+	{
+		fprintf(stderr, "Max %d config file values allowed.\n", MAX_TEMP_CONFIG_VALUES);
+		return;
+	}
+
+	value_cpy = strdup(value);
+	temp_config_values[temp_config_count++] = value_cpy; 
+
+	if (parse_setting(key, value_cpy) < 0)
+	{
+		fprintf(stderr, "Failed to parse setting in config: %s\n", key);
+	}
+}
+
+static void config_free_temp_strings()
 {
 	int i;
 
+	for (i = 0; i < temp_config_count; i++)
+	{
+		free(temp_config_values[i]);
+		temp_config_values[i] = NULL;
+	}
+}
+#endif // WITH_INI
+
+static int parse_cmdargs(int argc, char **argv)
+{
+	int ret = 0;
+	int i;
+	char *val = NULL;
+	char *key = NULL;
+
 	for (i = 1; i < argc; i++)
 	{
-		if (!strcmp(argv[i], "--show"))
+		if (!strncmp(argv[i], "--", 2))
 		{
-			show = 1;
-		}
+			key = &argv[i][2];
 
-		if (!strcmp(argv[i], "--save"))
-		{
-			saveimg = 1;
-		}
-
-		if (!strcmp(argv[i], "--highlight"))
-		{
-			highlight_match = 1;
-		}
-
-		if (!strcmp(argv[i], "--show_fps"))
-		{
-			show_fps = 1;
-		}
-
-		if (!strcmp(argv[i], "--lockout"))
-		{
 			if (argc >= (i + 1))
 			{
 				i++;
-				lockout_time = atoi(argv[i]);
-				continue;
+				val = argv[i];
 			}
-			else
+
+			if ((ret = parse_setting(key, val)) < 0)
 			{
-				lockout_time = DEFAULT_LOCKOUT_TIME;
+				fprintf(stderr, "Failed to parse command line arguments\n");
+				return ret;
 			}
 		}
-
-		if (!strcmp(argv[i], "--matchtime"))
-		{
-			if (argc >= (i + 1))
-			{
-				i++;
-				match_time = atoi(argv[i]);
-				continue;
-			}
-			else
-			{
-				match_time = DEFAULT_MATCH_WAIT;
-			}
-		}
-
-		if (!strcmp(argv[i], "--output"))
-		{
-			if (argc >= (i + 1))
-			{
-				i++;
-				output_path = argv[i];
-				continue;
-			}
-			else
-			{
-				match_time = DEFAULT_MATCH_WAIT;
-			}
-		}
-
-		if (!strcmp(argv[i], "--rfid_in"))
-		{
-			if (argc >= (i + 1))
-			{
-				i++;
-				rfid_inner_path = argv[i];
-				continue;
-			}
-		}
-
-		if (!strcmp(argv[i], "--rfid_out"))
-		{
-			if (argc >= (i + 1))
-			{
-				i++;
-				rfid_outer_path = argv[i];
-				continue;
-			}
-		}
-
-		snout_path = argv[i];
 	}
+
+	return 0;
 }
 
 #ifdef WITH_RFID
@@ -471,12 +563,22 @@ int main(int argc, char **argv)
 	int do_match = 0;
 	int i;
 	int enough_time = 0;
+	int cfg_err = -1;
 	RaspiCamCvCapture *capture = NULL;
 
-	if (argc < 2)
+	fprintf(stderr, "Catsnatch Grabber v" CATSNATCH_VERSION_STR " (C) Joakim Soderberg 2013\n");
+
+	if (
+		#ifdef WITH_INI
+			(cfg_err = alini_parser_create(&parser, "catsnatch.cfg") < 0)
+		 && (cfg_err = alini_parser_create(&parser, "/etc/catsnatch.cfg") < 0)
+		 &&
+		#endif // WITH_INI
+		(argc < 2)
+		)
 	{
-		fprintf(stderr, "Catsnatch Grabber (C) Joakim Soderberg 2013\n");
 		fprintf(stderr, "Usage: %s [options] [snout image]\n\n", argv[0]);
+		fprintf(stderr, " --snout_path <path>    Path to the snout image.\n");
 		fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
 		fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
 		fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
@@ -488,6 +590,9 @@ int main(int argc, char **argv)
 		fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
 		fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
 		#endif // WITH_RFID
+		#ifdef WITH_INI
+		fprintf(stderr, " --config <path>        Path to config file. Default is ./catsnatch.cfg or /etc/catsnatch.cfg\n");
+		#endif // WITH_INI
 		fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
 		fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
 		fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n\n");
@@ -499,16 +604,46 @@ int main(int argc, char **argv)
 		CATERR("Failed to set SIGINT handler\n");
 	}
 
-	parse_cmdargs(argc, argv);
+	#ifdef WITH_INI
+	// Parse once first so we can load the config path if it's missing.
+	// We parse again later so that command line options override the config.
+	if (cfg_err < 0)
+	{
+		if (parse_cmdargs(argc, argv))
+		{
+			return -1;
+		}
 
-	if (!snout_path)
+		if (cfg_err = alini_parser_create(&parser, config_path))
+		{
+			fprintf(stderr, "Failed to open config %s\n", config_path);
+			return -1;
+		}
+	}
+
+	if (!cfg_err)
+	{
+		alini_parser_setcallback_foundkvpair(parser, alini_cb);
+		alini_parser_start(parser);
+	}
+	#endif // WITH_INI
+
+	if (parse_cmdargs(argc, argv))
+	{
+		return -1;
+	}
+
+	if (!snout_path || !snout_path[0])
 	{
 		snout_path = "snout.png";
 	}
 
 	if (output_path)
 	{
-		system("mkdir -p %s", output_path);
+		char cmd[1024];
+		CATLOG("Creating output directory %s\n", output_path);
+		snprintf(cmd, sizeof(cmd), "mkdir -p %s", output_path);
+		system(cmd);
 	}
 	else
 	{
@@ -531,7 +666,7 @@ int main(int argc, char **argv)
 	printf("--------------------------------------------------------------------------------\n");
 
 	#ifdef WITH_RFID
-	catsnatch_rfid_ctx_init(&ctx);
+	catsnatch_rfid_ctx_init(&rfid_ctx);
 
 	if (rfid_inner_path)
 	{
@@ -567,11 +702,18 @@ int main(int argc, char **argv)
 
 	capture = raspiCamCvCreateCameraCapture(0);
 
+	in_loop = 1;
+
 	do
 	{
 		gettimeofday(&start, NULL);
 		
-		catsnatch_rfid_ctx_service(&rfid_ctx);
+		if ((rfid_inner_path || rfid_outer_path) 
+			&& catsnatch_rfid_ctx_service(&rfid_ctx))
+		{
+			CATERR("Failed to service RFID readers\n");
+		}
+
 		img = raspiCamCvQueryFrame(capture);
 
 		// Skip all matching in lockout.
@@ -687,6 +829,15 @@ skiploop:
 
 	catsnatch_rfid_ctx_destroy(&rfid_ctx);
 	#endif // WITH_RFID
+
+	#ifdef WITH_INI
+	if (!cfg_err)
+	{
+		alini_parser_dispose(parser);
+	}
+
+	config_free_temp_strings();
+	#endif
 
 	return 0;
 }

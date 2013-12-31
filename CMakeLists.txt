@@ -1,10 +1,19 @@
 cmake_minimum_required(VERSION 2.6) 
-project(catsnatch) 
+project(catsnatch)
+
+set(CATSNATCH_VERSION_MAJOR 0)
+set(CATSNATCH_VERSION_MINOR 1)
+set(CATSNATCH_VERSION_PATCH 0)
+
+set(CATSNATCH_VERSION_STR "${CATSNATCH_VERSION_MAJOR}.${CATSNATCH_VERSION_MINOR}.${CATSNATCH_VERSION_PATCH}")
 
 option(WITH_INI "Build ini config file support" ON)
 option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
 option(RPI "Build stuff for raspberry parts. Otherwise only the catsnatch stuff is built." ON)
 set(RPI_USERLAND "/home/pi/dev/userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/catsnatch_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/catsnatch_config.h)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -93,10 +102,17 @@ endif()
 
 # Catsnatch lib.
 set(LIB_SRC catsnatch.c)
+
 if (WITH_RFID)
 	add_definitions(-DWITH_RFID)
 	list(APPEND LIB_SRC catsnatch_rfid.c)
 endif()
+
+if (WITH_INI)
+	add_definitions(-DWITH_INI)
+	list(APPEND LIB_SRC alini/alini.c)
+endif()
+
 add_library(catsnatch ${LIB_SRC})
 target_link_libraries(catsnatch ${LIBS})
 

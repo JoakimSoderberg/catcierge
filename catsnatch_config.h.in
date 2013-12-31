@@ -1,0 +1,8 @@
+
+#ifndef __CATSNATCH_CONFIG_H__
+#define __CATSNATCH_CONFIG_H__
+
+#cmakedefine CATSNATCH_VERSION_STR "@CATSNATCH_VERSION_STR@"
+
+#endif // __CATSNATCH_CONFIG_H__
+
