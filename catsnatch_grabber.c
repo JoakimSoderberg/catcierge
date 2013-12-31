@@ -401,6 +401,7 @@ static int parse_setting(const char *key, char *value)
 		return -1;
 	}
 
+	#ifdef WITH_RFID
 	if (!strcmp(key, "rfid_in"))
 	{
 		if (value)
@@ -422,6 +423,7 @@ static int parse_setting(const char *key, char *value)
 		
 		return -1;
 	}
+	#endif // WITH_RFID
 
 	if (!strcmp(key, "snout_path"))
 	{
@@ -577,7 +579,7 @@ int main(int argc, char **argv)
 		(argc < 2)
 		)
 	{
-		fprintf(stderr, "Usage: %s [options] [snout image]\n\n", argv[0]);
+		fprintf(stderr, "Usage: %s [options]\n\n", argv[0]);
 		fprintf(stderr, " --snout_path <path>    Path to the snout image.\n");
 		fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
 		fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
@@ -708,11 +710,13 @@ int main(int argc, char **argv)
 	{
 		gettimeofday(&start, NULL);
 		
+		#ifdef WITH_RFID
 		if ((rfid_inner_path || rfid_outer_path) 
 			&& catsnatch_rfid_ctx_service(&rfid_ctx))
 		{
 			CATERR("Failed to service RFID readers\n");
 		}
+		#endif // WITH_RFID
 
 		img = raspiCamCvQueryFrame(capture);
 
@@ -770,8 +774,11 @@ int main(int argc, char **argv)
 					get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
 					snprintf(match_images[match_count].path, 
 						sizeof(match_images[match_count].path), 
-						"%s/%smatch_%s__%d.png", 
-						output_path, (match_res >= MATCH_THRESH) ? "" : "no", time_str, match_count);
+						"%s/match_%s_%s__%d.png", 
+						output_path, 
+						(match_res >= MATCH_THRESH) ? "" : "fail", 
+						time_str, 
+						match_count);
 
 					match_images[match_count].img = cvCloneImage(img);
 				}
