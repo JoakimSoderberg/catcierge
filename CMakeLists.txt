@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.6) 
 project(catsnatch) 
 
+option(WITH_INI "Build ini config file support" ON)
 option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
 option(RPI "Build stuff for raspberry parts. Otherwise only the catsnatch stuff is built." ON)
 set(RPI_USERLAND "/home/pi/dev/userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")

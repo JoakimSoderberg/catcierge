@@ -60,5 +60,7 @@ void catsnatch_rfid_ctx_set_inner(catsnatch_rfid_context_t *ctx, catsnatch_rfid_
 void catsnatch_rfid_ctx_set_outer(catsnatch_rfid_context_t * ctx, catsnatch_rfid_t *rfid);
 int catsnatch_rfid_open(catsnatch_rfid_t *rfid);
 int catsnatch_rfid_write_rat(catsnatch_rfid_t *rfid);
+int catsnatch_rfid_ctx_init(catsnatch_rfid_context_t *ctx);
+int catsnatch_rfid_ctx_destroy(catsnatch_rfid_context_t *ctx);
 
 #endif // __CATSNATCH_RFID_H__

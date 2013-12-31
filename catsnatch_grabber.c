@@ -26,6 +26,7 @@
 #define DEFAULT_MATCH_WAIT 	 30		// How long to wait after a match try before we match again.
 
 char *snout_path = NULL;
+char *output_path = NULL;
 int running = 1;	// Main loop is running (SIGINT will kill it).
 int show = 0;		// Show the output video (X11 only).
 int show_fps = 1;	// Show FPS in log output.
@@ -375,6 +376,20 @@ static void parse_cmdargs(int argc, char **argv)
 			}
 		}
 
+		if (!strcmp(argv[i], "--output"))
+		{
+			if (argc >= (i + 1))
+			{
+				i++;
+				output_path = argv[i];
+				continue;
+			}
+			else
+			{
+				match_time = DEFAULT_MATCH_WAIT;
+			}
+		}
+
 		if (!strcmp(argv[i], "--rfid_in"))
 		{
 			if (argc >= (i + 1))
@@ -468,6 +483,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, " --show_fps             Show FPS.\n");
 		fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
 		fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
+		fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
 		#ifdef WITH_RFID
 		fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
 		fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
@@ -488,6 +504,15 @@ int main(int argc, char **argv)
 	if (!snout_path)
 	{
 		snout_path = "snout.png";
+	}
+
+	if (output_path)
+	{
+		system("mkdir -p %s", output_path);
+	}
+	else
+	{
+		output_path = ".";
 	}
 
 	printf("--------------------------------------------------------------------------------\n");
@@ -603,7 +628,8 @@ int main(int argc, char **argv)
 					get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
 					snprintf(match_images[match_count].path, 
 						sizeof(match_images[match_count].path), 
-						"%smatch_%s__%d.png", (match_res >= MATCH_THRESH) ? "" : "no", time_str, match_count);
+						"%s/%smatch_%s__%d.png", 
+						output_path, (match_res >= MATCH_THRESH) ? "" : "no", time_str, match_count);
 
 					match_images[match_count].img = cvCloneImage(img);
 				}
