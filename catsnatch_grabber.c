@@ -243,6 +243,13 @@ static void should_we_lockout(double match_res)
 		}
 
 		match_count = 0;
+
+		// Now we can save the images without slowing
+		// down the matching FPS.
+		if (saveimg)
+		{
+			save_images();
+		}
 	}
 }
 
@@ -270,11 +277,6 @@ static int enough_time_since_last_match()
 		memset(&rfid_out_match, 0, sizeof(rfid_out_match));
 		rfid_direction = RFID_DIR_UNKNOWN;
 		#endif // WITH_RFID
-
-		if (saveimg)
-		{
-			save_images();
-		}
 
 		return 1;
 	}
@@ -459,7 +461,7 @@ int main(int argc, char **argv)
 	if (argc < 2)
 	{
 		fprintf(stderr, "Catsnatch Grabber (C) Joakim Soderberg 2013\n");
-		fprintf(stderr, "Usage: %s [--lockout <seconds>] [--show] [snout image]\n\n", argv[0]);
+		fprintf(stderr, "Usage: %s [options] [snout image]\n\n", argv[0]);
 		fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
 		fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
 		fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
@@ -498,8 +500,8 @@ int main(int argc, char **argv)
 	printf("      Lock time: %d seconds\n", lockout_time);
 	printf("  Match timeout: %d seconds\n", match_time);
 	#ifdef WITH_RFID
-	printf("     Inner RFID: %s\n", rfid_inner_path);
-	printf("     Outer RFID: %s\n", rfid_outer_path);
+	printf("     Inner RFID: %s\n", rfid_inner_path ? rfid_inner_path : "-");
+	printf("     Outer RFID: %s\n", rfid_outer_path ? rfid_outer_path : "-");
 	#endif // WITH_RFID
 	printf("--------------------------------------------------------------------------------\n");
 
@@ -560,11 +562,6 @@ int main(int argc, char **argv)
 				CATLOG("End of lockout!\n");
 				lockout = 0;
 				do_unlock();
-
-				if (saveimg)
-				{
-					save_images();
-				}
 			}
 
 			goto skiploop;
@@ -589,7 +586,7 @@ int main(int argc, char **argv)
 				goto skiploop;
 			}
 
-			CATLOG("%f %sMatch\n", match_res, (match_res >= MATCH_THRESH) ? "!!!!!!!" : "No ");
+			CATLOG("%f %sMatch\n", match_res, (match_res >= MATCH_THRESH) ? "" : "No ");
 			should_we_lockout(match_res);
 
 			if (saveimg)
@@ -601,6 +598,7 @@ int main(int argc, char **argv)
 				}
 
 				// Save match image.
+				// (We don't write to disk yet, that will slow down the matcing).
 				if (saveimg)
 				{
 					get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
@@ -650,8 +648,16 @@ skiploop:
 	catsnatch_destroy(&ctx);
 
 	#ifdef WITH_RFID
-	catsnatch_rfid_destroy(&rfid_in);
-	catsnatch_rfid_destroy(&rfid_out);
+	if (rfid_inner_path)
+	{
+		catsnatch_rfid_destroy(&rfid_in);
+	}
+
+	if (rfid_outer_path)
+	{
+		catsnatch_rfid_destroy(&rfid_out);
+	}
+
 	catsnatch_rfid_ctx_destroy(&rfid_ctx);
 	#endif // WITH_RFID
 

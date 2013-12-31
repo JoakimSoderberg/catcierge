@@ -218,7 +218,7 @@ int catsnatch_rfid_write_rat(catsnatch_rfid_t *rfid)
 	const char buf[] = "RAT\r\n";
 	ssize_t bytes = write(rfid->fd, buf, sizeof(buf));
 
-	printf("Sent RAT request\n");
+	printf("%s RFID Reader: Sent RAT request\n", rfid->name);
 
 	if (bytes < 0)
 	{
