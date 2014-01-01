@@ -647,7 +647,7 @@ int main(int argc, char **argv)
 	printf("Settings:\n");
 	printf("--------------------------------------------------------------------------------\n");
 	printf("    Snout image: %s\n", snout_path);
-	printf("Match threshold: %f\n", match_threshold);
+	printf("Match threshold: %.2f\n", match_threshold);
 	printf("     Show video: %d\n", show);
 	printf("   Save matches: %d\n", saveimg);
 	printf("Highlight match: %d\n", highlight_match);
