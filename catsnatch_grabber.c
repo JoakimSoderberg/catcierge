@@ -404,7 +404,7 @@ static void should_we_rfid_lockout(double last_match_time)
 			if (rfid_inner_path && rfid_outer_path)
 			{
 				// Only require one of the readers to have a correct read.
-				do_rfid_lockout = !(rfid_in_match.is_allowed || rfid_out_match.is_allowed);
+				do_rfid_lockout = !(rfid_in_match.is_allowed || rfid_out_match.is_allowed);
 			}
 			else if (rfid_inner_path)
 			{
@@ -518,24 +518,28 @@ static int parse_setting(const char *key, char *value)
 	if (!strcmp(key, "show"))
 	{
 		show = 1;
+		if (value) show = atoi(value);
 		return 0;
 	}
 
 	if (!strcmp(key, "save"))
 	{
 		saveimg = 1;
+		if (value) saveimg = atoi(value);
 		return 0;
 	}
 
 	if (!strcmp(key, "highlight"))
 	{
 		highlight_match = 1;
+		if (value)highlight_match = atoi(value);
 		return 0;
 	}
 
 	if (!strcmp(key, "show_fps"))
 	{
 		show_fps = 1;
+		if (value) show_fps = atoi(value);
 		return 0;
 	}
 
@@ -632,6 +636,7 @@ static int parse_setting(const char *key, char *value)
 	if (!strcmp(key, "rfid_lock"))
 	{
 		lock_on_invalid_rfid = 1;
+		if (value) lock_on_invalid_rfid = atoi(value);
 		return 0;
 	}
 	#endif // WITH_RFID
@@ -789,7 +794,7 @@ static int parse_cmdargs(int argc, char **argv)
 					val = argv[i];	
 				}
 			}
-			printf("Key = %s\n", key);
+
 			if ((ret = parse_setting(key, val)) < 0)
 			{
 				fprintf(stderr, "Failed to parse command line arguments\n");
