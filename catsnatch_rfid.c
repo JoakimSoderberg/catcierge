@@ -11,6 +11,7 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include "catsnatch_rfid.h"
+#include "catsnatch_log.h"
 
 #define _POSIX_SOURCE 1 // POSIX compliant source.
 

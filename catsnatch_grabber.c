@@ -14,27 +14,37 @@
 #include "catsnatch_rfid.h"
 #endif // WITH_RFID
 
+#include "catsnatch_log.h"
+
+#define CATLOGFPS(fmt, ...) { if (show_fps) log_print(stdout, "%d fps  " fmt, fps, ##__VA_ARGS__); else CATLOG(fmt, ##__VA_ARGS__); }
+#define CATERRFPS(fmt, ...) { if (show_fps) log_print(stderr, "%d fps  " fmt, fps, ##__VA_ARGS__); else CATLOG(fmt, ##__VA_ARGS__); }
+
 #ifdef WITH_INI
 #include "alini/alini.h"
 #endif
 
+//
+// Piborg Picoborg pins.
+// (For turning on Solenoids and other 12V-20V appliances.)
+// http://www.piborg.com/picoborg
+//
 #define PIBORG1	4
 #define PIBORG2	18
 #define PIBORG3	8
 #define PIBORG4	7
 
-#define DOOR_PIN		PIBORG1
-#define BACKLIGHT_PIN	PIBORG2
+#define DOOR_PIN		PIBORG1		// Pin for the solenoid that locks the door.
+#define BACKLIGHT_PIN	PIBORG2		// Pin that turns on the backlight.
 
-#define MATCH_THRESH 0.8			// The threshold signifying a good match returned by catsnatch_match.
+#define DEFAULT_MATCH_THRESH 0.8	// The threshold signifying a good match returned by catsnatch_match.
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 30		// How long to wait after a match try before we match again.
 
-int in_loop = 0;
-char *snout_path = NULL;
-char *output_path = NULL;
+int in_loop = 0;			// Only used for ctrl+c (SIGINT) handler.
+char *snout_path = NULL;	// Path to the snout image we should match against.
+char *output_path = NULL;	// Output directory for match images.
 #ifdef WITH_INI
-char *config_path = NULL;
+char *config_path = NULL;	// Configuraton path.
 alini_parser_t *parser;
 #endif // WITH_INI
 int running = 1;	// Main loop is running (SIGINT will kill it).
@@ -43,6 +53,7 @@ int show_fps = 1;	// Show FPS in log output.
 int saveimg = 1;	// Save match images to disk.
 int highlight_match = 0; // Highlight the match in saved images.
 struct timeval now = {0, 0};
+float match_threshold = DEFAULT_MATCH_THRESH;
 
 // Lockout (when there's an invalid match).
 int lockout_time = DEFAULT_LOCKOUT_TIME;
@@ -95,57 +106,16 @@ typedef struct rfid_match_s
 	const char *time_str;
 } rfid_match_t;
 
-int rfid_direction = RFID_DIR_UNKNOWN;
-rfid_match_t rfid_in_match;
-rfid_match_t rfid_out_match;
+int rfid_direction = RFID_DIR_UNKNOWN;	// Direction that is determined based on which RFID reader gets triggered first.
+rfid_match_t rfid_in_match;				// Match struct for the inner RFID reader.
+rfid_match_t rfid_out_match;			// Match struct for the outer RFID reader.
 #endif // WITH_RFID
-
-static char *get_time_str_fmt(char *time_str, size_t len, const char *fmt)
-{
-	struct tm *tm;
-	time_t t;
-
-	t = time(NULL);
-	tm = localtime(&t);
-
-	strftime(time_str, len, fmt, tm);
-
-	return time_str;
-}
-
-static char *get_time_str(char *time_str, size_t len)
-{
-	return get_time_str_fmt(time_str, len, "%Y-%m-%d %H:%M:%S");
-}
-
-static void log_print(FILE *fd, const char *fmt, ...)
-{
-	char time_str[256];
-	va_list ap;
-
-	get_time_str(time_str, sizeof(time_str));
-
-	va_start(ap, fmt);
-	if (show_fps)
-	{
-		fprintf(fd, "[%s] %d fps  ", time_str, fps);
-	}
-	else
-	{
-		fprintf(fd, "[%s]  ", time_str);
-	}
-	vprintf(fmt, ap);
-	va_end(ap);
-}
-
-#define CATLOG(fmt, ...) log_print(stdout, fmt, ##__VA_ARGS__)
-#define CATERR(fmt, ...) log_print(stderr, fmt, ##__VA_ARGS__)
 
 static void sig_handler(int signo)
 {
 	if (signo == SIGINT)
 	{
-		CATLOG("Received SIGINT, stopping...\n");
+		CATLOGFPS("Received SIGINT, stopping...\n");
 		running = 0;
 
 		// Force a quit if we're not in the loop.
@@ -177,14 +147,14 @@ static int setup_gpio()
 	// Set export for pins.
 	if (gpio_export(DOOR_PIN) || gpio_set_direction(DOOR_PIN, OUT))
 	{
-		CATERR("Failed to export and set direction for door pin\n");
+		CATERRFPS("Failed to export and set direction for door pin\n");
 		ret = -1;
 		goto fail;
 	}
 
 	if (gpio_export(BACKLIGHT_PIN) || gpio_set_direction(BACKLIGHT_PIN, OUT))
 	{
-		CATERR("Failed to export and set direction for backlight pin\n");
+		CATERRFPS("Failed to export and set direction for backlight pin\n");
 		ret = -1;
 		goto fail;
 	}
@@ -199,7 +169,7 @@ fail:
 		// Check if we're root.
 		if (getuid() != 0)
 		{
-			CATERR("You might have to run as root!\n");
+			CATERRFPS("You might have to run as root!\n");
 		}
 	}
 
@@ -212,7 +182,7 @@ static void save_images()
 
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
-		CATLOG("Saving image %s\n", match_images[i].path);
+		CATLOGFPS("Saving image %s\n", match_images[i].path);
 		cvSaveImage(match_images[i].path, match_images[i].img, 0);
 		cvReleaseImage(&match_images[i].img);
 		match_images[i].img = NULL;
@@ -225,7 +195,7 @@ static void should_we_lockout(double match_res)
 
 	// Keep track of consecutive frames and their match status. 
 	// If 2 out of 4 are OK, keep the door open, otherwise CLOSE!
-	matches[match_count] = (int)(match_res >= MATCH_THRESH);
+	matches[match_count] = (int)(match_res >= match_threshold);
 	match_count++;
 
 	if (match_count >= MATCH_MAX_COUNT)
@@ -283,7 +253,7 @@ static int enough_time_since_last_match()
 
 	if (last_match_time >= match_time)
 	{
-		CATLOG("End of match wait...\n");
+		CATLOGFPS("End of match wait...\n");
 		match_start.tv_sec = 0;
 		match_start.tv_usec = 0;
 
@@ -315,15 +285,15 @@ static void calculate_fps()
 
 		if (lockout)
 		{
-			CATLOG("Lockout for %d more seconds.\n", (int)(lockout_time - lockout_elapsed));
+			CATLOGFPS("Lockout for %d more seconds.\n", (int)(lockout_time - lockout_elapsed));
 		}
 		else if (match_start.tv_sec)
 		{
-			CATLOG("Waiting to match again for %d more seconds.\n", (int)(match_time - last_match_time));
+			CATLOGFPS("Waiting to match again for %d more seconds.\n", (int)(match_time - last_match_time));
 		}
 		else
 		{
-			CATLOG("%c\n", spinner[spinidx++ % (sizeof(spinner) - 1)]);
+			CATLOGFPS("%c\n", spinner[spinidx++ % (sizeof(spinner) - 1)]);
 		}
 
 		printf("\033[999D");
@@ -429,8 +399,16 @@ static int parse_setting(const char *key, char *value)
 	{
 		if (value)
 		{
-			printf("Setting snout_path to %s\n", value);
 			snout_path = value;
+		}
+		return 0;
+	}
+
+	if (!strcmp(key, "threshold"))
+	{
+		if (value)
+		{
+			match_threshold = atof(value);
 		}
 		return 0;
 	}
@@ -478,6 +456,31 @@ static void config_free_temp_strings()
 }
 #endif // WITH_INI
 
+static void usage(const char *prog)
+{
+	fprintf(stderr, "Usage: %s [options]\n\n", prog);
+	fprintf(stderr, " --snout_path <path>    Path to the snout image.\n");
+	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0. Default %f\n", DEFAULT_MATCH_THRESH);
+	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
+	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
+	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
+	fprintf(stderr, " --show_fps             Show FPS.\n");
+	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
+	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
+	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
+	#ifdef WITH_RFID
+	fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
+	fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
+	#endif // WITH_RFID
+	#ifdef WITH_INI
+	fprintf(stderr, " --config <path>        Path to config file. Default is ./catsnatch.cfg or /etc/catsnatch.cfg\n");
+	#endif // WITH_INI
+	fprintf(stderr, " --help                 Show this help.\n");
+	fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
+	fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
+	fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n\n");
+}
+
 static int parse_cmdargs(int argc, char **argv)
 {
 	int ret = 0;
@@ -487,6 +490,12 @@ static int parse_cmdargs(int argc, char **argv)
 
 	for (i = 1; i < argc; i++)
 	{
+		if (!strcmp(argv[i], "--help"))
+		{
+			usage(argv[0]);
+			exit(1);
+		}
+
 		if (!strncmp(argv[i], "--", 2))
 		{
 			key = &argv[i][2];
@@ -514,7 +523,7 @@ void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 						rfid_direction_t dir, const char *dir_str, catsnatch_rfid_t *rfid, 
 						int incomplete, const char *data)
 {
-	CATLOG("%s RFID: %s%s\n", rfid->name, data, incomplete ? " (incomplete)": "");
+	CATLOGFPS("%s RFID: %s%s\n", rfid->name, data, incomplete ? " (incomplete)": "");
 
 	// Update the match if we get a complete tag.
 	if (current->incomplete &&  (strlen(data) > strlen(current->data)))
@@ -533,7 +542,7 @@ void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 	if (other->triggered)
 	{
 		rfid_direction = dir;
-		CATLOG("%s RFID: Direction %s\n", rfid->name, dir_str);
+		CATLOGFPS("%s RFID: Direction %s\n", rfid->name, dir_str);
 	}
 
 	current->incomplete = incomplete;
@@ -568,7 +577,7 @@ int main(int argc, char **argv)
 	int cfg_err = -1;
 	RaspiCamCvCapture *capture = NULL;
 
-	fprintf(stderr, "Catsnatch Grabber v" CATSNATCH_VERSION_STR " (C) Joakim Soderberg 2013\n");
+	fprintf(stderr, "Catsnatch Grabber v" CATSNATCH_VERSION_STR " (C) Joakim Soderberg 2013-2014\n");
 
 	if (
 		#ifdef WITH_INI
@@ -579,31 +588,13 @@ int main(int argc, char **argv)
 		(argc < 2)
 		)
 	{
-		fprintf(stderr, "Usage: %s [options]\n\n", argv[0]);
-		fprintf(stderr, " --snout_path <path>    Path to the snout image.\n");
-		fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
-		fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
-		fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
-		fprintf(stderr, " --show_fps             Show FPS.\n");
-		fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
-		fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
-		fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
-		#ifdef WITH_RFID
-		fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
-		fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
-		#endif // WITH_RFID
-		#ifdef WITH_INI
-		fprintf(stderr, " --config <path>        Path to config file. Default is ./catsnatch.cfg or /etc/catsnatch.cfg\n");
-		#endif // WITH_INI
-		fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
-		fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
-		fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n\n");
+		usage(argv[0]);
 		return -1;
 	}
 
 	if (signal(SIGINT, sig_handler) == SIG_ERR)
 	{
-		CATERR("Failed to set SIGINT handler\n");
+		CATERRFPS("Failed to set SIGINT handler\n");
 	}
 
 	#ifdef WITH_INI
@@ -643,7 +634,7 @@ int main(int argc, char **argv)
 	if (output_path)
 	{
 		char cmd[1024];
-		CATLOG("Creating output directory %s\n", output_path);
+		CATLOGFPS("Creating output directory %s\n", output_path);
 		snprintf(cmd, sizeof(cmd), "mkdir -p %s", output_path);
 		system(cmd);
 	}
@@ -656,6 +647,7 @@ int main(int argc, char **argv)
 	printf("Settings:\n");
 	printf("--------------------------------------------------------------------------------\n");
 	printf("    Snout image: %s\n", snout_path);
+	printf("Match threshold: %f\n", match_threshold);
 	printf("     Show video: %d\n", show);
 	printf("   Save matches: %d\n", saveimg);
 	printf("Highlight match: %d\n", highlight_match);
@@ -687,13 +679,13 @@ int main(int argc, char **argv)
 
 	if (setup_gpio())
 	{
-		CATERR("Failed to setup GPIO pins\n");
+		CATERRFPS("Failed to setup GPIO pins\n");
 		return -1;
 	}
 
 	if (catsnatch_init(&ctx, snout_path))
 	{
-		CATERR("Failed to init catsnatch lib!\n");
+		CATERRFPS("Failed to init catsnatch lib!\n");
 		return -1;
 	}
 	
@@ -714,7 +706,7 @@ int main(int argc, char **argv)
 		if ((rfid_inner_path || rfid_outer_path) 
 			&& catsnatch_rfid_ctx_service(&rfid_ctx))
 		{
-			CATERR("Failed to service RFID readers\n");
+			CATERRFPS("Failed to service RFID readers\n");
 		}
 		#endif // WITH_RFID
 
@@ -730,7 +722,7 @@ int main(int argc, char **argv)
 
 			if (lockout_elapsed >= lockout_time)
 			{
-				CATLOG("End of lockout!\n");
+				CATLOGFPS("End of lockout!\n");
 				lockout = 0;
 				do_unlock();
 			}
@@ -741,7 +733,7 @@ int main(int argc, char **argv)
 		// Wait until the middle of the frame is black.
 		if ((do_match = catsnatch_is_matchable(&ctx, img)) < 0)
 		{
-			CATERR("Failed to detect matchableness\n");
+			CATERRFPS("Failed to detect matchableness\n");
 			goto skiploop;
 		}
 
@@ -753,11 +745,11 @@ int main(int argc, char **argv)
 			// We have something to match against. 
 			if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
 			{
-				CATERR("Error when matching frame!\n");
+				CATERRFPS("Error when matching frame!\n");
 				goto skiploop;
 			}
 
-			CATLOG("%f %sMatch\n", match_res, (match_res >= MATCH_THRESH) ? "" : "No ");
+			CATLOGFPS("%f %sMatch\n", match_res, (match_res >= match_threshold) ? "" : "No ");
 
 			if (saveimg)
 			{
@@ -776,7 +768,7 @@ int main(int argc, char **argv)
 						sizeof(match_images[match_count].path), 
 						"%s/match_%s_%s__%d.png", 
 						output_path, 
-						(match_res >= MATCH_THRESH) ? "" : "fail", 
+						(match_res >= match_threshold) ? "" : "fail", 
 						time_str, 
 						match_count);
 
