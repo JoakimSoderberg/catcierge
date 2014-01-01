@@ -43,6 +43,8 @@
 int in_loop = 0;			// Only used for ctrl+c (SIGINT) handler.
 char *snout_path = NULL;	// Path to the snout image we should match against.
 char *output_path = NULL;	// Output directory for match images.
+char *log_path = NULL;		// Log path.
+FILE *log_file = NULL;		// Log file handle.
 #ifdef WITH_INI
 char *config_path = NULL;	// Configuraton path.
 alini_parser_t *parser;
@@ -100,22 +102,158 @@ typedef enum rfid_direction_s
 
 typedef struct rfid_match_s
 {
-	int triggered;
-	char data[128];
-	int incomplete;
-	const char *time_str;
+	int triggered;			// Have this rfid matcher been triggered?
+	char data[128];			// The data in the match.
+	int incomplete;			// Is the data incomplete?
+	const char *time_str;	// Time of match.
+	int is_allowed;			// Is the RFID in the allowed list?
 } rfid_match_t;
 
 int rfid_direction = RFID_DIR_UNKNOWN;	// Direction that is determined based on which RFID reader gets triggered first.
 rfid_match_t rfid_in_match;				// Match struct for the inner RFID reader.
 rfid_match_t rfid_out_match;			// Match struct for the outer RFID reader.
+char **rfid_allowed = NULL;				// The list of allowed RFID chips.
+size_t rfid_allowed_count = 0;
+int lock_on_invalid_rfid = 0;			// Should we lock when no or an invalid RFID tag is found?
+double rfid_lock_time = 0.0;			// The time after a camera match has been made until we check the RFID readers. (In seconds).
+int checked_rfid_lock = 0;				// Did we check if we should do an RFID lock during this match timeout?
+
+static int match_allowed_rfid(const char *rfid_tag)
+{
+	int i;
+
+	for (i = 0; i < rfid_allowed_count; i++)
+	{
+		if (!strcmp(rfid_tag, rfid_allowed[i]))
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static void free_rfid_allowed_list()
+{
+	int i;
+
+	for (i = 0; i < rfid_allowed_count; i++)
+	{
+		free(rfid_allowed[i]);
+		rfid_allowed[i] = NULL;
+	}
+
+	free(rfid_allowed);
+	rfid_allowed = NULL;
+}
+
+static int create_rfid_allowed_list(const char *allowed)
+{
+	int i;
+	const char *s = allowed;
+	const char *s_prev = NULL;
+	char *allowed_cpy = NULL;
+	rfid_allowed_count = 1;
+
+	if (!allowed || (strlen(allowed) == 0))
+	{
+		return -1;
+	}
+
+	while ((s = strchr(s, ',')))
+	{
+		rfid_allowed_count++;
+		s++;
+	}
+
+	if (!(rfid_allowed = (char **)calloc(rfid_allowed_count, sizeof(char *))))
+	{
+		CATERR("Out of memory\n");
+		return -1;
+	}
+
+	// strtok changes its input.
+	if (!(allowed_cpy = strdup(allowed)))
+	{
+		free(rfid_allowed);
+		rfid_allowed = NULL;
+		rfid_allowed_count = 0;
+		return -1;
+	}
+
+	s = strtok(allowed_cpy, ",");
+
+	for (i = 0; i < rfid_allowed_count; i++)
+	{
+		rfid_allowed[i] = strdup(s);
+		s = strtok(NULL, ",");
+
+		if (!s)
+			break;
+	}
+
+	free(allowed_cpy);
+
+	return 0;
+}
+
+static void rfid_reset(rfid_match_t *m)
+{
+	memset(m, 0, sizeof(rfid_match_t));
+}
+
+static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other, 
+						rfid_direction_t dir, const char *dir_str, catsnatch_rfid_t *rfid, 
+						int incomplete, const char *data)
+{
+	CATLOGFPS("%s RFID: %s%s\n", rfid->name, data, incomplete ? " (incomplete)": "");
+
+	// Update the match if we get a complete tag.
+	if (current->incomplete &&  (strlen(data) > strlen(current->data)))
+	{
+		strcpy(current->data, data);
+		current->incomplete = incomplete;
+	}
+
+	// If we have already triggered this reader
+	// then don't set the direction again.
+	// (Since this could screw things up).
+	if (current->triggered)
+		return;
+
+	// The other reader triggered first so we know the direction.
+	if (other->triggered)
+	{
+		rfid_direction = dir;
+		CATLOGFPS("%s RFID: Direction %s\n", rfid->name, dir_str);
+	}
+
+	current->incomplete = incomplete;
+	current->triggered = 1;
+	current->incomplete = incomplete;
+	strcpy(current->data, data);
+	current->is_allowed = match_allowed_rfid(current->data);
+
+	log_print_csv(log_file, "rfid, %s, %s\n", current->data, (current->is_allowed > 0)? "allowed" : "rejected");
+}
+
+static void rfid_inner_read_cb(catsnatch_rfid_t *rfid, int incomplete, const char *data)
+{
+	rfid_set_direction(&rfid_in_match, &rfid_out_match, RFID_DIR_IN, "IN", rfid, incomplete, data);
+}
+
+static void rfid_outer_read_cb(catsnatch_rfid_t *rfid, int incomplete, const char *data)
+{
+	rfid_set_direction(&rfid_out_match, &rfid_in_match, RFID_DIR_OUT, "OUT", rfid, incomplete, data);
+
+}
 #endif // WITH_RFID
 
 static void sig_handler(int signo)
 {
 	if (signo == SIGINT)
 	{
-		CATLOGFPS("Received SIGINT, stopping...\n");
+		CATLOG("Received SIGINT, stopping...\n");
 		running = 0;
 
 		// Force a quit if we're not in the loop.
@@ -189,6 +327,16 @@ static void save_images()
 	}
 }
 
+static void start_locked_state()
+{
+	do_lockout();
+	lockout = 1;
+	gettimeofday(&lockout_start, NULL);
+
+	match_start.tv_sec = 0;
+	match_start.tv_usec = 0;
+}
+
 static void should_we_lockout(double match_res)
 {
 	int i;
@@ -209,6 +357,8 @@ static void should_we_lockout(double match_res)
 
 		if (count >= (MATCH_MAX_COUNT - 2))
 		{
+			CATLOG("Everything OK! Door kept open...\n");
+
 			// Make sure the door is open.
 			do_unlock();
 
@@ -216,15 +366,16 @@ static void should_we_lockout(double match_res)
 			// match anything more we will most likely just get the
 			// body of the cat which will be a no-match.
 			gettimeofday(&match_start, NULL);
+
+			#ifdef WITH_RFID
+			// We only want to check for RFID lock once during each match timeout period.
+			checked_rfid_lock = 0;
+			#endif
 		}
 		else
 		{
-			do_lockout();
-			lockout = 1;
-			gettimeofday(&lockout_start, NULL);
-
-			match_start.tv_sec = 0;
-			match_start.tv_usec = 0;
+			CATLOG("Lockout! %d out of %d matches failed.\n", count, MATCH_MAX_COUNT);
+			start_locked_state();
 		}
 
 		match_count = 0;
@@ -237,6 +388,53 @@ static void should_we_lockout(double match_res)
 		}
 	}
 }
+
+#ifdef WITH_RFID
+static void should_we_rfid_lockout(double last_match_time)
+{
+	if (!lock_on_invalid_rfid)
+		return;
+
+	if (!checked_rfid_lock && (rfid_inner_path || rfid_outer_path))
+	{
+		if (last_match_time >= rfid_lock_time)
+		{
+			int do_rfid_lockout = 0;
+
+			if (rfid_inner_path && rfid_outer_path)
+			{
+				// Only require one of the readers to have a correct read.
+				do_rfid_lockout = !(rfid_in_match.is_allowed || rfid_out_match.is_allowed);
+			}
+			else if (rfid_inner_path)
+			{
+				do_rfid_lockout = !rfid_in_match.is_allowed;
+			}
+			else if (rfid_outer_path)
+			{
+				do_rfid_lockout = !rfid_out_match.is_allowed;
+			}
+
+			if (do_rfid_lockout)
+			{
+				CATLOG("RFID lockout!\n");
+				log_print_csv(log_file, "rfid_check, lockout\n");
+				start_locked_state();
+			}
+			else
+			{
+				CATLOG("RFID OK!\n");
+				log_print_csv(log_file, "rfid_check, ok\n");
+			}
+
+			if (rfid_inner_path) CATLOG("  %s RFID: %s\n", rfid_in.name, rfid_in_match.triggered ? rfid_in_match.data : "No tag data");
+			if (rfid_outer_path) CATLOG("  %s RFID: %s\n", rfid_out.name, rfid_out_match.triggered ? rfid_out_match.data : "No tag data");
+
+			checked_rfid_lock = 1;
+		}
+	}
+}
+#endif // WITH_RFID
 	
 static int enough_time_since_last_match()
 {
@@ -251,6 +449,15 @@ static int enough_time_since_last_match()
 	last_match_time = (now.tv_sec - match_start.tv_sec) + 
 					 ((now.tv_usec - match_start.tv_usec) / 1000000.0);
 
+	#ifdef WITH_RFID
+	// A short while after a valid match has been completed
+	// the cat should have passed both RFID readers, so we
+	// can now check if any of them found a valid RFID tag.
+	// If not, we do a lockout.
+	should_we_rfid_lockout(last_match_time);
+	#endif // WITH_RFID	
+
+	// Check if it's time to do a match again.
 	if (last_match_time >= match_time)
 	{
 		CATLOGFPS("End of match wait...\n");
@@ -258,8 +465,8 @@ static int enough_time_since_last_match()
 		match_start.tv_usec = 0;
 
 		#ifdef WITH_RFID
-		memset(&rfid_in_match, 0, sizeof(rfid_in_match));
-		memset(&rfid_out_match, 0, sizeof(rfid_out_match));
+		rfid_reset(&rfid_in_match);
+		rfid_reset(&rfid_out_match);
 		rfid_direction = RFID_DIR_UNKNOWN;
 		#endif // WITH_RFID
 
@@ -379,7 +586,7 @@ static int parse_setting(const char *key, char *value)
 			rfid_inner_path = value;
 			return 0;
 		}
-		
+
 		return -1;
 	}
 
@@ -390,8 +597,42 @@ static int parse_setting(const char *key, char *value)
 			rfid_outer_path = value;
 			return 0;
 		}
-		
+
 		return -1;
+	}
+
+	if (!strcmp(key, "rfid_allowed"))
+	{
+		if (value)
+		{
+			if (create_rfid_allowed_list(value))
+			{
+				CATERR("Failed to create RFID allowed list\n");
+				return -1;
+			}
+
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "rfid_time"))
+	{
+		if (value)
+		{
+			printf("val: %s\n", value);
+			rfid_lock_time = (double)atof(value);
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "rfid_lock"))
+	{
+		lock_on_invalid_rfid = 1;
+		return 0;
 	}
 	#endif // WITH_RFID
 
@@ -400,8 +641,10 @@ static int parse_setting(const char *key, char *value)
 		if (value)
 		{
 			snout_path = value;
+			return 0;
 		}
-		return 0;
+
+		return -1;
 	}
 
 	if (!strcmp(key, "threshold"))
@@ -410,7 +653,23 @@ static int parse_setting(const char *key, char *value)
 		{
 			match_threshold = atof(value);
 		}
+		else
+		{
+			match_threshold = DEFAULT_MATCH_THRESH;
+		}
+
 		return 0;
+	}
+
+	if (!strcmp(key, "log"))
+	{
+		if (value)
+		{
+			log_path = value;
+			return 0;
+		}
+
+		return -1;
 	}
 
 	return -1;
@@ -425,7 +684,6 @@ char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
 static void alini_cb(alini_parser_t *parser, char *section, char *key, char *value)
 {
 	char *value_cpy = NULL;
-	//printf("Parse config: %s = %s\n", key, value);
 
 	// We must make a copy of the string and keep it so that
 	// it won't dissapear after the parser has done its thing.
@@ -460,7 +718,7 @@ static void usage(const char *prog)
 {
 	fprintf(stderr, "Usage: %s [options]\n\n", prog);
 	fprintf(stderr, " --snout_path <path>    Path to the snout image.\n");
-	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0. Default %f\n", DEFAULT_MATCH_THRESH);
+	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0. Default %.1f\n", DEFAULT_MATCH_THRESH);
 	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
 	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
 	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
@@ -468,12 +726,19 @@ static void usage(const char *prog)
 	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
 	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
 	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
+	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
 	#ifdef WITH_RFID
 	fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
 	fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
+	fprintf(stderr, " --rfid_lock            Lock if no RFID tag present or invalid RFID tag. Default OFF.\n");
+	fprintf(stderr, " --rfid_time <seconds>  Number of seconds to wait after a valid match before the\n");
+	fprintf(stderr, "                        RFID readers are checked.\n");
+	fprintf(stderr, "                        (This is so that there is enough time for the cat to be read by both readers)\n");
+	fprintf(stderr, " --rfid_allowed <list>  A comma separated list of allowed RFID tags. Example: %s\n", EXAMPLE_RFID_STR);
 	#endif // WITH_RFID
 	#ifdef WITH_INI
 	fprintf(stderr, " --config <path>        Path to config file. Default is ./catsnatch.cfg or /etc/catsnatch.cfg\n");
+	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are the same as these options.\n");
 	#endif // WITH_INI
 	fprintf(stderr, " --help                 Show this help.\n");
 	fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
@@ -496,16 +761,35 @@ static int parse_cmdargs(int argc, char **argv)
 			exit(1);
 		}
 
+		if (!strcmp(argv[i], "--config"))
+		{
+			if (argc >= (i + 1))
+			{
+				i++;
+				config_path = argv[i];
+				continue;
+			}
+			else
+			{
+				fprintf(stderr, "No config path specified\n");
+				return -1;
+			}
+		}
+
 		if (!strncmp(argv[i], "--", 2))
 		{
 			key = &argv[i][2];
 
 			if (argc >= (i + 1))
 			{
-				i++;
-				val = argv[i];
+				// Make sure the value is not another option.
+				if (strncmp(argv[i+1], "--", 2))
+				{
+					i++;
+					val = argv[i];	
+				}
 			}
-
+			printf("Key = %s\n", key);
 			if ((ret = parse_setting(key, val)) < 0)
 			{
 				fprintf(stderr, "Failed to parse command line arguments\n");
@@ -516,52 +800,6 @@ static int parse_cmdargs(int argc, char **argv)
 
 	return 0;
 }
-
-#ifdef WITH_RFID
-
-void rfid_set_direction(rfid_match_t *current, rfid_match_t *other, 
-						rfid_direction_t dir, const char *dir_str, catsnatch_rfid_t *rfid, 
-						int incomplete, const char *data)
-{
-	CATLOGFPS("%s RFID: %s%s\n", rfid->name, data, incomplete ? " (incomplete)": "");
-
-	// Update the match if we get a complete tag.
-	if (current->incomplete &&  (strlen(data) > strlen(current->data)))
-	{
-		strcpy(current->data, data);
-		current->incomplete = incomplete;
-	}
-
-	// If we have already triggered this reader
-	// then don't set the direction again.
-	// (Since this could screw things up).
-	if (current->triggered)
-		return;
-
-	// The other reader triggered first so we know the direction.
-	if (other->triggered)
-	{
-		rfid_direction = dir;
-		CATLOGFPS("%s RFID: Direction %s\n", rfid->name, dir_str);
-	}
-
-	current->incomplete = incomplete;
-	current->triggered = 1;
-	current->incomplete = incomplete;
-	strcpy(current->data, data);
-}
-
-void rfid_inner_read_cb(catsnatch_rfid_t *rfid, int incomplete, const char *data)
-{
-	rfid_set_direction(&rfid_in_match, &rfid_out_match, RFID_DIR_IN, "IN", rfid, incomplete, data);
-}
-
-void rfid_outer_read_cb(catsnatch_rfid_t *rfid, int incomplete, const char *data)
-{
-	rfid_set_direction(&rfid_out_match, &rfid_in_match, RFID_DIR_OUT, "OUT", rfid, incomplete, data);
-
-}
-#endif // WITH_RFID
 
 int main(int argc, char **argv)
 {
@@ -594,7 +832,7 @@ int main(int argc, char **argv)
 
 	if (signal(SIGINT, sig_handler) == SIG_ERR)
 	{
-		CATERRFPS("Failed to set SIGINT handler\n");
+		CATERR("Failed to set SIGINT handler\n");
 	}
 
 	#ifdef WITH_INI
@@ -634,7 +872,7 @@ int main(int argc, char **argv)
 	if (output_path)
 	{
 		char cmd[1024];
-		CATLOGFPS("Creating output directory: \"%s\"\n", output_path);
+		CATLOG("Creating output directory: \"%s\"\n", output_path);
 		snprintf(cmd, sizeof(cmd), "mkdir -p %s", output_path);
 		system(cmd);
 	}
@@ -653,11 +891,27 @@ int main(int argc, char **argv)
 	printf("Highlight match: %d\n", highlight_match);
 	printf("      Lock time: %d seconds\n", lockout_time);
 	printf("  Match timeout: %d seconds\n", match_time);
+	printf("       Log file: %s\n", log_path ? log_path : "-");
 	#ifdef WITH_RFID
 	printf("     Inner RFID: %s\n", rfid_inner_path ? rfid_inner_path : "-");
 	printf("     Outer RFID: %s\n", rfid_outer_path ? rfid_outer_path : "-");
+	printf("Lock on no RFID: %d\n", lock_on_invalid_rfid);
+	printf(" RFID lock time: %.2f\n", rfid_lock_time);
+	printf("   Allowed RFID: %s\n", (rfid_allowed_count <= 0) ? "-" : rfid_allowed[0]);
+	for (i = 1; i < rfid_allowed_count; i++)
+	{
+		printf("                 %s\n", rfid_allowed[i]);
+	}
 	#endif // WITH_RFID
 	printf("--------------------------------------------------------------------------------\n");
+
+	if (log_path)
+	{
+		if (!(log_file = fopen(log_path, "a+")))
+		{
+			CATERR("Failed to open log file \"%s\"\n", log_path);
+		}
+	}
 
 	#ifdef WITH_RFID
 	catsnatch_rfid_ctx_init(&rfid_ctx);
@@ -679,13 +933,13 @@ int main(int argc, char **argv)
 
 	if (setup_gpio())
 	{
-		CATERRFPS("Failed to setup GPIO pins\n");
+		CATERR("Failed to setup GPIO pins\n");
 		return -1;
 	}
 
 	if (catsnatch_init(&ctx, snout_path))
 	{
-		CATERRFPS("Failed to init catsnatch lib!\n");
+		CATERR("Failed to init catsnatch lib!\n");
 		return -1;
 	}
 	
@@ -742,6 +996,8 @@ int main(int argc, char **argv)
 
 		if (do_match && enough_time)
 		{
+			int match_success;
+
 			// We have something to match against. 
 			if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
 			{
@@ -749,7 +1005,9 @@ int main(int argc, char **argv)
 				goto skiploop;
 			}
 
-			CATLOGFPS("%f %sMatch\n", match_res, (match_res >= match_threshold) ? "" : "No ");
+			match_success = (match_res >= match_threshold);
+
+			CATLOGFPS("%f %sMatch\n", match_res, match_success ? "" : "No ");
 
 			if (saveimg)
 			{
@@ -768,13 +1026,19 @@ int main(int argc, char **argv)
 						sizeof(match_images[match_count].path), 
 						"%s/match_%s_%s__%d.png", 
 						output_path, 
-						(match_res >= match_threshold) ? "" : "fail", 
+						match_success ? "" : "fail", 
 						time_str, 
 						match_count);
 
 					match_images[match_count].img = cvCloneImage(img);
 				}
 			}
+
+			// Log match to file.
+			log_print_csv(log_file, "match, %s, %f, %f, %s\n",
+				 match_success ? "success" : "failure", 
+				 match_res, match_threshold,
+				 saveimg ? match_images[match_count].path : "-");
 
 			should_we_lockout(match_res);
 		}
@@ -827,6 +1091,8 @@ skiploop:
 	}
 
 	catsnatch_rfid_ctx_destroy(&rfid_ctx);
+
+	free_rfid_allowed_list();
 	#endif // WITH_RFID
 
 	#ifdef WITH_INI
@@ -836,7 +1102,12 @@ skiploop:
 	}
 
 	config_free_temp_strings();
-	#endif
+	#endif // WITH_INI
+
+	if (log_file)
+	{
+		fclose(log_file);
+	}
 
 	return 0;
 }

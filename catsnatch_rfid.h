@@ -13,7 +13,7 @@
 #include <signal.h>
 #include <unistd.h>
 
-#define EXAMPLE_RFID_STR "999_000000001007_1_0_AEC4_000000\r\n"
+#define EXAMPLE_RFID_STR "999_000000001007" //_1_0_AEC4_000000"
 
 typedef struct catsnatch_rfid_s catsnatch_rfid_t;
 

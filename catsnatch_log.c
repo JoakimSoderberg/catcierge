@@ -31,10 +31,26 @@ void log_print(FILE *fd, const char *fmt, ...)
 	va_list ap;
 
 	get_time_str(time_str, sizeof(time_str));
+	fprintf(fd, "[%s]  ", time_str);
 
 	va_start(ap, fmt);
-	fprintf(fd, "[%s]  ", time_str);
-	vprintf(fmt, ap);
+	vfprintf(fd, fmt, ap);
+	va_end(ap);
+}
+
+void log_print_csv(FILE *fd, const char *fmt, ...)
+{
+	char time_str[256];
+	va_list ap;
+
+	if (!fd)
+		return;
+
+	get_time_str(time_str, sizeof(time_str));
+	fprintf(fd, "%s, ", time_str);
+
+	va_start(ap, fmt);
+	vfprintf(fd, fmt, ap);
 	va_end(ap);
 }
 
