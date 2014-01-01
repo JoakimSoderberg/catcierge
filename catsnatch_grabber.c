@@ -237,7 +237,7 @@ static void should_we_lockout(double match_res)
 		}
 	}
 }
-
+	
 static int enough_time_since_last_match()
 {
 	// No match has been made so it's time!
@@ -634,7 +634,7 @@ int main(int argc, char **argv)
 	if (output_path)
 	{
 		char cmd[1024];
-		CATLOGFPS("Creating output directory %s\n", output_path);
+		CATLOGFPS("Creating output directory: \"%s\"\n", output_path);
 		snprintf(cmd, sizeof(cmd), "mkdir -p %s", output_path);
 		system(cmd);
 	}

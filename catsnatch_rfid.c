@@ -52,7 +52,7 @@ void catsnatch_rfid_destroy(catsnatch_rfid_t *rfid)
 		rfid->fd = -1;
 	}
 
-	printf("Disconnected %s RFID reader (%s)\n", rfid->name, rfid->serial_path);
+	CATLOG("Disconnected %s RFID reader (%s)\n", rfid->name, rfid->serial_path);
 
 	rfid->state = CAT_DISCONNECTED;
 }
@@ -69,20 +69,18 @@ static int catsnatch_rfid_read(catsnatch_rfid_t *rfid)
 	{
 		if ((errno != EWOULDBLOCK) && (errno != EAGAIN))
 		{
-			fprintf(stderr, "Read error %d: %s\n", errno, strerror(errno));
+			CATERR("Read error %d: %s\n", errno, strerror(errno));
 			ret = -1;
 			goto fail;
 		}
 
-		fprintf(stderr, "Need more\n");
+		CATERR(stderr, "Need more\n");
 		// TODO: Add CAT_NEED_MORE state here and handle that.
 		return -1;
 	}
 
-	printf("%s RFID Read %ld bytes\n", rfid->name, rfid->bytes_read);
-
 	rfid->buf[rfid->bytes_read] = '\0';
-	printf("%s\n", rfid->buf);
+	CATLOG("%s RFID Read %ld bytes: %s\n", rfid->name, rfid->bytes_read, rfid->buf);
 
 	if (rfid->bytes_read == 0)
 	{
@@ -97,13 +95,13 @@ static int catsnatch_rfid_read(catsnatch_rfid_t *rfid)
 		errorcode = atoi(&rfid->buf[1]);
 		error_msg = catsnatch_rfid_error_str(errorcode);
 
-		fprintf(stderr, "%s RFID reader, error %d on read: %s\n", 
+		CATERR("%s RFID reader, error %d on read: %s\n", 
 				rfid->name, errorcode, error_msg);
 	}
 
 	if (rfid->state == CAT_CONNECTED)
 	{
-		printf("Started listening for cats on %s (%s)\n", rfid->name, rfid->serial_path);
+		CATLOG("Started listening for cats on %s (%s)\n", rfid->name, rfid->serial_path);
 		rfid->state = CAT_AWAITING_TAG;
 	}
 	else if (rfid->state == CAT_AWAITING_TAG)
@@ -116,12 +114,12 @@ static int catsnatch_rfid_read(catsnatch_rfid_t *rfid)
 		}
 		else
 		{
-			fprintf(stderr, "Error reading tag: %s\n", error_msg);
+			CATERR("Error reading tag: %s\n", error_msg);
 		}
 	}
 	else
 	{
-		fprintf(stderr, "Invalid state on read: %d\n", rfid->state);
+		CATERR("Invalid state on read: %d\n", rfid->state);
 	}
 
 fail:
@@ -219,11 +217,11 @@ int catsnatch_rfid_write_rat(catsnatch_rfid_t *rfid)
 	const char buf[] = "RAT\r\n";
 	ssize_t bytes = write(rfid->fd, buf, sizeof(buf));
 
-	printf("%s RFID Reader: Sent RAT request\n", rfid->name);
+	CATLOG("%s RFID Reader: Sent RAT request\n", rfid->name);
 
 	if (bytes < 0)
 	{
-		fprintf(stderr, "Failed to write %d: %s\n", errno, strerror(errno));
+		CATERR("Failed to write %d: %s\n", errno, strerror(errno));
 		return -1;
 	}
 
@@ -237,11 +235,11 @@ int catsnatch_rfid_open(catsnatch_rfid_t *rfid)
 
 	if ((rfid->fd = open(rfid->serial_path, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
 	{
-		fprintf(stderr, "Failed to open RFID serial port %s\n", rfid->serial_path);
+		CATERR("Failed to open RFID serial port %s\n", rfid->serial_path);
 		return -1;
 	}
 
-	printf("Opened serial port %s on fd %d\n", rfid->serial_path, rfid->fd);
+	CATLOG("Opened serial port %s on fd %d\n", rfid->serial_path, rfid->fd);
 
 	fcntl(rfid->fd, F_SETFL, 0);
 
@@ -267,7 +265,7 @@ int catsnatch_rfid_open(catsnatch_rfid_t *rfid)
 	// Set the reader in RAT mode.
 	if (catsnatch_rfid_write_rat(rfid))
 	{
-		fprintf(stderr, "Failed to write RAT command\n");
+		CATERR("Failed to write RAT command\n");
 		catsnatch_rfid_destroy(rfid);
 		return -1;
 	}

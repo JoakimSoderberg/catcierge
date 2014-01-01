@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <time.h>
 #include "catsnatch_log.h"
 
 char *get_time_str_fmt(char *time_str, size_t len, const char *fmt)

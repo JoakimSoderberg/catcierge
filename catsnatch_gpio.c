@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include "catsnatch_log.h"
 
 static int write_num_to_file(const char *path, int num)
 {
@@ -13,7 +14,7 @@ static int write_num_to_file(const char *path, int num)
 
 	if ((fd = open(path, O_WRONLY)) < 0)
 	{
-		fprintf(stderr, "Failed to open \"%s\"\n", path);
+		CATERR("Failed to open \"%s\"\n", path);
 		return -1;
 	}
 
@@ -21,7 +22,7 @@ static int write_num_to_file(const char *path, int num)
 	
 	if (write(fd, buf, strlen(buf)) < 0)
 	{
-		fprintf(stderr, "Failed to write \"%s\" to %s\n", buf, path);
+		CATERR("Failed to write \"%s\" to %s\n", buf, path);
 		//ret = -2;
 	}
 
@@ -34,7 +35,7 @@ int gpio_export(int pin)
 {
 	if (write_num_to_file("/sys/class/gpio/export", pin))
 	{
-		fprintf(stderr, "Failed to open GPIO export for writing\n");
+		CATERR("Failed to open GPIO export for writing\n");
 		return -1;
 	}
 
@@ -51,7 +52,7 @@ int gpio_set_direction(int pin, int direction)
 
 	if ((fd = open(path, O_WRONLY)) < 0)
 	{
-		fprintf(stderr, "Failed to open %s\n", path);
+		CATERR("Failed to open %s\n", path);
 		return -1;
 	}
 
@@ -59,7 +60,7 @@ int gpio_set_direction(int pin, int direction)
 	
 	if (write(fd, str, strlen(str)) < 0)
 	{
-		fprintf(stderr, "Failed to write \"%s\" to %s\n", str, path);
+		CATERR("Failed to write \"%s\" to %s\n", str, path);
 		//ret = -2;
 	}
 
@@ -76,7 +77,7 @@ int gpio_write(int pin, int val)
 
 	if (write_num_to_file(path, val))
 	{
-		fprintf(stderr, "Failed to open GPIO export for writing\n");
+		CATERR("Failed to open GPIO export for writing\n");
 		return -1;
 	}
 
