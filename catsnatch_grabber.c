@@ -490,9 +490,16 @@ static void should_we_rfid_lockout(double last_match_time)
 
 			if (do_rfid_lockout)
 			{
-				CATLOG("RFID lockout!\n");
-				log_print_csv(log_file, "rfid_check, lockout\n");
-				start_locked_state();
+				if (rfid_direction == RFID_DIR_OUT)
+				{
+					CATLOG("RFID lockout: Skipping since cat is going out\n");
+				}
+				else
+				{
+					CATLOG("RFID lockout!\n");
+					log_print_csv(log_file, "rfid_check, lockout\n");
+					start_locked_state();
+				}
 			}
 			else
 			{
