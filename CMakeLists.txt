@@ -133,7 +133,8 @@ add_executable(catsnatch_rfid_tester ${RFID_SRC})
 set(GRABBER_SRC 
 	catsnatch_grabber.c 
 	catsnatch_gpio.c
-	catsnatch_log.c)
+	catsnatch_log.c
+	catsnatch_util.c)
 add_executable(catsnatch_grabber ${GRABBER_SRC})
 add_dependencies(catsnatch_grabber catsnatch raspicamcv)
 target_link_libraries(catsnatch_grabber catsnatch raspicamcv)

@@ -10,9 +10,11 @@
 #include <time.h>
 #include "catsnatch_gpio.h"
 #include <stdarg.h>
+#include <errno.h>
 #ifdef WITH_RFID
 #include "catsnatch_rfid.h"
 #endif // WITH_RFID
+#include "catsnatch_util.h"
 
 #include "catsnatch_log.h"
 
@@ -40,6 +42,7 @@
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 30		// How long to wait after a match try before we match again.
 
+int show_cmd_help = 0;
 int in_loop = 0;			// Only used for ctrl+c (SIGINT) handler.
 char *snout_path = NULL;	// Path to the snout image we should match against.
 char *output_path = NULL;	// Output directory for match images.
@@ -67,17 +70,19 @@ struct timeval lockout_start = {0, 0};
 int matches[4];
 #define MATCH_MAX_COUNT (sizeof(matches) / sizeof(matches[0]))
 int match_count = 0;
-struct timeval match_start;
-int match_time = DEFAULT_MATCH_WAIT;
-double last_match_time;
+struct timeval match_start;				// The time when we started matching.
+double last_match_time;					// Time since match_start in seconds.
+int match_time = DEFAULT_MATCH_WAIT;	// Time to wait until we try to match again (if anything is in view).
 
 typedef struct match_image_s
 {
 	char path[512];
 	IplImage *img;
+	double result;
+	int success;
 } match_image_t;
 
-match_image_t match_images[MATCH_MAX_COUNT];
+match_image_t match_images[MATCH_MAX_COUNT]; // Image cache of matches.
 
 // FPS.
 unsigned int fps = 0;
@@ -85,6 +90,16 @@ struct timeval start;
 struct timeval end;
 unsigned int frames = 0;
 double elapsed = 0.0;
+
+// Command execution.
+char *match_cmd = NULL;
+char *save_img_cmd = NULL;
+char *save_imgs_cmd = NULL;
+char *match_done_cmd = NULL;
+#ifdef WITH_RFID
+char *rfid_detect_cmd = NULL;
+char *rfid_match_cmd = NULL;
+#endif // WITH_RFID
 
 #ifdef WITH_RFID
 char *rfid_inner_path;
@@ -202,6 +217,17 @@ static void rfid_reset(rfid_match_t *m)
 	memset(m, 0, sizeof(rfid_match_t));
 }
 
+static const char *rfid_get_direction_str(rfid_direction_t dir)
+{
+	switch (dir)
+	{
+		case RFID_DIR_IN: return "in";
+		case RFID_DIR_OUT: return "out";
+		case RFID_DIR_UNKNOWN: 
+		default: return "unknown";
+	}
+}
+
 static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other, 
 						rfid_direction_t dir, const char *dir_str, catsnatch_rfid_t *rfid, 
 						int incomplete, const char *data)
@@ -234,7 +260,24 @@ static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 	strcpy(current->data, data);
 	current->is_allowed = match_allowed_rfid(current->data);
 
-	log_print_csv(log_file, "rfid, %s, %s\n", current->data, (current->is_allowed > 0)? "allowed" : "rejected");
+	log_print_csv(log_file, "rfid, %s, %s\n", 
+			current->data, (current->is_allowed > 0)? "allowed" : "rejected");
+
+	// $0 = RFID reader name.
+	// $1 = RFID path.
+	// $2 = Is allowed.
+	// $3 = Is data incomplete.
+	// $4 = Tag data.
+	// $5 = Other reader triggered.
+	// $6 = Direction.
+	catsnatch_execute(rfid_detect_cmd, 
+		"%s %d %d %s %d %s",
+		rfid->name, 
+		current->is_allowed, 
+		current->incomplete, 
+		current->data,
+		other->triggered,
+		rfid_get_direction_str(rfid_direction));
 }
 
 static void rfid_inner_read_cb(catsnatch_rfid_t *rfid, int incomplete, const char *data)
@@ -314,17 +357,38 @@ fail:
 	return ret;
 }
 
-static void save_images()
+static void save_images(int match_success)
 {
+	match_image_t *m;
 	int i;
 
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
-		CATLOGFPS("Saving image %s\n", match_images[i].path);
-		cvSaveImage(match_images[i].path, match_images[i].img, 0);
-		cvReleaseImage(&match_images[i].img);
-		match_images[i].img = NULL;
+		m = &match_images[i];
+		CATLOGFPS("Saving image %s\n", m->path);
+		cvSaveImage(m->path, m->img, 0);
+		
+		// $0 = Match result.
+		// $1 = Match success.
+		// $2 = Image path (of now saved image).
+		catsnatch_execute(save_img_cmd, "%f %d %s", 
+			m->result, m->success, m->path);
+
+		cvReleaseImage(&m->img);
+		m->img = NULL;
 	}
+
+	// $0 = Match success.
+	// $1 = Image 1 path (of now saved image).
+	// $2 = Image 2 path (of now saved image).
+	// $3 = Image 3 path (of now saved image).
+	// $4 = Image 4 path (of now saved image).
+	catsnatch_execute(save_imgs_cmd, "%d %s %s %s %s",  
+		match_success,
+		match_images[0].path,
+		match_images[1].path,
+		match_images[2].path,
+		match_images[3].path);
 }
 
 static void start_locked_state()
@@ -349,6 +413,7 @@ static void should_we_lockout(double match_res)
 	if (match_count >= MATCH_MAX_COUNT)
 	{
 		int count = 0;
+		int match_success = 0;
 
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
@@ -371,6 +436,8 @@ static void should_we_lockout(double match_res)
 			// We only want to check for RFID lock once during each match timeout period.
 			checked_rfid_lock = 0;
 			#endif
+
+			match_success = 1;
 		}
 		else
 		{
@@ -378,13 +445,19 @@ static void should_we_lockout(double match_res)
 			start_locked_state();
 		}
 
+		// $0 = Match success.
+		// $1 = Successful match count.
+		// $2 = Max matches.
+		catsnatch_execute(match_done_cmd, "%d %d %d", 
+			match_success, count, match_count);
+
 		match_count = 0;
 
 		// Now we can save the images without slowing
 		// down the matching FPS.
 		if (saveimg)
 		{
-			save_images();
+			save_images(match_success);
 		}
 	}
 }
@@ -430,12 +503,29 @@ static void should_we_rfid_lockout(double last_match_time)
 			if (rfid_inner_path) CATLOG("  %s RFID: %s\n", rfid_in.name, rfid_in_match.triggered ? rfid_in_match.data : "No tag data");
 			if (rfid_outer_path) CATLOG("  %s RFID: %s\n", rfid_out.name, rfid_out_match.triggered ? rfid_out_match.data : "No tag data");
 
+			// $0 = Match success.
+			// $1 = RFID inner in use.
+			// $2 = RFID outer in use.
+			// $3 = RFID inner success.
+			// $4 = RFID outer success.
+			// $5 = RFID inner data.
+			// $6 = RFID outer data.
+			catsnatch_execute(rfid_match_cmd, 
+				"%d %d %d %d %s %s", 
+				!do_rfid_lockout,
+				(rfid_inner_path != NULL),
+				(rfid_outer_path != NULL),
+				rfid_in_match.is_allowed,
+				rfid_out_match.is_allowed,
+				rfid_in_match.data,
+				rfid_out_match.data);
+
 			checked_rfid_lock = 1;
 		}
 	}
 }
 #endif // WITH_RFID
-	
+
 static int enough_time_since_last_match()
 {
 	// No match has been made so it's time!
@@ -677,6 +767,72 @@ static int parse_setting(const char *key, char *value)
 		return -1;
 	}
 
+	if (!strcmp(key, "match_cmd"))
+	{
+		if (value)
+		{
+			match_cmd = value;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "save_img_cmd"))
+	{
+		if (value)
+		{
+			save_img_cmd = value;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "save_imgs_cmd"))
+	{
+		if (value)
+		{
+			save_imgs_cmd = value;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "match_done_cmd"))
+	{
+		if (value)
+		{
+			match_done_cmd = value;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "rfid_detect_cmd"))
+	{
+		if (value)
+		{
+			rfid_detect_cmd = value;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "rfid_match_cmd"))
+	{
+		if (value)
+		{
+			rfid_match_cmd = value;
+			return 0;
+		}
+
+		return -1;
+	}
+
 	return -1;
 }
 
@@ -732,7 +888,13 @@ static void usage(const char *prog)
 	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
 	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
 	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
+	#ifdef WITH_INI
+	fprintf(stderr, " --config <path>        Path to config file. Default is ./catsnatch.cfg or /etc/catsnatch.cfg\n");
+	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are the same as these options.\n");
+	#endif // WITH_INI
 	#ifdef WITH_RFID
+	fprintf(stderr, "\n");
+	fprintf(stderr, "RFID:\n");
 	fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
 	fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
 	fprintf(stderr, " --rfid_lock            Lock if no RFID tag present or invalid RFID tag. Default OFF.\n");
@@ -741,11 +903,54 @@ static void usage(const char *prog)
 	fprintf(stderr, "                        (This is so that there is enough time for the cat to be read by both readers)\n");
 	fprintf(stderr, " --rfid_allowed <list>  A comma separated list of allowed RFID tags. Example: %s\n", EXAMPLE_RFID_STR);
 	#endif // WITH_RFID
-	#ifdef WITH_INI
-	fprintf(stderr, " --config <path>        Path to config file. Default is ./catsnatch.cfg or /etc/catsnatch.cfg\n");
-	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are the same as these options.\n");
-	#endif // WITH_INI
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Commands:\n");
+	fprintf(stderr, "           (Note that %%0, %%1, %%2... will be replaced in the input, see --cmdhelp for details)\n");
+	#define EPRINT_CMD_HELP(fmt, ...) if (show_cmd_help) fprintf(stderr, fmt, ##__VA_ARGS__);
+	fprintf(stderr, " --match_cmd <cmd>      Command to run after a match is made.\n");
+	EPRINT_CMD_HELP("                         %%0 = [float] Match result.\n");
+	EPRINT_CMD_HELP("                         %%1 = [0/1]   Success or failure.\n");
+	EPRINT_CMD_HELP("                         %%2 = [path]  Path to where image will be saved (Not saved yet!)\n");
+	EPRINT_CMD_HELP("\n");
+	fprintf(stderr, " --save_img_cmd <cmd>   Command to run at the moment a match image is saved.\n");
+	EPRINT_CMD_HELP("                         %%0 = [float]  Match result, 0.0-1.0\n");
+	EPRINT_CMD_HELP("                         %%1 = [0/1]    Match success.\n");
+	EPRINT_CMD_HELP("                         %%2 = [string] Image path (Image is saved to disk).\n");
+	EPRINT_CMD_HELP("\n");
+	fprintf(stderr, " --save_imgs_cmd <cmd>  Command that runs when all match images have been saved to disk.\n");
+	EPRINT_CMD_HELP("                         %%0 = [0/1]    Match success.\n");
+	EPRINT_CMD_HELP("                         %%1 = [string] Image path for first match.\n");
+	EPRINT_CMD_HELP("                         %%2 = [string] Image path for second match.\n");
+	EPRINT_CMD_HELP("                         %%3 = [string] Image path for third match.\n");
+	EPRINT_CMD_HELP("                         %%4 = [string] Image path for fourth match.\n");
+	EPRINT_CMD_HELP("\n");
+	fprintf(stderr, " --match_done_cmd <cmd> Command to run when a match is done.\n");
+	EPRINT_CMD_HELP("                         %%0 = [0/1]    Match success.\n");
+	EPRINT_CMD_HELP("                         %%1 = [int]    Successful match count.\n");
+	EPRINT_CMD_HELP("                         %%2 = [int]    Max matches.\n");
+	EPRINT_CMD_HELP("\n");
+	#ifdef WITH_RFID
+	fprintf(stderr, " --rfid_detect_cmd <cmd> Command to run when one of the RFID readers detects a tag.\n");
+	EPRINT_CMD_HELP("                         %%0 = [string] RFID reader name.\n");
+	EPRINT_CMD_HELP("                         %%1 = [string] RFID path.\n");
+	EPRINT_CMD_HELP("                         %%2 = [0/1]    Is allowed.\n");
+	EPRINT_CMD_HELP("                         %%3 = [0/1]    Is data incomplete.\n");
+	EPRINT_CMD_HELP("                         %%4 = [string] Tag data.\n");
+	EPRINT_CMD_HELP("                         %%5 = [0/1]    Other reader triggered.\n");
+	EPRINT_CMD_HELP("                         %%6 = [string] Direction (in, out or uknown).\n");
+	EPRINT_CMD_HELP("\n");
+	fprintf(stderr, " --rfid_match_cmd <cmd> Command that is run when a RFID match is made.\n");
+	EPRINT_CMD_HELP("                         %%0 = Match success.\n");
+	EPRINT_CMD_HELP("                         %%1 = RFID inner in use.\n");
+	EPRINT_CMD_HELP("                         %%2 = RFID outer in use.\n");
+	EPRINT_CMD_HELP("                         %%3 = RFID inner success.\n");
+	EPRINT_CMD_HELP("                         %%4 = RFID outer success.\n");
+	EPRINT_CMD_HELP("                         %%5 = RFID inner data.\n");
+	EPRINT_CMD_HELP("                         %%6 = RFID outer data.\n");
+	fprintf(stderr, "\n");
+	#endif // WITH_RFID
 	fprintf(stderr, " --help                 Show this help.\n");
+	fprintf(stderr, " --cmdhelp              Show extra command help.\n");
 	fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
 	fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
 	fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n\n");
@@ -762,6 +967,13 @@ static int parse_cmdargs(int argc, char **argv)
 	{
 		if (!strcmp(argv[i], "--help"))
 		{
+			usage(argv[0]);
+			exit(1);
+		}
+
+		if (!strcmp(argv[i], "--cmdhelp"))
+		{
+			show_cmd_help = 1;
 			usage(argv[0]);
 			exit(1);
 		}
@@ -901,7 +1113,7 @@ int main(int argc, char **argv)
 	printf("     Inner RFID: %s\n", rfid_inner_path ? rfid_inner_path : "-");
 	printf("     Outer RFID: %s\n", rfid_outer_path ? rfid_outer_path : "-");
 	printf("Lock on no RFID: %d\n", lock_on_invalid_rfid);
-	printf(" RFID lock time: %.2f\n", rfid_lock_time);
+	printf(" RFID lock time: %.2f seconds\n", rfid_lock_time);
 	printf("   Allowed RFID: %s\n", (rfid_allowed_count <= 0) ? "-" : rfid_allowed[0]);
 	for (i = 1; i < rfid_allowed_count; i++)
 	{
@@ -1036,6 +1248,8 @@ int main(int argc, char **argv)
 						match_count);
 
 					match_images[match_count].img = cvCloneImage(img);
+					match_images[match_count].result = match_res;
+					match_images[match_count].success = match_success;
 				}
 			}
 
@@ -1044,6 +1258,13 @@ int main(int argc, char **argv)
 				 match_success ? "success" : "failure", 
 				 match_res, match_threshold,
 				 saveimg ? match_images[match_count].path : "-");
+
+			// $0 = Match result.
+			// $1 = 0/1 succes or failure.
+			// $2 = image path if saveimg is turned on.
+			catsnatch_execute(match_cmd, "%f %d %s",  
+					match_res, match_success,
+					saveimg ? match_images[match_count].path : "");
 
 			should_we_lockout(match_res);
 		}
