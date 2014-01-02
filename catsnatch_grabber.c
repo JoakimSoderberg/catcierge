@@ -5,11 +5,10 @@
 #include <stdlib.h>
 #include <catsnatch_config.h>
 #include "catsnatch.h"
-#ifdef RPI
 #include "RaspiCamCV.h"
-#endif // RPI
 #include <signal.h>
 #include <time.h>
+#include <sys/time.h>
 #include "catsnatch_gpio.h"
 #include <stdarg.h>
 #include <errno.h>
@@ -307,7 +306,7 @@ static void sig_handler(int signo)
 	}
 }
 
-static int do_lockout()
+static void do_lockout()
 {
 	if (lockout_time)
 	{
@@ -317,7 +316,7 @@ static int do_lockout()
 	gpio_write(BACKLIGHT_PIN, 1);
 }
 
-static int do_unlock()
+static void	 do_unlock()
 {
 	gpio_write(DOOR_PIN, 0);
 	gpio_write(BACKLIGHT_PIN, 1);
