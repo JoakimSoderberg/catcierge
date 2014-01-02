@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <catsnatch_config.h>
 #include "catsnatch.h"
+#ifdef RPI
 #include "RaspiCamCV.h"
+#endif // RPI
 #include <signal.h>
 #include <time.h>
 #include "catsnatch_gpio.h"
