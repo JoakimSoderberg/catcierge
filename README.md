@@ -94,3 +94,4 @@ $ ./catsnatch_rfid_tester
 [flo_control]: http://www.quantumpicture.com/Flo_Control/flo_control.htm]
 [raspicam_cv]: https://github.com/robidouille/robidouille/tree/master/raspicam_cv
 [emill_valkov]: http://www.robidouille.com/
+[rfid_cat]: http://www.priority1design.com.au/shopfront/index.php?main_page=product_info&cPath=1&products_id=23
