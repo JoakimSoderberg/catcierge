@@ -1,20 +1,20 @@
 //
-// This file is part of the Catsnatch project.
+// This file is part of the Catcierge project.
 //
 // Copyright (c) Joakim Soderberg 2013-2014
 //
-//    Catsnatch is free software: you can redistribute it and/or modify
+//    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//    Catsnatch is distributed in the hope that it will be useful,
+//    Catcierge is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Catsnatch.  If not, see <http://www.gnu.org/licenses/>.
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,12 +27,12 @@
 #include <errno.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
-#include "catsnatch_rfid.h"
-#include "catsnatch_log.h"
+#include "catcierge_rfid.h"
+#include "catcierge_log.h"
 
 #define _POSIX_SOURCE 1 // POSIX compliant source.
 
-const char *catsnatch_rfid_errors[] = 
+const char *catcierge_rfid_errors[] = 
 {
 	"Command not understood",				// ?0
 	"Tag not present",						// ?1
@@ -41,12 +41,12 @@ const char *catsnatch_rfid_errors[] =
 	"Page address invalid for this tag"		// ?4
 };
 
-const char *catsnatch_rfid_error_str(int errorcode)
+const char *catcierge_rfid_error_str(int errorcode)
 {
-	return catsnatch_rfid_errors[errorcode % (sizeof(catsnatch_rfid_errors) / sizeof(char *))];
+	return catcierge_rfid_errors[errorcode % (sizeof(catcierge_rfid_errors) / sizeof(char *))];
 }
 
-int catsnatch_rfid_init(const char *name, catsnatch_rfid_t *rfid, const char *serial_path, catsnatch_rfid_read_f read_cb)
+int catcierge_rfid_init(const char *name, catcierge_rfid_t *rfid, const char *serial_path, catcierge_rfid_read_f read_cb)
 {
 	strcpy(rfid->name, name);
 	rfid->serial_path = serial_path;
@@ -59,7 +59,7 @@ int catsnatch_rfid_init(const char *name, catsnatch_rfid_t *rfid, const char *se
 	return 0;
 }
 
-void catsnatch_rfid_destroy(catsnatch_rfid_t *rfid)
+void catcierge_rfid_destroy(catcierge_rfid_t *rfid)
 {
 	assert(rfid);
 
@@ -74,7 +74,7 @@ void catsnatch_rfid_destroy(catsnatch_rfid_t *rfid)
 	rfid->state = CAT_DISCONNECTED;
 }
 
-static int catsnatch_rfid_read(catsnatch_rfid_t *rfid)
+static int catcierge_rfid_read(catcierge_rfid_t *rfid)
 {
 	int ret = 0;
 	int is_error = 0;
@@ -110,7 +110,7 @@ static int catsnatch_rfid_read(catsnatch_rfid_t *rfid)
 	{
 		is_error = 1;
 		errorcode = atoi(&rfid->buf[1]);
-		error_msg = catsnatch_rfid_error_str(errorcode);
+		error_msg = catcierge_rfid_error_str(errorcode);
 
 		CATERR("%s RFID reader: error %d on read, %s\n", 
 				rfid->name, errorcode, error_msg);
@@ -144,7 +144,7 @@ fail:
 	return ret;
 }
 
-static void _set_maxfd(catsnatch_rfid_context_t *ctx)
+static void _set_maxfd(catcierge_rfid_context_t *ctx)
 {
 	int i;
 	int max_fd = 0;
@@ -160,19 +160,19 @@ static void _set_maxfd(catsnatch_rfid_context_t *ctx)
 	ctx->maxfd = max_fd + 1;
 }
 
-int catsnatch_rfid_ctx_init(catsnatch_rfid_context_t *ctx)
+int catcierge_rfid_ctx_init(catcierge_rfid_context_t *ctx)
 {
-	memset(ctx, 0, sizeof(catsnatch_rfid_context_t));
+	memset(ctx, 0, sizeof(catcierge_rfid_context_t));
 	return 0;
 }
 
-int catsnatch_rfid_ctx_destroy(catsnatch_rfid_context_t *ctx)
+int catcierge_rfid_ctx_destroy(catcierge_rfid_context_t *ctx)
 {
-	memset(ctx, 0, sizeof(catsnatch_rfid_context_t));
+	memset(ctx, 0, sizeof(catcierge_rfid_context_t));
 	return 0;
 }
 
-int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx)
+int catcierge_rfid_ctx_service(catcierge_rfid_context_t *ctx)
 {
 	int i;
 	int res = 0;
@@ -204,7 +204,7 @@ int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx)
 	{
 		if (ctx->rfids[i] && FD_ISSET(ctx->rfids[i]->fd, &ctx->readfs))
 		{
-			if (catsnatch_rfid_read(ctx->rfids[i]) < 0)
+			if (catcierge_rfid_read(ctx->rfids[i]) < 0)
 			{
 				return -1;
 			}
@@ -214,21 +214,21 @@ int catsnatch_rfid_ctx_service(catsnatch_rfid_context_t *ctx)
 	return 0;
 }
 
-void catsnatch_rfid_ctx_set_inner(catsnatch_rfid_context_t *ctx, catsnatch_rfid_t *rfid)
+void catcierge_rfid_ctx_set_inner(catcierge_rfid_context_t *ctx, catcierge_rfid_t *rfid)
 {
 	assert(ctx);
 	ctx->rfids[RFID_IN] = rfid;
 	_set_maxfd(ctx);
 }
 
-void catsnatch_rfid_ctx_set_outer(catsnatch_rfid_context_t *ctx, catsnatch_rfid_t *rfid)
+void catcierge_rfid_ctx_set_outer(catcierge_rfid_context_t *ctx, catcierge_rfid_t *rfid)
 {
 	assert(ctx);
 	ctx->rfids[RFID_OUT] = rfid;
 	_set_maxfd(ctx);
 }
 
-int catsnatch_rfid_write_rat(catsnatch_rfid_t *rfid)
+int catcierge_rfid_write_rat(catcierge_rfid_t *rfid)
 {
 	const char buf[] = "RAT\r\n";
 	ssize_t bytes = write(rfid->fd, buf, sizeof(buf));
@@ -244,7 +244,7 @@ int catsnatch_rfid_write_rat(catsnatch_rfid_t *rfid)
 	return 0;
 }
 
-int catsnatch_rfid_open(catsnatch_rfid_t *rfid)
+int catcierge_rfid_open(catcierge_rfid_t *rfid)
 {
 	struct termios options;
 	assert(rfid);
@@ -279,10 +279,10 @@ int catsnatch_rfid_open(catsnatch_rfid_t *rfid)
 	tcsetattr(rfid->fd, TCSANOW, &options);
 
 	// Set the reader in RAT mode.
-	if (catsnatch_rfid_write_rat(rfid))
+	if (catcierge_rfid_write_rat(rfid))
 	{
 		CATERR("%s RFID Reader: Failed to write RAT command\n", rfid->name);
-		catsnatch_rfid_destroy(rfid);
+		catcierge_rfid_destroy(rfid);
 		return -1;
 	}
 

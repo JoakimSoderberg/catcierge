@@ -1,29 +1,29 @@
 //
-// This file is part of the Catsnatch project.
+// This file is part of the Catcierge project.
 //
 // Copyright (c) Joakim Soderberg 2013-2014
 //
-//    Catsnatch is free software: you can redistribute it and/or modify
+//    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//    Catsnatch is distributed in the hope that it will be useful,
+//    Catcierge is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Catsnatch.  If not, see <http://www.gnu.org/licenses/>.
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "catsnatch.h"
+#include "catcierge.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
 #include <assert.h>
 #include <unistd.h>
 
-static int _catsnatch_prepare_img(catsnatch_t *ctx, const IplImage *src, IplImage *dst)
+static int _catcierge_prepare_img(catcierge_t *ctx, const IplImage *src, IplImage *dst)
 {
 	const IplImage *img_gray = NULL;
 	IplImage *tmp = NULL;
@@ -58,11 +58,11 @@ static int _catsnatch_prepare_img(catsnatch_t *ctx, const IplImage *src, IplImag
 	return 0;
 }
 
-int catsnatch_init(catsnatch_t *ctx, const char *snout_path)
+int catcierge_init(catcierge_t *ctx, const char *snout_path)
 {
 	IplImage *snout_prep = NULL;
 	assert(ctx);
-	memset(ctx, 0, sizeof(catsnatch_t));
+	memset(ctx, 0, sizeof(catcierge_t));
 
 	if (access(snout_path, F_OK) == -1)
 	{
@@ -92,7 +92,7 @@ int catsnatch_init(catsnatch_t *ctx, const char *snout_path)
 		return -1;
 	}
 
-	if (_catsnatch_prepare_img(ctx, snout_prep, ctx->snout))
+	if (_catcierge_prepare_img(ctx, snout_prep, ctx->snout))
 	{
 		fprintf(stderr, "Failed to prepare snout image: %s\n", snout_path);
 		return -1;
@@ -103,7 +103,7 @@ int catsnatch_init(catsnatch_t *ctx, const char *snout_path)
 	return 0;
 }
 
-void catsnatch_destroy(catsnatch_t *ctx)
+void catcierge_destroy(catcierge_t *ctx)
 {
 	assert(ctx);
 
@@ -126,7 +126,7 @@ void catsnatch_destroy(catsnatch_t *ctx)
 	}
 }
 
-double catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect)
+double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect)
 {
 	IplImage *img_cpy = NULL;
 	IplImage *img_prep = NULL;
@@ -148,7 +148,7 @@ double catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect
 		return -1;
 	}
 
-	if (_catsnatch_prepare_img(ctx, img_prep, img_cpy))
+	if (_catcierge_prepare_img(ctx, img_prep, img_cpy))
 	{
 		fprintf(stderr, "Failed to prepare match image\n");
 		cvReleaseImage(&img_cpy);
@@ -172,7 +172,7 @@ double catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect
 	return max_val;
 }
 
-int catsnatch_is_matchable(catsnatch_t *ctx, IplImage *img)
+int catcierge_is_matchable(catcierge_t *ctx, IplImage *img)
 {
 	CvSize size;
 	int w;

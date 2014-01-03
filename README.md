@@ -1,4 +1,4 @@
-Catsnatch
+Catcierge
 =========
 An image recognition and RFID cat chip solution for detecting "gifts" and
 neighbour cats for an automated cat door system. Designed for use with the
@@ -6,7 +6,7 @@ Raspberry Pi including camera board.
 
 Background
 ----------
-The Catsnatch project came about to solve the problem of our cat having the
+The Catcierge project came about to solve the problem of our cat having the
 nasty habit of delivering "gifts" to us through our cat door in the form 
 of dead, or partly dead / fully alive rodents or birds.
 
@@ -28,9 +28,9 @@ To be written.
 
 Dependencies
 ------------
-For the image recognition catsnatch users OpenCV using the 
+For the image recognition catcierge users OpenCV using the 
 [raspicam_cv library][raspicam_cv] written by [Emil Valkov][emil_valkov]
-(which is included in the catsnatch source).
+(which is included in the catcierge source).
 
 To install OpenCV:
 
@@ -50,13 +50,13 @@ $ pwd # Save this path for compiling.
 
 Compiling
 ---------
-Catsnatch uses the CMake build system.
+Catcierge uses the CMake build system.
 
 To compile on Raspbian:
 
 ```bash
 $ git clone <url>
-$ cd catsnatch
+$ cd catcierge
 $ mkdir build && cd build
 $ cmake -DRPI_USERLAND=/path/to/rpi/userland ..
 $ make
@@ -71,28 +71,28 @@ $ cmake -DRPI_USERLAND=/path/to/rpi/userland -DWITH_RFID=OFF ..
 
 Running
 -------
-The main program is named [catsnatch_grabber](catsnatch_grabber.c) which 
+The main program is named [catcierge_grabber](catcierge_grabber.c) which 
 performs all the logic of doing the image recognition, RFID detection and
 deciding if the door should be locked or not.
 
 For more help on all the settings:
 
 ```bash
-$ ./catsnatch_grabber --help
+$ ./catcierge_grabber --help
 ```
 
 To test the image recognition there is a test program 
-[catsnatch_tester](catsnatch_tester.c) that allows you to specify an image
+[catcierge_tester](catcierge_tester.c) that allows you to specify an image
 to match against.
 
 ```bash
-$ ./catsnatch_tester --snout_image /path/to/image/of/catsnout.png test_image.png
+$ ./catcierge_tester --snout_image /path/to/image/of/catsnout.png test_image.png
 ```
 
 Likewise for the RFID matching:
 
 ```bash
-$ ./catsnatch_rfid_tester
+$ ./catcierge_rfid_tester
 ```
 
 [flo_control]: http://www.quantumpicture.com/Flo_Control/flo_control.htm]

@@ -1,12 +1,12 @@
 #
-# Catsnatch CMake project
+# Catcierge CMake project
 # -----------------------
 #
 # Copyright (c) Joakim Soderberg 2013-2014
 #
-#  This file is part of Catsnatch.
+#  This file is part of Catcierge.
 #
-#    Catsnatch is free software: you can redistribute it and/or modify
+#    Catcierge is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 2 of the License, or
 #    (at your option) any later version.
@@ -20,20 +20,20 @@
 #    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 #
 cmake_minimum_required(VERSION 2.6) 
-project(catsnatch)
+project(catcierge)
 
-set(CATSNATCH_VERSION_MAJOR 0)
-set(CATSNATCH_VERSION_MINOR 1)
-set(CATSNATCH_VERSION_PATCH 0)
+set(CATCIERGE_VERSION_MAJOR 0)
+set(CATCIERGE_VERSION_MINOR 1)
+set(CATCIERGE_VERSION_PATCH 0)
 
-set(CATSNATCH_VERSION_STR "${CATSNATCH_VERSION_MAJOR}.${CATSNATCH_VERSION_MINOR}.${CATSNATCH_VERSION_PATCH}")
+set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
 
 option(WITH_INI "Build ini config file support" ON)
 option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
-option(RPI "Build stuff for raspberry parts. Otherwise only the catsnatch stuff is built." ON)
+option(RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." ON)
 set(RPI_USERLAND "/home/pi/dev/userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/catsnatch_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/catsnatch_config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/catcierge_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -120,12 +120,12 @@ else()
 	set(LIBS ${OpenCV_LIBS})
 endif()
 
-# Catsnatch lib.
-set(LIB_SRC catsnatch.c)
+# Catcierge lib.
+set(LIB_SRC catcierge.c)
 
 if (WITH_RFID)
 	add_definitions(-DWITH_RFID)
-	list(APPEND LIB_SRC catsnatch_rfid.c)
+	list(APPEND LIB_SRC catcierge_rfid.c)
 endif()
 
 if (WITH_INI)
@@ -133,40 +133,40 @@ if (WITH_INI)
 	list(APPEND LIB_SRC alini/alini.c)
 endif()
 
-add_library(catsnatch ${LIB_SRC})
-target_link_libraries(catsnatch ${LIBS})
+add_library(catcierge ${LIB_SRC})
+target_link_libraries(catcierge ${LIBS})
 
-# Test program for the catsnatch matcher.
-set(PROG_SRC catsnatch_tester.c)
-add_executable(catsnatch_tester ${PROG_SRC})
-add_dependencies(catsnatch_tester catsnatch)
-target_link_libraries(catsnatch_tester catsnatch)
+# Test program for the catcierge matcher.
+set(PROG_SRC catcierge_tester.c)
+add_executable(catcierge_tester ${PROG_SRC})
+add_dependencies(catcierge_tester catcierge)
+target_link_libraries(catcierge_tester catcierge)
 
-# Test program for the catsnatch rfid readers.
+# Test program for the catcierge rfid readers.
 if (WITH_RFID)
 	set(RFID_SRC 
-		catsnatch_rfid_tester.c 
-		catsnatch_rfid.c
-		catsnatch_log.c)
-	add_executable(catsnatch_rfid_tester ${RFID_SRC})
+		catcierge_rfid_tester.c 
+		catcierge_rfid.c
+		catcierge_log.c)
+	add_executable(catcierge_rfid_tester ${RFID_SRC})
 endif()
 
 # Capture program for the catsnacher.
 if (RPI)
 	set(GRABBER_SRC 
-		catsnatch_grabber.c 
-		catsnatch_gpio.c
-		catsnatch_log.c
-		catsnatch_util.c)
-	add_executable(catsnatch_grabber ${GRABBER_SRC})
-	add_dependencies(catsnatch_grabber catsnatch raspicamcv)
-	target_link_libraries(catsnatch_grabber catsnatch raspicamcv)
+		catcierge_grabber.c 
+		catcierge_gpio.c
+		catcierge_log.c
+		catcierge_util.c)
+	add_executable(catcierge_grabber ${GRABBER_SRC})
+	add_dependencies(catcierge_grabber catcierge raspicamcv)
+	target_link_libraries(catcierge_grabber catcierge raspicamcv)
 endif()
 
 message("------------------------------------------------------------------")
 message(" Settings:")
 message("------------------------------------------------------------------")
-message("                                 Version: v${CATSNATCH_VERSION_STR}")
+message("                                 Version: v${CATCIERGE_VERSION_STR}")
 message("          Built for Raspberry pi (-DRPI): ${RPI}")
 message("  Raspberry pi userland (-DRPI_USERLAND): ${RPI_USERLAND}")
 message("         INI Config support (-DWITH_INI): ${WITH_INI}")

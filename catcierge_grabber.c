@@ -1,40 +1,40 @@
 //
-// This file is part of the Catsnatch project.
+// This file is part of the Catcierge project.
 //
 // Copyright (c) Joakim Soderberg 2013-2014
 //
-//    Catsnatch is free software: you can redistribute it and/or modify
+//    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//    Catsnatch is distributed in the hope that it will be useful,
+//    Catcierge is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Catsnatch.  If not, see <http://www.gnu.org/licenses/>.
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <catsnatch_config.h>
-#include "catsnatch.h"
+#include <catcierge_config.h>
+#include "catcierge.h"
 #include "RaspiCamCV.h"
 #include <signal.h>
 #include <time.h>
 #include <sys/time.h>
-#include "catsnatch_gpio.h"
+#include "catcierge_gpio.h"
 #include <stdarg.h>
 #include <errno.h>
 #ifdef WITH_RFID
-#include "catsnatch_rfid.h"
+#include "catcierge_rfid.h"
 #endif // WITH_RFID
-#include "catsnatch_util.h"
+#include "catcierge_util.h"
 
-#include "catsnatch_log.h"
+#include "catcierge_log.h"
 
 #define CATLOGFPS(fmt, ...) { if (show_fps) log_print(stdout, "%d fps  " fmt, fps, ##__VA_ARGS__); else CATLOG(fmt, ##__VA_ARGS__); }
 #define CATERRFPS(fmt, ...) { if (show_fps) log_print(stderr, "%d fps  " fmt, fps, ##__VA_ARGS__); else CATLOG(fmt, ##__VA_ARGS__); }
@@ -56,7 +56,7 @@
 #define DOOR_PIN		PIBORG1		// Pin for the solenoid that locks the door.
 #define BACKLIGHT_PIN	PIBORG2		// Pin that turns on the backlight.
 
-#define DEFAULT_MATCH_THRESH 0.8	// The threshold signifying a good match returned by catsnatch_match.
+#define DEFAULT_MATCH_THRESH 0.8	// The threshold signifying a good match returned by catcierge_match.
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 30		// How long to wait after a match try before we match again.
 
@@ -122,9 +122,9 @@ char *rfid_match_cmd = NULL;
 #ifdef WITH_RFID
 char *rfid_inner_path;
 char *rfid_outer_path;
-catsnatch_rfid_t rfid_in;
-catsnatch_rfid_t rfid_out;
-catsnatch_rfid_context_t rfid_ctx;
+catcierge_rfid_t rfid_in;
+catcierge_rfid_t rfid_out;
+catcierge_rfid_context_t rfid_ctx;
 
 typedef enum rfid_direction_s
 {
@@ -247,7 +247,7 @@ static const char *rfid_get_direction_str(rfid_direction_t dir)
 }
 
 static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other, 
-						rfid_direction_t dir, const char *dir_str, catsnatch_rfid_t *rfid, 
+						rfid_direction_t dir, const char *dir_str, catcierge_rfid_t *rfid, 
 						int incomplete, const char *data)
 {
 	CATLOGFPS("%s RFID: %s%s\n", rfid->name, data, incomplete ? " (incomplete)": "");
@@ -288,7 +288,7 @@ static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 	// %4 = Tag data.
 	// %5 = Other reader triggered.
 	// %6 = Direction.
-	catsnatch_execute(rfid_detect_cmd, 
+	catcierge_execute(rfid_detect_cmd, 
 		"%s %d %d %s %d %s",
 		rfid->name, 
 		current->is_allowed, 
@@ -298,12 +298,12 @@ static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 		rfid_get_direction_str(rfid_direction));
 }
 
-static void rfid_inner_read_cb(catsnatch_rfid_t *rfid, int incomplete, const char *data)
+static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
 {
 	rfid_set_direction(&rfid_in_match, &rfid_out_match, RFID_DIR_IN, "IN", rfid, incomplete, data);
 }
 
-static void rfid_outer_read_cb(catsnatch_rfid_t *rfid, int incomplete, const char *data)
+static void rfid_outer_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
 {
 	rfid_set_direction(&rfid_out_match, &rfid_in_match, RFID_DIR_OUT, "OUT", rfid, incomplete, data);
 
@@ -389,7 +389,7 @@ static void save_images(int match_success)
 		// %0 = Match result.
 		// %1 = Match success.
 		// %2 = Image path (of now saved image).
-		catsnatch_execute(save_img_cmd, "%f %d %s", 
+		catcierge_execute(save_img_cmd, "%f %d %s", 
 			m->result, m->success, m->path);
 
 		cvReleaseImage(&m->img);
@@ -401,7 +401,7 @@ static void save_images(int match_success)
 	// %2 = Image 2 path (of now saved image).
 	// %3 = Image 3 path (of now saved image).
 	// %4 = Image 4 path (of now saved image).
-	catsnatch_execute(save_imgs_cmd, "%d %s %s %s %s",  
+	catcierge_execute(save_imgs_cmd, "%d %s %s %s %s",  
 		match_success,
 		match_images[0].path,
 		match_images[1].path,
@@ -466,7 +466,7 @@ static void should_we_lockout(double match_res)
 		// %0 = Match success.
 		// %1 = Successful match count.
 		// %2 = Max matches.
-		catsnatch_execute(match_done_cmd, "%d %d %d", 
+		catcierge_execute(match_done_cmd, "%d %d %d", 
 			match_success, count, match_count);
 
 		match_count = 0;
@@ -535,7 +535,7 @@ static void should_we_rfid_lockout(double last_match_time)
 			// %4 = RFID outer success.
 			// %5 = RFID inner data.
 			// %6 = RFID outer data.
-			catsnatch_execute(rfid_match_cmd, 
+			catcierge_execute(rfid_match_cmd, 
 				"%d %d %d %d %s %s", 
 				!do_rfid_lockout,
 				(rfid_inner_path != NULL),
@@ -914,7 +914,7 @@ static void usage(const char *prog)
 	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
 	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
 	#ifdef WITH_INI
-	fprintf(stderr, " --config <path>        Path to config file. Default is ./catsnatch.cfg or /etc/catsnatch.cfg\n");
+	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg or /etc/catcierge.cfg\n");
 	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are the same as these options.\n");
 	#endif // WITH_INI
 	#ifdef WITH_RFID
@@ -1046,7 +1046,7 @@ static int parse_cmdargs(int argc, char **argv)
 int main(int argc, char **argv)
 {
 	char time_str[256];
-	catsnatch_t ctx;
+	catcierge_t ctx;
 	IplImage* img = NULL;
 	CvRect match_rect;
 	CvScalar match_color;
@@ -1057,12 +1057,12 @@ int main(int argc, char **argv)
 	int cfg_err = -1;
 	RaspiCamCvCapture *capture = NULL;
 
-	fprintf(stderr, "Catsnatch Grabber v" CATSNATCH_VERSION_STR " (C) Joakim Soderberg 2013-2014\n");
+	fprintf(stderr, "Catcierge Grabber v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n");
 
 	if (
 		#ifdef WITH_INI
-			(cfg_err = alini_parser_create(&parser, "catsnatch.cfg") < 0)
-		 && (cfg_err = alini_parser_create(&parser, "/etc/catsnatch.cfg") < 0)
+			(cfg_err = alini_parser_create(&parser, "catcierge.cfg") < 0)
+		 && (cfg_err = alini_parser_create(&parser, "/etc/catcierge.cfg") < 0)
 		 &&
 		#endif // WITH_INI
 		(argc < 2)
@@ -1156,20 +1156,20 @@ int main(int argc, char **argv)
 	}
 
 	#ifdef WITH_RFID
-	catsnatch_rfid_ctx_init(&rfid_ctx);
+	catcierge_rfid_ctx_init(&rfid_ctx);
 
 	if (rfid_inner_path)
 	{
-		catsnatch_rfid_init("Inner", &rfid_in, rfid_inner_path, rfid_inner_read_cb);
-		catsnatch_rfid_ctx_set_inner(&rfid_ctx, &rfid_in);
-		catsnatch_rfid_open(&rfid_in);
+		catcierge_rfid_init("Inner", &rfid_in, rfid_inner_path, rfid_inner_read_cb);
+		catcierge_rfid_ctx_set_inner(&rfid_ctx, &rfid_in);
+		catcierge_rfid_open(&rfid_in);
 	}
 
 	if (rfid_outer_path)
 	{
-		catsnatch_rfid_init("Outer", &rfid_out, rfid_outer_path, rfid_outer_read_cb);
-		catsnatch_rfid_ctx_set_outer(&rfid_ctx, &rfid_out);
-		catsnatch_rfid_open(&rfid_out);
+		catcierge_rfid_init("Outer", &rfid_out, rfid_outer_path, rfid_outer_read_cb);
+		catcierge_rfid_ctx_set_outer(&rfid_ctx, &rfid_out);
+		catcierge_rfid_open(&rfid_out);
 	}
 	#endif // WITH_RFID
 
@@ -1179,15 +1179,15 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (catsnatch_init(&ctx, snout_path))
+	if (catcierge_init(&ctx, snout_path))
 	{
-		CATERR("Failed to init catsnatch lib!\n");
+		CATERR("Failed to init catcierge lib!\n");
 		return -1;
 	}
 	
 	if (show)
 	{
-		cvNamedWindow("catsnatch", 1);
+		cvNamedWindow("catcierge", 1);
 	}
 
 	capture = raspiCamCvCreateCameraCapture(0);
@@ -1200,7 +1200,7 @@ int main(int argc, char **argv)
 		
 		#ifdef WITH_RFID
 		if ((rfid_inner_path || rfid_outer_path) 
-			&& catsnatch_rfid_ctx_service(&rfid_ctx))
+			&& catcierge_rfid_ctx_service(&rfid_ctx))
 		{
 			CATERRFPS("Failed to service RFID readers\n");
 		}
@@ -1227,7 +1227,7 @@ int main(int argc, char **argv)
 		}
 
 		// Wait until the middle of the frame is black.
-		if ((do_match = catsnatch_is_matchable(&ctx, img)) < 0)
+		if ((do_match = catcierge_is_matchable(&ctx, img)) < 0)
 		{
 			CATERRFPS("Failed to detect matchableness\n");
 			goto skiploop;
@@ -1241,7 +1241,7 @@ int main(int argc, char **argv)
 			int match_success;
 
 			// We have something to match against. 
-			if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
+			if ((match_res = catcierge_match(&ctx, img, &match_rect)) < 0)
 			{
 				CATERRFPS("Error when matching frame!\n");
 				goto skiploop;
@@ -1287,7 +1287,7 @@ int main(int argc, char **argv)
 			// %0 = Match result.
 			// %1 = 0/1 succes or failure.
 			// %2 = image path if saveimg is turned on.
-			catsnatch_execute(match_cmd, "%f %d %s",  
+			catcierge_execute(match_cmd, "%f %d %s",  
 					match_res, match_success,
 					saveimg ? match_images[match_count].path : "");
 
@@ -1302,7 +1302,7 @@ int main(int argc, char **argv)
 				cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
 			}
 
-			cvShowImage("catsnatch", img);
+			cvShowImage("catcierge", img);
 		}
 		
 skiploop:
@@ -1313,7 +1313,7 @@ skiploop:
 	
 	if (show)
 	{
-		cvDestroyWindow("catsnatch");
+		cvDestroyWindow("catcierge");
 	}
 
 	if (saveimg)
@@ -1328,20 +1328,20 @@ skiploop:
 		}
 	}
 
-	catsnatch_destroy(&ctx);
+	catcierge_destroy(&ctx);
 
 	#ifdef WITH_RFID
 	if (rfid_inner_path)
 	{
-		catsnatch_rfid_destroy(&rfid_in);
+		catcierge_rfid_destroy(&rfid_in);
 	}
 
 	if (rfid_outer_path)
 	{
-		catsnatch_rfid_destroy(&rfid_out);
+		catcierge_rfid_destroy(&rfid_out);
 	}
 
-	catsnatch_rfid_ctx_destroy(&rfid_ctx);
+	catcierge_rfid_ctx_destroy(&rfid_ctx);
 
 	free_rfid_allowed_list();
 	#endif // WITH_RFID

@@ -1,39 +1,39 @@
 //
-// This file is part of the Catsnatch project.
+// This file is part of the Catcierge project.
 //
 // Copyright (c) Joakim Soderberg 2013-2014
 //
-//    Catsnatch is free software: you can redistribute it and/or modify
+//    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//    Foobar is distributed in the hope that it will be useful,
+//    Catcierge is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
-#ifndef __CATSNATCH_H__
-#define __CATSNATCH_H__
+#ifndef __CATCIERGE_H__
+#define __CATCIERGE_H__
 
 #include <opencv2/imgproc/imgproc_c.h>
 
-typedef struct catsnatch_s
+typedef struct catcierge_s
 {
 	CvMemStorage* storage;
 	IplImage* snout;
 	IplConvKernel *kernel;
-} catsnatch_t;
+} catcierge_t;
 
-int catsnatch_init(catsnatch_t *ctx, const char *snout_path);
+int catcierge_init(catcierge_t *ctx, const char *snout_path);
 
-void catsnatch_destroy(catsnatch_t *ctx);
+void catcierge_destroy(catcierge_t *ctx);
 
-double catsnatch_match(catsnatch_t *ctx, const IplImage *img, CvRect *match_rect);
+double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect);
 
-int catsnatch_is_matchable(catsnatch_t *ctx, IplImage *img);
+int catcierge_is_matchable(catcierge_t *ctx, IplImage *img);
 
-#endif // __CATSNATCH_H__
+#endif // __CATCIERGE_H__

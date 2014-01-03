@@ -1,30 +1,30 @@
 //
-// This file is part of the Catsnatch project.
+// This file is part of the Catcierge project.
 //
 // Copyright (c) Joakim Soderberg 2013-2014
 //
-//    Catsnatch is free software: you can redistribute it and/or modify
+//    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//    Catsnatch is distributed in the hope that it will be useful,
+//    Catcierge is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Catsnatch.  If not, see <http://www.gnu.org/licenses/>.
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "catsnatch.h"
+#include "catcierge.h"
 
 int main(int argc, char **argv)
 {
-	catsnatch_t ctx;
+	catcierge_t ctx;
 	char *snout_path = NULL;
 	char *img_path = NULL;
 	IplImage *img = NULL;
@@ -71,9 +71,9 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (catsnatch_init(&ctx, snout_path))
+	if (catcierge_init(&ctx, snout_path))
 	{
-		fprintf(stderr, "Failed to init catsnatch lib!\n");
+		fprintf(stderr, "Failed to init catcierge lib!\n");
 		return -1;
 	}
 
@@ -83,10 +83,10 @@ int main(int argc, char **argv)
 		goto fail;
 	}
 
-	if ((match_res = catsnatch_match(&ctx, img, &match_rect)) < 0)
+	if ((match_res = catcierge_match(&ctx, img, &match_rect)) < 0)
 	{
 		fprintf(stderr, "Something went wrong when matching image: %s\n", img_path);
-		catsnatch_destroy(&ctx);
+		catcierge_destroy(&ctx);
 	}
 
 	if (!match_res)
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 		cvWaitKey(0);
 	}
 fail:
-	catsnatch_destroy(&ctx);
+	catcierge_destroy(&ctx);
 
 	return 0;
 }
