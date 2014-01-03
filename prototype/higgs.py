@@ -27,16 +27,16 @@ import glob
 ###################################################
 
 # Read the snout image and make it binary and nice.
-org_snout = cv2.imread("HIGGS/snout4.png", 0)
+org_snout = cv2.imread("../snout1080p.png", 0)
 ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
 kernel = np.ones((3,3), np.uint8)
 snout = cv2.erode(threshimg, kernel, iterations = 3)
 snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
 
-if not os.path.exists("HIGGS/output/"):
-    os.makedirs("HIGGS/output/")
+if not os.path.exists("output/"):
+    os.makedirs("output/")
 
-for infile in glob.glob("HIGGS/higgs*.png"):
+for infile in glob.glob("../examples/higgs*.png"):
     path, filename_wext = os.path.split(infile)
     filename, fileext = os.path.splitext(filename_wext)
     img = cv2.imread(infile)
@@ -45,18 +45,18 @@ for infile in glob.glob("HIGGS/higgs*.png"):
     simg = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
     simg_gray = cv2.cvtColor(simg, cv2.COLOR_BGR2GRAY)
     
-    cv2.imwrite("HIGGS/output/%s_01original%s" % (filename, fileext), simg)
-    cv2.imwrite("HIGGS/output/%s_02gray%s" % (filename, fileext), simg_gray)
+    cv2.imwrite("output/%s_01original%s" % (filename, fileext), simg)
+    cv2.imwrite("output/%s_02gray%s" % (filename, fileext), simg_gray)
     
     # Threshold.
     ret, threshimg = cv2.threshold(simg_gray, 35, 255, 0)
     cv2.imshow('Binary', threshimg)
-    cv2.imwrite("HIGGS/output/%s_03binary%s" % (filename, fileext), threshimg)
+    cv2.imwrite("output/%s_03binary%s" % (filename, fileext), threshimg)
 
     # Noise removal.
     nonoise_img = cv2.erode(threshimg, kernel, iterations = 3)
     cv2.imshow('No noise', nonoise_img)
-    cv2.imwrite("HIGGS/output/%s_04nonoise%s" % (filename, fileext), nonoise_img)
+    cv2.imwrite("output/%s_04nonoise%s" % (filename, fileext), nonoise_img)
 
     # Match the snout with the binary noise reduced image.
     matchres = cv2.matchTemplate(nonoise_img, snout, cv2.TM_CCOEFF_NORMED)
@@ -64,7 +64,7 @@ for infile in glob.glob("HIGGS/higgs*.png"):
     (x, y) = maxloc
 
     cv2.imshow("match", matchres)
-    cv2.imwrite("HIGGS/output/%s_05tempmatch%s" % (filename, fileext), matchres)
+    cv2.imwrite("output/%s_05tempmatch%s" % (filename, fileext), matchres)
 
     # From some testing 0.9 seems like a good threshold.
     if (max_x >= 0.9):
@@ -81,7 +81,7 @@ for infile in glob.glob("HIGGS/higgs*.png"):
 
     # Draw the final image.
     cv2.imshow('Final', simg)
-    cv2.imwrite("HIGGS/output/%s_06final%s" % (filename, fileext), simg)
+    cv2.imwrite("output/%s_06final%s" % (filename, fileext), simg)
 
     """
     plt.subplot(231),plt.imshow(simg,'gray'),plt.title('ORIGINAL')
