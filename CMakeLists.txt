@@ -143,11 +143,13 @@ add_dependencies(catsnatch_tester catsnatch)
 target_link_libraries(catsnatch_tester catsnatch)
 
 # Test program for the catsnatch rfid readers.
-set(RFID_SRC 
-	catsnatch_rfid_tester.c 
-	catsnatch_rfid.c
-	catsnatch_log.c)
-add_executable(catsnatch_rfid_tester ${RFID_SRC})
+if (WITH_RFID)
+	set(RFID_SRC 
+		catsnatch_rfid_tester.c 
+		catsnatch_rfid.c
+		catsnatch_log.c)
+	add_executable(catsnatch_rfid_tester ${RFID_SRC})
+endif()
 
 # Capture program for the catsnacher.
 if (RPI)
