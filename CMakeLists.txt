@@ -1,3 +1,6 @@
+#
+# 
+#
 cmake_minimum_required(VERSION 2.6) 
 project(catsnatch)
 
@@ -62,7 +65,6 @@ if (RPI)
 		rt
 		)
 
-	message("${RPI_USERLAND}")
 	include_directories(
 		${RPI_USERLAND}/host_applications/linux/libs/bcm_host/include/
 		${RPI_USERLAND}/host_applications/linux/apps/raspicam/
@@ -140,5 +142,15 @@ if (RPI)
 	add_dependencies(catsnatch_grabber catsnatch raspicamcv)
 	target_link_libraries(catsnatch_grabber catsnatch raspicamcv)
 endif()
+
+message("------------------------------------------------------------------")
+message(" Settings:")
+message("------------------------------------------------------------------")
+message("                                 Version: v${CATSNATCH_VERSION_STR}")
+message("          Built for Raspberry pi (-DRPI): ${RPI}")
+message("  Raspberry pi userland (-DRPI_USERLAND): ${RPI_USERLAND}")
+message("         INI Config support (-DWITH_INI): ${WITH_INI}")
+message("              RFID support (-DWITH_RFID): ${WITH_RFID}")
+message("------------------------------------------------------------------")
 
 
