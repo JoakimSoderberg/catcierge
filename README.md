@@ -30,7 +30,7 @@ To be written.
 Dependencies
 ------------
 For the image recognition catsnatch users OpenCV using the 
-[raspicam_cv library][raspicam_cv] library written by [Emil Valkov][emil_valkov]
+[raspicam_cv library][raspicam_cv] written by [Emil Valkov][emil_valkov]
 (which is included in the catsnatch source).
 
 To install OpenCV:
@@ -93,5 +93,5 @@ $ ./catsnatch_rfid_tester
 
 [flo_control]: http://www.quantumpicture.com/Flo_Control/flo_control.htm]
 [raspicam_cv]: https://github.com/robidouille/robidouille/tree/master/raspicam_cv
-[emill_valkov]: http://www.robidouille.com/
+[emil_valkov]: http://www.robidouille.com/
 [rfid_cat]: http://www.priority1design.com.au/shopfront/index.php?main_page=product_info&cPath=1&products_id=23
