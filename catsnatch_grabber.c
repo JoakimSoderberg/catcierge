@@ -264,13 +264,13 @@ static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 	log_print_csv(log_file, "rfid, %s, %s\n", 
 			current->data, (current->is_allowed > 0)? "allowed" : "rejected");
 
-	// $0 = RFID reader name.
-	// $1 = RFID path.
-	// $2 = Is allowed.
-	// $3 = Is data incomplete.
-	// $4 = Tag data.
-	// $5 = Other reader triggered.
-	// $6 = Direction.
+	// %0 = RFID reader name.
+	// %1 = RFID path.
+	// %2 = Is allowed.
+	// %3 = Is data incomplete.
+	// %4 = Tag data.
+	// %5 = Other reader triggered.
+	// %6 = Direction.
 	catsnatch_execute(rfid_detect_cmd, 
 		"%s %d %d %s %d %s",
 		rfid->name, 
@@ -369,9 +369,9 @@ static void save_images(int match_success)
 		CATLOGFPS("Saving image %s\n", m->path);
 		cvSaveImage(m->path, m->img, 0);
 		
-		// $0 = Match result.
-		// $1 = Match success.
-		// $2 = Image path (of now saved image).
+		// %0 = Match result.
+		// %1 = Match success.
+		// %2 = Image path (of now saved image).
 		catsnatch_execute(save_img_cmd, "%f %d %s", 
 			m->result, m->success, m->path);
 
@@ -379,11 +379,11 @@ static void save_images(int match_success)
 		m->img = NULL;
 	}
 
-	// $0 = Match success.
-	// $1 = Image 1 path (of now saved image).
-	// $2 = Image 2 path (of now saved image).
-	// $3 = Image 3 path (of now saved image).
-	// $4 = Image 4 path (of now saved image).
+	// %0 = Match success.
+	// %1 = Image 1 path (of now saved image).
+	// %2 = Image 2 path (of now saved image).
+	// %3 = Image 3 path (of now saved image).
+	// %4 = Image 4 path (of now saved image).
 	catsnatch_execute(save_imgs_cmd, "%d %s %s %s %s",  
 		match_success,
 		match_images[0].path,
@@ -446,9 +446,9 @@ static void should_we_lockout(double match_res)
 			start_locked_state();
 		}
 
-		// $0 = Match success.
-		// $1 = Successful match count.
-		// $2 = Max matches.
+		// %0 = Match success.
+		// %1 = Successful match count.
+		// %2 = Max matches.
 		catsnatch_execute(match_done_cmd, "%d %d %d", 
 			match_success, count, match_count);
 
@@ -511,13 +511,13 @@ static void should_we_rfid_lockout(double last_match_time)
 			if (rfid_inner_path) CATLOG("  %s RFID: %s\n", rfid_in.name, rfid_in_match.triggered ? rfid_in_match.data : "No tag data");
 			if (rfid_outer_path) CATLOG("  %s RFID: %s\n", rfid_out.name, rfid_out_match.triggered ? rfid_out_match.data : "No tag data");
 
-			// $0 = Match success.
-			// $1 = RFID inner in use.
-			// $2 = RFID outer in use.
-			// $3 = RFID inner success.
-			// $4 = RFID outer success.
-			// $5 = RFID inner data.
-			// $6 = RFID outer data.
+			// %0 = Match success.
+			// %1 = RFID inner in use.
+			// %2 = RFID outer in use.
+			// %3 = RFID inner success.
+			// %4 = RFID outer success.
+			// %5 = RFID inner data.
+			// %6 = RFID outer data.
 			catsnatch_execute(rfid_match_cmd, 
 				"%d %d %d %d %s %s", 
 				!do_rfid_lockout,
@@ -1267,9 +1267,9 @@ int main(int argc, char **argv)
 				 match_res, match_threshold,
 				 saveimg ? match_images[match_count].path : "-");
 
-			// $0 = Match result.
-			// $1 = 0/1 succes or failure.
-			// $2 = image path if saveimg is turned on.
+			// %0 = Match result.
+			// %1 = 0/1 succes or failure.
+			// %2 = image path if saveimg is turned on.
 			catsnatch_execute(match_cmd, "%f %d %s",  
 					match_res, match_success,
 					saveimg ? match_images[match_count].path : "");
