@@ -1,4 +1,3 @@
-
 Catsnatch
 =========
 An image recognition and RFID cat chip solution for detecting "gifts" and
@@ -63,7 +62,12 @@ $ cmake -DRPI_USERLAND=/path/to/rpi/userland ..
 $ make
 ```
 
-If you don't have any [RFID cat chip reader][rfid_cat]
+If you don't have any [RFID cat chip reader][rfid_cat] you can exclude
+it from the compilation:
+
+```bash
+$ cmake -DRPI_USERLAND=/path/to/rpi/userland -DWITH_RFID=OFF ..
+```
 
 Running
 -------
