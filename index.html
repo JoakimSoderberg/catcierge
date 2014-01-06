@@ -4,29 +4,40 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <title>Catcierge by JoakimSoderberg</title>
-
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/main.js"></script>
     <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
   </head>
   <body>
-    <div class="wrapper">
+
       <header>
         <h1>Catcierge</h1>
         <p>Image recognition (to keep cat prey out) and RFID chip reader system for automated DIY cat door.</p>
-
-        <p class="view"><a href="https://github.com/JoakimSoderberg/catcierge">View the Project on GitHub <small>JoakimSoderberg/catcierge</small></a></p>
-
-
-        <ul>
-          <li><a href="https://github.com/JoakimSoderberg/catcierge/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/JoakimSoderberg/catcierge/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/JoakimSoderberg/catcierge">View On <strong>GitHub</strong></a></li>
-        </ul>
       </header>
+
+      <div id="banner">
+        <span id="logo"></span>
+
+        <a href="https://github.com/JoakimSoderberg/catcierge" class="button fork"><strong>View On GitHub</strong></a>
+        <div class="downloads">
+          <span>Downloads:</span>
+          <ul>
+            <li><a href="https://github.com/JoakimSoderberg/catcierge/zipball/master" class="button">ZIP</a></li>
+            <li><a href="https://github.com/JoakimSoderberg/catcierge/tarball/master" class="button">TAR</a></li>
+          </ul>
+        </div>
+      </div><!-- end banner -->
+
+    <div class="wrapper">
+      <nav>
+        <ul></ul>
+      </nav>
       <section>
         <h1>
 <a name="the-short-version" class="anchor" href="#the-short-version"><span class="octicon octicon-link"></span></a>The short version</h1>
@@ -82,7 +93,7 @@
 
 <p>To make it easier to develop this thing, I built the corridor in a way that made it removable, so I could easily bring it in while developing the software and testing the door locking and such. I built the frame of it in place in front of the cat house, and made it fit into it's opening.</p>
 
-<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor01.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor02.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor03.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor04.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor06.jpg" alt="Cat corridor"></p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor01.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor04.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor02.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor03.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor06.jpg" alt="Cat corridor"></p>
 
 <p>The idea for this "capture" corridor was to keep the camera and electronics in half of it, and then make a small passage for the cat to actually go through in the other half. The corridor therefore needs to be wide enough so that the camera, with it's field of view, can get a good enough picture of the cats profile. </p>
 
@@ -129,7 +140,7 @@
 
 <p>Since the detection method I choose for this solution requires a backlight, I decided to use a 12V LED light that I then also can connect to the <a href="http://www.piborg.com/picoborg">Picoborg</a> and be able to control it via the RPI GPIO pins. First I tried using a normal LED light for this, but it turned out that the background would not be uniform enough, giving me a bad profile picture.</p>
 
-<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight02.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight03.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight04.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight05.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight06.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight07.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight08.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight09.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight10.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight11.jpg" alt="Backlight"></p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight02.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight03.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight04.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight05.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight06.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight07.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight09.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight10.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight08.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight11.jpg" alt="Backlight"></p>
 
 <p>Instead I decided to tape a cheap 5m LED light strip bought on ebay on to the back of some plywood to create one big backlight. By placing a piece of acrylic with some paper taped on to it in front of it, I got a more scattered and uniform light source.</p>
 
@@ -239,11 +250,11 @@
 <p>When developing this final program I needed to test it using the live Raspberry Pi camera to see if it matched OK. Trying to persuade my cat to walk through the corridor was not really an option though, so instead I printed a frame from my input video I had captured and glued it on to some cardboard and then cut it out. I could then use this cutout to emulate the cat entering the corridor and fine tune my program using that.</p>
       </section>
       <footer>
-        <p>This project is maintained by <a href="https://github.com/JoakimSoderberg">JoakimSoderberg</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+        <p>Project maintained by <a href="https://github.com/JoakimSoderberg">JoakimSoderberg</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></small></p>
       </footer>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
     
   </body>
 </html>
