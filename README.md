@@ -24,7 +24,7 @@ distingusihed. I decided to implement this idea instead.
 
 Hardware design details
 -----------------------
-To be written.
+To read more about how to build your own hardware that this code can run on, and the development story, see the webpage: [http://joakimsoderberg.github.io/catcierge/](http://joakimsoderberg.github.io/catcierge/)
 
 Dependencies
 ------------
