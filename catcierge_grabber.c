@@ -1021,14 +1021,15 @@ static int parse_cmdargs(int argc, char **argv)
 		if (!strncmp(argv[i], "--", 2))
 		{
 			key = &argv[i][2];
+			val = NULL;
 
-			if (argc >= (i + 1))
+			if ((i + 1) < argc)
 			{
 				// Make sure the value is not another option.
 				if (strncmp(argv[i+1], "--", 2))
 				{
 					i++;
-					val = argv[i];	
+					val = argv[i];
 				}
 			}
 
@@ -1303,6 +1304,7 @@ int main(int argc, char **argv)
 			}
 
 			cvShowImage("catcierge", img);
+			cvWaitKey(10);
 		}
 		
 skiploop:
