@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Catcierge by JoakimSoderberg</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Catcierge</h1>
+        <p>Image recognition (to keep cat prey out) and RFID chip reader system for automated DIY cat door.</p>
+
+        <p class="view"><a href="https://github.com/JoakimSoderberg/catcierge">View the Project on GitHub <small>JoakimSoderberg/catcierge</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/JoakimSoderberg/catcierge/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/JoakimSoderberg/catcierge/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/JoakimSoderberg/catcierge">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="the-short-version" class="anchor" href="#the-short-version"><span class="octicon octicon-link"></span></a>The short version</h1>
+
+<p>The Catcierge project is an image recognition and cat RFID-chip reader for detecting "gifts" (dead or alive) and neighbour cats, made to work together with an automated cat door system. Designed for use with the Raspberry Pi including camera board (but can easily be modified to work on other systems as well).</p>
+
+<h1>
+<a name="background" class="anchor" href="#background"><span class="octicon octicon-link"></span></a>Background</h1>
+
+<p>The Catcierge project came about to solve the problem of our cat having the nasty habit of delivering "gifts" to us through our cat door in the form of dead, or partly dead / fully alive rodents or birds.</p>
+
+<p>Instead of simply not allowing our cat to use the cat door like normal people I of course set out to find a high-tech solution to solve my perdicament.</p>
+
+<p>My idea was to somehow use image recognition to lock the cat door if it had something in it's mouth. My first idea was to use Haar Cascades as is normally used for facial recognition, but instead train it to work on cats.</p>
+
+<p>In the process of researching possible solutions I found the Flo Control project that instead uses a controlled envrionment to get a good profile image of the cat where the "gift" easily can be distingusihed. I decided to implement this idea instead.</p>
+
+<h1>
+<a name="development-story" class="anchor" href="#development-story"><span class="octicon octicon-link"></span></a>Development story</h1>
+
+<p>After replacing the window in our basement stairway with a cat door to let our cat Higgs live a more free roaming life, she soon started delivering dead (and some living) rodents and birds. Obviously this is not something we want so I decided to build an automated cat door that will shut her out when she tries to bring them inside.</p>
+
+<p>When first installing the cat door I was also worried about other neighbouring cats making visits through it (especially since, we'd had some visits when we kept our door open in the summe before our cat had time to mark her territory), so I had some plans to create an automated door that solves that problem as well, by reading the RFID chip our cat has operated into her neck. </p>
+
+<p>I had seen several DIY solutions of RFID readers that require the cat to wear an extra RFID chip on a collar, but that's not what I wanted. So my idea was to find a reader that supports reading the actual <a href="http://en.wikipedia.org/wiki/ISO_11784_%26_11785">ISO 11784/11785, FDX/HDX tags</a> which uses another frequency compared to most generic RFID readers.</p>
+
+<h2>
+<a name="the-rapsberry-pi" class="anchor" href="#the-rapsberry-pi"><span class="octicon octicon-link"></span></a>The <a href="http://www.raspberrypi.org/">Rapsberry Pi</a>
+</h2>
+
+<p>When I started thinking of this project the Raspberry Pi had become available, as well as the <a href="http://www.raspberrypi.org/archives/tag/camera-board">camera board</a>. So I quickly decided I will use this for my project. </p>
+
+<p>One problem was that <a href="http://opencv.org/">OpenCV</a> does not work natively with the Raspberry Pi camera which interfaces directly via the CPU. Thankfully <a href="https://thinkrpi.wordpress.com/2013/05/22/opencv-and-camera-board-csi/">Pierre Raufast</a> fixed this problem by rewriting the raspistill program to work with OpenCV, and <a href="http://www.robidouille.com/">Emil Valkov</a> simplified this into a library that can easily be used with an API similar to the normal OpenCV camera API.</p>
+
+<h2>
+<a name="building-the-cat-door" class="anchor" href="#building-the-cat-door"><span class="octicon octicon-link"></span></a>Building the cat door</h2>
+
+<p>The cat door we built and installed as a replacement for our basement window was kind of a temporary solution. At first we had simply thought we would remove it for the winter and put the normal window back in since we live in northern Sweden where it easily can go down to -30C.</p>
+
+<p>However, since I was thinking of building this automated cat door which obvisouly would need some extra space to fit, I instead decided to build a small house in front of the cat door that's insulated so we wouldn't loose too much heat through it as well.</p>
+
+<p>My idea was to have the cat first go through a small corridor that I would build in front of this small cat house, and at the end of this corridor a first cat door would be installed. This would be the cat door that I could lock automatically if any prey was detected. </p>
+
+<p>This design would also have the benefit of insulating the outside from the inside via two cat doors, instead of just one. I could also put in a third door at the beginning of this corridor to get even less cold air flowing in.</p>
+
+<p>To make it easier to develop this thing, I built the corridor in a way that made it removable, so I could easily bring it in while developing the software and testing the door locking and such. I built the frame of it in place in front of the cat house, and made it fit into it's opening.</p>
+
+<p>The idea for this "capture" corridor was to keep the camera and electronics in half of it, and then make a small passage for the cat to actually go through in the other half. The corridor therefore needs to be wide enough so that the camera, with it's field of view, can get a good enough picture of the cats profile. </p>
+
+<p>To decide how far away the camera needed to be I persuaded my cat to keep still in front of the camera att different distances (not as easy as it sounds). The optimal distance turned out to be about 30cm. So I decided making the corridor 60cm would be enough to fit everything.</p>
+
+<h2>
+<a name="locking-mechanism" class="anchor" href="#locking-mechanism"><span class="octicon octicon-link"></span></a>Locking mechanism</h2>
+
+<p>The actual cat door I decided to use was a very simple store bought one with some manual plastic locking latches. I was not interested in using these for the actual locking, or buying some fancy expensive cat door with a built-in electronic locking mechanism.</p>
+
+<p>Instead my idea all a long was to use a 12V solenoid that when given power will push a small pin out. This pin will then block the door so it cannot be opened. My first idea was to build my own circuit to control this solenoid via the 3.3v <a href="http://www.raspberrypi.org/">Raspberry Pi</a> GPIO pins. Since the solenoid requires a 12V power supply, it cannot be directly controlled via the GPIO pins.</p>
+
+<p>After doing some googling, I instead found a nice and cheap board named <a href="http://www.piborg.com/picoborg">Picoborg</a> that lets you connect an external power supply (in my case a 12V one), and then control up to 4 devices using the RPI GPIO pins.</p>
+
+<p>To attach the solenoid next to the cat door I used my band saw to create a piece of wood that would hold it in place.</p>
+
+<h2>
+<a name="method-of-detecting" class="anchor" href="#method-of-detecting"><span class="octicon octicon-link"></span></a>Method of detecting</h2>
+
+<p>Since I had found the <a href="http://www.quantumpicture.com/Flo_Control/flo_control.htm%5D">Flo Control project</a> that had solved the problem with detecting cat prey, I knew a working method in theory for how I could detect the cats face and eventual prey. </p>
+
+<p>The basic idea is to make the cat go through a corridor. On one side of the corridor there's a camera, on the other side there's a backlight. This enables us to take a well controlled picture of the cats profile. Since cats keep their prey in the mouth, we can focus on the cats snout when doing the matching. We now use a saved image of the cats snout without any prey in it, and scan the image for that, if we get a good enough match, we can be certain the cat has no prey, if not we lock the door!</p>
+
+<p>This method is a lot simpler than using more advanced techniques used for pattern matching, such as haar cascades or similar things normally used for facial detection in humans. Using techniques like that it would probably be possible to make a much more compact version with the camera simply being placed above the cat door, and taking a picture of the cat face on. However, that would require a lot more time and effort, involving different lightning and weather. Keep It Simple Stupid!</p>
+
+<h2>
+<a name="backlight" class="anchor" href="#backlight"><span class="octicon octicon-link"></span></a>Backlight</h2>
+
+<p>Since the detection method I choose for this solution requires a backlight, I decided to use a 12V LED light that I then also can connect to the <a href="http://www.piborg.com/picoborg">Picoborg</a> and be able to control it via the RPI GPIO pins. First I tried using a normal LED light for this, but it turned out that the background would not be uniform enough, giving me a bad profile picture.</p>
+
+<p>Instead I decided to tape a cheap 5m LED light strip bought on ebay on to the back of some plywood to create one bi backlight. By placing a piece of acrylic with some paper taped on to it in front of it, I got a more scattered and uniform light source.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/JoakimSoderberg">JoakimSoderberg</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
