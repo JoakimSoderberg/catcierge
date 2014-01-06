@@ -1,33 +1,36 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Catcierge by JoakimSoderberg</title>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Catcierge : Image recognition (to keep cat prey out) and RFID chip reader system for automated DIY cat door." />
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Catcierge</title>
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Catcierge</h1>
-        <p>Image recognition (to keep cat prey out) and RFID chip reader system for automated DIY cat door.</p>
 
-        <p class="view"><a href="https://github.com/JoakimSoderberg/catcierge">View the Project on GitHub <small>JoakimSoderberg/catcierge</small></a></p>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/JoakimSoderberg/catcierge">View on GitHub</a>
 
+          <h1 id="project_title">Catcierge</h1>
+          <h2 id="project_tagline">Image recognition (to keep cat prey out) and RFID chip reader system for automated DIY cat door.</h2>
 
-        <ul>
-          <li><a href="https://github.com/JoakimSoderberg/catcierge/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/JoakimSoderberg/catcierge/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/JoakimSoderberg/catcierge">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/JoakimSoderberg/catcierge/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/JoakimSoderberg/catcierge/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
         <h1>
 <a name="the-short-version" class="anchor" href="#the-short-version"><span class="octicon octicon-link"></span></a>The short version</h1>
 
@@ -64,17 +67,31 @@
 <h2>
 <a name="building-the-cat-door" class="anchor" href="#building-the-cat-door"><span class="octicon octicon-link"></span></a>Building the cat door</h2>
 
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/catdoor01.jpg" alt="Cat door"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/catdoor02.jpg" alt="Cat door"></p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/catdoor03.jpg" alt="Cat door"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/catdoor04.jpg" alt="Cat door"></p>
+
 <p>The cat door we built and installed as a replacement for our basement window was kind of a temporary solution. At first we had simply thought we would remove it for the winter and put the normal window back in since we live in northern Sweden where it easily can go down to -30C.</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/cathouse01.jpg" alt="Cat house with extra corridor in front"></p>
 
 <p>However, since I was thinking of building this automated cat door which obvisouly would need some extra space to fit, I instead decided to build a small house in front of the cat door that's insulated so we wouldn't loose too much heat through it as well.</p>
 
 <p>My idea was to have the cat first go through a small corridor that I would build in front of this small cat house, and at the end of this corridor a first cat door would be installed. This would be the cat door that I could lock automatically if any prey was detected. </p>
 
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/cathouse02.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/cathouse03.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/cathouse04.jpg" alt="Cat corridor"></p>
+
 <p>This design would also have the benefit of insulating the outside from the inside via two cat doors, instead of just one. I could also put in a third door at the beginning of this corridor to get even less cold air flowing in.</p>
 
 <p>To make it easier to develop this thing, I built the corridor in a way that made it removable, so I could easily bring it in while developing the software and testing the door locking and such. I built the frame of it in place in front of the cat house, and made it fit into it's opening.</p>
 
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor01.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor02.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor03.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor04.jpg" alt="Cat corridor"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor06.jpg" alt="Cat corridor"></p>
+
 <p>The idea for this "capture" corridor was to keep the camera and electronics in half of it, and then make a small passage for the cat to actually go through in the other half. The corridor therefore needs to be wide enough so that the camera, with it's field of view, can get a good enough picture of the cats profile. </p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor05.jpg" alt="Cat corridor"></p>
+
+<p>The walls of the corridor that the cat walks through is made out of acrylic so that the camera can see through it. I made the roof out of plywood and placed it quite low so that shE haS to crouch when going in. This is so that the placement of the head againsT the background will be very consistent when taking the picture to match against. Also making the roof low makes it so her back rubs against the ceiling where the RFID readers will be located (she has the RFID chip in her neck).</p>
 
 <p>To decide how far away the camera needed to be I persuaded my cat to keep still in front of the camera att different distances (not as easy as it sounds). The optimal distance turned out to be about 30cm. So I decided making the corridor 60cm would be enough to fit everything.</p>
 
@@ -83,11 +100,21 @@
 
 <p>The actual cat door I decided to use was a very simple store bought one with some manual plastic locking latches. I was not interested in using these for the actual locking, or buying some fancy expensive cat door with a built-in electronic locking mechanism.</p>
 
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/door01.jpg" alt="Locking"></p>
+
 <p>Instead my idea all a long was to use a 12V solenoid that when given power will push a small pin out. This pin will then block the door so it cannot be opened. My first idea was to build my own circuit to control this solenoid via the 3.3v <a href="http://www.raspberrypi.org/">Raspberry Pi</a> GPIO pins. Since the solenoid requires a 12V power supply, it cannot be directly controlled via the GPIO pins.</p>
 
 <p>After doing some googling, I instead found a nice and cheap board named <a href="http://www.piborg.com/picoborg">Picoborg</a> that lets you connect an external power supply (in my case a 12V one), and then control up to 4 devices using the RPI GPIO pins.</p>
 
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/locking01.jpg" alt="Locking"></p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/locking02.jpg" alt="Locking"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/locking03.jpg" alt="Locking"></p>
+
 <p>To attach the solenoid next to the cat door I used my band saw to create a piece of wood that would hold it in place.</p>
+
+<p><a href="http://www.youtube.com/watch?v=wViEUI-CRm8"><img src="http://img.youtube.com/vi/wViEUI-CRm8/0.jpg" alt="Video of locking mechanism"></a></p>
+
+<p><a href="http://www.youtube.com/watch?v=wViEUI-CRm8">Youtube video</a></p>
 
 <h2>
 <a name="method-of-detecting" class="anchor" href="#method-of-detecting"><span class="octicon octicon-link"></span></a>Method of detecting</h2>
@@ -101,16 +128,126 @@
 <h2>
 <a name="backlight" class="anchor" href="#backlight"><span class="octicon octicon-link"></span></a>Backlight</h2>
 
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight01.jpg" alt="Backlight"></p>
+
 <p>Since the detection method I choose for this solution requires a backlight, I decided to use a 12V LED light that I then also can connect to the <a href="http://www.piborg.com/picoborg">Picoborg</a> and be able to control it via the RPI GPIO pins. First I tried using a normal LED light for this, but it turned out that the background would not be uniform enough, giving me a bad profile picture.</p>
 
-<p>Instead I decided to tape a cheap 5m LED light strip bought on ebay on to the back of some plywood to create one bi backlight. By placing a piece of acrylic with some paper taped on to it in front of it, I got a more scattered and uniform light source.</p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight02.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight03.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight04.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight05.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight06.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight07.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight08.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight09.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight10.jpg" alt="Backlight"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight11.jpg" alt="Backlight"></p>
+
+<p>Instead I decided to tape a cheap 5m LED light strip bought on ebay on to the back of some plywood to create one big backlight. By placing a piece of acrylic with some paper taped on to it in front of it, I got a more scattered and uniform light source.</p>
+
+<h2>
+<a name="rfid-readers" class="anchor" href="#rfid-readers"><span class="octicon octicon-link"></span></a>RFID readers</h2>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/rfid02.jpg" alt="RFID"></p>
+
+<p>Our cat has an RFID chip implanted in her neck for identification. This chip cannot be read using most generic RFID readers on the market, so I had to find one able to read the <a href="http://en.wikipedia.org/wiki/ISO_11784_%26_11785">ISO 11784/11785, FDX/HDX tags</a>.</p>
+
+<p>The commercial products meant for veterinarians and the like are crazy expensive and not very customizeable to work in a scenario like mine. But eventually I found a great little company in Australia that creates cheap animal RFID readers for ease of use in DIY projects like this. I bought two of the <a href="http://www.priority1design.com.au/shopfront/index.php?main_page=product_info&amp;cPath=1&amp;products_id=23">FDX-B/HDX RFID Reader Writer with external antenna and USB port</a> readers.</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/rfid03.jpg" alt="RFID"></p>
+
+<p>My idea was to use two RFID antennas, one on each end of the corridor enabling me to detect in which direction the cat is going, in or out. As I mentioned earlier, I made the ceiling in the corridor quite low, so that the cats back will brush against it as she walks through. This way I can get the RFID chip to come as close to the readers as possible. My first idea was to simply have the antennas lying on top of this thin roof, since the readers specs says they can read at a distance of about 10cm.</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/rfid01.jpg" alt="RFID"></p>
+
+<p>However, from some testing it turns out I cannot read the tag unless I brush it against the cats skin, so doing it this way will not work. Most likely I could probably extend the range of the antenna by tuning it as specified in the datasheet, but this will be my last resort. In the mean time I'll try to put the antennas in a way that gives maximum contact with the cats neck.</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/rfid04.jpg" alt="RFID"></p>
+
+<p>The RFID readers doesn't come with the antenna soldered on, so I had to do that. Since the antenna wires are really thin, and it would be very easy to break the antenna, I made a small enclosure for them made out of some left over plastics from some blister packaging.</p>
+
+<p>Here's some tests from reading the RFID tag of my cat:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/rfid05.jpg" alt="RFID"></p>
+
+<h2>
+<a name="software" class="anchor" href="#software"><span class="octicon octicon-link"></span></a>Software</h2>
+
+<p>When creating the matching algorithm as described above, I decided to first develop it as a prototype in the Python version of OpenCV, since this would enable me to use my laptop (a lot faster) instead of the Raspberry Pi.</p>
+
+<p><a href="http://www.youtube.com/watch?v=1rPXvtY850c"><img src="http://img.youtube.com/vi/1rPXvtY850c/0.jpg" alt="Youtube video of higgs"></a></p>
+
+<p><a href="http://www.youtube.com/watch?v=1rPXvtY850c">Youtube video of higgs</a></p>
+
+<p>To test the matching I had to have some kind of input data to test against. Using some cat candy I managed to get Higgs to walk through the corridor while I had the raspivid program recording.</p>
+
+<p>I then used frames from this video to create the matching algorithm. Here are the steps that the matching goes through to determine if Higgs has prey in her mouth or not:</p>
+
+<h3>
+<a name="ok" class="anchor" href="#ok"><span class="octicon octicon-link"></span></a>OK</h3>
+
+<p>Original image:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/ok/higgs02_01original.png" alt="Matching"></p>
+
+<p>Turn the image into a grayscale image:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/ok/higgs02_02gray.png" alt="Matching"></p>
+
+<p>Threshold the image (Every pixel above a certain value becomes black, and the others white) so that we get a binary image:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/ok/higgs02_03binary.png" alt="Matching"></p>
+
+<p>We now remove some noise from the image:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/ok/higgs02_04nonoise.png" alt="Matching"></p>
+
+<p>We now use a previously saved image of the cats snout and scan it over the image:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/snout1080p.png" alt="Matching"></p>
+
+<p>This creates a "heatmap" of where this snout image matches the best on the input image. The values of this image is between 0.0 and 1.0, so that the best match on the image has the highest value. We can use this maximum value to choose a threshold of how good a match we decide is a snout with no prey in it:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/ok/higgs02_05tempmatch.png" alt="Matching"></p>
+
+<p>Finally we can mark on the original image where the best match was found:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/ok/higgs02_06final.png" alt="Matching"></p>
+
+<h3>
+<a name="not-ok" class="anchor" href="#not-ok"><span class="octicon octicon-link"></span></a>Not OK</h3>
+
+<p>To determine the threshold for the maximum value to consider a good match, we also need some images with a negative input. That is, an image of Higgs with a mouse or other dead animal in her mouth. Since I didn't have any real input data with this scenario yet, I simply drew a mouse in her mouth in an image.</p>
+
+<p>Same steps as above but with a prey in her mouth:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/notok/higgsfel02_01original.png" alt="Matching"></p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/notok/higgsfel02_02gray.png" alt="Matching"></p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/notok/higgsfel02_03binary.png" alt="Matching"></p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/notok/higgsfel02_04nonoise.png" alt="Matching"></p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/notok/higgsfel02_05tempmatch.png" alt="Matching"></p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/notok/higgsfel02_06final.png" alt="Matching"></p>
+
+<p>From some test with different input images I decided that a good threshold value as mentioned above is 0.8.</p>
+
+<h2>
+<a name="c-version" class="anchor" href="#c-version"><span class="octicon octicon-link"></span></a>C-Version</h2>
+
+<p>After creating my prototype in Python and getting it all to work, I then moved on to creating the same algorithm in a C library. I made it a library so that I can easily compile a test program to test only the algorithm on another platform than the Raspberry Pi. And then write a final program that is used for the actual image recognition running on the Raspberry Pi separately.</p>
+
+<p>After writing the C verison and using the Raspberry Pi camera board to capture the images, it was obvious that using a full resolution image at 1080p was a bit too much to handle, so instead I changed the resolution down to 320x240 and made it gray scale which made it able to capture at ~20 fps instead of 1-2 fps at the actual matching moment.</p>
+
+<p>The matching is not on at all times, only when the middle part of the image becomes dark does it start to look for the cat snout. If it finds that 2 out of 4 images in row can be considered a match it will leave the door open, otherwise it will close it. All these match images can then be logged to disk for later checking for false positives and the like.</p>
+
+<p>I also made it possible to run external programs at different important places in the code. For instance on an RFID match, or an image recognition completing and the images being saved so you can upload them to the internet or whatever using whatever program you feel like.</p>
       </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/JoakimSoderberg">JoakimSoderberg</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Catcierge maintained by <a href="https://github.com/JoakimSoderberg">JoakimSoderberg</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
+
     
+
   </body>
 </html>
