@@ -23,7 +23,26 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdarg.h>
+#include <limits.h>
 #include "catcierge_log.h"
+
+//
+// The string "command" contains a commandline that will be
+// executed. This can contain variable references (%0, %1, %2, ...) 
+// that are different depending on in what context the command
+// is exectued in. These are called OUTPUT variables.
+//
+// The format string "fmt" contains a format list
+// same as for printf delimited by spaces. Each format specifier
+// refers to the value of one of the OUTPUT variables given in the
+// varargs list.
+//
+// Example call:
+// %0 = Match result. (m->result is a float so %f is used as format specifier).
+// %1 = Match success.
+// %2 = Image path (of now saved image).
+// catcierge_execute(save_img_cmd, "%f %d %s", m->result, m->success, m->path);
+//
 
 void catcierge_execute(char *command, char *fmt, ...)
 {
@@ -75,13 +94,35 @@ void catcierge_execute(char *command, char *fmt, ...)
 		if ((count > 0) && (*command == '%'))
 		{
 			command++;
-			cur_opt = atoi(command);
-			while (*command && isdigit(*command)) command++;
 
-			if ((cur_opt >= 0) && (cur_opt < count))
+			// Two percentages in a row = literal % sign.
+			if (*command != '%')
 			{
-				strcpy(&buf[i], extras[cur_opt]);
-				i += strlen(extras[cur_opt]);
+				if (!strncmp(command, "cwd", 3))
+				{
+					// Special case, will return the current directory.
+					char cwd[PATH_MAX];
+
+					if (!getcwd(cwd, sizeof(cwd)))
+					{
+						strcpy(&buf[i], cwd);
+						i += strlen(cwd);
+					}
+				}
+				else
+				{
+					// Otherwise we expect a digit that refers to
+					// the given variables in "extras".
+					// %0, %1 .. and so on.
+					cur_opt = atoi(command);
+					while (*command && isdigit(*command)) command++;
+
+					if ((cur_opt >= 0) && (cur_opt < count))
+					{
+						strcpy(&buf[i], extras[cur_opt]);
+						i += strlen(extras[cur_opt]);
+					}
+				}
 			}
 		}
 

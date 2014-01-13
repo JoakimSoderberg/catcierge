@@ -29,6 +29,7 @@
 #include "catcierge_gpio.h"
 #include <stdarg.h>
 #include <errno.h>
+#include <limits.h>
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"
 #endif // WITH_RFID
@@ -94,7 +95,7 @@ int match_time = DEFAULT_MATCH_WAIT;	// Time to wait until we try to match again
 
 typedef struct match_image_s
 {
-	char path[512];
+	char path[PATH_MAX];
 	IplImage *img;
 	double result;
 	int success;
