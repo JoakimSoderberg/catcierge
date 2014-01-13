@@ -115,6 +115,8 @@ char *match_cmd = NULL;
 char *save_img_cmd = NULL;
 char *save_imgs_cmd = NULL;
 char *match_done_cmd = NULL;
+char *do_lockout_cmd = NULL;
+char *do_unlock_cmd = NULL;
 #ifdef WITH_RFID
 char *rfid_detect_cmd = NULL;
 char *rfid_match_cmd = NULL;
@@ -326,18 +328,32 @@ static void sig_handler(int signo)
 
 static void do_lockout()
 {
-	if (lockout_time)
+	if (do_lockout_cmd)
 	{
-		gpio_write(DOOR_PIN, 1);
+		catcierge_execute(do_lockout_cmd, "");
 	}
+	else
+	{
+		if (lockout_time)
+		{
+			gpio_write(DOOR_PIN, 1);
+		}
 
-	gpio_write(BACKLIGHT_PIN, 1);
+		gpio_write(BACKLIGHT_PIN, 1);
+	}
 }
 
 static void	 do_unlock()
 {
-	gpio_write(DOOR_PIN, 0);
-	gpio_write(BACKLIGHT_PIN, 1);
+	if (do_unlock_cmd)
+	{
+		catcierge_execute(do_unlock_cmd, "");
+	}
+	else
+	{
+		gpio_write(DOOR_PIN, 0);
+		gpio_write(BACKLIGHT_PIN, 1);
+	}
 }
 
 static int setup_gpio()
@@ -397,17 +413,16 @@ static void save_images(int match_success)
 		m->img = NULL;
 	}
 
-	// %0 = Match success.
-	// %1 = Image 1 path (of now saved image).
-	// %2 = Image 2 path (of now saved image).
-	// %3 = Image 3 path (of now saved image).
-	// %4 = Image 4 path (of now saved image).
-	catcierge_execute(save_imgs_cmd, "%d %s %s %s %s",  
-		match_success,
-		match_images[0].path,
-		match_images[1].path,
-		match_images[2].path,
-		match_images[3].path);
+	catcierge_execute(save_imgs_cmd, "%d %s %s %s %s %f %f %f %f",  
+		match_success,				// %0 = Match success.
+		match_images[0].path,		// %1 = Image 1 path (of now saved image).
+		match_images[1].path,		// %2 = Image 2 path (of now saved image).
+		match_images[2].path,		// %3 = Image 3 path (of now saved image).
+		match_images[3].path,		// %4 = Image 4 path (of now saved image).
+		match_images[0].result,		// %5 = Image 1 result.
+		match_images[1].result,		// %6 = Image 2 result.
+		match_images[2].result,		// %7 = Image 3 result.
+		match_images[3].result);	// %8 = Image 4 result.
 }
 
 static void start_locked_state()
@@ -837,6 +852,29 @@ static int parse_setting(const char *key, char *value)
 		return -1;
 	}
 
+	if (!strcmp(key, "do_lockout_cmd"))
+	{
+		if (value)
+		{
+			do_lockout_cmd = value;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "do_unlock_cmd"))
+	{
+		if (value)
+		{
+			do_unlock_cmd = value;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	#ifdef WITH_RFID
 	if (!strcmp(key, "rfid_detect_cmd"))
 	{
 		if (value)
@@ -858,6 +896,7 @@ static int parse_setting(const char *key, char *value)
 
 		return -1;
 	}
+	#endif // WITH_RFID
 
 	return -1;
 }
@@ -949,6 +988,10 @@ static void usage(const char *prog)
 	EPRINT_CMD_HELP("                         %%2 = [string] Image path for second match.\n");
 	EPRINT_CMD_HELP("                         %%3 = [string] Image path for third match.\n");
 	EPRINT_CMD_HELP("                         %%4 = [string] Image path for fourth match.\n");
+	EPRINT_CMD_HELP("                         %%5 = [float]  First image result.\n");
+	EPRINT_CMD_HELP("                         %%6 = [float]  Second image result.\n");
+	EPRINT_CMD_HELP("                         %%7 = [float]  Third image result.\n");
+	EPRINT_CMD_HELP("                         %%8 = [float]  Fourth image result.\n");
 	EPRINT_CMD_HELP("\n");
 	fprintf(stderr, " --match_done_cmd <cmd> Command to run when a match is done.\n");
 	EPRINT_CMD_HELP("                         %%0 = [0/1]    Match success.\n");
@@ -973,6 +1016,10 @@ static void usage(const char *prog)
 	EPRINT_CMD_HELP("                         %%4 = RFID outer success.\n");
 	EPRINT_CMD_HELP("                         %%5 = RFID inner data.\n");
 	EPRINT_CMD_HELP("                         %%6 = RFID outer data.\n");
+	fprintf(stderr, " --do_lockout_cmd <cmd> Command to run when the lockout should be performed.\n");
+	fprintf(stderr, "                        This will override the normal lockout method.\n");
+	fprintf(stderr, " --do_unlock_cmd <cmd>  Command that is run when we should unlock.\n");
+	fprintf(stderr, "                        This will override the normal unlock method.\n");
 	fprintf(stderr, "\n");
 	#endif // WITH_RFID
 	fprintf(stderr, " --help                 Show this help.\n");
