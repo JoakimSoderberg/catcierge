@@ -3,15 +3,23 @@ import argparse
 import smtplib
 
 from email.mime.image import MIMEImage
+from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-def send_mail(to_emails, from_email, smtp_server, password, images):
+def send_mail(to_emails, from_email, smtp_server, password, images, match_status, match_statuses):
 	# Create the container (outer) email message.
 	msg = MIMEMultipart()
-	msg['Subject'] = 'Catcierge detection'
+	msg['Subject'] = 'Catcierge detection %s' % ("OK" if match_status else "FAIL")
 	msg['From'] = from_email
 	msg['To'] = ', '.join(to_emails)
 	msg.preamble = 'Catcierge'
+
+	txt = "Match: %s\n" % ("OK" if match_status else "FAIL")
+
+	for m in match_statuses:
+		txt += "  Result: %s\n" % m
+
+	msg.attach(MIMEText(txt))
 
 	for f in images:
 		# Open the files in binary mode.  Let the MIMEImage class automatically
@@ -44,9 +52,15 @@ def main():
 					help = "SMTP server to use. Defaults to gmail")
 
 	parser.add_argument("--password", metavar = "PASSW",
-					help= "The password to use for SMTP")
+					help = "The password to use for SMTP")
+
+	parser.add_argument("--status", metavar = "STATUS", type = int,
+					help = "The status of the match, 0 = failure, 1 = success.")
+
+	parser.add_argument("--match_statuses", metavar="MATCHSTATUS", type = float, nargs="+",
+					help = "List of statuses for each match", default = [])
 
 	args = parser.parse_args()
-	send_mail(args.to, args.from_email, args.smtp, args.password, args.images)
+	send_mail(args.to, args.from_email, args.smtp, args.password, args.images, args.status, args.status, args.match_statuses)
 
 if __name__ == '__main__': main()
