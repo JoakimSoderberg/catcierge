@@ -22,11 +22,13 @@
 #include <stdlib.h>
 #include <catcierge_config.h>
 #include "catcierge.h"
-#include "RaspiCamCV.h"
 #include <signal.h>
 #include <time.h>
 #include <sys/time.h>
+#ifdef RPI
+#include "RaspiCamCV.h"
 #include "catcierge_gpio.h"
+#endif
 #include <stdarg.h>
 #include <errno.h>
 #include <limits.h>
@@ -334,12 +336,14 @@ static void do_lockout()
 	}
 	else
 	{
+		#ifdef RPI
 		if (lockout_time)
 		{
 			gpio_write(DOOR_PIN, 1);
 		}
 
 		gpio_write(BACKLIGHT_PIN, 1);
+		#endif // RPI
 	}
 }
 
@@ -351,14 +355,17 @@ static void	 do_unlock()
 	}
 	else
 	{
+		#ifdef RPI
 		gpio_write(DOOR_PIN, 0);
 		gpio_write(BACKLIGHT_PIN, 1);
+		#endif // RPI
 	}
 }
 
 static int setup_gpio()
 {
 	int ret = 0;
+	#ifdef RPI
 
 	// Set export for pins.
 	if (gpio_export(DOOR_PIN) || gpio_set_direction(DOOR_PIN, OUT))
@@ -388,6 +395,7 @@ fail:
 			CATERRFPS("You might have to run as root!\n");
 		}
 	}
+	#endif // RPI
 
 	return ret;
 }
@@ -1104,7 +1112,12 @@ int main(int argc, char **argv)
 	int i;
 	int enough_time = 0;
 	int cfg_err = -1;
+	int match_success;
+	#ifdef RPI
 	RaspiCamCvCapture *capture = NULL;
+	#else
+	CvCapture *capture = NULL;
+	#endif
 
 	fprintf(stderr, "Catcierge Grabber v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n");
 
@@ -1136,7 +1149,7 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		if (cfg_err = alini_parser_create(&parser, config_path))
+		if ((cfg_err = alini_parser_create(&parser, config_path)))
 		{
 			fprintf(stderr, "Failed to open config %s\n", config_path);
 			return -1;
@@ -1239,7 +1252,14 @@ int main(int argc, char **argv)
 		cvNamedWindow("catcierge", 1);
 	}
 
+	#ifdef RPI
 	capture = raspiCamCvCreateCameraCapture(0);
+	// TODO: Implement the cvSetCaptureProperty stuff below fo raspicamcv.
+	#else
+	capture = cvCreateCameraCapture(0);
+	cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, 320);
+	cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, 240);
+	#endif
 
 	in_loop = 1;
 
@@ -1255,7 +1275,11 @@ int main(int argc, char **argv)
 		}
 		#endif // WITH_RFID
 
+		#ifdef RPI
 		img = raspiCamCvQueryFrame(capture);
+		#else
+		img = cvQueryFrame(capture);
+		#endif
 
 		// Skip all matching in lockout.
 		if (lockout)
@@ -1287,8 +1311,6 @@ int main(int argc, char **argv)
 
 		if (do_match && enough_time)
 		{
-			int match_success;
-
 			// We have something to match against. 
 			if ((match_res = catcierge_match(&ctx, img, &match_rect)) < 0)
 			{
@@ -1342,24 +1364,34 @@ int main(int argc, char **argv)
 
 			should_we_lockout(match_res);
 		}
+skiploop:
 
 		if (show)
 		{
+			#ifdef RPI
+			match_color = CV_RGB(255, 255, 255); // Grayscale so don't bother with color.
+			#else
+			match_color = (match_success) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
+			#endif
+
 			// Always highlight when showing in GUI.
 			if (do_match)
 			{
-				cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
+				cvRectangleR(img, match_rect, match_color, 2, 8, 0);
 			}
 
 			cvShowImage("catcierge", img);
 			cvWaitKey(10);
 		}
 		
-skiploop:
 		calculate_fps();
 	} while (running);
 
+	#ifdef RPI
 	raspiCamCvReleaseCapture(&capture);
+	#else
+	cvReleaseCapture(&capture);
+	#endif
 	
 	if (show)
 	{

@@ -151,16 +151,23 @@ if (WITH_RFID)
 	add_executable(catcierge_rfid_tester ${RFID_SRC})
 endif()
 
-# Capture program for the catsnacher.
-if (RPI)
-	set(GRABBER_SRC 
+# Capture program for the catcierge.
+set(GRABBER_SRC 
 		catcierge_grabber.c 
-		catcierge_gpio.c
 		catcierge_log.c
 		catcierge_util.c)
-	add_executable(catcierge_grabber ${GRABBER_SRC})
-	add_dependencies(catcierge_grabber catcierge raspicamcv)
-	target_link_libraries(catcierge_grabber catcierge raspicamcv)
+
+if (RPI)
+	list(APPEND GRABBER_SRC catcierge_gpio.c)
+endif()
+
+add_executable(catcierge_grabber ${GRABBER_SRC})
+add_dependencies(catcierge_grabber catcierge)
+target_link_libraries(catcierge_grabber catcierge)
+
+if (RPI)
+	add_dependencies(catcierge_grabber raspicamcv)
+	target_link_libraries(catcierge_grabber raspicamcv)
 endif()
 
 message("------------------------------------------------------------------")
