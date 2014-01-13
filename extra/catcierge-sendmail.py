@@ -31,7 +31,7 @@ def send_mail(to_emails, from_email, smtp_server, password, images):
 def main():
 	parser = argparse.ArgumentParser()
 
-	parser.add_argument("images", metavar = "IMAGES", nargs = "+", 
+	parser.add_argument("--images", metavar = "IMAGES", nargs = "+", 
 					help = "The Catcierge match images to send.")
 
 	parser.add_argument("--to", metavar = "TO", nargs = "+",
