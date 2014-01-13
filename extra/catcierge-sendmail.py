@@ -1,5 +1,5 @@
 from optparse import OptionParser
-imp ort argparse
+import argparse
 import smtplib
 
 from email.mime.image import MIMEImage
