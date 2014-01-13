@@ -103,11 +103,14 @@ void catcierge_execute(char *command, char *fmt, ...)
 					// Special case, will return the current directory.
 					char cwd[PATH_MAX];
 
-					if (!getcwd(cwd, sizeof(cwd)))
+					if (getcwd(cwd, sizeof(cwd)))
 					{
 						strcpy(&buf[i], cwd);
 						i += strlen(cwd);
 					}
+
+					command += 3; // Skip "cwd"
+					continue;
 				}
 				else
 				{
