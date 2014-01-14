@@ -30,13 +30,16 @@ int main(int argc, char **argv)
 	IplImage *img = NULL;
 	CvRect match_rect;
 	CvScalar match_color;
-	int match_res = 0;
+	double match_res = 0;
 	int i;
 	int show = 0;
+	float match_threshold = 0.8;
+	int match_flipped = 1;
+	int was_flipped = 0;
 
 	if (argc < 4)
 	{
-		fprintf(stderr, "Usage: %s [--show] --snout <snout image> <input image>\n", argv[0]);
+		fprintf(stderr, "Usage: %s [--show] [--match_flipped <0|1>] [--threshold] --snout <snout image> <input image>\n", argv[0]);
 		return -1;
 	}
 
@@ -52,6 +55,24 @@ int main(int argc, char **argv)
 			{
 				i++;
 				snout_path = argv[i];
+				continue;
+			}
+		}
+		else if (!strcmp(argv[i], "--threshold"))
+		{
+			if (argc >= (i + 1))
+			{
+				i++;
+				match_threshold = atof(argv[i]);
+				continue;
+			}
+		}
+		else if (!strcmp(argv[i], "--match_flipped"))
+		{
+			if (argc >= (i + 1))
+			{
+				i++;
+				match_flipped = atoi(argv[i]);
 				continue;
 			}
 		}
@@ -71,7 +92,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (catcierge_init(&ctx, snout_path))
+	if (catcierge_init(&ctx, snout_path, match_flipped, match_threshold))
 	{
 		fprintf(stderr, "Failed to init catcierge lib!\n");
 		return -1;
@@ -83,20 +104,20 @@ int main(int argc, char **argv)
 		goto fail;
 	}
 
-	if ((match_res = catcierge_match(&ctx, img, &match_rect)) < 0)
+	if ((match_res = catcierge_match(&ctx, img, &match_rect, &was_flipped)) < 0)
 	{
 		fprintf(stderr, "Something went wrong when matching image: %s\n", img_path);
 		catcierge_destroy(&ctx);
 	}
 
-	if (!match_res)
+	if (match_res >= match_threshold)
 	{
-		printf("Match!\n");
+		printf("Match%s! %f\n", was_flipped ? " (Flipped)": "", match_res);
 		match_color = CV_RGB(0, 255, 0);
 	}
 	else
 	{
-		printf("No match!\n");
+		printf("No match! %f\n", match_res);
 		match_color = CV_RGB(255, 0, 0);
 	}
 

@@ -25,14 +25,18 @@ typedef struct catcierge_s
 {
 	CvMemStorage* storage;
 	IplImage* snout;
+	IplImage* flipped_snout;
 	IplConvKernel *kernel;
+
+	int match_flipped;
+	float match_threshold;
 } catcierge_t;
 
-int catcierge_init(catcierge_t *ctx, const char *snout_path);
+int catcierge_init(catcierge_t *ctx, const char *snout_path, int match_flipped, float match_threshold);
 
 void catcierge_destroy(catcierge_t *ctx);
 
-double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect);
+double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect, int *flipped);
 
 int catcierge_is_matchable(catcierge_t *ctx, IplImage *img);
 

@@ -58,7 +58,7 @@ static int _catcierge_prepare_img(catcierge_t *ctx, const IplImage *src, IplImag
 	return 0;
 }
 
-int catcierge_init(catcierge_t *ctx, const char *snout_path)
+int catcierge_init(catcierge_t *ctx, const char *snout_path, int match_flipped, float match_threshold)
 {
 	IplImage *snout_prep = NULL;
 	assert(ctx);
@@ -69,6 +69,9 @@ int catcierge_init(catcierge_t *ctx, const char *snout_path)
 		fprintf(stderr, "No such file %s\n", snout_path);
 		return -1;
 	}
+
+	ctx->match_flipped = match_flipped;
+	ctx->match_threshold = match_threshold;
 	
 	if (!(ctx->storage = cvCreateMemStorage(0)))
 	{
@@ -98,6 +101,13 @@ int catcierge_init(catcierge_t *ctx, const char *snout_path)
 		return -1;
 	}
 
+	// Flip so we can match for going out as well (and not fail the match).
+	if (ctx->match_flipped)
+	{
+		ctx->flipped_snout = cvCloneImage(ctx->snout);
+		cvFlip(ctx->snout, ctx->flipped_snout, 1);
+	}
+
 	cvReleaseImage(&snout_prep);
 
 	return 0;
@@ -113,6 +123,12 @@ void catcierge_destroy(catcierge_t *ctx)
 		ctx->snout = NULL;
 	}
 
+	if (ctx->flipped_snout)
+	{
+		cvReleaseImage(&ctx->flipped_snout);
+		ctx->flipped_snout = NULL;
+	}
+
 	if (ctx->storage)
 	{
 		cvReleaseMemStorage(&ctx->storage);
@@ -126,7 +142,7 @@ void catcierge_destroy(catcierge_t *ctx)
 	}
 }
 
-double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect)
+double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect, int *flipped)
 {
 	IplImage *img_cpy = NULL;
 	IplImage *img_prep = NULL;
@@ -161,13 +177,28 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect
 	matchres_size = cvSize(img_size.width - snout_size.width + 1, 
 						   img_size.height - snout_size.height + 1);
 	matchres = cvCreateImage(matchres_size, IPL_DEPTH_32F, 1);
+
 	cvMatchTemplate(img_cpy, ctx->snout, matchres, CV_TM_CCOEFF_NORMED);
 	cvMinMaxLoc(matchres, &min_val, &max_val, &min_loc, &max_loc, NULL);
+
+	// If we fail the match, try the flipped snout as well.
+	if (ctx->match_flipped && ctx->flipped_snout && (max_val < ctx->match_threshold))
+	{
+		cvMatchTemplate(img_cpy, ctx->flipped_snout, matchres, CV_TM_CCOEFF_NORMED);
+		cvMinMaxLoc(matchres, &min_val, &max_val, &min_loc, &max_loc, NULL);
+
+		// Only qualify as OUT if it was a good match.
+		if ((max_val >= ctx->match_threshold) && flipped)
+		{
+			*flipped = 1;
+		}
+	}
 
 	*match_rect = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
 
 	cvReleaseImage(&img_cpy);
 	cvReleaseImage(&img_prep);
+	cvReleaseImage(&matchres);
 
 	return max_val;
 }
