@@ -978,8 +978,12 @@ static void usage(const char *prog)
 	#endif // WITH_RFID
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Commands:\n");
-	fprintf(stderr, "           (Note that %%0, %%1, %%2... will be replaced in the input, see --cmdhelp for details)\n");
+	fprintf(stderr, "   (Note that %%0, %%1, %%2... will be replaced in the input, see --cmdhelp for details)\n");
 	#define EPRINT_CMD_HELP(fmt, ...) if (show_cmd_help) fprintf(stderr, fmt, ##__VA_ARGS__);
+	EPRINT_CMD_HELP("\n");
+	EPRINT_CMD_HELP("   General: %%cwd will output the current working directory for this program.\n");
+	EPRINT_CMD_HELP("            Any paths returned are relative to this. %%%% Produces a literal %% sign.\n");
+	EPRINT_CMD_HELP("\n");
 	fprintf(stderr, " --match_cmd <cmd>      Command to run after a match is made.\n");
 	EPRINT_CMD_HELP("                         %%0 = [float] Match result.\n");
 	EPRINT_CMD_HELP("                         %%1 = [0/1]   Success or failure.\n");
@@ -1024,6 +1028,7 @@ static void usage(const char *prog)
 	EPRINT_CMD_HELP("                         %%4 = RFID outer success.\n");
 	EPRINT_CMD_HELP("                         %%5 = RFID inner data.\n");
 	EPRINT_CMD_HELP("                         %%6 = RFID outer data.\n");
+	EPRINT_CMD_HELP("\n");
 	fprintf(stderr, " --do_lockout_cmd <cmd> Command to run when the lockout should be performed.\n");
 	fprintf(stderr, "                        This will override the normal lockout method.\n");
 	fprintf(stderr, " --do_unlock_cmd <cmd>  Command that is run when we should unlock.\n");
