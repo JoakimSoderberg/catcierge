@@ -63,6 +63,12 @@
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 30		// How long to wait after a match try before we match again.
 
+typedef enum match_direction_e
+{
+	MATCH_DIR_IN = 0,
+	MATCH_DIR_OUT = 1
+} match_direction_t;
+
 int show_cmd_help = 0;
 int in_loop = 0;			// Only used for ctrl+c (SIGINT) handler.
 char *snout_path = NULL;	// Path to the snout image we should match against.
@@ -94,6 +100,7 @@ int match_count = 0;
 struct timeval match_start;				// The time when we started matching.
 double last_match_time;					// Time since match_start in seconds.
 int match_time = DEFAULT_MATCH_WAIT;	// Time to wait until we try to match again (if anything is in view).
+int match_flipped = 1;					// If we fail to match, try flipping the snout and matching.
 
 typedef struct match_image_s
 {
@@ -101,6 +108,7 @@ typedef struct match_image_s
 	IplImage *img;
 	double result;
 	int success;
+	match_direction_t direction;
 } match_image_t;
 
 match_image_t match_images[MATCH_MAX_COUNT]; // Image cache of matches.
@@ -286,21 +294,15 @@ static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 	log_print_csv(log_file, "rfid, %s, %s\n", 
 			current->data, (current->is_allowed > 0)? "allowed" : "rejected");
 
-	// %0 = RFID reader name.
-	// %1 = RFID path.
-	// %2 = Is allowed.
-	// %3 = Is data incomplete.
-	// %4 = Tag data.
-	// %5 = Other reader triggered.
-	// %6 = Direction.
 	catcierge_execute(rfid_detect_cmd, 
-		"%s %d %d %s %d %s",
-		rfid->name, 
-		current->is_allowed, 
-		current->incomplete, 
-		current->data,
-		other->triggered,
-		rfid_get_direction_str(rfid_direction));
+		"%s %s %d %d %s %d %s",
+		rfid->name, 				// %0 = RFID reader name.
+		rfid->serial_path,			// %1 = RFID path.
+		current->is_allowed, 		// %2 = Is allowed.
+		current->incomplete, 		// %3 = Is data incomplete.
+		current->data,				// %4 = Tag data.
+		other->triggered,			// %5 = Other reader triggered.
+		rfid_get_direction_str(rfid_direction)); // %6 = Direction.
 }
 
 static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
@@ -411,17 +413,17 @@ static void save_images(int match_success)
 		CATLOGFPS("Saving image %s\n", m->path);
 		cvSaveImage(m->path, m->img, 0);
 		
-		// %0 = Match result.
-		// %1 = Match success.
-		// %2 = Image path (of now saved image).
-		catcierge_execute(save_img_cmd, "%f %d %s", 
-			m->result, m->success, m->path);
+		catcierge_execute(save_img_cmd, "%f %d %s %d", 
+			m->result,		// %0 = Match result.
+			m->success, 	// %1 = Match success.
+			m->path,		// %2 = Image path (of now saved image).
+			m->direction);	// %3 = Match direction.
 
 		cvReleaseImage(&m->img);
 		m->img = NULL;
 	}
 
-	catcierge_execute(save_imgs_cmd, "%d %s %s %s %s %f %f %f %f",  
+	catcierge_execute(save_imgs_cmd, "%d %s %s %s %s %f %f %f %f %d %d %d %d",  
 		match_success,				// %0 = Match success.
 		match_images[0].path,		// %1 = Image 1 path (of now saved image).
 		match_images[1].path,		// %2 = Image 2 path (of now saved image).
@@ -430,7 +432,11 @@ static void save_images(int match_success)
 		match_images[0].result,		// %5 = Image 1 result.
 		match_images[1].result,		// %6 = Image 2 result.
 		match_images[2].result,		// %7 = Image 3 result.
-		match_images[3].result);	// %8 = Image 4 result.
+		match_images[3].result,		// %8 = Image 4 result.
+		match_images[0].direction,	// %9 =  Image 1 direction.
+		match_images[1].direction,	// %10 = Image 2 direction.
+		match_images[2].direction,	// %11 = Image 3 direction.
+		match_images[3].direction);	// %12 = Image 4 direction.
 }
 
 static void start_locked_state()
@@ -487,11 +493,10 @@ static void should_we_lockout(double match_res)
 			start_locked_state();
 		}
 
-		// %0 = Match success.
-		// %1 = Successful match count.
-		// %2 = Max matches.
 		catcierge_execute(match_done_cmd, "%d %d %d", 
-			match_success, count, match_count);
+			match_success, 	// %0 = Match success.
+			count, 			// %1 = Successful match count.
+			match_count);	// %2 = Max matches.
 
 		match_count = 0;
 
@@ -705,6 +710,20 @@ static int parse_setting(const char *key, char *value)
 		else
 		{
 			match_time = DEFAULT_MATCH_WAIT;
+		}
+
+		return 0;
+	}
+
+	if (!strcmp(key, "match_flipped"))
+	{
+		if (value)
+		{
+			match_flipped = atoi(value);
+		}
+		else
+		{
+			match_flipped = 1;
 		}
 
 		return 0;
@@ -955,6 +974,8 @@ static void usage(const char *prog)
 	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0. Default %.1f\n", DEFAULT_MATCH_THRESH);
 	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
 	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
+	fprintf(stderr, " --match_flipped <0|1>  Match a flipped version of the snout\n");
+	fprintf(stderr, "                        (don't consider going out a failed match). Default on.\n");
 	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
 	fprintf(stderr, " --show_fps             Show FPS.\n");
 	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
@@ -1118,6 +1139,7 @@ int main(int argc, char **argv)
 	int enough_time = 0;
 	int cfg_err = -1;
 	int match_success;
+	int going_out = 0;
 	#ifdef RPI
 	RaspiCamCvCapture *capture = NULL;
 	#else
@@ -1195,6 +1217,7 @@ int main(int argc, char **argv)
 	printf("--------------------------------------------------------------------------------\n");
 	printf("    Snout image: %s\n", snout_path);
 	printf("Match threshold: %.2f\n", match_threshold);
+	printf("  Match flipped: %d\n", match_flipped);
 	printf("     Show video: %d\n", show);
 	printf("   Save matches: %d\n", saveimg);
 	printf("Highlight match: %d\n", highlight_match);
@@ -1246,7 +1269,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (catcierge_init(&ctx, snout_path))
+	if (catcierge_init(&ctx, snout_path, match_flipped, match_threshold))
 	{
 		CATERR("Failed to init catcierge lib!\n");
 		return -1;
@@ -1317,7 +1340,7 @@ int main(int argc, char **argv)
 		if (do_match && enough_time)
 		{
 			// We have something to match against. 
-			if ((match_res = catcierge_match(&ctx, img, &match_rect)) < 0)
+			if ((match_res = catcierge_match(&ctx, img, &match_rect, &going_out)) < 0)
 			{
 				CATERRFPS("Error when matching frame!\n");
 				goto skiploop;
@@ -1325,7 +1348,7 @@ int main(int argc, char **argv)
 
 			match_success = (match_res >= match_threshold);
 
-			CATLOGFPS("%f %sMatch\n", match_res, match_success ? "" : "No ");
+			CATLOGFPS("%f %sMatch%s\n", match_res, match_success ? "" : "No ", going_out ? " OUT" : " IN");
 
 			if (saveimg)
 			{
@@ -1351,21 +1374,22 @@ int main(int argc, char **argv)
 					match_images[match_count].img = cvCloneImage(img);
 					match_images[match_count].result = match_res;
 					match_images[match_count].success = match_success;
+					match_images[match_count].direction = going_out ? MATCH_DIR_OUT : MATCH_DIR_IN;
 				}
 			}
 
 			// Log match to file.
-			log_print_csv(log_file, "match, %s, %f, %f, %s\n",
+			log_print_csv(log_file, "match, %s, %f, %f, %s, %s\n",
 				 match_success ? "success" : "failure", 
 				 match_res, match_threshold,
-				 saveimg ? match_images[match_count].path : "-");
+				 saveimg ? match_images[match_count].path : "-",
+				 (match_images[match_count].direction == MATCH_DIR_IN) ? "in" : "out");
 
-			// %0 = Match result.
-			// %1 = 0/1 succes or failure.
-			// %2 = image path if saveimg is turned on.
-			catcierge_execute(match_cmd, "%f %d %s",  
-					match_res, match_success,
-					saveimg ? match_images[match_count].path : "");
+			catcierge_execute(match_cmd, "%f %d %s %d",  
+					match_res, 										// %0 = Match result.
+					match_success,									// %1 = 0/1 succes or failure.
+					saveimg ? match_images[match_count].path : "",	// %2 = Image path if saveimg is turned on.
+					match_images[match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
 
 			should_we_lockout(match_res);
 		}
