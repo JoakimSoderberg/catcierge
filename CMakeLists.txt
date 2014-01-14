@@ -39,6 +39,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 if (RPI)
+	add_definitions(-DRPI)
+
 	set(OpenCV_LIBS 
 		/usr/lib/libopencv_calib3d.a
 		/usr/lib/libopencv_features2d.a
