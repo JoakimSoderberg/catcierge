@@ -61,6 +61,6 @@ def main():
 					help = "List of statuses for each match", default = [])
 
 	args = parser.parse_args()
-	send_mail(args.to, args.from_email, args.smtp, args.password, args.images, args.status, args.status, args.match_statuses)
+	send_mail(args.to, args.from_email, args.smtp, args.password, args.images, args.status, args.match_statuses)
 
 if __name__ == '__main__': main()
