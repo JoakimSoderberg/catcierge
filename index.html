@@ -128,7 +128,7 @@ After replacing the window in our basement stairway with a cat door to let our c
 
 <p>The basic idea is to make the cat go through a corridor. On one side of the corridor there's a camera, on the other side there's a backlight. This enables us to take a well controlled picture of the cats profile. Since cats keep their prey in the mouth, we can focus on the cats snout when doing the matching. We now use a saved image of the cats snout without any prey in it, and scan the image for that, if we get a good enough match, we can be certain the cat has no prey, if not we lock the door!</p>
 
-<p>This method is a lot simpler than using more advanced techniques used for pattern matching, such as haar cascades or similar things normally used for facial detection in humans. Using techniques like that it would probably be possible to make a much more compact version with the camera simply being placed above the cat door, and taking a picture of the cat face on. However, that would require a lot more time and effort, involving different lightning and weather. Keep It Simple Stupid!</p>
+<p>This method is a lot simpler than using more advanced techniques used for pattern matching, such as haar cascades or similar things normally used for facial detection in humans. Keep It Simple Stupid!</p>
 
 <h2>
 <a name="backlight" class="anchor" href="#backlight"><span class="octicon octicon-link"></span></a>Backlight</h2>
@@ -229,22 +229,162 @@ After replacing the window in our basement stairway with a cat door to let our c
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/notok/higgsfel02_06final.png" alt="Matching"></p>
 
-<p>From some test with different input images I decided that a good threshold value as mentioned above is 0.8.</p>
+<p>If we compare the two match maps we can easily see the difference:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/notok/higgsfel02_05tempmatch.png" alt="Matching"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/ok/higgs02_05tempmatch.png" alt="Matching"></p>
+
+<p>The max value in the second image is lower because since no good match can be found.</p>
+
+<p>From some test with different input images I decided that a good threshold value as mentioned above is 0.8, on the 0.0 to 1.0 scale, where 1.0 would be a perfect match.</p>
 
 <h2>
-<a name="c-version" class="anchor" href="#c-version"><span class="octicon octicon-link"></span></a>C-Version</h2>
+<a name="from-python-prototype-to-c-version" class="anchor" href="#from-python-prototype-to-c-version"><span class="octicon octicon-link"></span></a>From Python prototype to C Version</h2>
 
 <p>After creating my prototype in Python and getting it all to work, I then moved on to creating the same algorithm in a C library. I made it a library so that I can easily compile a test program to test only the algorithm on another platform than the Raspberry Pi. And then write a final program that is used for the actual image recognition running on the Raspberry Pi separately.</p>
 
-<p>After writing the C verison and using the Raspberry Pi camera board to capture the images, it was obvious that using a full resolution image at 1080p was a bit too much to handle, so instead I changed the resolution down to 320x240 and made it gray scale which made it able to capture at ~20 fps instead of 1-2 fps at the actual matching moment.</p>
+<p>After writing the C verison and using the Raspberry Pi camera board to capture the images, it was obvious that using a full resolution image at 1080p was a bit too much to handle for the CPU, so instead I changed the resolution down to 320x240 and made it gray scale which made it able to capture at ~20 fps instead of 1-2 fps at the actual matching moment.</p>
 
-<p>The matching is not on at all times, only when the middle part of the image becomes dark does it start to look for the cat snout. If it finds that 2 out of 4 images in row can be considered a match it will leave the door open, otherwise it will close it. All these match images can then be logged to disk for later checking for false positives and the like.</p>
+<p>The matching is not on at all times, only when the middle part of the image becomes dark does it start to look for the cat snout. After the darkness has been detected the program saves 4 images in a row, if 2 of these are above the threshold the match is considered a success and the door will be left open. Otherwise the solenoid is turned on and the door is closed.</p>
 
-<p>I also made it possible to run external programs at different important places in the code. For instance on an RFID match, or an image recognition completing and the images being saved so you can upload them to the internet or whatever using whatever program you feel like.</p>
+<p>I also made it possible to run external programs at different important places in the code. For instance  on an RFID match, image recognition completing, or the images being saved. This makes it easy to add interactive behaviour to the system by writing small programs that for instance uploads the image to the internet.</p>
 
-<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/cardboard01.jpg" alt="Cardboard"></p>
+<p>Most of the testing was done without a live camera image, but here's a picture of my test setup when I tried it:</p>
 
-<p>When developing this final program I needed to test it using the live Raspberry Pi camera to see if it matched OK. Trying to persuade my cat to walk through the corridor was not really an option though, so instead I printed a frame from my input video I had captured and glued it on to some cardboard and then cut it out. I could then use this cutout to emulate the cat entering the corridor and fine tune my program using that.</p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/testsetup01.jpg" alt="Cardboard"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/cardboard01.jpg" alt="Cardboard"></p>
+
+<p>When developing this final program I needed to test it using the live Raspberry Pi camera to see if it matched OK. Trying to persuade my cat to walk through the corridor was not really an option though, so instead I printed a frame from my input video I had captured while bribing her with some cat candy, and then glued that on to some cardboard. The cut out of this could then be used to emulate the cat entering the corridor and fine tune my program using that.</p>
+
+<p>Here is the usage options of the final (as of writing) program:</p>
+
+<div class="highlight highlight-bash"><pre>Catcierge Grabber v0.1.0 <span class="o">(</span>C<span class="o">)</span> Joakim Soderberg 2013-2014
+Usage: ./catcierge_grabber <span class="o">[</span>options<span class="o">]</span>
+
+ --snout_path &lt;path&gt;    Path to the snout image.
+ --threshold &lt;float&gt;    Match threshold as a value between 0.0 and 1.0. Default 0.8
+ --lockout &lt;seconds&gt;    The <span class="nb">time </span>in seconds a lockout takes. Default 30s
+ --matchtime &lt;seconds&gt;  The <span class="nb">time </span>to <span class="nb">wait </span>after a match. Default 30s
+ --match_flipped &lt;0<span class="p">|</span>1&gt;  Match a flipped version of the snout
+                        <span class="o">(</span>don<span class="err">'</span>t consider going out a failed match<span class="o">)</span>. Default on.
+ --show                 Show GUI of the camera feed <span class="o">(</span>X11 only<span class="o">)</span>.
+ --show_fps             Show FPS.
+ --save                 Save match images <span class="o">(</span>both ok and failed<span class="o">)</span>.
+ --highlight            Highlight the best match on saved images.
+ --output &lt;path&gt;        Path to where the match images should be saved.
+ --log &lt;path&gt;           Log matches and rfid readings <span class="o">(</span><span class="k">if </span>enabled<span class="o">)</span>.
+ --config &lt;path&gt;        Path to config file. Default is ./catcierge.cfg or /etc/catcierge.cfg
+                        This is parsed as an INI file. The keys/values are the same as these options.
+
+RFID:
+ --rfid_in &lt;path&gt;       Path to inner RFID reader. Example: /dev/ttyUSB0
+ --rfid_out &lt;path&gt;      Path to the outter RFID reader.
+ --rfid_lock            Lock <span class="k">if </span>no RFID tag present or invalid RFID tag. Default OFF.
+ --rfid_time &lt;seconds&gt;  Number of seconds to <span class="nb">wait </span>after a valid match before the
+                        RFID readers are checked.
+                        <span class="o">(</span>This is so that there is enough <span class="nb">time </span><span class="k">for </span>the cat to be <span class="nb">read </span>by both readers<span class="o">)</span>
+ --rfid_allowed &lt;list&gt;  A comma separated list of allowed RFID tags. Example: 999_000000001007
+
+Commands:
+   <span class="o">(</span>Note that %0, %1, %2... will be replaced in the input, see --cmdhelp <span class="k">for </span>details<span class="o">)</span>
+
+   General: %cwd will output the current working directory <span class="k">for </span>this program.
+            Any paths returned are relative to this. %% Produces a literal % sign.
+
+ --match_cmd &lt;cmd&gt;      Command to run after a match is made.
+                         %0 <span class="o">=</span> <span class="o">[</span>float<span class="o">]</span> Match result.
+                         %1 <span class="o">=</span> <span class="o">[</span>0/1<span class="o">]</span>   Success or failure.
+                         %2 <span class="o">=</span> <span class="o">[</span>path<span class="o">]</span>  Path to where image will be saved <span class="o">(</span>Not saved yet!<span class="o">)</span>
+
+ --save_img_cmd &lt;cmd&gt;   Command to run at the moment a match image is saved.
+                         %0 <span class="o">=</span> <span class="o">[</span>float<span class="o">]</span>  Match result, 0.0-1.0
+                         %1 <span class="o">=</span> <span class="o">[</span>0/1<span class="o">]</span>    Match success.
+                         %2 <span class="o">=</span> <span class="o">[</span>string<span class="o">]</span> Image path <span class="o">(</span>Image is saved to disk<span class="o">)</span>.
+
+ --save_imgs_cmd &lt;cmd&gt;  Command that runs when all match images have been saved to disk.
+                         %0 <span class="o">=</span> <span class="o">[</span>0/1<span class="o">]</span>    Match success.
+                         %1 <span class="o">=</span> <span class="o">[</span>string<span class="o">]</span> Image path <span class="k">for </span>first match.
+                         %2 <span class="o">=</span> <span class="o">[</span>string<span class="o">]</span> Image path <span class="k">for </span>second match.
+                         %3 <span class="o">=</span> <span class="o">[</span>string<span class="o">]</span> Image path <span class="k">for </span>third match.
+                         %4 <span class="o">=</span> <span class="o">[</span>string<span class="o">]</span> Image path <span class="k">for </span>fourth match.
+                         %5 <span class="o">=</span> <span class="o">[</span>float<span class="o">]</span>  First image result.
+                         %6 <span class="o">=</span> <span class="o">[</span>float<span class="o">]</span>  Second image result.
+                         %7 <span class="o">=</span> <span class="o">[</span>float<span class="o">]</span>  Third image result.
+                         %8 <span class="o">=</span> <span class="o">[</span>float<span class="o">]</span>  Fourth image result.
+
+ --match_done_cmd &lt;cmd&gt; Command to run when a match is <span class="k">done</span>.
+                         %0 <span class="o">=</span> <span class="o">[</span>0/1<span class="o">]</span>    Match success.
+                         %1 <span class="o">=</span> <span class="o">[</span>int<span class="o">]</span>    Successful match count.
+                         %2 <span class="o">=</span> <span class="o">[</span>int<span class="o">]</span>    Max matches.
+
+ --rfid_detect_cmd &lt;cmd&gt; Command to run when one of the RFID readers detects a tag.
+                         %0 <span class="o">=</span> <span class="o">[</span>string<span class="o">]</span> RFID reader name.
+                         %1 <span class="o">=</span> <span class="o">[</span>string<span class="o">]</span> RFID path.
+                         %2 <span class="o">=</span> <span class="o">[</span>0/1<span class="o">]</span>    Is allowed.
+                         %3 <span class="o">=</span> <span class="o">[</span>0/1<span class="o">]</span>    Is data incomplete.
+                         %4 <span class="o">=</span> <span class="o">[</span>string<span class="o">]</span> Tag data.
+                         %5 <span class="o">=</span> <span class="o">[</span>0/1<span class="o">]</span>    Other reader triggered.
+                         %6 <span class="o">=</span> <span class="o">[</span>string<span class="o">]</span> Direction <span class="o">(</span>in, out or uknown<span class="o">)</span>.
+
+ --rfid_match_cmd &lt;cmd&gt; Command that is run when a RFID match is made.
+                         %0 <span class="o">=</span> Match success.
+                         %1 <span class="o">=</span> RFID inner in use.
+                         %2 <span class="o">=</span> RFID outer in use.
+                         %3 <span class="o">=</span> RFID inner success.
+                         %4 <span class="o">=</span> RFID outer success.
+                         %5 <span class="o">=</span> RFID inner data.
+                         %6 <span class="o">=</span> RFID outer data.
+
+ --do_lockout_cmd &lt;cmd&gt; Command to run when the lockout should be performed.
+                        This will override the normal lockout method.
+ --do_unlock_cmd &lt;cmd&gt;  Command that is run when we should unlock.
+                        This will override the normal unlock method.
+
+ --help                 Show this help.
+ --cmdhelp              Show extra <span class="nb">command </span>help.
+
+The snout image refers to the image of the cat snout that is matched against.
+This image should be based on a 320x240 resolution image taken by the rpi camera.
+If no path is specified <span class="s2">"snout.png"</span> in the current directory is used.
+</pre></div>
+
+<h2>
+<a name="finalizing-the-building" class="anchor" href="#finalizing-the-building"><span class="octicon octicon-link"></span></a>Finalizing the building</h2>
+
+<p>After being satisfied with the software and that it works I started building the walls and roof on the cat door corridor.</p>
+
+<p>From start I wanted the entire thing to be light enough for me to lift it around easily, so that I can take it inside if I want to work on it. For this reason I knew that both the walls and roof needed to be removable.</p>
+
+<h2>
+<a name="walls" class="anchor" href="#walls"><span class="octicon octicon-link"></span></a>Walls</h2>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/wall01.jpg" alt="Final"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/vinkelbeslag01.jpg" alt="Final"></p>
+
+<p>To make them removable I put two screws on the top of the frame. I then put two sash angles on each wall, the holes in the middle of these then match up to the screws on the frame. This arrangement enables me to hang the walls on the frame and remove them when necessary.</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/wall02.jpg" alt="Final"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/wall03.jpg" alt="Final"></p>
+
+<p>Here both walls are hung on the frame:</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/wall04.jpg" alt="Final"></p>
+
+<p>I decided to make the front non-removable since the entrance and everything would make it less convenient. And the extra weight isn't really a problem to be able to move it around anyway.</p>
+
+<p>I also made a small roof just above the entrance so that I can put the RFID antenna under it. Plus it will keep rain and snow out.</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/entrance01.jpg" alt="Final"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/entrance02.jpg" alt="Final"></p>
+
+<h2>
+<a name="roof" class="anchor" href="#roof"><span class="octicon octicon-link"></span></a>Roof</h2>
+
+<p>Finally I built the roof out of some plywood. To keep the water out I put some <a href="http://www.byggmax.com/sv-se/byggvaror/isolering/ovrig-isolering/syllpapp-p17065">"syllpapp"</a> on it (I don't know what it's called in English, but it's used as a moisture stop/isolation between concrete and wooden beams).</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/roof01.jpg" alt="Roof"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/roof02.jpg" alt="Roof"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/roof03.jpg" alt="Roof"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/roof04.jpg" alt="Roof"></p>
+
+<h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Finally I could install the corridor. Note that the entire thing is standing on top of some garden tiles to get it a bit off the ground, so that it will stay dry as the snow melts.</p>
+
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/installation01.jpg" alt="Installation"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/installation02.jpg" alt="Installation"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/installation03.jpg" alt="Installation"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/installation04.jpg" alt="Installation"></p>
         </section>
 
         <footer>
