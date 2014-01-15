@@ -31,7 +31,7 @@
 #include "alini.h"
 
 /* strips whitespace at beginning and end of string */
-static inline char *stripws(char *str, size_t len)
+static char *stripws(char *str, size_t len)
 {
 	int i = 0;
 	int j = 0;

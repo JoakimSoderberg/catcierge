@@ -18,7 +18,10 @@
 //
 #include <stdio.h>
 #include <errno.h>
+#include "catcierge_util.h"
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
@@ -51,7 +54,6 @@ void catcierge_execute(char *command, char *fmt, ...)
 	static char buf[2048];
 	static char tmp[2048];
 	char *s;
-	pid_t pid;
 	int cur_opt = 0;
 	char *argv[3] = {0};
 	char *extras[32];
@@ -60,9 +62,6 @@ void catcierge_execute(char *command, char *fmt, ...)
 
 	if (!command)
 		return;
-
-	argv[0] = "/bin/sh";
-	argv[1] = "-c";
 
 	// Get the variable arguments into a nice array.
 
@@ -135,29 +134,65 @@ void catcierge_execute(char *command, char *fmt, ...)
 		command++;
 	}
 
-	argv[2] = buf;
-
+	//
 	// Run the command.
-
-	// Fork a child process.
-	if ((pid = fork()) < 0) 
-	{    
-		CATERR("Forking child process failed: %d, %s\n", errno, strerror(errno));
-		exit(1);
-	}
-	else if (pid == 0) 
+	//
+	#ifndef _WIN32
 	{
-		// For the child process.
+		pid_t pid;
+		argv[0] = "/bin/sh";
+		argv[1] = "-c";
+		argv[2] = buf;
 
-		// Execute the command.
-		if (execvp(*argv, argv) < 0) 
+		// Fork a child process.
+		if ((pid = fork()) < 0)
 		{
-			CATERR("Exec \"%s\" failed: %d, %s\n", command, errno, strerror(errno));
-			exit(1);
+			CATERR("Forking child process failed: %d, %s\n", errno, strerror(errno));
+		}
+		else if (pid == 0)
+		{
+			// For the child process.
+
+			// Execute the command.
+			if (execvp(*argv, argv) < 0)
+			{
+				CATERR("Exec \"%s\" failed: %d, %s\n", command, errno, strerror(errno));
+				exit(1);
+			}
+		}
+		else
+		{
+			CATLOG("Called program %s\n", buf);
 		}
 	}
-	else
+	#else // _WIN32
 	{
-		CATLOG("Called program %s\n", buf);
+		STARTUPINFO si;
+		PROCESS_INFORMATION pi;
+		memset(&si, 0, sizeof(si));
+		si.dwXSize = sizeof(si);
+		memset(&pi, 0, sizeof(pi));
+
+		snprintf(tmp, sizeof(tmp) - 1, "c:\\Windows\\system32\\cmd.exe /c %s", buf);
+
+		if (!CreateProcess(
+				NULL, 
+				tmp,			// Commandline
+				NULL,           // Process handle not inheritable
+				NULL,           // Thread handle not inheritable
+				FALSE,          // Set handle inheritance to FALSE
+				0,              // No creation flags
+				NULL,           // Use parent's environment block
+				NULL,           // Use parent's starting directory 
+				&si,            // Pointer to STARTUPINFO structure
+				&pi ))          // Pointer to PROCESS_INFORMATION structure
+		{
+			CATERR("Error %d, Failed to run command %s\n", GetLastError());
+		}
+		else
+		{
+			CATLOG("Called program %s\n", buf);
+		}
 	}
+	#endif // _WIN32
 }

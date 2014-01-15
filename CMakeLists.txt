@@ -38,6 +38,16 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+if (WIN32)
+	set(WITH_RFID OFF)
+	message("\n!!! Windows currently doesn't support RFID readers !!!\n")
+endif()
+
+if (MSVC)
+	# Turn off deprecation warnings
+	add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS)
+endif()
+
 if (RPI)
 	add_definitions(-DRPI)
 
@@ -118,6 +128,17 @@ if (RPI)
 	add_dependencies(raspicam_test raspicamcv)
 	target_link_libraries(raspicam_test raspicamcv ${LIBS})
 else()
+	if (WIN32)
+		# We link statically on windows so we don't have to copy DLLs around.
+		option(LINK_STATIC "Link eveything static such as OpenCV. Will produce a single exe (big since it contains OpenCV and more). Default on" ON)
+
+		if (LINK_STATIC)
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+			set(OpenCV_STATIC ON)
+		endif()
+	endif()
+
 	find_package(OpenCV REQUIRED)
 	set(LIBS ${OpenCV_LIBS})
 endif()
@@ -161,6 +182,10 @@ set(GRABBER_SRC
 
 if (RPI)
 	list(APPEND GRABBER_SRC catcierge_gpio.c)
+endif()
+
+if (WIN32)
+	list(APPEND GRABBER_SRC win32/gettimeofday.c)
 endif()
 
 add_executable(catcierge_grabber ${GRABBER_SRC})

@@ -21,7 +21,14 @@
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
 #include <assert.h>
+#ifdef _WIN32
+#include <io.h>
+#define F_OK 0 // Test for existance.
+#define R_OK 4 // Test for read permission.
+#define W_OK 2 // Test for write permission.
+#else
 #include <unistd.h>
+#endif
 
 static int _catcierge_prepare_img(catcierge_t *ctx, const IplImage *src, IplImage *dst)
 {
@@ -58,7 +65,7 @@ static int _catcierge_prepare_img(catcierge_t *ctx, const IplImage *src, IplImag
 	return 0;
 }
 
-int catcierge_init(catcierge_t *ctx, const char *snout_path, int match_flipped, float match_threshold)
+int catcierge_init(catcierge_t *ctx, const char *snout_path, int match_flipped, double match_threshold)
 {
 	IplImage *snout_prep = NULL;
 	assert(ctx);

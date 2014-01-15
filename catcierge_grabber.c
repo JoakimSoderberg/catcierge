@@ -21,21 +21,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <catcierge_config.h>
+#include "catcierge_util.h"
 #include "catcierge.h"
 #include <signal.h>
 #include <time.h>
+
+#ifdef _WIN32
+#include "win32/gettimeofday.h"
+#else
 #include <sys/time.h>
+#endif
+
 #ifdef RPI
 #include "RaspiCamCV.h"
 #include "catcierge_gpio.h"
 #endif
+
 #include <stdarg.h>
 #include <errno.h>
 #include <limits.h>
+
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"
 #endif // WITH_RFID
-#include "catcierge_util.h"
 
 #include "catcierge_log.h"
 
@@ -85,7 +93,7 @@ int show_fps = 1;	// Show FPS in log output.
 int saveimg = 1;	// Save match images to disk.
 int highlight_match = 0; // Highlight the match in saved images.
 struct timeval now = {0, 0};
-float match_threshold = DEFAULT_MATCH_THRESH;
+double match_threshold = DEFAULT_MATCH_THRESH;
 
 // Lockout (when there's an invalid match).
 int lockout_time = DEFAULT_LOCKOUT_TIME;
@@ -630,7 +638,6 @@ static void calculate_fps()
 
 	if (elapsed >= 1.0)
 	{
-		char buf[32];
 		char spinner[] = "\\|/-\\|/-";
 		static int spinidx = 0;
 

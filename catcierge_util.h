@@ -19,6 +19,18 @@
 #ifndef __CATCIERGE_UTIL_H__
 #define __CATCIERGE_UTIL_H__
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <WinSock2.h>
+#include <direct.h>
+#define _WINSOCKAPI_
+#include <Windows.h>
+
+#define PATH_MAX MAX_PATH
+#define getcwd _getcwd
+#define snprintf _snprintf
+#endif // _WIN32
+
 void catcierge_execute(char *command, char *fmt, ...);
 
 #endif // __CATCIERGE_UTIL_H__

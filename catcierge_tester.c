@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 	double match_res = 0;
 	int i;
 	int show = 0;
-	float match_threshold = 0.8;
+	double match_threshold = 0.8;
 	int match_flipped = 1;
 	int was_flipped = 0;
 

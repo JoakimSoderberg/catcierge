@@ -29,10 +29,10 @@ typedef struct catcierge_s
 	IplConvKernel *kernel;
 
 	int match_flipped;
-	float match_threshold;
+	double match_threshold;
 } catcierge_t;
 
-int catcierge_init(catcierge_t *ctx, const char *snout_path, int match_flipped, float match_threshold);
+int catcierge_init(catcierge_t *ctx, const char *snout_path, int match_flipped, double match_threshold);
 
 void catcierge_destroy(catcierge_t *ctx);
 

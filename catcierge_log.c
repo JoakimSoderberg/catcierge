@@ -18,8 +18,11 @@
 //
 #include <stdlib.h>
 #include <stdio.h>
+#ifndef WIN32
 #include <sys/time.h>
 #include <unistd.h>
+#endif
+
 #include <stdarg.h>
 #include <time.h>
 #include "catcierge_log.h"
