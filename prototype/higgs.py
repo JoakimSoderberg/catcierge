@@ -27,7 +27,7 @@ import glob
 ###################################################
 
 # Read the snout image and make it binary and nice.
-org_snout = cv2.imread("../snout1080p.png", 0)
+org_snout = cv2.imread("../examples/snout/snout1080p.png", 0)
 ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
 kernel = np.ones((3,3), np.uint8)
 snout = cv2.erode(threshimg, kernel, iterations = 3)
