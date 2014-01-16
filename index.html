@@ -202,7 +202,7 @@ After replacing the window in our basement stairway with a cat door to let our c
 
 <p>We now use a previously saved image of the cats snout and scan it over the image:</p>
 
-<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/snout1080p.png" alt="Matching"></p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/snout/snout1080p.png" alt="Matching"></p>
 
 <p>This creates a "heatmap" of where this snout image matches the best on the input image. The values of this image is between 0.0 and 1.0, so that the best match on the image has the highest value. We can use this maximum value to choose a threshold of how good a match we decide is a snout with no prey in it:</p>
 
@@ -387,6 +387,39 @@ If no path is specified <span class="s2">"snout.png"</span> in the current direc
 <p>Finally I could install the corridor. Note that the entire thing is standing on top of some garden tiles to get it a bit off the ground, so that it will stay dry as the snow melts.</p>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/installation01.jpg" alt="Installation"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/installation02.jpg" alt="Installation"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/installation03.jpg" alt="Installation"><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/installation04.jpg" alt="Installation"></p>
+
+<h2>
+<a name="testing-phase" class="anchor" href="#testing-phase"><span class="octicon octicon-link"></span></a>Testing phase</h2>
+
+<p>For the first time I was now hoping for Higgs to bring something in so I could verify the cat door was actually detecting correctly.</p>
+
+<p>And finally it happened!... Except that it did not detect the mouse she had brought in successfully. Apparently my hand drawn test image were not realistic enough.</p>
+
+<p>Here is two frames with the mouse in her mouth:</p>
+
+<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/real/fail01.png" alt="Test phase"><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/real/fail02.png" alt="Test phase"></p>
+
+<p>Here with the best match highlighted, with a match result of <strong>0.844146</strong> and <strong>0.837592</strong> respectivly. Which is well above the threshold of <strong>0.8</strong>.</p>
+
+<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/match_ok__fail01.png" alt="Test phase"><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/match_ok__fail02.png" alt="Test phase"></p>
+
+<p>However, I didn't think the solution was to raise the threshold, since some of the OK matches are not far enough from 0.84. Instead I think a better solution was to change what part of the cat snout is matched against.</p>
+
+<p>The original snout that I used: </p>
+
+<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/snout/snout320x240.png" alt="Snout"></p>
+
+<p>Instead I changed it to this one that includes some more area below the chin. You may notice it looks a bit squished compared to the first one. That's because I realized that the native image of the camera does not have a 4:3 aspect ratio, but rather 16:9. So my resolution of 320x240 is not really the correct aspect ratio, I should have used 320x180.</p>
+
+<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/snout/snout320x240_02.png" alt="Snout"></p>
+
+<p>Match results for this new snout image with Higgs's victim in her mouth:</p>
+
+<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/match_fail__fail01.png" alt="Snout"><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/match_fail__fail02.png" alt="Snout"></p>
+
+<p>Here is a comparison of all the good matches since I started testing until Higgs first delivery. As you can see, the new matcher fails in some cases. This is not much of an issue though, because it only happens at the edge pictures anyway. This normally will fail anyway since the snout is most often completely outside the frame anyway.</p>
+
+<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/new_matcher.gif" alt="Snout"><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/old_mathcer.gif" alt="Snout"></p>
         </section>
 
         <footer>
