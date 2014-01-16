@@ -188,6 +188,11 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect
 	cvMatchTemplate(img_cpy, ctx->snout, matchres, CV_TM_CCOEFF_NORMED);
 	cvMinMaxLoc(matchres, &min_val, &max_val, &min_loc, &max_loc, NULL);
 
+	if (flipped)
+	{
+		*flipped = 0;
+	}
+
 	// If we fail the match, try the flipped snout as well.
 	if (ctx->match_flipped && ctx->flipped_snout && (max_val < ctx->match_threshold))
 	{

@@ -21,25 +21,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "catcierge.h"
+#include "catcierge_util.h"
+#ifdef _WIN32
+#include <process.h>
+#endif
 
 int main(int argc, char **argv)
 {
 	catcierge_t ctx;
 	char *snout_path = NULL;
-	char *img_path = NULL;
+	char *img_paths[256];
+	size_t img_count = 0;
 	IplImage *img = NULL;
 	CvRect match_rect;
 	CvScalar match_color;
+	int match_success = 0;
 	double match_res = 0;
 	int i;
 	int show = 0;
+	int save = 0;
+	char *output_path = "output";
 	double match_threshold = 0.8;
 	int match_flipped = 1;
 	int was_flipped = 0;
 
 	if (argc < 4)
 	{
-		fprintf(stderr, "Usage: %s [--show] [--match_flipped <0|1>] [--threshold] --snout <snout image> <input image>\n", argv[0]);
+		fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
+		fprintf(stderr, "Usage: %s --snout <snout image>\n"
+						"         [--output [path]] [--show] [--match_flipped <0|1>] [--threshold]\n"
+						"         <input images>\n", argv[0]);
 		return -1;
 	}
 
@@ -48,6 +59,21 @@ int main(int argc, char **argv)
 		if (!strcmp(argv[i], "--show"))
 		{
 			show = 1;
+			continue;
+		}
+		else if (!strcmp(argv[i], "--output"))
+		{
+			save = 1;
+
+			if (argc >= (i + 1))
+			{
+				if (strncmp(argv[i+1], "--", 2))
+				{
+					i++;
+					output_path = argv[i];
+				}
+			}
+			continue;
 		}
 		else if (!strcmp(argv[i], "--snout"))
 		{
@@ -77,7 +103,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		img_path = argv[i];
+		img_paths[img_count++] = argv[i];
 	}
 
 	if (!snout_path)
@@ -86,10 +112,22 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (!img_path)
+	if (img_count == 0)
 	{
 		fprintf(stderr, "No input image specified\n");
 		return -1;
+	}
+
+	// Create output directory.
+	if (save)
+	{
+		char cmd[2048];
+		#ifdef _WIN32
+		snprintf(cmd, sizeof(cmd), "md %s", output_path);
+		#else
+		snprintf(cmd, sizeof(cmd), "mkdir -p %s", output_path);
+		#endif
+		system(cmd);
 	}
 
 	if (catcierge_init(&ctx, snout_path, match_flipped, match_threshold))
@@ -98,35 +136,74 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (!(img = cvLoadImage(img_path, 1)))
+	for (i = 0; i < img_count; i++)
 	{
-		fprintf(stderr, "Failed to load match image: %s\n", img_path);
-		goto fail;
-	}
+		match_success = 0;
 
-	if ((match_res = catcierge_match(&ctx, img, &match_rect, &was_flipped)) < 0)
-	{
-		fprintf(stderr, "Something went wrong when matching image: %s\n", img_path);
-		catcierge_destroy(&ctx);
-	}
+		if (!(img = cvLoadImage(img_paths[i], 1)))
+		{
+			fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
+			goto fail;
+		}
 
-	if (match_res >= match_threshold)
-	{
-		printf("Match%s! %f\n", was_flipped ? " (Flipped)": "", match_res);
-		match_color = CV_RGB(0, 255, 0);
-	}
-	else
-	{
-		printf("No match! %f\n", match_res);
-		match_color = CV_RGB(255, 0, 0);
-	}
+		if ((match_res = catcierge_match(&ctx, img, &match_rect, &was_flipped)) < 0)
+		{
+			fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
+			catcierge_destroy(&ctx);
+		}
 
-	cvRectangleR(img, match_rect, match_color, 1, 8, 0);
+		match_success = (match_res >= match_threshold);
+
+		if (match_success)
+		{
+			printf("Match%s! %f\n", was_flipped ? " (Flipped)": "", match_res);
+			match_color = CV_RGB(0, 255, 0);
+		}
+		else
+		{
+			printf("No match! %f\n", match_res);
+			match_color = CV_RGB(255, 0, 0);
+		}
+
+		cvRectangleR(img, match_rect, match_color, 1, 8, 0);
 	
-	if (show)
-	{
-		cvShowImage("hej", img);
-		cvWaitKey(0);
+		if (show)
+		{
+			cvShowImage(img_paths[i], img);
+			cvWaitKey(0);
+			cvDestroyWindow(img_paths[i]);
+		}
+
+		if (save)
+		{
+			char out_file[MAX_PATH]; 
+			char tmp[MAX_PATH];
+			char *filename = tmp;
+			char *ext;
+			char *start;
+
+			// Get the extension.
+			strncpy(tmp, img_paths[i], sizeof(tmp));
+			ext = strrchr(tmp, '.');
+			*ext = '\0';
+			ext++;
+
+			// And filename.
+			filename = strrchr(tmp, '/');
+			start = strrchr(tmp, '\\');
+			if (start> filename)
+				filename = start;
+			filename++;
+
+			snprintf(out_file, sizeof(out_file) - 1, "%s/match_%s__%s.%s", 
+					output_path, match_success ? "ok" : "fail", filename, ext);
+
+			printf("Saving image \"%s\"\n", out_file);
+
+			cvSaveImage(out_file, img, 0);
+		}
+
+		cvReleaseImage(&img);
 	}
 fail:
 	catcierge_destroy(&ctx);
