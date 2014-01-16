@@ -1211,7 +1211,11 @@ int main(int argc, char **argv)
 	{
 		char cmd[1024];
 		CATLOG("Creating output directory: \"%s\"\n", output_path);
+		#ifdef WIN32
+		snprintf(cmd, sizeof(cmd), "md %s", output_path);
+		#else
 		snprintf(cmd, sizeof(cmd), "mkdir -p %s", output_path);
+		#endif
 		system(cmd);
 	}
 	else
