@@ -24,6 +24,8 @@
 #include "catcierge_util.h"
 #ifdef _WIN32
 #include <process.h>
+#else
+#include <limits.h>
 #endif
 
 int main(int argc, char **argv)
@@ -176,8 +178,8 @@ int main(int argc, char **argv)
 
 		if (save)
 		{
-			char out_file[MAX_PATH]; 
-			char tmp[MAX_PATH];
+			char out_file[PATH_MAX]; 
+			char tmp[PATH_MAX];
 			char *filename = tmp;
 			char *ext;
 			char *start;
