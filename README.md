@@ -1,5 +1,7 @@
 Catcierge
 =========
+![Catcierge](https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/diy/small_logo.jpg)
+
 An image recognition and RFID cat chip solution for detecting "gifts" and
 neighbour cats for an automated cat door system. Designed for use with the
 Raspberry Pi including camera board.
