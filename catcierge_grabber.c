@@ -325,19 +325,6 @@ static void rfid_outer_read_cb(catcierge_rfid_t *rfid, int incomplete, const cha
 }
 #endif // WITH_RFID
 
-static void sig_handler(int signo)
-{
-	if (signo == SIGINT)
-	{
-		CATLOG("Received SIGINT, stopping...\n");
-		running = 0;
-
-		// Force a quit if we're not in the loop.
-		if (!in_loop)
-			exit(0);
-	}
-}
-
 static void do_lockout()
 {
 	if (do_lockout_cmd)
@@ -372,6 +359,51 @@ static void	 do_unlock()
 	}
 }
 
+static void start_locked_state()
+{
+	do_lockout();
+	lockout = 1;
+	gettimeofday(&lockout_start, NULL);
+
+	match_start.tv_sec = 0;
+	match_start.tv_usec = 0;
+}
+
+static void sig_handler(int signo)
+{
+	switch (signo)
+	{
+		case SIGINT:
+		{
+			CATLOG("Received SIGINT, stopping...\n");
+			running = 0;
+
+			// Force a quit if we're not in the loop.
+			if (!in_loop)
+			{
+				do_unlock();
+				exit(0);
+			}
+			break;
+		}
+		#ifndef _WIN32
+		case SIGUSR1:
+		{
+			CATLOG("Received SIGUSR1, forcing unlock...\n");
+			do_unlock();
+			lockout = 0;
+			break;
+		}
+		case SIGUSR2:
+		{
+			CATLOG("Received SIGUSR2, forcing lockout...\n");
+			start_locked_state();
+			break;
+		}
+		#endif // _WIN32
+	}
+}
+
 static int setup_gpio()
 {
 	int ret = 0;
@@ -402,7 +434,9 @@ fail:
 		// Check if we're root.
 		if (getuid() != 0)
 		{
-			CATERRFPS("You might have to run as root!\n");
+			CATERR("###############################################\n");
+			CATERR("######## You might have to run as root! #######\n");
+			CATERR("###############################################\n");
 		}
 	}
 	#endif // RPI
@@ -445,16 +479,6 @@ static void save_images(int match_success)
 		match_images[1].direction,	// %10 = Image 2 direction.
 		match_images[2].direction,	// %11 = Image 3 direction.
 		match_images[3].direction);	// %12 = Image 4 direction.
-}
-
-static void start_locked_state()
-{
-	do_lockout();
-	lockout = 1;
-	gettimeofday(&lockout_start, NULL);
-
-	match_start.tv_sec = 0;
-	match_start.tv_usec = 0;
 }
 
 static void should_we_lockout(double match_res)
@@ -1067,7 +1091,15 @@ static void usage(const char *prog)
 	fprintf(stderr, " --cmdhelp              Show extra command help.\n");
 	fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
 	fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
-	fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n\n");
+	fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n");
+	fprintf(stderr, "\n");
+	#ifndef _WIN32
+	fprintf(stderr, "Signals:\n");
+	fprintf(stderr, "The program can receive signals that can be sent using the kill command.\n");
+	fprintf(stderr, " SIGUSR1 = Force the cat door to unlock\n");
+	fprintf(stderr, " SIGUSR2 = Force the cat door to lock (for lock timeout)\n");
+	fprintf(stderr, "\n");
+	#endif // _WIN32
 }
 
 static int parse_cmdargs(int argc, char **argv)
@@ -1172,6 +1204,18 @@ int main(int argc, char **argv)
 	{
 		CATERR("Failed to set SIGINT handler\n");
 	}
+
+	#ifndef _WIN32
+	if (signal(SIGUSR1, sig_handler) == SIG_ERR)
+	{
+		CATERR("Failed to set SIGUSR1 handler (used to force unlock)\n");
+	}
+
+	if (signal(SIGUSR2, sig_handler) == SIG_ERR)
+	{
+		CATERR("Failed to set SIGUSR2 handler (used to force unlock)\n");
+	}
+	#endif // _WIN32
 
 	#ifdef WITH_INI
 	// Parse once first so we can load the config path if it's missing.
@@ -1426,6 +1470,9 @@ skiploop:
 		
 		calculate_fps();
 	} while (running);
+
+	// Make sure we always open the door on exit.
+	do_unlock();
 
 	#ifdef RPI
 	raspiCamCvReleaseCapture(&capture);
