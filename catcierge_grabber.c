@@ -1316,6 +1316,8 @@ int main(int argc, char **argv)
 		catcierge_rfid_ctx_set_outer(&rfid_ctx, &rfid_out);
 		catcierge_rfid_open(&rfid_out);
 	}
+	
+	CATLOG("Initialized RFID readers\n");
 	#endif // WITH_RFID
 
 	if (setup_gpio())
@@ -1324,11 +1326,15 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	CATLOG("Initialized GPIO pins\n");
+
 	if (catcierge_init(&ctx, snout_path, match_flipped, match_threshold))
 	{
 		CATERR("Failed to init catcierge lib!\n");
 		return -1;
 	}
+
+	CATLOG("Initialized catcierge image recognition\n");
 	
 	if (show)
 	{
@@ -1345,6 +1351,8 @@ int main(int argc, char **argv)
 	#endif
 
 	in_loop = 1;
+
+	CATLOG("Starting detection!\n");
 
 	do
 	{
