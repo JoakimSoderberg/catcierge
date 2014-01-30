@@ -6,7 +6,7 @@ from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-def send_mail(to_emails, from_email, smtp_server, password, images, match_status, match_statuses):
+def send_mail(to_emails, from_email, smtp_server, password, images, match_status, match_statuses, direction):
 	# Create the container (outer) email message.
 	msg = MIMEMultipart()
 	msg['Subject'] = 'Catcierge detection %s' % ("OK" if match_status else "FAIL")
@@ -15,6 +15,9 @@ def send_mail(to_emails, from_email, smtp_server, password, images, match_status
 	msg.preamble = 'Catcierge'
 
 	txt = "Match: %s\n" % ("OK" if match_status else "FAIL")
+
+	if direction != -1:
+		txt += "  Direction: %s\n" % ("OUT" if direction else "IN")
 
 	for m in match_statuses:
 		txt += "  Result: %s\n" % m
@@ -60,7 +63,10 @@ def main():
 	parser.add_argument("--match_statuses", metavar="MATCHSTATUS", type = float, nargs="+",
 					help = "List of statuses for each match", default = [])
 
+	parser.add_argument("--direction", metavar="DIRECTION", type = int,
+					help = "0 for in, 1 for out, -1 for unknown", default = -1)
+
 	args = parser.parse_args()
-	send_mail(args.to, args.from_email, args.smtp, args.password, args.images, args.status, args.match_statuses)
+	send_mail(args.to, args.from_email, args.smtp, args.password, args.images, args.status, args.match_statuses, args.direction)
 
 if __name__ == '__main__': main()
