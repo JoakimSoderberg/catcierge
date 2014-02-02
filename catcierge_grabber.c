@@ -84,7 +84,7 @@ char *log_path = NULL;		// Log path.
 FILE *log_file = NULL;		// Log file handle.
 #ifdef WITH_INI
 char *config_path = NULL;	// Configuraton path.
-alini_parser_t *parser;
+alini_parser_t *parser;		// Config file parser (ini file format).
 #endif // WITH_INI
 int running = 0;	// Main loop is running (SIGINT will kill it).
 int show = 0;		// Show the output video (X11 only).
@@ -92,16 +92,16 @@ int show_fps = 1;	// Show FPS in log output.
 int saveimg = 1;	// Save match images to disk.
 int highlight_match = 0; // Highlight the match in saved images.
 struct timeval now = {0, 0};
-double match_threshold = DEFAULT_MATCH_THRESH;
+double match_threshold = DEFAULT_MATCH_THRESH; // The threshold that we consider a valid match.
 
 // Lockout (when there's an invalid match).
-int lockout_time = DEFAULT_LOCKOUT_TIME;
-int lockout = 0;
-double lockout_elapsed = 0.0;
-struct timeval lockout_start = {0, 0};
+int lockout_time = DEFAULT_LOCKOUT_TIME;	// How long we're keeping the door locked on a failed match.
+int lockout = 0;							// If we're currently in lockout mode.
+struct timeval lockout_start = {0, 0};		// The time when we started the lockout.
+double lockout_elapsed = 0.0;				// Time time that has elapsed since lockout_start.
 
-struct timeval match_start;				// The time when we started matching.
-double last_match_time;					// Time since match_start in seconds.
+struct timeval match_success_start;		// Time when we decided we have a successful match
+double last_match_time;					// Time since match_success_start in seconds.
 int match_time = DEFAULT_MATCH_WAIT;	// Time to wait until we try to match again (if anything is in view).
 int match_flipped = 1;					// If we fail to match, try flipping the snout and matching.
 
@@ -364,8 +364,8 @@ static void start_locked_state()
 	lockout = 1;
 	gettimeofday(&lockout_start, NULL);
 
-	match_start.tv_sec = 0;
-	match_start.tv_usec = 0;
+	match_success_start.tv_sec = 0;
+	match_success_start.tv_usec = 0;
 }
 
 static void sig_handler(int signo)
@@ -490,7 +490,7 @@ static void save_images(int match_success)
 static void should_we_lockout(double match_res)
 {
 	int i;
-	
+
 	if (match_count >= MATCH_MAX_COUNT)
 	{
 		int success_count = 0;
@@ -513,7 +513,7 @@ static void should_we_lockout(double match_res)
 			// We have done our matches for this time, if we try to
 			// match anything more we will most likely just get the
 			// body of the cat which will be a no-match.
-			gettimeofday(&match_start, NULL);
+			gettimeofday(&match_success_start, NULL);
 
 			#ifdef WITH_RFID
 			// We only want to check for RFID lock once during each match timeout period.
@@ -619,15 +619,15 @@ static void should_we_rfid_lockout(double last_match_time)
 static int enough_time_since_last_match()
 {
 	// No match has been made so it's time!
-	if (match_start.tv_sec == 0)
+	if (match_success_start.tv_sec == 0)
 	{
 		return 1;
 	}
 
 	gettimeofday(&now, NULL);
 
-	last_match_time = (now.tv_sec - match_start.tv_sec) + 
-					 ((now.tv_usec - match_start.tv_usec) / 1000000.0);
+	last_match_time = (now.tv_sec - match_success_start.tv_sec) + 
+					 ((now.tv_usec - match_success_start.tv_usec) / 1000000.0);
 
 	#ifdef WITH_RFID
 	// A short while after a valid match has been completed
@@ -641,8 +641,8 @@ static int enough_time_since_last_match()
 	if (last_match_time >= match_time)
 	{
 		CATLOGFPS("End of match wait...\n");
-		match_start.tv_sec = 0;
-		match_start.tv_usec = 0;
+		match_success_start.tv_sec = 0;
+		match_success_start.tv_usec = 0;
 
 		#ifdef WITH_RFID
 		rfid_reset(&rfid_in_match);
@@ -739,7 +739,7 @@ static void calculate_fps()
 		{
 			CATLOGFPS("Lockout for %d more seconds.\n", (int)(lockout_time - lockout_elapsed));
 		}
-		else if (match_start.tv_sec)
+		else if (match_success_start.tv_sec)
 		{
 			CATLOGFPS("Waiting to match again for %d more seconds.\n", (int)(match_time - last_match_time));
 		}
