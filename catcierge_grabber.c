@@ -527,7 +527,8 @@ static void should_we_lockout(double match_res)
 		}
 		else
 		{
-			CATLOG("Lockout! %d out of %d matches failed.\n", count, MATCH_MAX_COUNT);
+			CATLOG("Lockout! %d out of %d matches failed.\n", 
+					(MATCH_MAX_COUNT - count), MATCH_MAX_COUNT);
 			start_locked_state();
 		}
 
