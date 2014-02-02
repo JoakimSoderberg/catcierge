@@ -100,7 +100,8 @@ int lockout = 0;							// If we're currently in lockout mode.
 struct timeval lockout_start = {0, 0};		// The time when we started the lockout.
 double lockout_elapsed = 0.0;				// Time time that has elapsed since lockout_start.
 
-struct timeval match_success_start;		// Time when we decided we have a successful match
+struct timeval match_success_start;		// Time when we decided we have a successful match.
+int overall_match_success = 0;			// If the match for all the images were successfully matched.
 double last_match_time;					// Time since match_success_start in seconds.
 int match_time = DEFAULT_MATCH_WAIT;	// Time to wait until we try to match again (if anything is in view).
 int match_flipped = 1;					// If we fail to match, try flipping the snout and matching.
@@ -494,7 +495,6 @@ static void should_we_lockout(double match_res)
 	if (match_count >= MATCH_MAX_COUNT)
 	{
 		int success_count = 0;
-		int match_success = 0;
 
 		// Keep track of consecutive frames and their match status. 
 		// If 2 out of 4 are OK, keep the door open, otherwise CLOSE!
@@ -514,25 +514,26 @@ static void should_we_lockout(double match_res)
 			// match anything more we will most likely just get the
 			// body of the cat which will be a no-match.
 			gettimeofday(&match_success_start, NULL);
+			overall_match_success = 1;
 
 			#ifdef WITH_RFID
 			// We only want to check for RFID lock once during each match timeout period.
 			checked_rfid_lock = 0;
 			#endif
-
-			match_success = 1;
 		}
 		else
 		{
+			overall_match_success = 0;
+
 			CATLOG("Lockout! %d out of %d matches failed.\n", 
 					(MATCH_MAX_COUNT - success_count), MATCH_MAX_COUNT);
 			start_locked_state();
 		}
 
 		catcierge_execute(match_done_cmd, "%d %d %d", 
-			match_success, 		// %0 = Match success.
-			success_count, 		// %1 = Successful match count.
-			MATCH_MAX_COUNT);	// %2 = Max matches.
+			overall_match_success, 	// %0 = Match success.
+			success_count, 			// %1 = Successful match count.
+			MATCH_MAX_COUNT);		// %2 = Max matches.
 
 		match_count = 0;
 
@@ -540,7 +541,7 @@ static void should_we_lockout(double match_res)
 		// without slowing down the matching FPS.
 		if (saveimg)
 		{
-			save_images(match_success);
+			save_images(overall_match_success);
 		}
 	}
 }
