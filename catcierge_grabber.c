@@ -73,6 +73,7 @@
 
 typedef enum match_direction_e
 {
+	MATCH_DIR_UNKNOWN = -1,
 	MATCH_DIR_IN = 0,
 	MATCH_DIR_OUT = 1
 } match_direction_t;
@@ -147,13 +148,6 @@ catcierge_rfid_t rfid_in;
 catcierge_rfid_t rfid_out;
 catcierge_rfid_context_t rfid_ctx;
 
-typedef enum rfid_direction_s
-{
-	RFID_DIR_UNKNOWN = -1,
-	RFID_DIR_IN = 0,
-	RFID_DIR_OUT = 1
-} rfid_direction_t;
-
 typedef struct rfid_match_s
 {
 	int triggered;			// Have this rfid matcher been triggered?
@@ -163,7 +157,7 @@ typedef struct rfid_match_s
 	int is_allowed;			// Is the RFID in the allowed list?
 } rfid_match_t;
 
-int rfid_direction = RFID_DIR_UNKNOWN;	// Direction that is determined based on which RFID reader gets triggered first.
+int match_direction_t = MATCH_DIR_UNKNOWN; // Direction that is determined based on which RFID reader gets triggered first.
 rfid_match_t rfid_in_match;				// Match struct for the inner RFID reader.
 rfid_match_t rfid_out_match;			// Match struct for the outer RFID reader.
 char **rfid_allowed = NULL;				// The list of allowed RFID chips.
@@ -673,6 +667,13 @@ static void check_for_unlock()
 	}	
 }
 
+match_direction_t get_match_direction(int match_success, int going_out)
+{
+	return match_success ? 
+		(going_out ? MATCH_DIR_OUT : MATCH_DIR_IN) 
+		: MATCH_DIR_UNKNOWN;
+}
+
 static void process_match_result(IplImage *img, CvRect match_rect, 
 								int match_success, double match_res, int going_out)
 {
@@ -682,7 +683,7 @@ static void process_match_result(IplImage *img, CvRect match_rect,
 	// Save the current image match status.
 	matches[match_count].result = match_res;
 	matches[match_count].success = match_success;
-	matches[match_count].direction = going_out ? MATCH_DIR_OUT : MATCH_DIR_IN;
+	matches[match_count].direction = get_match_direction(match_success, going_out);
 	matches[match_count].img = NULL;
 
 	// Save match image.
