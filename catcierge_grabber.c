@@ -69,7 +69,7 @@
 
 #define DEFAULT_MATCH_THRESH 0.8	// The threshold signifying a good match returned by catcierge_match.
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
-#define DEFAULT_MATCH_WAIT 	 30		// How long to wait after a match try before we match again.
+#define DEFAULT_MATCH_WAIT 	 0		// How long to wait after a match try before we match again.
 
 typedef enum match_direction_e
 {
@@ -505,15 +505,15 @@ static void should_we_lockout(double match_res)
 
 		if (success_count >= (MATCH_MAX_COUNT - 2))
 		{
-			CATLOG("Everything OK! Door kept open...\n");
+			CATLOG("Everything OK! (%d out of %d matches succeeded) Door kept open...\n", 
+					success_count, MATCH_MAX_COUNT);
 
 			// Make sure the door is open.
 			do_unlock();
 
-			// We have done our matches for this time, if we try to
-			// match anything more we will most likely just get the
-			// body of the cat which will be a no-match.
-			gettimeofday(&match_success_start, NULL);
+			// Note! We don't start the match_success_start timer here.
+			// Instead we wait for the frame to clear before attempting
+			// any more matching.
 			overall_match_success = 1;
 
 			#ifdef WITH_RFID
@@ -644,6 +644,7 @@ static int enough_time_since_last_match()
 		CATLOGFPS("End of match wait...\n");
 		match_success_start.tv_sec = 0;
 		match_success_start.tv_usec = 0;
+		overall_match_success = 0;
 
 		#ifdef WITH_RFID
 		rfid_reset(&rfid_in_match);
@@ -657,7 +658,7 @@ static int enough_time_since_last_match()
 	return 0;
 }
 
-static void wait_for_unlock()
+static void check_for_unlock()
 {
 	gettimeofday(&now, NULL);
 
@@ -1446,18 +1447,39 @@ int main(int argc, char **argv)
 		// Skip all matching in lockout.
 		if (lockout)
 		{
-			wait_for_unlock();
+			check_for_unlock();
 			goto skiploop;
 		}
 
-		// Wait until the middle of the frame is black.
+		// Wait until the middle of the frame is black before
+		// we try to match anything.
 		if ((do_match = catcierge_is_matchable(&ctx, img)) < 0)
 		{
 			CATERRFPS("Failed to detect matchableness\n");
 			goto skiploop;
 		}
 
-		// Wait for a timeout until we try to match again.
+		// When we have successfully matched a set of frames
+		// wait until the frame is empty before we do anything more. 
+		// The cat might stay in the corridor after a successful
+		// match when going outside (because it's raining or something).
+		if (overall_match_success
+			&& (match_success_start.tv_sec == 0))
+		{
+			if (!do_match)
+			{
+				CATLOG("Frame is clear, start successful match timer...");
+				gettimeofday(&match_success_start, NULL);
+			}
+			else
+			{
+				// Something still in frame...
+				goto skiploop;
+			}
+		}
+
+		// If the last set of matches was successful
+		// we wait for a timeout until we try to match again.
 		enough_time = enough_time_since_last_match();
 
 		// Start the decision for the match.
@@ -1472,7 +1494,7 @@ int main(int argc, char **argv)
 
 			match_success = (match_res >= match_threshold);
 
-			// Save image, execute external processes and so on...
+			// Save the match state, execute external processes and so on...
 			process_match_result(img, match_rect, match_success, match_res, going_out);
 
 			should_we_lockout(match_res);
