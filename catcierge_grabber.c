@@ -100,25 +100,25 @@ int lockout = 0;
 double lockout_elapsed = 0.0;
 struct timeval lockout_start = {0, 0};
 
-// Consecutive matches decides lockout status.
-int matches[4];
-#define MATCH_MAX_COUNT (sizeof(matches) / sizeof(matches[0]))
-int match_count = 0;
 struct timeval match_start;				// The time when we started matching.
 double last_match_time;					// Time since match_start in seconds.
 int match_time = DEFAULT_MATCH_WAIT;	// Time to wait until we try to match again (if anything is in view).
 int match_flipped = 1;					// If we fail to match, try flipping the snout and matching.
 
-typedef struct match_image_s
+// The state of a single match.
+typedef struct match_state_s
 {
-	char path[PATH_MAX];
-	IplImage *img;
-	double result;
-	int success;
-	match_direction_t direction;
-} match_image_t;
+	char path[PATH_MAX];			// Path to where the image for this match should be saved.
+	IplImage *img;					// A cached image of the match frame.
+	double result;					// The match result. Normalized value between 0.0 and 1.0.
+	int success;					// Is the match a success (match result >= match threshold).
+	match_direction_t direction;	// The direction we think the cat went in.
+} match_state_t;
 
-match_image_t match_images[MATCH_MAX_COUNT]; // Image cache of matches.
+// Consecutive matches decides lockout status.
+#define MATCH_MAX_COUNT 4				// The number of matches to perform before deciding the lock state.
+int match_count = 0;					// The current match count, will go up to MATCH_MAX_COUNT.
+match_state_t matches[MATCH_MAX_COUNT]; // Image cache of matches.
 
 // FPS.
 unsigned int fps = 0;
@@ -452,12 +452,12 @@ fail:
 
 static void save_images(int match_success)
 {
-	match_image_t *m;
+	match_state_t *m;
 	int i;
 
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
-		m = &match_images[i];
+		m = &matches[i];
 		CATLOGFPS("Saving image %s\n", m->path);
 		cvSaveImage(m->path, m->img, 0);
 		
@@ -473,40 +473,37 @@ static void save_images(int match_success)
 
 	catcierge_execute(save_imgs_cmd, "%d %s %s %s %s %f %f %f %f %d %d %d %d",  
 		match_success,				// %0 = Match success.
-		match_images[0].path,		// %1 = Image 1 path (of now saved image).
-		match_images[1].path,		// %2 = Image 2 path (of now saved image).
-		match_images[2].path,		// %3 = Image 3 path (of now saved image).
-		match_images[3].path,		// %4 = Image 4 path (of now saved image).
-		match_images[0].result,		// %5 = Image 1 result.
-		match_images[1].result,		// %6 = Image 2 result.
-		match_images[2].result,		// %7 = Image 3 result.
-		match_images[3].result,		// %8 = Image 4 result.
-		match_images[0].direction,	// %9 =  Image 1 direction.
-		match_images[1].direction,	// %10 = Image 2 direction.
-		match_images[2].direction,	// %11 = Image 3 direction.
-		match_images[3].direction);	// %12 = Image 4 direction.
+		matches[0].path,		// %1 = Image 1 path (of now saved image).
+		matches[1].path,		// %2 = Image 2 path (of now saved image).
+		matches[2].path,		// %3 = Image 3 path (of now saved image).
+		matches[3].path,		// %4 = Image 4 path (of now saved image).
+		matches[0].result,		// %5 = Image 1 result.
+		matches[1].result,		// %6 = Image 2 result.
+		matches[2].result,		// %7 = Image 3 result.
+		matches[3].result,		// %8 = Image 4 result.
+		matches[0].direction,	// %9 =  Image 1 direction.
+		matches[1].direction,	// %10 = Image 2 direction.
+		matches[2].direction,	// %11 = Image 3 direction.
+		matches[3].direction);	// %12 = Image 4 direction.
 }
 
 static void should_we_lockout(double match_res)
 {
 	int i;
-
-	// Keep track of consecutive frames and their match status. 
-	// If 2 out of 4 are OK, keep the door open, otherwise CLOSE!
-	matches[match_count] = (int)(match_res >= match_threshold);
-	match_count++;
-
+	
 	if (match_count >= MATCH_MAX_COUNT)
 	{
-		int count = 0;
+		int success_count = 0;
 		int match_success = 0;
 
+		// Keep track of consecutive frames and their match status. 
+		// If 2 out of 4 are OK, keep the door open, otherwise CLOSE!
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
-			count += matches[i];
+			success_count += matches[i].success;
 		}
 
-		if (count >= (MATCH_MAX_COUNT - 2))
+		if (success_count >= (MATCH_MAX_COUNT - 2))
 		{
 			CATLOG("Everything OK! Door kept open...\n");
 
@@ -528,19 +525,19 @@ static void should_we_lockout(double match_res)
 		else
 		{
 			CATLOG("Lockout! %d out of %d matches failed.\n", 
-					(MATCH_MAX_COUNT - count), MATCH_MAX_COUNT);
+					(MATCH_MAX_COUNT - success_count), MATCH_MAX_COUNT);
 			start_locked_state();
 		}
 
 		catcierge_execute(match_done_cmd, "%d %d %d", 
-			match_success, 	// %0 = Match success.
-			count, 			// %1 = Successful match count.
-			match_count);	// %2 = Max matches.
+			match_success, 		// %0 = Match success.
+			success_count, 		// %1 = Successful match count.
+			MATCH_MAX_COUNT);	// %2 = Max matches.
 
 		match_count = 0;
 
-		// Now we can save the images without slowing
-		// down the matching FPS.
+		// Now we can save the images that we cached earlier 
+		// without slowing down the matching FPS.
 		if (saveimg)
 		{
 			save_images(match_success);
@@ -680,44 +677,49 @@ static void process_match_result(IplImage *img, CvRect match_rect,
 	char time_str[256];
 	CATLOGFPS("%f %sMatch%s\n", match_res, match_success ? "" : "No ", going_out ? " OUT" : " IN");
 
-	// Draw a white rectangle over the best match.
-	if (highlight_match)
-	{
-		cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
-	}
+	// Save the current image match status.
+	matches[match_count].result = match_res;
+	matches[match_count].success = match_success;
+	matches[match_count].direction = going_out ? MATCH_DIR_OUT : MATCH_DIR_IN;
+	matches[match_count].img = NULL;
 
 	// Save match image.
 	// (We don't write to disk yet, that will slow down the matcing).
 	if (saveimg)
 	{
+		// Draw a white rectangle over the best match.
+		if (highlight_match)
+		{
+			cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
+		}
+
 		get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
-		snprintf(match_images[match_count].path, 
-			sizeof(match_images[match_count].path), 
+		snprintf(matches[match_count].path, 
+			sizeof(matches[match_count].path), 
 			"%s/match_%s_%s__%d.png", 
 			output_path, 
 			match_success ? "" : "fail", 
 			time_str, 
 			match_count);
 
-		match_images[match_count].img = cvCloneImage(img);
-		match_images[match_count].result = match_res;
-		match_images[match_count].success = match_success;
-		match_images[match_count].direction = going_out ? MATCH_DIR_OUT : MATCH_DIR_IN;
+		matches[match_count].img = cvCloneImage(img);
 	}
 
 	// Log match to file.
 	log_print_csv(log_file, "match, %s, %f, %f, %s, %s\n",
 		 match_success ? "success" : "failure", 
 		 match_res, match_threshold,
-		 saveimg ? match_images[match_count].path : "-",
-		 (match_images[match_count].direction == MATCH_DIR_IN) ? "in" : "out");
+		 saveimg ? matches[match_count].path : "-",
+		 (matches[match_count].direction == MATCH_DIR_IN) ? "in" : "out");
 
+	// Runs the --match_cmd progam specified.
 	catcierge_execute(match_cmd, "%f %d %s %d",  
 			match_res, 										// %0 = Match result.
 			match_success,									// %1 = 0/1 succes or failure.
-			saveimg ? match_images[match_count].path : "",	// %2 = Image path if saveimg is turned on.
-			match_images[match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
+			saveimg ? matches[match_count].path : "",	// %2 = Image path if saveimg is turned on.
+			matches[match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
 
+	match_count++;
 }
 
 static void calculate_fps()
@@ -1515,10 +1517,10 @@ skiploop:
 	{
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
-			if (match_images[i].img)
+			if (matches[i].img)
 			{
-				cvReleaseImage(&match_images[i].img);
-				match_images[i].img = NULL;
+				cvReleaseImage(&matches[i].img);
+				matches[i].img = NULL;
 			}
 		}
 	}
