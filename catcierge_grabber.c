@@ -77,7 +77,7 @@ typedef enum match_direction_e
 	MATCH_DIR_OUT = 1
 } match_direction_t;
 
-int show_cmd_help = 0;
+int show_cmd_help = 0;		// Toggle showing extra command help.
 int in_loop = 0;			// Only used for ctrl+c (SIGINT) handler.
 char *snout_path = NULL;	// Path to the snout image we should match against.
 char *output_path = NULL;	// Output directory for match images.
@@ -1356,8 +1356,9 @@ int main(int argc, char **argv)
 
 	do
 	{
+		// Start time of loop used for FPS calculations.
 		gettimeofday(&start, NULL);
-		
+
 		#ifdef WITH_RFID
 		if ((rfid_inner_path || rfid_outer_path) 
 			&& catcierge_rfid_ctx_service(&rfid_ctx))
@@ -1397,7 +1398,7 @@ int main(int argc, char **argv)
 			goto skiploop;
 		}
 
-		// Wait for a timeout in that case until we try to match again.
+		// Wait for a timeout until we try to match again.
 		enough_time = enough_time_since_last_match();
 
 		if (do_match && enough_time)
@@ -1413,32 +1414,29 @@ int main(int argc, char **argv)
 
 			CATLOGFPS("%f %sMatch%s\n", match_res, match_success ? "" : "No ", going_out ? " OUT" : " IN");
 
+			// Draw a white rectangle over the best match.
+			if (highlight_match)
+			{
+				cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
+			}
+
+			// Save match image.
+			// (We don't write to disk yet, that will slow down the matcing).
 			if (saveimg)
 			{
-				// Draw a white rectangle over the best match.
-				if (highlight_match)
-				{
-					cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
-				}
+				get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
+				snprintf(match_images[match_count].path, 
+					sizeof(match_images[match_count].path), 
+					"%s/match_%s_%s__%d.png", 
+					output_path, 
+					match_success ? "" : "fail", 
+					time_str, 
+					match_count);
 
-				// Save match image.
-				// (We don't write to disk yet, that will slow down the matcing).
-				if (saveimg)
-				{
-					get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
-					snprintf(match_images[match_count].path, 
-						sizeof(match_images[match_count].path), 
-						"%s/match_%s_%s__%d.png", 
-						output_path, 
-						match_success ? "" : "fail", 
-						time_str, 
-						match_count);
-
-					match_images[match_count].img = cvCloneImage(img);
-					match_images[match_count].result = match_res;
-					match_images[match_count].success = match_success;
-					match_images[match_count].direction = going_out ? MATCH_DIR_OUT : MATCH_DIR_IN;
-				}
+				match_images[match_count].img = cvCloneImage(img);
+				match_images[match_count].result = match_res;
+				match_images[match_count].success = match_success;
+				match_images[match_count].direction = going_out ? MATCH_DIR_OUT : MATCH_DIR_IN;
 			}
 
 			// Log match to file.
