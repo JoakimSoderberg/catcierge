@@ -659,6 +659,67 @@ static int enough_time_since_last_match()
 	return 0;
 }
 
+static void wait_for_unlock()
+{
+	gettimeofday(&now, NULL);
+
+	lockout_elapsed = (now.tv_sec - lockout_start.tv_sec) + 
+					 ((now.tv_usec - lockout_start.tv_usec) / 1000000.0);
+
+	if (lockout_elapsed >= lockout_time)
+	{
+		CATLOGFPS("End of lockout!\n");
+		lockout = 0;
+		do_unlock();
+	}	
+}
+
+static void process_match_result(IplImage *img, CvRect match_rect, 
+								int match_success, double match_res, int going_out)
+{
+	char time_str[256];
+	CATLOGFPS("%f %sMatch%s\n", match_res, match_success ? "" : "No ", going_out ? " OUT" : " IN");
+
+	// Draw a white rectangle over the best match.
+	if (highlight_match)
+	{
+		cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
+	}
+
+	// Save match image.
+	// (We don't write to disk yet, that will slow down the matcing).
+	if (saveimg)
+	{
+		get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
+		snprintf(match_images[match_count].path, 
+			sizeof(match_images[match_count].path), 
+			"%s/match_%s_%s__%d.png", 
+			output_path, 
+			match_success ? "" : "fail", 
+			time_str, 
+			match_count);
+
+		match_images[match_count].img = cvCloneImage(img);
+		match_images[match_count].result = match_res;
+		match_images[match_count].success = match_success;
+		match_images[match_count].direction = going_out ? MATCH_DIR_OUT : MATCH_DIR_IN;
+	}
+
+	// Log match to file.
+	log_print_csv(log_file, "match, %s, %f, %f, %s, %s\n",
+		 match_success ? "success" : "failure", 
+		 match_res, match_threshold,
+		 saveimg ? match_images[match_count].path : "-",
+		 (match_images[match_count].direction == MATCH_DIR_IN) ? "in" : "out");
+
+	catcierge_execute(match_cmd, "%f %d %s %d",  
+			match_res, 										// %0 = Match result.
+			match_success,									// %1 = 0/1 succes or failure.
+			saveimg ? match_images[match_count].path : "",	// %2 = Image path if saveimg is turned on.
+			match_images[match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
+
+}
+
 static void calculate_fps()
 {
 	frames++;
@@ -1174,7 +1235,6 @@ static int parse_cmdargs(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-	char time_str[256];
 	catcierge_t ctx;
 	IplImage* img = NULL;
 	CvRect match_rect;
@@ -1383,18 +1443,7 @@ int main(int argc, char **argv)
 		// Skip all matching in lockout.
 		if (lockout)
 		{
-			gettimeofday(&now, NULL);
-
-			lockout_elapsed = (now.tv_sec - lockout_start.tv_sec) + 
-							 ((now.tv_usec - lockout_start.tv_usec) / 1000000.0);
-
-			if (lockout_elapsed >= lockout_time)
-			{
-				CATLOGFPS("End of lockout!\n");
-				lockout = 0;
-				do_unlock();
-			}
-
+			wait_for_unlock();
 			goto skiploop;
 		}
 
@@ -1408,6 +1457,7 @@ int main(int argc, char **argv)
 		// Wait for a timeout until we try to match again.
 		enough_time = enough_time_since_last_match();
 
+		// Start the decision for the match.
 		if (do_match && enough_time)
 		{
 			// We have something to match against. 
@@ -1419,45 +1469,8 @@ int main(int argc, char **argv)
 
 			match_success = (match_res >= match_threshold);
 
-			CATLOGFPS("%f %sMatch%s\n", match_res, match_success ? "" : "No ", going_out ? " OUT" : " IN");
-
-			// Draw a white rectangle over the best match.
-			if (highlight_match)
-			{
-				cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
-			}
-
-			// Save match image.
-			// (We don't write to disk yet, that will slow down the matcing).
-			if (saveimg)
-			{
-				get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
-				snprintf(match_images[match_count].path, 
-					sizeof(match_images[match_count].path), 
-					"%s/match_%s_%s__%d.png", 
-					output_path, 
-					match_success ? "" : "fail", 
-					time_str, 
-					match_count);
-
-				match_images[match_count].img = cvCloneImage(img);
-				match_images[match_count].result = match_res;
-				match_images[match_count].success = match_success;
-				match_images[match_count].direction = going_out ? MATCH_DIR_OUT : MATCH_DIR_IN;
-			}
-
-			// Log match to file.
-			log_print_csv(log_file, "match, %s, %f, %f, %s, %s\n",
-				 match_success ? "success" : "failure", 
-				 match_res, match_threshold,
-				 saveimg ? match_images[match_count].path : "-",
-				 (match_images[match_count].direction == MATCH_DIR_IN) ? "in" : "out");
-
-			catcierge_execute(match_cmd, "%f %d %s %d",  
-					match_res, 										// %0 = Match result.
-					match_success,									// %1 = 0/1 succes or failure.
-					saveimg ? match_images[match_count].path : "",	// %2 = Image path if saveimg is turned on.
-					match_images[match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
+			// Save image, execute external processes and so on...
+			process_match_result(img, match_rect, match_success, match_res, going_out);
 
 			should_we_lockout(match_res);
 		}
