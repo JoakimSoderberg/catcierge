@@ -78,7 +78,6 @@ typedef enum match_direction_e
 } match_direction_t;
 
 int show_cmd_help = 0;		// Toggle showing extra command help.
-int in_loop = 0;			// Only used for ctrl+c (SIGINT) handler.
 char *snout_path = NULL;	// Path to the snout image we should match against.
 char *output_path = NULL;	// Output directory for match images.
 char *log_path = NULL;		// Log path.
@@ -87,7 +86,7 @@ FILE *log_file = NULL;		// Log file handle.
 char *config_path = NULL;	// Configuraton path.
 alini_parser_t *parser;
 #endif // WITH_INI
-int running = 1;	// Main loop is running (SIGINT will kill it).
+int running = 0;	// Main loop is running (SIGINT will kill it).
 int show = 0;		// Show the output video (X11 only).
 int show_fps = 1;	// Show FPS in log output.
 int saveimg = 1;	// Save match images to disk.
@@ -375,15 +374,22 @@ static void sig_handler(int signo)
 	{
 		case SIGINT:
 		{
+			static int sigint_count = 0;
 			CATLOG("Received SIGINT, stopping...\n");
-			running = 0;
 
-			// Force a quit if we're not in the loop.
-			if (!in_loop)
+			// Force a quit if we're not in the loop
+			// or the SIGINT is a repeat.
+			if (!running || (sigint_count > 0))
 			{
 				do_unlock();
 				exit(0);
 			}
+
+			// Simply kill the loop and let the program do normal cleanup.
+			running = 0;
+
+			sigint_count++;
+
 			break;
 		}
 		#ifndef _WIN32
@@ -1350,7 +1356,7 @@ int main(int argc, char **argv)
 	cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, 240);
 	#endif
 
-	in_loop = 1;
+	running = 1;
 
 	CATLOG("Starting detection!\n");
 
