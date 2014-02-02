@@ -78,6 +78,8 @@ typedef enum match_direction_e
 	MATCH_DIR_OUT = 1
 } match_direction_t;
 
+static const char *match_get_direction_str(match_direction_t dir);
+
 int show_cmd_help = 0;		// Toggle showing extra command help.
 char *snout_path = NULL;	// Path to the snout image we should match against.
 char *output_path = NULL;	// Output directory for match images.
@@ -115,7 +117,7 @@ typedef struct match_state_s
 	double result;					// The match result. Normalized value between 0.0 and 1.0.
 	int success;					// Is the match a success (match result >= match threshold).
 	match_direction_t direction;	// The direction we think the cat went in.
-} match_state_t;
+;} match_state_t;
 
 // Consecutive matches decides lockout status.
 #define MATCH_MAX_COUNT 4				// The number of matches to perform before deciding the lock state.
@@ -157,7 +159,7 @@ typedef struct rfid_match_s
 	int is_allowed;			// Is the RFID in the allowed list?
 } rfid_match_t;
 
-int match_direction_t = MATCH_DIR_UNKNOWN; // Direction that is determined based on which RFID reader gets triggered first.
+match_direction_t rfid_direction = MATCH_DIR_UNKNOWN; // Direction that is determined based on which RFID reader gets triggered first.
 rfid_match_t rfid_in_match;				// Match struct for the inner RFID reader.
 rfid_match_t rfid_out_match;			// Match struct for the outer RFID reader.
 char **rfid_allowed = NULL;				// The list of allowed RFID chips.
@@ -250,19 +252,8 @@ static void rfid_reset(rfid_match_t *m)
 	memset(m, 0, sizeof(rfid_match_t));
 }
 
-static const char *rfid_get_direction_str(rfid_direction_t dir)
-{
-	switch (dir)
-	{
-		case RFID_DIR_IN: return "in";
-		case RFID_DIR_OUT: return "out";
-		case RFID_DIR_UNKNOWN: 
-		default: return "unknown";
-	}
-}
-
 static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other, 
-						rfid_direction_t dir, const char *dir_str, catcierge_rfid_t *rfid, 
+						match_direction_t dir, const char *dir_str, catcierge_rfid_t *rfid, 
 						int incomplete, const char *data)
 {
 	CATLOGFPS("%s RFID: %s%s\n", rfid->name, data, incomplete ? " (incomplete)": "");
@@ -304,17 +295,17 @@ static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 		current->incomplete, 		// %3 = Is data incomplete.
 		current->data,				// %4 = Tag data.
 		other->triggered,			// %5 = Other reader triggered.
-		rfid_get_direction_str(rfid_direction)); // %6 = Direction.
+		match_get_direction_str(rfid_direction)); // %6 = Direction.
 }
 
 static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
 {
-	rfid_set_direction(&rfid_in_match, &rfid_out_match, RFID_DIR_IN, "IN", rfid, incomplete, data);
+	rfid_set_direction(&rfid_in_match, &rfid_out_match, MATCH_DIR_IN, "IN", rfid, incomplete, data);
 }
 
 static void rfid_outer_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
 {
-	rfid_set_direction(&rfid_out_match, &rfid_in_match, RFID_DIR_OUT, "OUT", rfid, incomplete, data);
+	rfid_set_direction(&rfid_out_match, &rfid_in_match, MATCH_DIR_OUT, "OUT", rfid, incomplete, data);
 
 }
 #endif // WITH_RFID
@@ -445,6 +436,17 @@ fail:
 	return ret;
 }
 
+static const char *match_get_direction_str(match_direction_t dir)
+{
+	switch (dir)
+	{
+		case MATCH_DIR_IN: return "in";
+		case MATCH_DIR_OUT: return "out";
+		case MATCH_DIR_UNKNOWN: 
+		default: return "unknown";
+	}
+}
+
 static void save_images(int match_success)
 {
 	match_state_t *m;
@@ -568,7 +570,7 @@ static void should_we_rfid_lockout(double last_match_time)
 
 			if (do_rfid_lockout)
 			{
-				if (rfid_direction == RFID_DIR_OUT)
+				if (rfid_direction == MATCH_DIR_OUT)
 				{
 					CATLOG("RFID lockout: Skipping since cat is going out\n");
 				}
@@ -643,7 +645,7 @@ static int enough_time_since_last_match()
 		#ifdef WITH_RFID
 		rfid_reset(&rfid_in_match);
 		rfid_reset(&rfid_out_match);
-		rfid_direction = RFID_DIR_UNKNOWN;
+		rfid_direction = MATCH_DIR_UNKNOWN;
 		#endif // WITH_RFID
 
 		return 1;
@@ -669,9 +671,10 @@ static void check_for_unlock()
 
 match_direction_t get_match_direction(int match_success, int going_out)
 {
-	return match_success ? 
-		(going_out ? MATCH_DIR_OUT : MATCH_DIR_IN) 
-		: MATCH_DIR_UNKNOWN;
+	if (match_success)
+		return (going_out ? MATCH_DIR_OUT : MATCH_DIR_IN);
+
+	return  MATCH_DIR_UNKNOWN;
 }
 
 static void process_match_result(IplImage *img, CvRect match_rect, 
