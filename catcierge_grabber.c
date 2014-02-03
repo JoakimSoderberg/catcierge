@@ -80,6 +80,15 @@ typedef enum match_direction_e
 
 static const char *match_get_direction_str(match_direction_t dir);
 
+typedef enum catcierge_state_e
+{
+	STATE_WAITING = 0,	// Waiting for something to match.
+	STATE_LOCKOUT = 1,	// Currently in lockout mode.
+	STATE_SUCCESS = 2	// Successful match. Wait for a clear frame before going back to waiting.
+} catcierge_state_t;
+
+catcierge_state_t state = STATE_WAITING;
+
 int show_cmd_help = 0;		// Toggle showing extra command help.
 char *snout_path = NULL;	// Path to the snout image we should match against.
 char *output_path = NULL;	// Output directory for match images.
@@ -99,12 +108,10 @@ double match_threshold = DEFAULT_MATCH_THRESH; // The threshold that we consider
 
 // Lockout (when there's an invalid match).
 int lockout_time = DEFAULT_LOCKOUT_TIME;	// How long we're keeping the door locked on a failed match.
-int lockout = 0;							// If we're currently in lockout mode.
 struct timeval lockout_start = {0, 0};		// The time when we started the lockout.
 double lockout_elapsed = 0.0;				// Time time that has elapsed since lockout_start.
 
 struct timeval match_success_start;		// Time when we decided we have a successful match.
-int overall_match_success = 0;			// If the match for all the images were successfully matched.
 double last_match_time;					// Time since match_success_start in seconds.
 int match_time = DEFAULT_MATCH_WAIT;	// Time to wait until we try to match again (if anything is in view).
 int match_flipped = 1;					// If we fail to match, try flipping the snout and matching.
@@ -117,7 +124,7 @@ typedef struct match_state_s
 	double result;					// The match result. Normalized value between 0.0 and 1.0.
 	int success;					// Is the match a success (match result >= match threshold).
 	match_direction_t direction;	// The direction we think the cat went in.
-;} match_state_t;
+} match_state_t;
 
 // Consecutive matches decides lockout status.
 #define MATCH_MAX_COUNT 4				// The number of matches to perform before deciding the lock state.
@@ -347,7 +354,7 @@ static void	 do_unlock()
 static void start_locked_state()
 {
 	do_lockout();
-	lockout = 1;
+	state = STATE_LOCKOUT;
 	gettimeofday(&lockout_start, NULL);
 
 	match_success_start.tv_sec = 0;
@@ -383,7 +390,7 @@ static void sig_handler(int signo)
 		{
 			CATLOG("Received SIGUSR1, forcing unlock...\n");
 			do_unlock();
-			lockout = 0;
+			state = STATE_LOCKOUT;
 			break;
 		}
 		case SIGUSR2:
@@ -447,7 +454,7 @@ static const char *match_get_direction_str(match_direction_t dir)
 	}
 }
 
-static void save_images(int match_success)
+static void save_images()
 {
 	match_state_t *m;
 	int i;
@@ -469,7 +476,7 @@ static void save_images(int match_success)
 	}
 
 	catcierge_execute(save_imgs_cmd, "%d %s %s %s %s %f %f %f %f %d %d %d %d",  
-		match_success,				// %0 = Match success.
+		(state == STATE_SUCCESS), // %0 = Match success.
 		matches[0].path,		// %1 = Image 1 path (of now saved image).
 		matches[1].path,		// %2 = Image 2 path (of now saved image).
 		matches[2].path,		// %3 = Image 3 path (of now saved image).
@@ -510,7 +517,7 @@ static void should_we_lockout(double match_res)
 			// Note! We don't start the match_success_start timer here.
 			// Instead we wait for the frame to clear before attempting
 			// any more matching.
-			overall_match_success = 1;
+			state = STATE_SUCCESS;
 
 			#ifdef WITH_RFID
 			// We only want to check for RFID lock once during each match timeout period.
@@ -519,7 +526,7 @@ static void should_we_lockout(double match_res)
 		}
 		else
 		{
-			overall_match_success = 0;
+			//overall_match_success = 0;
 
 			CATLOG("Lockout! %d out of %d matches failed.\n", 
 					(MATCH_MAX_COUNT - success_count), MATCH_MAX_COUNT);
@@ -527,7 +534,7 @@ static void should_we_lockout(double match_res)
 		}
 
 		catcierge_execute(match_done_cmd, "%d %d %d", 
-			overall_match_success, 	// %0 = Match success.
+			state == STATE_SUCCESS, // %0 = MAtch success.
 			success_count, 			// %1 = Successful match count.
 			MATCH_MAX_COUNT);		// %2 = Max matches.
 
@@ -537,7 +544,7 @@ static void should_we_lockout(double match_res)
 		// without slowing down the matching FPS.
 		if (saveimg)
 		{
-			save_images(overall_match_success);
+			save_images();
 		}
 	}
 }
@@ -640,7 +647,7 @@ static int enough_time_since_last_match()
 		CATLOGFPS("End of match wait...\n");
 		match_success_start.tv_sec = 0;
 		match_success_start.tv_usec = 0;
-		overall_match_success = 0;
+		state = STATE_WAITING;
 
 		#ifdef WITH_RFID
 		rfid_reset(&rfid_in_match);
@@ -664,7 +671,7 @@ static void check_for_unlock()
 	if (lockout_elapsed >= lockout_time)
 	{
 		CATLOGFPS("End of lockout!\n");
-		lockout = 0;
+		state = STATE_WAITING;
 		do_unlock();
 	}	
 }
@@ -741,7 +748,7 @@ static void calculate_fps()
 		char spinner[] = "\\|/-\\|/-";
 		static int spinidx = 0;
 
-		if (lockout)
+		if (state == STATE_LOCKOUT)
 		{
 			CATLOGFPS("Lockout for %d more seconds.\n", (int)(lockout_time - lockout_elapsed));
 		}
@@ -1449,7 +1456,7 @@ int main(int argc, char **argv)
 		#endif
 
 		// Skip all matching in lockout.
-		if (lockout)
+		if (state == STATE_LOCKOUT)
 		{
 			check_for_unlock();
 			goto skiploop;
@@ -1467,12 +1474,12 @@ int main(int argc, char **argv)
 		// wait until the frame is empty before we do anything more. 
 		// The cat might stay in the corridor after a successful
 		// match when going outside (because it's raining or something).
-		if (overall_match_success
+		if ((state == STATE_SUCCESS)
 			&& (match_success_start.tv_sec == 0))
 		{
 			if (!do_match)
 			{
-				CATLOG("Frame is clear, start successful match timer...");
+				CATLOG("Frame is clear, start successful match timer...\n");
 				gettimeofday(&match_success_start, NULL);
 			}
 			else
