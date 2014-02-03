@@ -53,8 +53,7 @@ def main():
 
 	img = open(comp_img, 'rb')
 
-	twitter.update_status_with_media(status = 'Match: %s' % ("OK" if args.status else "FAIL"), 
-									media = img)
+	twitter.update_status_with_media(status = 'Match: %s\nDirecton: %s\n' % (("OK" if args.status else "FAIL"), ("OUT" if args.direction else "IN")), media = img)
 
 
 if __name__ == '__main__': main()
