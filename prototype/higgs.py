@@ -26,6 +26,8 @@ import argparse
 #from matplotlib import pyplot as plt
 import signal
 import sys
+from subprocess import call
+
 def signal_handler(signal, frame):
         print 'You pressed Ctrl+C!'
         sys.exit(0)
@@ -53,6 +55,9 @@ parser.add_argument("--noshow", action = "store_true",
 parser.add_argument("--threshold", metavar = "THRESHOLD",
                     help = "Match threshold.", type = float,
                     default = 0.81)
+
+parser.add_argument("--montage", action = "store_true",
+                    help = "Create montage of final match images using imagemagick.")
 
 args = parser.parse_args()
 
@@ -140,7 +145,7 @@ for infile in args.images:
     res = do_the_match(img, snout)
 
     if res < args.threshold:
-        print "Testin flip"
+        print "Flipping"
         do_the_match(img2, snout_flipped)
 
     if not args.noshow:
@@ -148,5 +153,23 @@ for infile in args.images:
     
     cv2.destroyAllWindows()
 
+if args.montage:
+    snout_path, snout_filename_wext = os.path.split(args.snout)
+    snout_filename, snout_fileext = os.path.splitext(snout_filename_wext)
 
+    montage_args = glob.glob("%s/*final.png" % args.output)
+    montage_filename = "%s_montage.jpg" % snout_filename
 
+    # First create the montage of all matches.
+    call(["montage", "-background", "black"] 
+        + glob.glob("%s/*final.png" % args.output) 
+        + [montage_filename])
+
+    # Then include the snout image first.
+    call(["montage", 
+        "-geometry", "+2+2",
+        "-tile", "1x2",
+        "-title", "Threshold %s" % args.threshold,
+        "-fill", "white",
+        "-background", "black", args.snout, montage_filename, 
+        "combined_%s_montage.jpg" % snout_filename])
