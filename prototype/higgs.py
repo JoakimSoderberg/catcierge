@@ -47,12 +47,14 @@ parser.add_argument("--output", metavar = "PATH",
                     help = "Output directory.",
                     default = "output")
 
+parser.add_argument("--noshow", action = "store_true",
+                    help = "Show output.")
+
 parser.add_argument("--threshold", metavar = "THRESHOLD",
                     help = "Match threshold.", type = float,
                     default = 0.81)
 
 args = parser.parse_args()
-
 
 def do_the_match(simg, snout_image):
     # We only deal in grayscale.
@@ -64,12 +66,14 @@ def do_the_match(simg, snout_image):
     
     # Threshold.
     ret, threshimg = cv2.threshold(simg_gray, 90, 255, 0)
-    cv2.imshow('Binary', threshimg)
+    if not args.noshow:
+        cv2.imshow('Binary', threshimg)
     cv2.imwrite("%s/%s_03binary%s" % (args.output, filename, fileext), threshimg)
 
     # Noise removal.
     nonoise_img = cv2.erode(threshimg, kernel, iterations = 3)
-    cv2.imshow('No noise', nonoise_img)
+    if not args.noshow:
+        cv2.imshow('No noise', nonoise_img)
     cv2.imwrite("%s/%s_04nonoise%s" % (args.output, filename, fileext), nonoise_img)
 
     # Match the snout with the binary noise reduced image.
@@ -77,7 +81,8 @@ def do_the_match(simg, snout_image):
     (min_x, max_x, minloc, maxloc) = cv2.minMaxLoc(matchres)
     (x, y) = maxloc
 
-    cv2.imshow("match", matchres)
+    if not args.noshow:
+        cv2.imshow("match", matchres)
     cv2.imwrite("%s/%s_05tempmatch%s" % (args.output, filename, fileext), matchres)
 
     # From some testing 0.9 seems like a good threshold.
@@ -91,10 +96,11 @@ def do_the_match(simg, snout_image):
     # Draw the best match.
     snout_w = snout_image.shape[1]
     snout_h = snout_image.shape[0]
-    cv2.rectangle(simg, (x, y), (x + snout_w, y + snout_h), color, 0)
+    cv2.rectangle(simg, (x, y), (x + snout_w, y + snout_h), color, 2)
 
     # Draw the final image.
-    cv2.imshow('Final', simg)
+    if not args.noshow:
+        cv2.imshow('Final', simg)
     cv2.imwrite("%s/%s_06final%s" % (args.output, filename, fileext), simg)
 
     """
@@ -118,7 +124,9 @@ snout = threshimg
 snout_flipped = cv2.flip(snout, 1)
 #snout = cv2.erode(threshimg, kernel, iterations = 3)
 #snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
-cv2.imshow('Snout', snout)
+if not args.noshow:
+    cv2.imshow('Snout', snout)
+    cv2.waitKey(0)
 
 if not os.path.exists(args.output):
     os.makedirs(args.output)
@@ -135,5 +143,10 @@ for infile in args.images:
         print "Testin flip"
         do_the_match(img2, snout_flipped)
 
-    cv2.waitKey(0)
+    if not args.noshow:
+        cv2.waitKey(0)
+    
     cv2.destroyAllWindows()
+
+
+
