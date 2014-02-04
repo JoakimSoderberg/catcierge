@@ -47,27 +47,16 @@ parser.add_argument("--output", metavar = "PATH",
                     help = "Output directory.",
                     default = "output")
 
+parser.add_argument("--threshold", metavar = "THRESHOLD",
+                    help = "Match threshold.", type = float,
+                    default = 0.81)
+
 args = parser.parse_args()
 
-# Read the snout image and make it binary and nice.
-org_snout = cv2.imread(args.snout, 0)
-ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
-kernel = np.ones((1,1), np.uint8)
-snout = threshimg
-#snout = cv2.erode(threshimg, kernel, iterations = 3)
-#snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
 
-if not os.path.exists(args.output):
-    os.makedirs(args.output)
-
-for infile in args.images:
-    path, filename_wext = os.path.split(infile)
-    filename, fileext = os.path.splitext(filename_wext)
-    img = cv2.imread(infile)
-
+def do_the_match(simg, snout_image):
     # We only deal in grayscale.
     #simg = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
-    simg = img
     simg_gray = cv2.cvtColor(simg, cv2.COLOR_BGR2GRAY)
     
     cv2.imwrite("%s/%s_01original%s" % (args.output, filename, fileext), simg)
@@ -84,7 +73,7 @@ for infile in args.images:
     cv2.imwrite("%s/%s_04nonoise%s" % (args.output, filename, fileext), nonoise_img)
 
     # Match the snout with the binary noise reduced image.
-    matchres = cv2.matchTemplate(nonoise_img, snout, cv2.TM_CCOEFF_NORMED)
+    matchres = cv2.matchTemplate(nonoise_img, snout_image, cv2.TM_CCOEFF_NORMED)
     (min_x, max_x, minloc, maxloc) = cv2.minMaxLoc(matchres)
     (x, y) = maxloc
 
@@ -92,7 +81,7 @@ for infile in args.images:
     cv2.imwrite("%s/%s_05tempmatch%s" % (args.output, filename, fileext), matchres)
 
     # From some testing 0.9 seems like a good threshold.
-    if (max_x >= 0.81):
+    if (max_x >= args.threshold):
         print "Match! %s" % max_x
         color = (0, 255, 0)
     else:
@@ -100,8 +89,8 @@ for infile in args.images:
         color = (0, 0, 255)
 
     # Draw the best match.
-    snout_w = snout.shape[1]
-    snout_h = snout.shape[0]
+    snout_w = snout_image.shape[1]
+    snout_h = snout_image.shape[0]
     cv2.rectangle(simg, (x, y), (x + snout_w, y + snout_h), color, 0)
 
     # Draw the final image.
@@ -116,8 +105,35 @@ for infile in args.images:
     plt.subplot(235),plt.imshow(matchres,'gray'),plt.title('MATCH RESULT')
     plt.subplot(236),plt.imshow(simg,'gray'),plt.title('MATCH')
     """
-    
+
+    return max_x
+
+
+
+# Read the snout image and make it binary and nice.
+org_snout = cv2.imread(args.snout, 0)
+ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
+kernel = np.ones((1,1), np.uint8)
+snout = threshimg
+snout_flipped = cv2.flip(snout, 1)
+#snout = cv2.erode(threshimg, kernel, iterations = 3)
+#snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
+cv2.imshow('Snout', snout)
+
+if not os.path.exists(args.output):
+    os.makedirs(args.output)
+
+for infile in args.images:
+    path, filename_wext = os.path.split(infile)
+    filename, fileext = os.path.splitext(filename_wext)
+    img = cv2.imread(infile)
+    img2 = img.copy()
+
+    res = do_the_match(img, snout)
+
+    if res < args.threshold:
+        print "Testin flip"
+        do_the_match(img2, snout_flipped)
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-
