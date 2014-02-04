@@ -22,41 +22,66 @@ import random
 import sys
 import os
 import glob
+import argparse
 #from matplotlib import pyplot as plt
+import signal
+import sys
+def signal_handler(signal, frame):
+        print 'You pressed Ctrl+C!'
+        sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
 
 ###################################################
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument("--images", metavar = "IMAGES", nargs = "+",
+                    help = "The Catcierge match images to test.",
+                    default = glob.glob("../examples/higgs*.png"))
+
+parser.add_argument("--snout", metavar = "SNOUTIMAGE", 
+                    help = "The snout image.",
+                    default = "../examples/snout/snout320x240.png")
+
+parser.add_argument("--output", metavar = "PATH",
+                    help = "Output directory.",
+                    default = "output")
+
+args = parser.parse_args()
+
 # Read the snout image and make it binary and nice.
-org_snout = cv2.imread("../examples/snout/snout1080p.png", 0)
+org_snout = cv2.imread(args.snout, 0)
 ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
-kernel = np.ones((3,3), np.uint8)
-snout = cv2.erode(threshimg, kernel, iterations = 3)
-snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
+kernel = np.ones((1,1), np.uint8)
+snout = threshimg
+#snout = cv2.erode(threshimg, kernel, iterations = 3)
+#snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
 
-if not os.path.exists("output/"):
-    os.makedirs("output/")
+if not os.path.exists(args.output):
+    os.makedirs(args.output)
 
-for infile in glob.glob("../examples/higgs*.png"):
+for infile in args.images:
     path, filename_wext = os.path.split(infile)
     filename, fileext = os.path.splitext(filename_wext)
     img = cv2.imread(infile)
 
     # We only deal in grayscale.
-    simg = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
+    #simg = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
+    simg = img
     simg_gray = cv2.cvtColor(simg, cv2.COLOR_BGR2GRAY)
     
-    cv2.imwrite("output/%s_01original%s" % (filename, fileext), simg)
-    cv2.imwrite("output/%s_02gray%s" % (filename, fileext), simg_gray)
+    cv2.imwrite("%s/%s_01original%s" % (args.output, filename, fileext), simg)
+    cv2.imwrite("%s/%s_02gray%s" % (args.output, filename, fileext), simg_gray)
     
     # Threshold.
-    ret, threshimg = cv2.threshold(simg_gray, 35, 255, 0)
+    ret, threshimg = cv2.threshold(simg_gray, 90, 255, 0)
     cv2.imshow('Binary', threshimg)
-    cv2.imwrite("output/%s_03binary%s" % (filename, fileext), threshimg)
+    cv2.imwrite("%s/%s_03binary%s" % (args.output, filename, fileext), threshimg)
 
     # Noise removal.
     nonoise_img = cv2.erode(threshimg, kernel, iterations = 3)
     cv2.imshow('No noise', nonoise_img)
-    cv2.imwrite("output/%s_04nonoise%s" % (filename, fileext), nonoise_img)
+    cv2.imwrite("%s/%s_04nonoise%s" % (args.output, filename, fileext), nonoise_img)
 
     # Match the snout with the binary noise reduced image.
     matchres = cv2.matchTemplate(nonoise_img, snout, cv2.TM_CCOEFF_NORMED)
@@ -64,10 +89,10 @@ for infile in glob.glob("../examples/higgs*.png"):
     (x, y) = maxloc
 
     cv2.imshow("match", matchres)
-    cv2.imwrite("output/%s_05tempmatch%s" % (filename, fileext), matchres)
+    cv2.imwrite("%s/%s_05tempmatch%s" % (args.output, filename, fileext), matchres)
 
     # From some testing 0.9 seems like a good threshold.
-    if (max_x >= 0.9):
+    if (max_x >= 0.81):
         print "Match! %s" % max_x
         color = (0, 255, 0)
     else:
@@ -81,7 +106,7 @@ for infile in glob.glob("../examples/higgs*.png"):
 
     # Draw the final image.
     cv2.imshow('Final', simg)
-    cv2.imwrite("output/%s_06final%s" % (filename, fileext), simg)
+    cv2.imwrite("%s/%s_06final%s" % (args.output, filename, fileext), simg)
 
     """
     plt.subplot(231),plt.imshow(simg,'gray'),plt.title('ORIGINAL')
