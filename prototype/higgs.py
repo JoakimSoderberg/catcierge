@@ -41,9 +41,9 @@ parser.add_argument("--images", metavar = "IMAGES", nargs = "+",
                     help = "The Catcierge match images to test.",
                     default = glob.glob("../examples/higgs*.png"))
 
-parser.add_argument("--snout", metavar = "SNOUTIMAGE", 
-                    help = "The snout image.",
-                    default = "../examples/snout/snout320x240.png")
+parser.add_argument("--snout", metavar = "SNOUTIMAGES", 
+                    help = "The snout image.", nargs = "+",
+                    default = ["../examples/snout/snout320x240.png"])
 
 parser.add_argument("--output", metavar = "PATH",
                     help = "Output directory.",
@@ -119,57 +119,57 @@ def do_the_match(simg, snout_image):
 
     return max_x
 
+for current_snout in args.snout:
 
-
-# Read the snout image and make it binary and nice.
-org_snout = cv2.imread(args.snout, 0)
-ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
-kernel = np.ones((1,1), np.uint8)
-snout = threshimg
-snout_flipped = cv2.flip(snout, 1)
-#snout = cv2.erode(threshimg, kernel, iterations = 3)
-#snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
-if not args.noshow:
-    cv2.imshow('Snout', snout)
-    cv2.waitKey(0)
-
-if not os.path.exists(args.output):
-    os.makedirs(args.output)
-
-for infile in args.images:
-    path, filename_wext = os.path.split(infile)
-    filename, fileext = os.path.splitext(filename_wext)
-    img = cv2.imread(infile)
-    img2 = img.copy()
-
-    res = do_the_match(img, snout)
-
-    if res < args.threshold:
-        print "Flipping"
-        do_the_match(img2, snout_flipped)
-
+    # Read the snout image and make it binary and nice.
+    org_snout = cv2.imread(current_snout, 0)
+    ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
+    kernel = np.ones((1,1), np.uint8)
+    snout = threshimg
+    snout_flipped = cv2.flip(snout, 1)
+    #snout = cv2.erode(threshimg, kernel, iterations = 3)
+    #snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
     if not args.noshow:
+        cv2.imshow('Snout', snout)
         cv2.waitKey(0)
-    
-    cv2.destroyAllWindows()
 
-if args.montage:
-    snout_path, snout_filename_wext = os.path.split(args.snout)
-    snout_filename, snout_fileext = os.path.splitext(snout_filename_wext)
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
 
-    montage_args = glob.glob("%s/*final.png" % args.output)
-    montage_filename = "%s_montage.jpg" % snout_filename
+    for infile in args.images:
+        path, filename_wext = os.path.split(infile)
+        filename, fileext = os.path.splitext(filename_wext)
+        img = cv2.imread(infile)
+        img2 = img.copy()
 
-    # First create the montage of all matches.
-    call(["montage", "-background", "black"] 
-        + glob.glob("%s/*final.png" % args.output) 
-        + [montage_filename])
+        res = do_the_match(img, snout)
 
-    # Then include the snout image first.
-    call(["montage", 
-        "-geometry", "+2+2",
-        "-tile", "1x2",
-        "-title", "Threshold %s" % args.threshold,
-        "-fill", "white",
-        "-background", "black", args.snout, montage_filename, 
-        "combined_%s_montage.jpg" % snout_filename])
+        if res < args.threshold:
+            print "Flipping"
+            do_the_match(img2, snout_flipped)
+
+        if not args.noshow:
+            cv2.waitKey(0)
+        
+        cv2.destroyAllWindows()
+
+    if args.montage:
+        snout_path, snout_filename_wext = os.path.split(current_snout)
+        snout_filename, snout_fileext = os.path.splitext(snout_filename_wext)
+
+        montage_args = glob.glob("%s/*final.png" % current_snout)
+        montage_filename = "%s_montage.jpg" % snout_filename
+
+        # First create the montage of all matches.
+        call(["montage", "-background", "black"] 
+            + glob.glob("%s/*final.png" % args.output) 
+            + [montage_filename])
+
+        # Then include the snout image first.
+        call(["montage", 
+            "-geometry", "+2+2",
+            "-tile", "1x2",
+            "-title", "Threshold %s" % args.threshold,
+            "-fill", "white",
+            "-background", "black", current_snout, montage_filename, 
+            "combined_%s_montage.jpg" % snout_filename])
