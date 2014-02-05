@@ -56,6 +56,9 @@ parser.add_argument("--threshold", metavar = "THRESHOLD",
                     help = "Match threshold.", type = float,
                     default = 0.81)
 
+parser.add_argument("--erode", action = "store_true",
+                    help = "Should we erode the input to get a less noisy image.")
+
 parser.add_argument("--montage", action = "store_true",
                     help = "Create montage of final match images using imagemagick.")
 
@@ -90,7 +93,6 @@ def do_the_match(simg, snout_image):
         cv2.imshow("match", matchres)
     cv2.imwrite("%s/%s_05tempmatch%s" % (args.output, filename, fileext), matchres)
 
-    # From some testing 0.9 seems like a good threshold.
     if (max_x >= args.threshold):
         print "Match! %s" % max_x
         color = (0, 255, 0)
@@ -126,9 +128,14 @@ for current_snout in args.snout:
     ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
     kernel = np.ones((1,1), np.uint8)
     snout = threshimg
+
+    if (args.erode):
+        snout = cv2.erode(threshimg, kernel, iterations = 3)
+    else:
+        snout = threshimg
+
     snout_flipped = cv2.flip(snout, 1)
-    #snout = cv2.erode(threshimg, kernel, iterations = 3)
-    #snout = cv2.resize(snout, (0, 0), fx = 0.5, fy = 0.5)
+
     if not args.noshow:
         cv2.imshow('Snout', snout)
         cv2.waitKey(0)
@@ -169,7 +176,7 @@ for current_snout in args.snout:
         call(["montage", 
             "-geometry", "+2+2",
             "-tile", "1x2",
-            "-title", "Threshold %s" % args.threshold,
+            "-title", "%sThreshold %s" % ("Eroded, " if args.erode else "", args.threshold),
             "-fill", "white",
             "-background", "black", current_snout, montage_filename, 
-            "combined_%s_montage.jpg" % snout_filename])
+            "%scombined_%s_montage.jpg" % ("eroded_" if args.erode else "", snout_filename)])
