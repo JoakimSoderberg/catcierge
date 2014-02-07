@@ -21,18 +21,31 @@
 
 #include <opencv2/imgproc/imgproc_c.h>
 
+#define CATCIERGE_LOW_BINARY_THRESH_DEFAULT 90
+#define CATCIERGE_HIGH_BINARY_THRESH_DEFAULT 255
+
 typedef struct catcierge_s
 {
-	CvMemStorage* storage;
-	IplImage* snout;
-	IplImage* flipped_snout;
+	CvMemStorage *storage;
+	IplImage **snouts;
+	int snout_count;
+	IplImage **flipped_snouts;
 	IplConvKernel *kernel;
 
 	int match_flipped;
 	double match_threshold;
+	int low_binary_thresh;
+	int high_binary_thresh;
+	int erode;
 } catcierge_t;
 
-int catcierge_init(catcierge_t *ctx, const char *snout_path, int match_flipped, double match_threshold);
+int catcierge_init(catcierge_t *ctx, 
+					const char **snout_paths, int snout_count);
+
+void catcierge_set_match_flipped(catcierge_t *ctx, int match_flipped);
+void catcierge_set_match_threshold(catcierge_t *ctx, double match_threshold);
+void catcierge_set_binary_thresholds(catcierge_t *ctx, int low, int high);
+void catcierge_set_erode(catcierge_t *ctx, int erode);
 
 void catcierge_destroy(catcierge_t *ctx);
 

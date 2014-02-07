@@ -132,11 +132,14 @@ int main(int argc, char **argv)
 		system(cmd);
 	}
 
-	if (catcierge_init(&ctx, snout_path, match_flipped, match_threshold))
+	if (catcierge_init(&ctx, (const char **)&snout_path, 1))
 	{
 		fprintf(stderr, "Failed to init catcierge lib!\n");
 		return -1;
 	}
+
+	catcierge_set_match_flipped(&ctx, match_flipped);
+	catcierge_set_match_threshold(&ctx, match_threshold);
 
 	for (i = 0; i < img_count; i++)
 	{
