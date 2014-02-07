@@ -54,7 +54,7 @@ parser.add_argument("--noshow", action = "store_true",
 
 parser.add_argument("--threshold", metavar = "THRESHOLD",
                     help = "Match threshold.", type = float,
-                    default = 0.81)
+                    default = 0.8)
 
 parser.add_argument("--erode", action = "store_true",
                     help = "Should we erode the input to get a less noisy image.")
@@ -62,11 +62,53 @@ parser.add_argument("--erode", action = "store_true",
 parser.add_argument("--montage", action = "store_true",
                     help = "Create montage of final match images using imagemagick.")
 
+parser.add_argument("--avg", action = "store_true",
+                    help = "Use multiple snout images to match to an average.")
+
 args = parser.parse_args()
 
-def do_the_match(simg, snout_image):
+kernel = np.ones((1,1), np.uint8)
+
+if not os.path.exists(args.output):
+        os.makedirs(args.output)
+
+def do_the_match_avg(simg, snout_images, filename, fileext):
+
+    simg_gray = cv2.cvtColor(simg, cv2.COLOR_BGR2GRAY)
+
+    ret, threshimg = cv2.threshold(simg_gray, 90, 255, 0)
+
+    max_x_sum = 0
+
+    for snout_image in snout_images:
+        matchres = cv2.matchTemplate(threshimg, snout_image, cv2.TM_CCOEFF_NORMED)
+        (min_x, max_x, minloc, maxloc) = cv2.minMaxLoc(matchres)
+        (x, y) = maxloc
+        max_x_sum += max_x
+
+    max_x_avg = max_x_sum / len(snout_images)
+
+    if (max_x_avg >= args.threshold):
+        print "Match! %s" % max_x_avg
+        color = (0, 255, 0)
+    else:
+        print "No match! %s" % max_x_avg
+        color = (0, 0, 255)
+
+    # Draw the best match.
+    snout_w = snout_image.shape[1]
+    snout_h = snout_image.shape[0]
+    cv2.rectangle(simg, (x, y), (x + snout_w, y + snout_h), color, 2)
+
+    # Draw the final image.
+    if not args.noshow:
+        cv2.imshow('Final', simg)
+    cv2.imwrite("%s/%s_06final%s" % (args.output, filename, fileext), simg)
+
+    return max_x_avg
+
+def do_the_match(simg, snout_image, filename, fileext):
     # We only deal in grayscale.
-    #simg = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
     simg_gray = cv2.cvtColor(simg, cv2.COLOR_BGR2GRAY)
     
     cv2.imwrite("%s/%s_01original%s" % (args.output, filename, fileext), simg)
@@ -94,10 +136,10 @@ def do_the_match(simg, snout_image):
     cv2.imwrite("%s/%s_05tempmatch%s" % (args.output, filename, fileext), matchres)
 
     if (max_x >= args.threshold):
-        print "Match! %s" % max_x
+        print "Match! %s   (%s)" % (max_x, filename)
         color = (0, 255, 0)
     else:
-        print "No match! %s" % max_x
+        print "No match! %s   (%s)" % (max_x, filename)
         color = (0, 0, 255)
 
     # Draw the best match.
@@ -121,12 +163,10 @@ def do_the_match(simg, snout_image):
 
     return max_x
 
-for current_snout in args.snout:
-
+def prepare_snout(current_snout):
     # Read the snout image and make it binary and nice.
     org_snout = cv2.imread(current_snout, 0)
     ret, threshimg = cv2.threshold(org_snout, 35, 255, 0)
-    kernel = np.ones((1,1), np.uint8)
     snout = threshimg
 
     if (args.erode):
@@ -140,8 +180,37 @@ for current_snout in args.snout:
         cv2.imshow('Snout', snout)
         cv2.waitKey(0)
 
-    if not os.path.exists(args.output):
-        os.makedirs(args.output)
+    return (snout, snout_flipped)
+
+def create_montage(current_snout, success_count):
+    # Creates a montage for all final images.
+    snout_path, snout_filename_wext = os.path.split(current_snout)
+    snout_filename, snout_fileext = os.path.splitext(snout_filename_wext)
+
+    montage_args = glob.glob("%s/*final.png" % current_snout)
+    montage_filename = "%s_montage.jpg" % snout_filename
+
+    # First create the montage of all matches.
+    call(["montage", "-background", "black"] 
+        + glob.glob("%s/*final.png" % args.output) 
+        + [montage_filename])
+
+    # Then include the snout image first.
+    call(["montage", 
+        "-geometry", "+2+2",
+        "-tile", "1x2",
+        "-title", "%s of %s successfully matched. %sThreshold %s" % (success_count, len(args.images), "Eroded, " if args.erode else "", args.threshold),
+        "-fill", "white",
+        "-background", "black", current_snout, montage_filename, 
+        "%scombined_%s_montage.jpg" % ("eroded_" if args.erode else "", snout_filename)])
+
+
+def perform_one_match(current_snout, snout, snout_flipped):
+    print("Snout: %s" % current_snout)
+
+    (snout, snout_flipped) = prepare_snout(current_snout)
+
+    success_count = 0
 
     for infile in args.images:
         path, filename_wext = os.path.split(infile)
@@ -149,11 +218,14 @@ for current_snout in args.snout:
         img = cv2.imread(infile)
         img2 = img.copy()
 
-        res = do_the_match(img, snout)
+        res = do_the_match(img, snout, filename, fileext)
 
         if res < args.threshold:
             print "Flipping"
-            do_the_match(img2, snout_flipped)
+            res = do_the_match(img2, snout_flipped, filename, fileext)
+
+        if res >= args.threshold:
+            success_count += 1
 
         if not args.noshow:
             cv2.waitKey(0)
@@ -161,22 +233,52 @@ for current_snout in args.snout:
         cv2.destroyAllWindows()
 
     if args.montage:
-        snout_path, snout_filename_wext = os.path.split(current_snout)
-        snout_filename, snout_fileext = os.path.splitext(snout_filename_wext)
+        create_montage(current_snout, success_count)
 
-        montage_args = glob.glob("%s/*final.png" % current_snout)
-        montage_filename = "%s_montage.jpg" % snout_filename
+###############################################################
 
-        # First create the montage of all matches.
-        call(["montage", "-background", "black"] 
-            + glob.glob("%s/*final.png" % args.output) 
-            + [montage_filename])
+if (args.avg):
+    # Use multiple snout images and use the average to decide
+    # if it's a match or not.
+    snouts = []
+    snouts_flipped = []
+    for current_snout in args.snout:
+        (snout, snout_flipped) = prepare_snout(current_snout)
+        snouts.append(snout)
+        snouts_flipped.append(snout_flipped)
 
-        # Then include the snout image first.
-        call(["montage", 
-            "-geometry", "+2+2",
-            "-tile", "1x2",
-            "-title", "%sThreshold %s" % ("Eroded, " if args.erode else "", args.threshold),
-            "-fill", "white",
-            "-background", "black", current_snout, montage_filename, 
-            "%scombined_%s_montage.jpg" % ("eroded_" if args.erode else "", snout_filename)])
+    success_count = 0
+
+    for infile in args.images:
+        path, filename_wext = os.path.split(infile)
+        filename, fileext = os.path.splitext(filename_wext)
+        img = cv2.imread(infile)
+        img2 = img.copy()
+
+        res = do_the_match_avg(img, snouts, filename, fileext)
+
+        if res < args.threshold:
+            print "Flipping"
+            res_flipped = do_the_match_avg(img2, snouts_flipped, filename, fileext)
+            res = max(res, res_flipped)
+
+        print "  avg: %s" % res
+
+        if res >= args.threshold:
+            success_count += 1
+
+        if not args.noshow:
+            cv2.waitKey(0)
+
+        cv2.destroyAllWindows()
+
+    if args.montage:
+        create_montage(current_snout, success_count)
+else:
+    # Loop through each snout and create a montage of all
+    # matches for each one.
+    for current_snout in args.snout:
+        (snout, snout_flipped) = prepare_snout(current_snout)
+        perform_one_match(current_snout, snout, snout_flipped)
+
+
