@@ -686,9 +686,10 @@ match_direction_t get_match_direction(int match_success, int going_out)
 	return  MATCH_DIR_UNKNOWN;
 }
 
-static void process_match_result(IplImage *img, CvRect match_rect, 
+static void process_match_result(IplImage *img, CvRect *match_rects, size_t match_rect_count,
 								int match_success, double match_res, int going_out)
 {
+	int i;
 	char time_str[256];
 	CATLOGFPS("%f %sMatch%s\n", match_res, match_success ? "" : "No ", going_out ? " OUT" : " IN");
 
@@ -705,7 +706,10 @@ static void process_match_result(IplImage *img, CvRect match_rect,
 		// Draw a white rectangle over the best match.
 		if (highlight_match)
 		{
-			cvRectangleR(img, match_rect, CV_RGB(255, 255, 255), 1, 8, 0);
+			for (i = 0; i < snout_count; i++)
+			{
+				cvRectangleR(img, match_rects[i], CV_RGB(255, 255, 255), 2, 8, 0);
+			}
 		}
 
 		get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
@@ -1282,7 +1286,7 @@ int main(int argc, char **argv)
 {
 	catcierge_t ctx;
 	IplImage* img = NULL;
-	CvRect match_rect;
+	CvRect match_rects[MAX_SNOUT_COUNT];
 	CvScalar match_color;
 	double match_res = 0;
 	int do_match = 0;
@@ -1535,7 +1539,7 @@ int main(int argc, char **argv)
 		if (do_match && enough_time)
 		{
 			// We have something to match against. 
-			if ((match_res = catcierge_match(&ctx, img, &match_rect, &going_out)) < 0)
+			if ((match_res = catcierge_match(&ctx, img, match_rects, snout_count, &going_out)) < 0)
 			{
 				CATERRFPS("Error when matching frame!\n");
 				goto skiploop;
@@ -1544,7 +1548,7 @@ int main(int argc, char **argv)
 			match_success = (match_res >= match_threshold);
 
 			// Save the match state, execute external processes and so on...
-			process_match_result(img, match_rect, match_success, match_res, going_out);
+			process_match_result(img, match_rects, snout_count, match_success, match_res, going_out);
 
 			should_we_lockout(match_res);
 		}
@@ -1561,7 +1565,10 @@ skiploop:
 			// Always highlight when showing in GUI.
 			if (do_match)
 			{
-				cvRectangleR(img, match_rect, match_color, 2, 8, 0);
+				for (i = 0; i < snout_count; i++)
+				{
+					cvRectangleR(img, match_rects[i], match_color, 2, 8, 0);
+				}
 			}
 
 			cvShowImage("catcierge", img);

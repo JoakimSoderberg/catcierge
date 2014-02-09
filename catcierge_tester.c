@@ -37,12 +37,13 @@ int main(int argc, char **argv)
 	char *img_paths[256];
 	size_t img_count = 0;
 	IplImage *img = NULL;
-	CvRect match_rect;
+	CvRect match_rects[MAX_SNOUT_COUNT];
 	CvSize img_size;
 	CvScalar match_color;
 	int match_success = 0;
 	double match_res = 0;
 	int i;
+	int j;
 	int show = 0;
 	int save = 0;
 	char *output_path = "output";
@@ -157,6 +158,8 @@ int main(int argc, char **argv)
 	{
 		match_success = 0;
 
+		printf("%s:\n", img_paths[i]);
+
 		if (!(img = cvLoadImage(img_paths[i], 1)))
 		{
 			fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
@@ -165,9 +168,9 @@ int main(int argc, char **argv)
 
 		img_size = cvGetSize(img);
 
-		printf("Image size: %dx%d\n", img_size.width, img_size.height);
+		printf("  Image size: %dx%d\n", img_size.width, img_size.height);
 
-		if ((match_res = catcierge_match(&ctx, img, &match_rect, &was_flipped)) < 0)
+		if ((match_res = catcierge_match(&ctx, img, match_rects, snout_count, &was_flipped)) < 0)
 		{
 			fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
 			catcierge_destroy(&ctx);
@@ -177,16 +180,19 @@ int main(int argc, char **argv)
 
 		if (match_success)
 		{
-			printf("Match%s! %f\n", was_flipped ? " (Flipped)": "", match_res);
+			printf("  Match%s! %f\n", was_flipped ? " (Flipped)": "", match_res);
 			match_color = CV_RGB(0, 255, 0);
 		}
 		else
 		{
-			printf("No match! %f\n", match_res);
+			printf("  No match! %f\n", match_res);
 			match_color = CV_RGB(255, 0, 0);
 		}
 
-		cvRectangleR(img, match_rect, match_color, 1, 8, 0);
+		for (j = 0; j < snout_count; j++)
+		{
+			cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
+		}
 	
 		if (show)
 		{

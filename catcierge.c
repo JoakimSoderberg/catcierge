@@ -238,7 +238,11 @@ void catcierge_destroy(catcierge_t *ctx)
 	ctx->matchres = NULL;
 }
 
-double catcierge_match_avg(catcierge_t *ctx, const IplImage *img, CvRect *match_rect, int *flipped)
+// TODO: Replace match_rects with a match_result struct that includes
+// match_rect and result value for each snout image.
+double catcierge_match(catcierge_t *ctx, const IplImage *img,
+						CvRect *match_rects, size_t rect_count, 
+						int *flipped)
 {
 	IplImage *img_cpy = NULL;
 	IplImage *img_prep = NULL;
@@ -254,7 +258,7 @@ double catcierge_match_avg(catcierge_t *ctx, const IplImage *img, CvRect *match_
 	assert(ctx);
 
 	if ((img_size.width != ctx->width)
-		|| (img_size.height != ctx->height))
+	 || (img_size.height != ctx->height))
 	{
 		fprintf(stderr, "Match image must have size %dx%d\n", ctx->width, ctx->height);
 		return -1;
@@ -293,6 +297,11 @@ double catcierge_match_avg(catcierge_t *ctx, const IplImage *img, CvRect *match_
 		cvMinMaxLoc(ctx->matchres[i], &min_val, &max_val, &min_loc, &max_loc, NULL);
 
 		match_sum += max_val;
+
+		if (i < rect_count) 
+		{
+			match_rects[i] = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
+		}
 	}
 
 	match_avg = match_sum / ctx->snout_count;
@@ -314,6 +323,11 @@ double catcierge_match_avg(catcierge_t *ctx, const IplImage *img, CvRect *match_
 			cvMinMaxLoc(ctx->matchres[i], &min_val, &max_val, &min_loc, &max_loc, NULL);
 
 			match_sum += max_val;
+
+			if (i < rect_count) 
+			{
+				match_rects[i] = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
+			}
 		}
 
 		match_avg = match_sum / ctx->snout_count;
@@ -325,18 +339,10 @@ double catcierge_match_avg(catcierge_t *ctx, const IplImage *img, CvRect *match_
 		}
 	}
 
-	// TODO: Return a match_rect for each snout instead.
-	*match_rect = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
-
 	cvReleaseImage(&img_cpy);
 	cvReleaseImage(&img_prep);
 
 	return match_avg;
-}
-
-double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect, int *flipped)
-{
-	return catcierge_match_avg(ctx, img, match_rect, flipped);
 }
 
 int catcierge_is_matchable(catcierge_t *ctx, IplImage *img)

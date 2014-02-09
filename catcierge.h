@@ -55,7 +55,9 @@ void catcierge_set_erode(catcierge_t *ctx, int erode);
 
 void catcierge_destroy(catcierge_t *ctx);
 
-double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect, int *flipped);
+double catcierge_match(catcierge_t *ctx, const IplImage *img, 
+						CvRect *match_rects, size_t rect_count, 
+						int *flipped);
 
 int catcierge_is_matchable(catcierge_t *ctx, IplImage *img);
 
