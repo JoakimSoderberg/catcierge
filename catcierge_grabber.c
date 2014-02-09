@@ -1267,7 +1267,7 @@ static int parse_cmdargs(int argc, char **argv)
 
 			if ((ret = parse_setting(key, values, value_count)) < 0)
 			{
-				fprintf(stderr, "Failed to parse command line arguments\n");
+				fprintf(stderr, "Failed to parse command line arguments for \"%s\"\n", key);
 				return ret;
 			}
 		}

@@ -24,13 +24,19 @@
 #define CATCIERGE_LOW_BINARY_THRESH_DEFAULT 90
 #define CATCIERGE_HIGH_BINARY_THRESH_DEFAULT 255
 
+#define CATCIERGE_DEFAULT_RESOLUTION_WIDTH 320
+#define CATCIERGE_DEFUALT_RESOLUTION_HEIGHT 240
+
 typedef struct catcierge_s
 {
 	CvMemStorage *storage;
+	int width;
+	int height;
 	IplImage **snouts;
 	int snout_count;
 	IplImage **flipped_snouts;
 	IplConvKernel *kernel;
+	IplImage **matchres;
 
 	int match_flipped;
 	double match_threshold;

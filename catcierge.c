@@ -52,6 +52,7 @@ static int _catcierge_prepare_img(catcierge_t *ctx, const IplImage *src, IplImag
 
 	if (ctx->erode)
 	{
+		// Smooths out the image using erode.
 		tmp2 = cvCreateImage(cvGetSize(src), 8, 1);
 		cvThreshold(img_gray, tmp2,
 					ctx->low_binary_thresh,
@@ -71,8 +72,7 @@ static int _catcierge_prepare_img(catcierge_t *ctx, const IplImage *src, IplImag
 	if (src->nChannels != 1)
 	{
 		cvReleaseImage(&tmp);
-	}
-
+	} 
 
 	return 0;
 }
@@ -105,12 +105,18 @@ void catcierge_set_binary_thresholds(catcierge_t *ctx, int low, int high)
 int catcierge_init(catcierge_t *ctx, const char **snout_paths, int snout_count)
 {
 	int i;
+	CvSize snout_size;
+	CvSize matchres_size;
 	IplImage *snout_prep = NULL;
 	assert(ctx);
 	memset(ctx, 0, sizeof(catcierge_t));
 
 	ctx->low_binary_thresh = CATCIERGE_LOW_BINARY_THRESH_DEFAULT;
 	ctx->high_binary_thresh = CATCIERGE_HIGH_BINARY_THRESH_DEFAULT;
+
+	// TODO: Make these setable instead.
+	ctx->width = CATCIERGE_DEFAULT_RESOLUTION_WIDTH;
+	ctx->height = CATCIERGE_DEFUALT_RESOLUTION_HEIGHT;
 
 	for (i = 0; i < snout_count; i++)
 	{
@@ -133,10 +139,12 @@ int catcierge_init(catcierge_t *ctx, const char **snout_paths, int snout_count)
 
 	ctx->snout_count = snout_count;
 
+	// Load the snout images.
 	ctx->snouts = (IplImage **)calloc(snout_count, sizeof(IplImage *));
 	ctx->flipped_snouts = (IplImage **)calloc(snout_count, sizeof(IplImage *));
+	ctx->matchres = (IplImage **)calloc(snout_count, sizeof(IplImage *));
 
-	if (!ctx->snouts || !ctx->flipped_snouts)
+	if (!ctx->snouts || !ctx->flipped_snouts || !ctx->matchres)
 	{
 		fprintf(stderr, "Out of memory!\n");
 		exit(1);
@@ -150,7 +158,9 @@ int catcierge_init(catcierge_t *ctx, const char **snout_paths, int snout_count)
 			return -1;
 		}
 
-		if (!(ctx->snouts[i] = cvCreateImage(cvGetSize(snout_prep), 8, 1)))
+		snout_size = cvGetSize(snout_prep);
+
+		if (!(ctx->snouts[i] = cvCreateImage(snout_size, 8, 1)))
 		{
 			cvReleaseImage(&snout_prep);
 			return -1;
@@ -163,11 +173,14 @@ int catcierge_init(catcierge_t *ctx, const char **snout_paths, int snout_count)
 		}
 
 		// Flip so we can match for going out as well (and not fail the match).
-		if (ctx->match_flipped)
-		{
-			ctx->flipped_snouts[i] = cvCloneImage(ctx->snouts[i]);
-			cvFlip(ctx->snouts[i], ctx->flipped_snouts[i], 1);
-		}
+		ctx->flipped_snouts[i] = cvCloneImage(ctx->snouts[i]);
+		cvFlip(ctx->snouts[i], ctx->flipped_snouts[i], 1);
+
+		// Setup a matchres image for each snout
+		// (We can share these for normal and flipped snouts).
+		matchres_size = cvSize(ctx->width  - snout_size.width + 1, 
+							   ctx->height - snout_size.height + 1);
+		ctx->matchres[i] = cvCreateImage(matchres_size, IPL_DEPTH_32F, 1);
 
 		cvReleaseImage(&snout_prep);
 	}
@@ -215,22 +228,37 @@ void catcierge_destroy(catcierge_t *ctx)
 		cvReleaseStructuringElement(&ctx->kernel);
 		ctx->kernel = NULL;
 	}
+
+	for (i = 0; i < ctx->snout_count; i++)
+	{
+		cvReleaseImage(&ctx->matchres[i]);
+	}
+
+	free(ctx->matchres);
+	ctx->matchres = NULL;
 }
 
-double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect, int *flipped)
+double catcierge_match_avg(catcierge_t *ctx, const IplImage *img, CvRect *match_rect, int *flipped)
 {
 	IplImage *img_cpy = NULL;
 	IplImage *img_prep = NULL;
-	IplImage *matchres = NULL;
 	CvPoint min_loc;
 	CvPoint max_loc;
 	CvSize img_size = cvGetSize(img);
 	CvSize snout_size;
-	CvSize matchres_size;
 	double min_val;
 	double max_val;
-	assert(ctx);
+	double match_sum = 0.0;
+	double match_avg = 0.0;
 	int i;
+	assert(ctx);
+
+	if ((img_size.width != ctx->width)
+		|| (img_size.height != ctx->height))
+	{
+		fprintf(stderr, "Match image must have size %dx%d\n", ctx->width, ctx->height);
+		return -1;
+	}
 
 	img_cpy = cvCreateImage(img_size, 8, 1);
 
@@ -248,45 +276,67 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect
 		return -1;
 	}
 
+	if (flipped)
+	{
+		*flipped = 0;
+	}
+
+	// First check normal facing snouts.
 	for (i = 0; i < ctx->snout_count; i++)
 	{
+		// This is only used for returning match_rect.
 		snout_size = cvGetSize(ctx->snouts[i]);
 
 		// Try to match the snout with the image.
 		// If we find it, the max_val should be close to 1.0
-		matchres_size = cvSize(img_size.width - snout_size.width + 1, 
-							   img_size.height - snout_size.height + 1);
-		matchres = cvCreateImage(matchres_size, IPL_DEPTH_32F, 1);
+		cvMatchTemplate(img_cpy, ctx->snouts[i], ctx->matchres[i], CV_TM_CCOEFF_NORMED);
+		cvMinMaxLoc(ctx->matchres[i], &min_val, &max_val, &min_loc, &max_loc, NULL);
 
-		cvMatchTemplate(img_cpy, ctx->snouts[i], matchres, CV_TM_CCOEFF_NORMED);
-		cvMinMaxLoc(matchres, &min_val, &max_val, &min_loc, &max_loc, NULL);
+		match_sum += max_val;
+	}
 
-		if (flipped)
+	match_avg = match_sum / ctx->snout_count;
+
+	// TODO: Do all normal facing snouts first, and THEN if the
+	// average isn't a good match, try the flipped snouts instead..
+
+	// If we fail the match, try the flipped snout as well.
+	if (ctx->match_flipped 
+		&& ctx->flipped_snouts[i] 
+		&& (match_avg < ctx->match_threshold))
+	{
+		match_sum = 0.0;
+
+		for (i = 0; i < ctx->snout_count; i++)
 		{
-			*flipped = 0;
+			snout_size = cvGetSize(ctx->flipped_snouts[i]);
+			cvMatchTemplate(img_cpy, ctx->flipped_snouts[i], ctx->matchres[i], CV_TM_CCOEFF_NORMED);
+			cvMinMaxLoc(ctx->matchres[i], &min_val, &max_val, &min_loc, &max_loc, NULL);
+
+			match_sum += max_val;
 		}
 
-		// If we fail the match, try the flipped snout as well.
-		if (ctx->match_flipped && ctx->flipped_snouts[i] && (max_val < ctx->match_threshold))
-		{
-			cvMatchTemplate(img_cpy, ctx->flipped_snouts[i], matchres, CV_TM_CCOEFF_NORMED);
-			cvMinMaxLoc(matchres, &min_val, &max_val, &min_loc, &max_loc, NULL);
+		match_avg = match_sum / ctx->snout_count;
 
-			// Only qualify as OUT if it was a good match.
-			if ((max_val >= ctx->match_threshold) && flipped)
-			{
-				*flipped = 1;
-			}
+		// Only qualify as OUT if it was a good match.
+		if ((match_avg >= ctx->match_threshold) && flipped)
+		{
+			*flipped = 1;
 		}
 	}
 
+	// TODO: Return a match_rect for each snout instead.
 	*match_rect = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
 
 	cvReleaseImage(&img_cpy);
 	cvReleaseImage(&img_prep);
-	cvReleaseImage(&matchres);
 
-	return max_val;
+	return match_avg;
+}
+
+double catcierge_match(catcierge_t *ctx, const IplImage *img, CvRect *match_rect, int *flipped)
+{
+	return catcierge_match_avg(ctx, img, match_rect, flipped);
 }
 
 int catcierge_is_matchable(catcierge_t *ctx, IplImage *img)

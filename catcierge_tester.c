@@ -31,11 +31,14 @@
 int main(int argc, char **argv)
 {
 	catcierge_t ctx;
-	char *snout_path = NULL;
+	#define MAX_SNOUT_COUNT 24
+	const char *snout_paths[MAX_SNOUT_COUNT];
+	size_t snout_count = 0;
 	char *img_paths[256];
 	size_t img_count = 0;
 	IplImage *img = NULL;
 	CvRect match_rect;
+	CvSize img_size;
 	CvScalar match_color;
 	int match_success = 0;
 	double match_res = 0;
@@ -49,7 +52,6 @@ int main(int argc, char **argv)
 
 	if (argc < 4)
 	{
-		fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
 		fprintf(stderr, "Usage: %s --snout <snout image>\n"
 						"         [--output [path]] [--show] [--match_flipped <0|1>] [--threshold]\n"
 						"         <input images>\n", argv[0]);
@@ -60,6 +62,7 @@ int main(int argc, char **argv)
 	{
 		if (!strcmp(argv[i], "--show"))
 		{
+		fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
 			show = 1;
 			continue;
 		}
@@ -67,7 +70,7 @@ int main(int argc, char **argv)
 		{
 			save = 1;
 
-			if (argc >= (i + 1))
+			if ((i + 1) < argc)
 			{
 				if (strncmp(argv[i+1], "--", 2))
 				{
@@ -79,16 +82,17 @@ int main(int argc, char **argv)
 		}
 		else if (!strcmp(argv[i], "--snout"))
 		{
-			if (argc >= (i + 1))
+			while (((i + 1) < argc) 
+				&& strncmp(argv[i+1], "--", 2))
 			{
 				i++;
-				snout_path = argv[i];
-				continue;
+				snout_paths[snout_count] = argv[i];
+				snout_count++;
 			}
 		}
 		else if (!strcmp(argv[i], "--threshold"))
 		{
-			if (argc >= (i + 1))
+			if ((i + 1) < argc)
 			{
 				i++;
 				match_threshold = atof(argv[i]);
@@ -97,18 +101,26 @@ int main(int argc, char **argv)
 		}
 		else if (!strcmp(argv[i], "--match_flipped"))
 		{
-			if (argc >= (i + 1))
+			if ((i + 1) < argc)
 			{
 				i++;
 				match_flipped = atoi(argv[i]);
 				continue;
 			}
 		}
-
-		img_paths[img_count++] = argv[i];
+		else if (!strcmp(argv[i], "--images"))
+		{
+			while (((i + 1) < argc) 
+				&& strncmp(argv[i+1], "--", 2))
+			{
+				i++;
+				img_paths[img_count] = argv[i];
+				img_count++;
+			}
+		}
 	}
 
-	if (!snout_path)
+	if (snout_count == 0)
 	{
 		fprintf(stderr, "No snout image specified\n");
 		return -1;
@@ -132,7 +144,7 @@ int main(int argc, char **argv)
 		system(cmd);
 	}
 
-	if (catcierge_init(&ctx, (const char **)&snout_path, 1))
+	if (catcierge_init(&ctx, snout_paths, snout_count))
 	{
 		fprintf(stderr, "Failed to init catcierge lib!\n");
 		return -1;
@@ -150,6 +162,10 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
 			goto fail;
 		}
+
+		img_size = cvGetSize(img);
+
+		printf("Image size: %dx%d\n", img_size.width, img_size.height);
 
 		if ((match_res = catcierge_match(&ctx, img, &match_rect, &was_flipped)) < 0)
 		{
