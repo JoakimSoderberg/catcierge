@@ -90,7 +90,9 @@ typedef enum catcierge_state_e
 catcierge_state_t state = STATE_WAITING;
 
 int show_cmd_help = 0;		// Toggle showing extra command help.
-char *snout_path = NULL;	// Path to the snout image we should match against.
+#define MAX_SNOUT_COUNT 24
+const char *snout_paths[MAX_SNOUT_COUNT];	// Paths to the snout images we should match against.
+size_t snout_count = 0;		// The number of snout images to use.
 char *output_path = NULL;	// Output directory for match images.
 char *log_path = NULL;		// Log path.
 FILE *log_file = NULL;		// Log file handle.
@@ -771,41 +773,43 @@ static void calculate_fps()
 	}
 }
 
-static int parse_setting(const char *key, char *value)
+static int parse_setting(const char *key, char **values, size_t value_count)
 {
+	size_t i;
+
 	if (!strcmp(key, "show"))
 	{
 		show = 1;
-		if (value) show = atoi(value);
+		if (value_count == 1) show = atoi(values[0]);
 		return 0;
 	}
 
 	if (!strcmp(key, "save"))
 	{
 		saveimg = 1;
-		if (value) saveimg = atoi(value);
+		if (value_count == 1) saveimg = atoi(values[0]);
 		return 0;
 	}
 
 	if (!strcmp(key, "highlight"))
 	{
 		highlight_match = 1;
-		if (value)highlight_match = atoi(value);
+		if (value_count == 1) highlight_match = atoi(values[0]);
 		return 0;
 	}
 
 	if (!strcmp(key, "show_fps"))
 	{
 		show_fps = 1;
-		if (value) show_fps = atoi(value);
+		if (value_count == 1) show_fps = atoi(values[0]);
 		return 0;
 	}
 
 	if (!strcmp(key, "lockout"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			lockout_time = atoi(value);
+			lockout_time = atoi(values[0]);
 		}
 		else
 		{
@@ -817,9 +821,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "matchtime"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			match_time = atoi(value);
+			match_time = atoi(values[0]);
 		}
 		else
 		{
@@ -831,9 +835,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "match_flipped"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			match_flipped = atoi(value);
+			match_flipped = atoi(values[0]);
 		}
 		else
 		{
@@ -845,9 +849,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "output"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			output_path = value;
+			output_path = values[0];
 			return 0;
 		}
 
@@ -857,9 +861,9 @@ static int parse_setting(const char *key, char *value)
 	#ifdef WITH_RFID
 	if (!strcmp(key, "rfid_in"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			rfid_inner_path = value;
+			rfid_inner_path = values[0];
 			return 0;
 		}
 
@@ -868,9 +872,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "rfid_out"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			rfid_outer_path = value;
+			rfid_outer_path = values[0];
 			return 0;
 		}
 
@@ -879,9 +883,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "rfid_allowed"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			if (create_rfid_allowed_list(value))
+			if (create_rfid_allowed_list(values[0]))
 			{
 				CATERR("Failed to create RFID allowed list\n");
 				return -1;
@@ -895,10 +899,10 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "rfid_time"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			printf("val: %s\n", value);
-			rfid_lock_time = (double)atof(value);
+			printf("val: %s\n", values[0]);
+			rfid_lock_time = (double)atof(values[0]);
 			return 0;
 		}
 
@@ -908,27 +912,38 @@ static int parse_setting(const char *key, char *value)
 	if (!strcmp(key, "rfid_lock"))
 	{
 		lock_on_invalid_rfid = 1;
-		if (value) lock_on_invalid_rfid = atoi(value);
+		if (value_count == 1) lock_on_invalid_rfid = atoi(values[0]);
 		return 0;
 	}
 	#endif // WITH_RFID
 
-	if (!strcmp(key, "snout_path"))
+	// On the command line you can specify multiple snouts like this:
+	// --snout_paths <path1> <path2> <path3>
+	// or 
+	// --snout_path <path1> --snout_path <path2>
+	// In the config file you do
+	// snout_path=<path1>
+	// snout_path=<path2>
+	if (!strcmp(key, "snout_paths") || !strcmp(key, "snout_path"))
 	{
-		if (value)
+		if (value_count == 0)
+			return -1;
+
+		for (i = 0; i < value_count; i++)
 		{
-			snout_path = value;
-			return 0;
+			if (snout_count >= MAX_SNOUT_COUNT) return -1;
+			snout_paths[snout_count] = values[i];
+			snout_count++;
 		}
 
-		return -1;
+		return 0;
 	}
 
 	if (!strcmp(key, "threshold"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			match_threshold = atof(value);
+			match_threshold = atof(values[0]);
 		}
 		else
 		{
@@ -940,9 +955,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "log"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			log_path = value;
+			log_path = values[0];
 			return 0;
 		}
 
@@ -951,9 +966,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "match_cmd"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			match_cmd = value;
+			match_cmd = values[0];
 			return 0;
 		}
 
@@ -962,9 +977,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "save_img_cmd"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			save_img_cmd = value;
+			save_img_cmd = values[0];
 			return 0;
 		}
 
@@ -973,9 +988,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "save_imgs_cmd"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			save_imgs_cmd = value;
+			save_imgs_cmd = values[0];
 			return 0;
 		}
 
@@ -984,9 +999,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "match_done_cmd"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			match_done_cmd = value;
+			match_done_cmd = values[0];
 			return 0;
 		}
 
@@ -995,9 +1010,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "do_lockout_cmd"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			do_lockout_cmd = value;
+			do_lockout_cmd = values[0];
 			return 0;
 		}
 
@@ -1006,9 +1021,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "do_unlock_cmd"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			do_unlock_cmd = value;
+			do_unlock_cmd = values[0];
 			return 0;
 		}
 
@@ -1018,9 +1033,9 @@ static int parse_setting(const char *key, char *value)
 	#ifdef WITH_RFID
 	if (!strcmp(key, "rfid_detect_cmd"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			rfid_detect_cmd = value;
+			rfid_detect_cmd = values[0];
 			return 0;
 		}
 
@@ -1029,9 +1044,9 @@ static int parse_setting(const char *key, char *value)
 
 	if (!strcmp(key, "rfid_match_cmd"))
 	{
-		if (value)
+		if (value_count == 1)
 		{
-			rfid_match_cmd = value;
+			rfid_match_cmd = values[0];
 			return 0;
 		}
 
@@ -1063,7 +1078,7 @@ static void alini_cb(alini_parser_t *parser, char *section, char *key, char *val
 	value_cpy = strdup(value);
 	temp_config_values[temp_config_count++] = value_cpy; 
 
-	if (parse_setting(key, value_cpy) < 0)
+	if (parse_setting(key, (char **)value_cpy, 1) < 0)
 	{
 		fprintf(stderr, "Failed to parse setting in config: %s\n", key);
 	}
@@ -1189,11 +1204,19 @@ static int parse_cmdargs(int argc, char **argv)
 {
 	int ret = 0;
 	int i;
-	char *val = NULL;
 	char *key = NULL;
+	char **values = (char **)calloc(argc, sizeof(char *));
+	size_t value_count = 0;
+
+	if (!values)
+	{
+		fprintf(stderr, "Out of memory!\n");
+		return -1;
+	}
 
 	for (i = 1; i < argc; i++)
 	{
+		// These are command line specific.
 		if (!strcmp(argv[i], "--help"))
 		{
 			usage(argv[0]);
@@ -1222,28 +1245,35 @@ static int parse_cmdargs(int argc, char **argv)
 			}
 		}
 
+		// Normal options. These can be parsed from the
+		// config file as well.
 		if (!strncmp(argv[i], "--", 2))
 		{
+			int j = i + 1;
 			key = &argv[i][2];
-			val = NULL;
+			memset(values, 0, value_count * sizeof(char *));
+			value_count = 0;
 
-			if ((i + 1) < argc)
+			// Look for values for the option.
+			// Continue fetching values until we get another option
+			// or there are no more options.
+			while ((j < argc) && strncmp(argv[j], "--", 2))
 			{
-				// Make sure the value is not another option.
-				if (strncmp(argv[i+1], "--", 2))
-				{
-					i++;
-					val = argv[i];
-				}
+				values[value_count] = argv[j];
+				value_count++;
+				i++;
+				j = i + 1;
 			}
 
-			if ((ret = parse_setting(key, val)) < 0)
+			if ((ret = parse_setting(key, values, value_count)) < 0)
 			{
 				fprintf(stderr, "Failed to parse command line arguments\n");
 				return ret;
 			}
 		}
 	}
+
+	free(values);
 
 	return 0;
 }
@@ -1267,7 +1297,7 @@ int main(int argc, char **argv)
 	CvCapture *capture = NULL;
 	#endif
 
-	fprintf(stderr, "Catcierge Grabber v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n");
+	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n\n");
 
 	if (
 		#ifdef WITH_INI
@@ -1328,9 +1358,10 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (!snout_path || !snout_path[0])
+	if (snout_count == 0)
 	{
-		snout_path = "snout.png";
+		snout_paths[0] = "snout.png";
+		snout_count++;
 	}
 
 	if (output_path)
@@ -1352,7 +1383,11 @@ int main(int argc, char **argv)
 	printf("--------------------------------------------------------------------------------\n");
 	printf("Settings:\n");
 	printf("--------------------------------------------------------------------------------\n");
-	printf("    Snout image: %s\n", snout_path);
+	printf(" Snout image(s): %s\n", snout_paths[0]);
+	for (i = 1; i < snout_count; i++)
+	{
+		printf("                 %s\n", snout_paths[i]);
+	}
 	printf("Match threshold: %.2f\n", match_threshold);
 	printf("  Match flipped: %d\n", match_flipped);
 	printf("     Show video: %d\n", show);
@@ -1410,7 +1445,7 @@ int main(int argc, char **argv)
 
 	CATLOG("Initialized GPIO pins\n");
 
-	if (catcierge_init(&ctx, (const char **)&snout_path, 1))
+	if (catcierge_init(&ctx, snout_paths, snout_count))
 	{
 		CATERR("Failed to init catcierge lib!\n");
 		return -1;
