@@ -88,7 +88,7 @@ To test the image recognition there is a test program
 to match against.
 
 ```bash
-$ ./catcierge_tester --snout_image /path/to/image/of/catsnout.png test_image.png
+$ ./catcierge_tester --snout /path/to/image/of/catsnout.png --images *.png
 ```
 
 Likewise for the RFID matching:
@@ -97,6 +97,34 @@ Likewise for the RFID matching:
 $ ./catcierge_rfid_tester
 ```
 
+To test different matching strategies there's a Python prototype as well
+in the aptly named "protoype/" directory. The prototype is named after my
+cat [higgs.py](higgs.py). 
+
+It has some more advanced options that allows you to create montage 
+pictures of the match result of multiple images. This was used to
+compare the result of different matching strategies during development.
+
+For this to work you will need to have [ImageMagick][imagemagick] installed.
+Specifically the program `montage`.
+
+
+```bash
+$ cd prototype/
+$ python higgs.py --help
+```
+
+Test a load of test images and create a montage from them using two
+snout images to do the match:
+(Note that it is preferable if you clear the output directory before
+creating the montage, so outdated images won't be included).
+
+```bash
+$ rm -rf <path/to/output> # Clear any old images.
+$ python higgs.py --snout snouts/snout{1,2}.png --output <path/to/output> --noshow --threshold 0.8 --avg --montage
+```
+
+[imagemagick]: http://www.imagemagick.org/
 [flo_control]: http://www.quantumpicture.com/Flo_Control/flo_control.htm]
 [raspicam_cv]: https://github.com/robidouille/robidouille/tree/master/raspicam_cv
 [emil_valkov]: http://www.robidouille.com/

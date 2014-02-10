@@ -928,7 +928,9 @@ static int parse_setting(const char *key, char **values, size_t value_count)
 	// In the config file you do
 	// snout_path=<path1>
 	// snout_path=<path2>
-	if (!strcmp(key, "snout_paths") || !strcmp(key, "snout_path"))
+	if (!strcmp(key, "snout") || 
+		!strcmp(key, "snout_paths") || 
+		!strcmp(key, "snout_path"))
 	{
 		if (value_count == 0)
 			return -1;
@@ -1103,14 +1105,15 @@ static void config_free_temp_strings()
 static void usage(const char *prog)
 {
 	fprintf(stderr, "Usage: %s [options]\n\n", prog);
-	fprintf(stderr, " --snout_path <path>    Path to the snout image.\n");
+	fprintf(stderr, " --snout <paths>        Path to the snout images to use. If more than one path is\n");
+	fprintf(stderr, "                        given, the average match result is used.\n");
 	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0. Default %.1f\n", DEFAULT_MATCH_THRESH);
 	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
 	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
 	fprintf(stderr, " --match_flipped <0|1>  Match a flipped version of the snout\n");
 	fprintf(stderr, "                        (don't consider going out a failed match). Default on.\n");
 	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
-	fprintf(stderr, " --show_fps             Show FPS.\n");
+	fprintf(stderr, " --show_fps <0|1>       Show FPS. Default is ON.\n");
 	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
 	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
 	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
@@ -1149,6 +1152,7 @@ static void usage(const char *prog)
 	EPRINT_CMD_HELP("                         %%2 = [string] Image path (Image is saved to disk).\n");
 	EPRINT_CMD_HELP("\n");
 	fprintf(stderr, " --save_imgs_cmd <cmd>  Command that runs when all match images have been saved to disk.\n");
+	fprintf(stderr, "                        (This is most likely what you want to use in most cases)\n");
 	EPRINT_CMD_HELP("                         %%0 = [0/1]    Match success.\n");
 	EPRINT_CMD_HELP("                         %%1 = [string] Image path for first match.\n");
 	EPRINT_CMD_HELP("                         %%2 = [string] Image path for second match.\n");

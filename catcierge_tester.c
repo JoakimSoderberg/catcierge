@@ -53,9 +53,9 @@ int main(int argc, char **argv)
 
 	if (argc < 4)
 	{
-		fprintf(stderr, "Usage: %s --snout <snout image>\n"
+		fprintf(stderr, "Usage: %s --snout <snout images>\n"
 						"         [--output [path]] [--show] [--match_flipped <0|1>] [--threshold]\n"
-						"         <input images>\n", argv[0]);
+						"         --images <input images>\n", argv[0]);
 		return -1;
 	}
 
