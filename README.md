@@ -99,7 +99,7 @@ $ ./catcierge_rfid_tester
 
 To test different matching strategies there's a Python prototype as well
 in the aptly named "protoype/" directory. The prototype is named after my
-cat [higgs.py](higgs.py). 
+cat [higgs.py](prototype/higgs.py). 
 
 It has some more advanced options that allows you to create montage 
 pictures of the match result of multiple images. This was used to
