@@ -111,7 +111,11 @@ double match_threshold = DEFAULT_MATCH_THRESH; // The threshold that we consider
 // Lockout (when there's an invalid match).
 int lockout_time = DEFAULT_LOCKOUT_TIME;	// How long we're keeping the door locked on a failed match.
 struct timeval lockout_start = {0, 0};		// The time when we started the lockout.
+struct timeval lockout_end = {0, 0};		// The time when the lockout ended.
 double lockout_elapsed = 0.0;				// Time time that has elapsed since lockout_start.
+int consecutive_lockout_count = 0;			// The number of lockouts back to back. If there are too many there might an error.
+int max_consecutive_lockout_count = 0;		// Max number of lockouts in a row (within lockout_time + 3 seconds) to allow before regarding it an error and quiting.
+int lockout_dummy;							// If this is set, no actual lockout will be made. Everything else continues working as normal.
 
 struct timeval match_success_start;		// Time when we decided we have a successful match.
 double last_match_time;					// Time since match_success_start in seconds.
@@ -321,6 +325,12 @@ static void rfid_outer_read_cb(catcierge_rfid_t *rfid, int incomplete, const cha
 
 static void do_lockout()
 {
+	if (lockout_dummy)
+	{
+		CATLOGFPS("!LOCKOUT DUMMY!\n");
+		return;
+	}
+
 	if (do_lockout_cmd)
 	{
 		catcierge_execute(do_lockout_cmd, "");
@@ -338,7 +348,7 @@ static void do_lockout()
 	}
 }
 
-static void	 do_unlock()
+static void	do_unlock()
 {
 	if (do_unlock_cmd)
 	{
@@ -355,9 +365,43 @@ static void	 do_unlock()
 
 static void start_locked_state()
 {
-	do_lockout();
+	double time_since_last_lockout = 0.0;
+
 	state = STATE_LOCKOUT;
 	gettimeofday(&lockout_start, NULL);
+
+	// Check how long ago we perform the last lockout.
+	// If there are too many lockouts in a row, there
+	// might be an error. Such as the backlight failing.
+	if (max_consecutive_lockout_count)
+	{
+		time_since_last_lockout = (lockout_start.tv_sec - lockout_end.tv_sec) +
+						 ((lockout_start.tv_usec - lockout_end.tv_usec) / 1000000.0);
+
+		if (time_since_last_lockout <= (lockout_time + 3.0))
+		{
+			consecutive_lockout_count++;
+			CATLOGFPS("Consecutive lockout! %d out of %d before quiting\n",
+					consecutive_lockout_count, max_consecutive_lockout_count);
+		}
+		else
+		{
+			consecutive_lockout_count = 0;
+			CATLOGFPS("Consecutive match count reset\n");
+		}
+
+		// Exit the program, we assume we have an error.
+		if (consecutive_lockout_count >= max_consecutive_lockout_count)
+		{
+			CATLOGFPS("Too many lockouts in a row (%d)! Assuming something is wrong... Aborting program!\n",
+						max_consecutive_lockout_count);
+			do_unlock();
+			running = 0;
+			exit(1);
+		}
+	}
+
+	do_lockout();
 
 	match_success_start.tv_sec = 0;
 	match_success_start.tv_usec = 0;
@@ -392,7 +436,7 @@ static void sig_handler(int signo)
 		{
 			CATLOG("Received SIGUSR1, forcing unlock...\n");
 			do_unlock();
-			state = STATE_LOCKOUT;
+			state = STATE_WAITING;
 			break;
 		}
 		case SIGUSR2:
@@ -665,10 +709,10 @@ static int enough_time_since_last_match()
 
 static void check_for_unlock()
 {
-	gettimeofday(&now, NULL);
+	gettimeofday(&lockout_end, NULL);
 
-	lockout_elapsed = (now.tv_sec - lockout_start.tv_sec) + 
-					 ((now.tv_usec - lockout_start.tv_usec) / 1000000.0);
+	lockout_elapsed = (lockout_end.tv_sec - lockout_start.tv_sec) + 
+					 ((lockout_end.tv_usec - lockout_start.tv_usec) / 1000000.0);
 
 	if (lockout_elapsed >= lockout_time)
 	{
@@ -818,6 +862,31 @@ static int parse_setting(const char *key, char **values, size_t value_count)
 		else
 		{
 			lockout_time = DEFAULT_LOCKOUT_TIME;
+		}
+
+		return 0;
+	}
+
+	if (!strcmp(key, "lockout_error"))
+	{
+		if (value_count == 1)
+		{
+			max_consecutive_lockout_count = atoi(values[0]);
+			return 0;
+		}
+
+		return -1;
+	}
+
+	if (!strcmp(key, "lockout_dummy"))
+	{
+		if (value_count ==1)
+		{
+			lockout_dummy = atoi(values[0]);
+		}
+		else
+		{
+			lockout_dummy = 1;
 		}
 
 		return 0;
@@ -1109,6 +1178,11 @@ static void usage(const char *prog)
 	fprintf(stderr, "                        given, the average match result is used.\n");
 	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0. Default %.1f\n", DEFAULT_MATCH_THRESH);
 	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
+	fprintf(stderr, " --lockout_error <n>    Number of lockouts in a row is allowed before we\n");
+	fprintf(stderr, "                        consider it an error and quit the program. \n");
+	fprintf(stderr, "                        Default is to never do this.\n");
+	fprintf(stderr, " --lockout_dummy        Do everything as normal, but don't actually lock the door.\n");
+	fprintf(stderr, "                        This is useful for testing.\n");
 	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
 	fprintf(stderr, " --match_flipped <0|1>  Match a flipped version of the snout\n");
 	fprintf(stderr, "                        (don't consider going out a failed match). Default on.\n");
