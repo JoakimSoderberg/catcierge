@@ -1150,13 +1150,20 @@ static void alini_cb(alini_parser_t *parser, char *section, char *key, char *val
 		return;
 	}
 
-	value_cpy = strdup(value);
-	temp_config_values[temp_config_count++] = value_cpy; 
+	if (!(value_cpy = strdup(value)))
+	{
+		fprintf(stderr, "Out of memory\n");
+		exit(1);
+	}
 
-	if (parse_setting(key, (char **)value_cpy, 1) < 0)
+	temp_config_values[temp_config_count] = value_cpy;
+
+	if (parse_setting(key, &temp_config_values[temp_config_count], 1) < 0)
 	{
 		fprintf(stderr, "Failed to parse setting in config: %s\n", key);
 	}
+
+	temp_config_count++;
 }
 
 static void config_free_temp_strings()
