@@ -102,6 +102,11 @@ void catcierge_set_binary_thresholds(catcierge_t *ctx, int low, int high)
 	ctx->high_binary_thresh = high;
 }
 
+void catcierge_set_debug(catcierge_t *ctx, int debug)
+{
+	ctx->debug = debug;
+}
+
 int catcierge_init(catcierge_t *ctx, const char **snout_paths, int snout_count)
 {
 	int i;
@@ -126,7 +131,7 @@ int catcierge_init(catcierge_t *ctx, const char **snout_paths, int snout_count)
 			return -1;
 		}
 	}
-	
+
 	if (!(ctx->storage = cvCreateMemStorage(0)))
 	{
 		return -1;
@@ -295,6 +300,12 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img,
 		// If we find it, the max_val should be close to 1.0
 		cvMatchTemplate(img_cpy, ctx->snouts[i], ctx->matchres[i], CV_TM_CCOEFF_NORMED);
 		cvMinMaxLoc(ctx->matchres[i], &min_val, &max_val, &min_loc, &max_loc, NULL);
+
+		if (ctx->debug)
+		{
+			cvShowImage("Match image", img_cpy);
+			cvShowImage("Match template", ctx->matchres[i]);
+		}
 
 		match_sum += max_val;
 

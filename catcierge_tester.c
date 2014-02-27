@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 	#define MAX_SNOUT_COUNT 24
 	const char *snout_paths[MAX_SNOUT_COUNT];
 	size_t snout_count = 0;
-	char *img_paths[256];
+	char *img_paths[4096];
 	size_t img_count = 0;
 	IplImage *img = NULL;
 	CvRect match_rects[MAX_SNOUT_COUNT];
@@ -42,6 +42,7 @@ int main(int argc, char **argv)
 	CvScalar match_color;
 	int match_success = 0;
 	double match_res = 0;
+	int debug = 0;
 	int i;
 	int j;
 	int show = 0;
@@ -50,6 +51,9 @@ int main(int argc, char **argv)
 	double match_threshold = 0.8;
 	int match_flipped = 1;
 	int was_flipped = 0;
+	int success_count = 0;
+
+	fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
 
 	if (argc < 4)
 	{
@@ -63,7 +67,6 @@ int main(int argc, char **argv)
 	{
 		if (!strcmp(argv[i], "--show"))
 		{
-		fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
 			show = 1;
 			continue;
 		}
@@ -109,6 +112,10 @@ int main(int argc, char **argv)
 				continue;
 			}
 		}
+		else if (!strcmp(argv[i], "--debug"))
+		{
+			debug = 1;
+		}
 		else if (!strcmp(argv[i], "--images"))
 		{
 			while (((i + 1) < argc) 
@@ -153,6 +160,8 @@ int main(int argc, char **argv)
 
 	catcierge_set_match_flipped(&ctx, match_flipped);
 	catcierge_set_match_threshold(&ctx, match_threshold);
+	catcierge_set_debug(&ctx, debug);
+	//catcierge_set_binary_thresholds(&ctx, 90, 200);
 
 	for (i = 0; i < img_count; i++)
 	{
@@ -182,6 +191,7 @@ int main(int argc, char **argv)
 		{
 			printf("  Match%s! %f\n", was_flipped ? " (Flipped)": "", match_res);
 			match_color = CV_RGB(0, 255, 0);
+			success_count++;
 		}
 		else
 		{
@@ -196,9 +206,8 @@ int main(int argc, char **argv)
 	
 		if (show)
 		{
-			cvShowImage(img_paths[i], img);
+			cvShowImage("image", img);
 			cvWaitKey(0);
-			cvDestroyWindow(img_paths[i]);
 		}
 
 		if (save)
@@ -232,8 +241,12 @@ int main(int argc, char **argv)
 
 		cvReleaseImage(&img);
 	}
+
+	printf("%d of %zu successful!\n", success_count, img_count);
+
 fail:
 	catcierge_destroy(&ctx);
+	cvDestroyAllWindows();
 
 	return 0;
 }

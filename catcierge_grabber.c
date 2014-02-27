@@ -1421,6 +1421,9 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
+		if (config_path)
+			printf("Reading config: %s\n", config_path);
+
 		if ((cfg_err = alini_parser_create(&parser, config_path)))
 		{
 			fprintf(stderr, "Failed to open config %s\n", config_path);

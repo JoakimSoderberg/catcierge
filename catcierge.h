@@ -43,6 +43,8 @@ typedef struct catcierge_s
 	int low_binary_thresh;
 	int high_binary_thresh;
 	int erode;
+
+	int debug;
 } catcierge_t;
 
 int catcierge_init(catcierge_t *ctx, 
@@ -52,6 +54,7 @@ void catcierge_set_match_flipped(catcierge_t *ctx, int match_flipped);
 void catcierge_set_match_threshold(catcierge_t *ctx, double match_threshold);
 void catcierge_set_binary_thresholds(catcierge_t *ctx, int low, int high);
 void catcierge_set_erode(catcierge_t *ctx, int erode);
+void catcierge_set_debug(catcierge_t *ctx, int debug);
 
 void catcierge_destroy(catcierge_t *ctx);
 
