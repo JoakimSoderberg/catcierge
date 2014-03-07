@@ -17,6 +17,7 @@
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "catcierge.h"
+#include "catcierge_log.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
@@ -311,7 +312,7 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img,
 
 	// If we fail the match, try the flipped snout as well.
 	if (ctx->match_flipped 
-		&& ctx->flipped_snouts[i] 
+		&& ctx->flipped_snouts
 		&& (match_avg < ctx->match_threshold))
 	{
 		match_sum = 0.0;
