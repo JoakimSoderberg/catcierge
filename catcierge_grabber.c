@@ -408,6 +408,7 @@ static void start_locked_state()
 			CATLOGFPS("Too many lockouts in a row (%d)! Assuming something is wrong... Aborting program!\n",
 						max_consecutive_lockout_count);
 			do_unlock();
+			// TODO: Add a special event the user can trigger an external program with here...
 			running = 0;
 			exit(1);
 		}
@@ -576,6 +577,8 @@ static void should_we_lockout(double match_res)
 			// Instead we wait for the frame to clear before attempting
 			// any more matching.
 			state = STATE_SUCCESS;
+
+			// Make sure the timer is reset.
 			match_success_start.tv_sec = 0;
 			match_success_start.tv_usec = 0;
 
@@ -586,15 +589,13 @@ static void should_we_lockout(double match_res)
 		}
 		else
 		{
-			//overall_match_success = 0;
-
 			CATLOG("Lockout! %d out of %d matches failed.\n", 
 					(MATCH_MAX_COUNT - success_count), MATCH_MAX_COUNT);
 			start_locked_state();
 		}
 
 		catcierge_execute(match_done_cmd, "%d %d %d", 
-			state == STATE_SUCCESS, // %0 = MAtch success.
+			state == STATE_SUCCESS, // %0 = Match success.
 			success_count, 			// %1 = Successful match count.
 			MATCH_MAX_COUNT);		// %2 = Max matches.
 
@@ -605,6 +606,11 @@ static void should_we_lockout(double match_res)
 		if (saveimg)
 		{
 			save_images();
+		}
+
+		if (state == STATE_SUCCESS)
+		{
+			CATLOGFPS("Waiting for frame to become clear...\n");
 		}
 	}
 }
@@ -686,10 +692,11 @@ static void should_we_rfid_lockout(double last_match_time)
 
 static int enough_time_since_last_match()
 {
-	// No match has been made so it's time!
+	// The frame is still obstructed, so wait
+	// with matching until it has cleared...
 	if (match_success_start.tv_sec == 0)
 	{
-		return 1;
+		return 0;
 	}
 
 	gettimeofday(&now, NULL);
@@ -725,7 +732,7 @@ static int enough_time_since_last_match()
 	return 0;
 }
 
-static void check_for_unlock()
+static int time_to_unlock()
 {
 	gettimeofday(&lockout_end, NULL);
 
@@ -734,10 +741,10 @@ static void check_for_unlock()
 
 	if (lockout_elapsed >= lockout_time)
 	{
-		CATLOGFPS("End of lockout!\n");
-		state = STATE_WAITING;
-		do_unlock();
-	}	
+		return 1;
+	}
+
+	return 0;
 }
 
 match_direction_t get_match_direction(int match_success, int going_out)
@@ -1385,14 +1392,23 @@ static int parse_cmdargs(int argc, char **argv)
 	return 0;
 }
 
+static IplImage *get_frame()
+{
+	#ifdef RPI
+	return raspiCamCvQueryFrame(capture);
+	#else
+	return cvQueryFrame(capture);
+	#endif	
+}
+
 static void process_frames()
 {
 	IplImage* img = NULL;
 	CvRect match_rects[MAX_SNOUT_COUNT];
 	CvScalar match_color;
 	double match_res = 0;
-	int do_match = 0;
-	int match_success;
+	int frame_obstructed = 0;
+	int match_success = 0;
 	int going_out = 0;
 	int i;
 	int enough_time = 0;
@@ -1400,6 +1416,7 @@ static void process_frames()
 	// Start time of loop used for FPS calculations.
 	gettimeofday(&start, NULL);
 
+	// Always feed the RFID readers and read a frame.
 	#ifdef WITH_RFID
 	if ((rfid_inner_path || rfid_outer_path) 
 		&& catcierge_rfid_ctx_service(&rfid_ctx))
@@ -1408,69 +1425,89 @@ static void process_frames()
 	}
 	#endif // WITH_RFID
 
-	#ifdef RPI
-	img = raspiCamCvQueryFrame(capture);
-	#else
-	img = cvQueryFrame(capture);
-	#endif
+	img = get_frame();
 
-	// Skip all matching in lockout.
-	if (state == STATE_LOCKOUT)
+	switch (state)
 	{
-		check_for_unlock();
-		goto skiploop;
-	}
-
-	// Wait until the middle of the frame is black before
-	// we try to match anything.
-	if ((do_match = catcierge_is_matchable(&ctx, img)) < 0)
-	{
-		CATERRFPS("Failed to detect matchableness\n");
-		goto skiploop;
-	}
-
-	// When we have successfully matched a set of frames
-	// wait until the frame is empty before we do anything more. 
-	// The cat might stay in the corridor after a successful
-	// match when going outside (because it's raining or something).
-	if ((state == STATE_SUCCESS)
-		&& (match_success_start.tv_sec == 0))
-	{
-		if (!do_match)
+		case STATE_WAITING:
 		{
-			CATLOG("Frame is clear, start successful match timer...\n");
-			gettimeofday(&match_success_start, NULL);
+			// Wait until the middle of the frame is black
+			// before we try to match anything.
+			if ((frame_obstructed = catcierge_is_matchable(&ctx, img)) < 0)
+			{
+				CATERRFPS("Failed to detect check for obstructed frame\n");
+				break;
+			}
+
+			if (frame_obstructed)
+			{
+				CATLOG("Something in frame! Start matching...\n");
+				state = STATE_MATCHING;
+			}
+
+			break;
 		}
-		else
+		case STATE_MATCHING:
 		{
-			// Something still in frame...
-			goto skiploop;
+			// We have something to match against. 
+			if ((match_res = catcierge_match(&ctx, img, match_rects, snout_count, &going_out)) < 0)
+			{
+				CATERRFPS("Error when matching frame!\n");
+				break;
+			}
+
+			match_success = (match_res >= match_threshold);
+
+			// Save the match state, execute external processes and so on...
+			process_match_result(img, match_rects, snout_count, match_success, match_res, going_out);
+
+			// This will set STATE_SUCCESS or STATE_LOCKOUT
+			// when enough images has been captured.
+			should_we_lockout(match_res);
+			break;
+		}
+		case STATE_SUCCESS:
+		{
+			// We have successfully matched a valid cat :D
+
+			// Wait until the frame is clear before we start the timer.
+			// When this timer ends, we will go back to STATE_WAITING.
+			if ((frame_obstructed = catcierge_is_matchable(&ctx, img)) < 0)
+			{
+				CATERRFPS("Failed to detect check for obstructed frame\n");
+				break;
+			}
+
+			if (!frame_obstructed)
+			{
+				CATLOGFPS("Frame is clear, start successful match timer...\n");
+				gettimeofday(&match_success_start, NULL);	
+			}
+
+			// Check if it's time to try matching again.
+			// (Note that this will also trigger the RFID check timeout,
+			//  that can result in a lockout as well).
+			if (enough_time_since_last_match())
+			{
+				CATLOGFPS("Go back to waiting...");
+				state = STATE_WAITING;
+			}
+
+			break;
+		}
+		case STATE_LOCKOUT:
+		{
+			// Check if it's time to perform the unlock.
+			if (time_to_unlock())
+			{
+				CATLOGFPS("End of lockout!\n");
+				do_unlock();
+				state = STATE_WAITING;
+			}
+			break;
 		}
 	}
 
-	// If the last set of matches was successful
-	// we wait for a timeout until we try to match again.
-	enough_time = enough_time_since_last_match();
-
-	// Start the decision for the match.
-	if (do_match && enough_time)
-	{
-		// We have something to match against. 
-		if ((match_res = catcierge_match(&ctx, img, match_rects, snout_count, &going_out)) < 0)
-		{
-			CATERRFPS("Error when matching frame!\n");
-			goto skiploop;
-		}
-
-		match_success = (match_res >= match_threshold);
-
-		// Save the match state, execute external processes and so on...
-		process_match_result(img, match_rects, snout_count, match_success, match_res, going_out);
-
-		should_we_lockout(match_res);
-	}
-
-skiploop:
 	// Show the video feed.
 	if (show)
 	{
@@ -1481,18 +1518,15 @@ skiploop:
 		#endif
 
 		// Always highlight when showing in GUI.
-		if (do_match)
+		for (i = 0; i < snout_count; i++)
 		{
-			for (i = 0; i < snout_count; i++)
-			{
-				cvRectangleR(img, match_rects[i], match_color, 2, 8, 0);
-			}
+			cvRectangleR(img, match_rects[i], match_color, 2, 8, 0);
 		}
 
 		cvShowImage("catcierge", img);
 		cvWaitKey(10);
 	}
-	
+
 	calculate_fps();
 }
 
