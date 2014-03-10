@@ -84,7 +84,8 @@ typedef enum catcierge_state_e
 {
 	STATE_WAITING = 0,	// Waiting for something to match.
 	STATE_LOCKOUT = 1,	// Currently in lockout mode.
-	STATE_SUCCESS = 2	// Successful match. Wait for a clear frame before going back to waiting.
+	STATE_SUCCESS = 2,	// Successful match. Wait for a clear frame before going back to waiting.
+	STATE_MATCHING = 3	// We're currently matching.
 } catcierge_state_t;
 
 catcierge_state_t state = STATE_WAITING;
@@ -564,6 +565,8 @@ static void should_we_lockout(double match_res)
 			// Instead we wait for the frame to clear before attempting
 			// any more matching.
 			state = STATE_SUCCESS;
+			match_success_start.tv_sec = 0;
+			match_success_start.tv_usec = 0;
 
 			#ifdef WITH_RFID
 			// We only want to check for RFID lock once during each match timeout period.
