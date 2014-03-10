@@ -89,6 +89,12 @@ typedef enum catcierge_state_e
 } catcierge_state_t;
 
 catcierge_state_t state = STATE_WAITING;
+catcierge_t ctx;
+#ifdef RPI
+RaspiCamCvCapture *capture = NULL;
+#else
+CvCapture *capture = NULL;
+#endif
 
 int show_cmd_help = 0;		// Toggle showing extra command help.
 #define MAX_SNOUT_COUNT 24
@@ -286,13 +292,13 @@ static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 		return;
 
 	// The other reader triggered first so we know the direction.
+	// TODO: It could be wise to time this out after a while...
 	if (other->triggered)
 	{
 		rfid_direction = dir;
 		CATLOGFPS("%s RFID: Direction %s\n", rfid->name, dir_str);
 	}
 
-	current->incomplete = incomplete;
 	current->triggered = 1;
 	current->incomplete = incomplete;
 	strcpy(current->data, data);
@@ -314,12 +320,17 @@ static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 
 static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
 {
-	rfid_set_direction(&rfid_in_match, &rfid_out_match, MATCH_DIR_IN, "IN", rfid, incomplete, data);
+	// The inner RFID reader has detected a tag, we now pass that
+	// match on to the code that decides which direction the cat
+	// is going.
+	rfid_set_direction(&rfid_in_match, &rfid_out_match,
+			MATCH_DIR_IN, "IN", rfid, incomplete, data);
 }
 
 static void rfid_outer_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
 {
-	rfid_set_direction(&rfid_out_match, &rfid_in_match, MATCH_DIR_OUT, "OUT", rfid, incomplete, data);
+	rfid_set_direction(&rfid_out_match, &rfid_in_match,
+			MATCH_DIR_OUT, "OUT", rfid, incomplete, data);
 
 }
 #endif // WITH_RFID
@@ -606,6 +617,9 @@ static void should_we_rfid_lockout(double last_match_time)
 
 	if (!checked_rfid_lock && (rfid_inner_path || rfid_outer_path))
 	{
+		// Have we waited long enough since the camera match was
+		// complete (The cat must have moved far enough for both
+		// readers to have a chance to detect it).
 		if (last_match_time >= rfid_lock_time)
 		{
 			int do_rfid_lockout = 0;
@@ -613,7 +627,8 @@ static void should_we_rfid_lockout(double last_match_time)
 			if (rfid_inner_path && rfid_outer_path)
 			{
 				// Only require one of the readers to have a correct read.
-				do_rfid_lockout = !(rfid_in_match.is_allowed || rfid_out_match.is_allowed);
+				do_rfid_lockout = !(rfid_in_match.is_allowed 
+								|| rfid_out_match.is_allowed);
 			}
 			else if (rfid_inner_path)
 			{
@@ -1370,24 +1385,121 @@ static int parse_cmdargs(int argc, char **argv)
 	return 0;
 }
 
-int main(int argc, char **argv)
+static void process_frames()
 {
-	catcierge_t ctx;
 	IplImage* img = NULL;
 	CvRect match_rects[MAX_SNOUT_COUNT];
 	CvScalar match_color;
 	double match_res = 0;
 	int do_match = 0;
-	int i;
-	int enough_time = 0;
-	int cfg_err = -1;
 	int match_success;
 	int going_out = 0;
+	int i;
+	int enough_time = 0;
+
+	// Start time of loop used for FPS calculations.
+	gettimeofday(&start, NULL);
+
+	#ifdef WITH_RFID
+	if ((rfid_inner_path || rfid_outer_path) 
+		&& catcierge_rfid_ctx_service(&rfid_ctx))
+	{
+		CATERRFPS("Failed to service RFID readers\n");
+	}
+	#endif // WITH_RFID
+
 	#ifdef RPI
-	RaspiCamCvCapture *capture = NULL;
+	img = raspiCamCvQueryFrame(capture);
 	#else
-	CvCapture *capture = NULL;
+	img = cvQueryFrame(capture);
 	#endif
+
+	// Skip all matching in lockout.
+	if (state == STATE_LOCKOUT)
+	{
+		check_for_unlock();
+		goto skiploop;
+	}
+
+	// Wait until the middle of the frame is black before
+	// we try to match anything.
+	if ((do_match = catcierge_is_matchable(&ctx, img)) < 0)
+	{
+		CATERRFPS("Failed to detect matchableness\n");
+		goto skiploop;
+	}
+
+	// When we have successfully matched a set of frames
+	// wait until the frame is empty before we do anything more. 
+	// The cat might stay in the corridor after a successful
+	// match when going outside (because it's raining or something).
+	if ((state == STATE_SUCCESS)
+		&& (match_success_start.tv_sec == 0))
+	{
+		if (!do_match)
+		{
+			CATLOG("Frame is clear, start successful match timer...\n");
+			gettimeofday(&match_success_start, NULL);
+		}
+		else
+		{
+			// Something still in frame...
+			goto skiploop;
+		}
+	}
+
+	// If the last set of matches was successful
+	// we wait for a timeout until we try to match again.
+	enough_time = enough_time_since_last_match();
+
+	// Start the decision for the match.
+	if (do_match && enough_time)
+	{
+		// We have something to match against. 
+		if ((match_res = catcierge_match(&ctx, img, match_rects, snout_count, &going_out)) < 0)
+		{
+			CATERRFPS("Error when matching frame!\n");
+			goto skiploop;
+		}
+
+		match_success = (match_res >= match_threshold);
+
+		// Save the match state, execute external processes and so on...
+		process_match_result(img, match_rects, snout_count, match_success, match_res, going_out);
+
+		should_we_lockout(match_res);
+	}
+
+skiploop:
+	// Show the video feed.
+	if (show)
+	{
+		#ifdef RPI
+		match_color = CV_RGB(255, 255, 255); // Grayscale so don't bother with color.
+		#else
+		match_color = (match_success) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
+		#endif
+
+		// Always highlight when showing in GUI.
+		if (do_match)
+		{
+			for (i = 0; i < snout_count; i++)
+			{
+				cvRectangleR(img, match_rects[i], match_color, 2, 8, 0);
+			}
+		}
+
+		cvShowImage("catcierge", img);
+		cvWaitKey(10);
+	}
+	
+	calculate_fps();
+}
+
+int main(int argc, char **argv)
+{
+	int i;
+	int cfg_err = -1;
 
 	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n\n");
 
@@ -1571,102 +1683,8 @@ int main(int argc, char **argv)
 
 	do
 	{
-		// Start time of loop used for FPS calculations.
-		gettimeofday(&start, NULL);
-
-		#ifdef WITH_RFID
-		if ((rfid_inner_path || rfid_outer_path) 
-			&& catcierge_rfid_ctx_service(&rfid_ctx))
-		{
-			CATERRFPS("Failed to service RFID readers\n");
-		}
-		#endif // WITH_RFID
-
-		#ifdef RPI
-		img = raspiCamCvQueryFrame(capture);
-		#else
-		img = cvQueryFrame(capture);
-		#endif
-
-		// Skip all matching in lockout.
-		if (state == STATE_LOCKOUT)
-		{
-			check_for_unlock();
-			goto skiploop;
-		}
-
-		// Wait until the middle of the frame is black before
-		// we try to match anything.
-		if ((do_match = catcierge_is_matchable(&ctx, img)) < 0)
-		{
-			CATERRFPS("Failed to detect matchableness\n");
-			goto skiploop;
-		}
-
-		// When we have successfully matched a set of frames
-		// wait until the frame is empty before we do anything more. 
-		// The cat might stay in the corridor after a successful
-		// match when going outside (because it's raining or something).
-		if ((state == STATE_SUCCESS)
-			&& (match_success_start.tv_sec == 0))
-		{
-			if (!do_match)
-			{
-				CATLOG("Frame is clear, start successful match timer...\n");
-				gettimeofday(&match_success_start, NULL);
-			}
-			else
-			{
-				// Something still in frame...
-				goto skiploop;
-			}
-		}
-
-		// If the last set of matches was successful
-		// we wait for a timeout until we try to match again.
-		enough_time = enough_time_since_last_match();
-
-		// Start the decision for the match.
-		if (do_match && enough_time)
-		{
-			// We have something to match against. 
-			if ((match_res = catcierge_match(&ctx, img, match_rects, snout_count, &going_out)) < 0)
-			{
-				CATERRFPS("Error when matching frame!\n");
-				goto skiploop;
-			}
-
-			match_success = (match_res >= match_threshold);
-
-			// Save the match state, execute external processes and so on...
-			process_match_result(img, match_rects, snout_count, match_success, match_res, going_out);
-
-			should_we_lockout(match_res);
-		}
-skiploop:
-
-		if (show)
-		{
-			#ifdef RPI
-			match_color = CV_RGB(255, 255, 255); // Grayscale so don't bother with color.
-			#else
-			match_color = (match_success) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
-			#endif
-
-			// Always highlight when showing in GUI.
-			if (do_match)
-			{
-				for (i = 0; i < snout_count; i++)
-				{
-					cvRectangleR(img, match_rects[i], match_color, 2, 8, 0);
-				}
-			}
-
-			cvShowImage("catcierge", img);
-			cvWaitKey(10);
-		}
-		
-		calculate_fps();
+		// This does all the program logic.
+		process_frames();
 	} while (running);
 
 	// Make sure we always open the door on exit.
