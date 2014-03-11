@@ -827,7 +827,7 @@ static void calculate_fps()
 		{
 			CATLOGFPS("Lockout for %d more seconds.\n", (int)(lockout_time - lockout_elapsed));
 		}
-		else if (match_success_start.tv_sec)
+		else if (state == STATE_SUCCESS && match_success_start.tv_sec)
 		{
 			CATLOGFPS("Waiting to match again for %d more seconds.\n", (int)(match_time - last_match_time));
 		}
@@ -1478,18 +1478,19 @@ static void process_frames()
 				break;
 			}
 
-			if (!frame_obstructed)
+			if (!frame_obstructed && (match_success_start.tv_sec == 0))
 			{
 				CATLOGFPS("Frame is clear, start successful match timer...\n");
 				gettimeofday(&match_success_start, NULL);	
 			}
 
 			// Check if it's time to try matching again.
+			// (If the timer has started...)
 			// (Note that this will also trigger the RFID check timeout,
 			//  that can result in a lockout as well).
-			if (enough_time_since_last_match())
+			if (match_success_start.tv_sec && enough_time_since_last_match())
 			{
-				CATLOGFPS("Go back to waiting...");
+				CATLOGFPS("Go back to waiting...\n");
 				state = STATE_WAITING;
 			}
 
