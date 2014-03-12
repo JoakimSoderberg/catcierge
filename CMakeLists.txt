@@ -23,7 +23,7 @@ cmake_minimum_required(VERSION 2.6)
 project(catcierge)
 
 set(CATCIERGE_VERSION_MAJOR 0)
-set(CATCIERGE_VERSION_MINOR 2)
+set(CATCIERGE_VERSION_MINOR 3)
 set(CATCIERGE_VERSION_PATCH 0)
 
 set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
@@ -196,6 +196,10 @@ if (RPI)
 	add_dependencies(catcierge_grabber raspicamcv)
 	target_link_libraries(catcierge_grabber raspicamcv)
 endif()
+
+################################## Tests ##################################
+ENABLE_TESTING()
+add_subdirectory(test)
 
 message("------------------------------------------------------------------")
 message(" Settings:")
