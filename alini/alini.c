@@ -31,7 +31,7 @@
 #include "alini.h"
 
 /* strips whitespace at beginning and end of string */
-static char *stripws(char *str, size_t len)
+static inline char *stripws(char *str, size_t len)
 {
 	int i = 0;
 	int j = 0;
@@ -86,6 +86,18 @@ int alini_parser_setcallback_foundkvpair(alini_parser_t *parser, alini_parser_fo
 	parser->foundkvpair_callback = callback;
 	
 	return 0;
+}
+
+void alini_parser_set_context(alini_parser_t *parser, void *ctx)
+{
+	assert(parser);
+	parser->ctx = ctx;
+}
+
+void *alini_parser_get_context(alini_parser_t *parser)
+{
+	assert(parser);
+	return parser->ctx;
 }
 
 /* parse one step */
@@ -190,7 +202,7 @@ int alini_parser_start(alini_parser_t *parser)
 	
 	while(parser->on && alini_parser_step(parser) == 0)
 		;
-	
+
 	return 0;
 }
 
@@ -215,5 +227,3 @@ int alini_parser_dispose(alini_parser_t *parser)
 	
 	return 0;
 }
-
-

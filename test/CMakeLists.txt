@@ -27,7 +27,9 @@ include_directories("${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 add_executable(${CATCIERGE_TEST_DRIVER}
 				${CATCIERGE_TESTS_SRCS}
 				catcierge_test_helpers.c
-				${PROJECT_SOURCE_DIR}/catcierge_timer.c)
+				${PROJECT_SOURCE_DIR}/catcierge_timer.c
+				${PROJECT_SOURCE_DIR}/catcierge_args.c
+				${PROJECT_SOURCE_DIR}/catcierge_log.c)
 
 target_link_libraries(${CATCIERGE_TEST_DRIVER} catcierge)
 

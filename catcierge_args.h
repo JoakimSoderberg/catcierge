@@ -4,13 +4,20 @@
 
 #include <stdio.h>
 
+#ifdef WITH_INI
+#include "alini/alini.h"
+#endif
+
 #define MAX_SNOUT_COUNT 24
 #define DEFAULT_MATCH_THRESH 0.8	// The threshold signifying a good match returned by catcierge_match.
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 0		// How long to wait after a match try before we match again.
+#define MAX_TEMP_CONFIG_VALUES 128
 
 typedef struct catcierge_args_s
 {
+	alini_parser_t *parser;
+
 	int show;
 	int saveimg;
 	int highlight_match;
@@ -18,6 +25,7 @@ typedef struct catcierge_args_s
 	int lockout_time;
 	int max_consecutive_lockout_count;
 	int lockout_dummy;
+	int show_cmd_help;
 	int match_time;
 	int match_flipped;
 	char *output_path;
@@ -25,7 +33,7 @@ typedef struct catcierge_args_s
 	char *rfid_outer_path;
 	double rfid_lock_time;
 	int lock_on_invalid_rfid;
-	char snout_paths[MAX_SNOUT_COUNT];
+	char *snout_paths[MAX_SNOUT_COUNT];
 	size_t snout_count;
 	double match_threshold;
 	char *log_path;
@@ -37,6 +45,18 @@ typedef struct catcierge_args_s
 	char *do_unlock_cmd;
 	char *rfid_detect_cmd;
 	char *rfid_match_cmd;
+	char *config_path;
+	int temp_config_count;
+	char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
+
+	char **rfid_allowed;
+	int rfid_allowed_count;
 } catcierge_args_t;
+
+int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv);
+void catcierge_show_usage(catcierge_args_t *args, const char *prog);
+
+int catcierge_init(catcierge_args_t *args);
+void catcierge_destroy(catcierge_args_t *args);
 
 #endif // __CATCIERGE_ARGS_H__

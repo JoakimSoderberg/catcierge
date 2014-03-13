@@ -41,6 +41,7 @@ struct alini_parser_s {
 	char *activesection;
 	FILE *file;
 	alini_parser_foundkvpair_callback foundkvpair_callback;
+	void *ctx;
 };
 
 /* create parser */
@@ -48,6 +49,12 @@ int alini_parser_create(alini_parser_t **parser, char *path);
 
 /* set `found key-value pair` callback */
 int alini_parser_setcallback_foundkvpair(alini_parser_t *parser, alini_parser_foundkvpair_callback callback);
+
+/* set user context */
+void alini_parser_set_context(alini_parser_t *parser, void *ctx);
+
+/* get user context */
+void *alini_parser_get_context(alini_parser_t *parser);
 
 /* parse one step */
 int alini_parser_step(alini_parser_t *parser);
@@ -62,5 +69,3 @@ void alini_parser_halt(alini_parser_t *parser);
 int alini_parser_dispose(alini_parser_t *parser);
 
 #endif
-
-
