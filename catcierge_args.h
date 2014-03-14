@@ -53,8 +53,10 @@ typedef struct catcierge_args_s
 	int rfid_allowed_count;
 } catcierge_args_t;
 
+int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv);
 int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv);
 void catcierge_show_usage(catcierge_args_t *args, const char *prog);
+void catcierge_print_settings(catcierge_args_t *args);
 
 int catcierge_init(catcierge_args_t *args);
 void catcierge_destroy(catcierge_args_t *args);

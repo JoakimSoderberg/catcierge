@@ -180,21 +180,36 @@ set(GRABBER_SRC
 		catcierge_log.c
 		catcierge_util.c)
 
+set(GRABBER2_SRC 
+		catcierge_grabber2.c 
+		catcierge_args.c
+		catcierge_log.c
+		catcierge_util.c)
+
 if (RPI)
 	list(APPEND GRABBER_SRC catcierge_gpio.c)
+	list(APPEND GRABBER2_SRC catcierge_gpio.c)
 endif()
 
 if (WIN32)
 	list(APPEND GRABBER_SRC win32/gettimeofday.c)
+	list(APPEND GRABBER2_SRC win32/gettimeofday.c)
 endif()
 
 add_executable(catcierge_grabber ${GRABBER_SRC})
 add_dependencies(catcierge_grabber catcierge)
 target_link_libraries(catcierge_grabber catcierge)
 
+add_executable(catcierge_grabber2 ${GRABBER2_SRC})
+add_dependencies(catcierge_grabber2 catcierge)
+target_link_libraries(catcierge_grabber2 catcierge)
+
 if (RPI)
 	add_dependencies(catcierge_grabber raspicamcv)
 	target_link_libraries(catcierge_grabber raspicamcv)
+
+	add_dependencies(catcierge_grabber2 raspicamcv)
+	target_link_libraries(catcierge_grabber2 raspicamcv)
 endif()
 
 ################################## Tests ##################################

@@ -575,21 +575,6 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
 			exit(1);
 		}
 
-		if (!strcmp(argv[i], "--config"))
-		{
-			if (argc >= (i + 1))
-			{
-				i++;
-				args->config_path = argv[i];
-				continue;
-			}
-			else
-			{
-				fprintf(stderr, "No config path specified\n");
-				return -1;
-			}
-		}
-
 		// Normal options. These can be parsed from the
 		// config file as well.
 		if (!strncmp(argv[i], "--", 2))
@@ -706,6 +691,12 @@ void catcierge_print_settings(catcierge_args_t *args)
 int catcierge_init(catcierge_args_t *args)
 {
 	memset(args, 0, sizeof(catcierge_args_t));
+
+	args->match_threshold = DEFAULT_MATCH_THRESH;
+	args->saveimg = 1;
+	args->match_time = DEFAULT_MATCH_WAIT;
+	args->match_flipped = 1;
+	args->lockout_time = DEFAULT_LOCKOUT_TIME;
 
 	return 0;
 }
