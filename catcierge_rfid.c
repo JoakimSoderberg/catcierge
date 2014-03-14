@@ -46,12 +46,14 @@ const char *catcierge_rfid_error_str(int errorcode)
 	return catcierge_rfid_errors[errorcode % (sizeof(catcierge_rfid_errors) / sizeof(char *))];
 }
 
-int catcierge_rfid_init(const char *name, catcierge_rfid_t *rfid, const char *serial_path, catcierge_rfid_read_f read_cb)
+int catcierge_rfid_init(const char *name, catcierge_rfid_t *rfid, 
+			const char *serial_path, catcierge_rfid_read_f read_cb, void *user)
 {
 	strcpy(rfid->name, name);
 	rfid->serial_path = serial_path;
 	rfid->fd = -1;
 	rfid->cb = read_cb;
+	rfid->user = user;
 	rfid->bytes_read = 0;
 	rfid->offset = 0;
 	rfid->state = CAT_DISCONNECTED;
@@ -126,7 +128,7 @@ static int catcierge_rfid_read(catcierge_rfid_t *rfid)
 		if (!is_error)
 		{
 			int incomplete = (rfid->bytes_read < 17);
-			rfid->cb(rfid, incomplete, rfid->buf);
+			rfid->cb(rfid, incomplete, rfid->buf, rfid->user);
 		}
 		else
 		{

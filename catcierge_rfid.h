@@ -36,7 +36,7 @@
 
 typedef struct catcierge_rfid_s catcierge_rfid_t;
 
-typedef void (*catcierge_rfid_read_f)(catcierge_rfid_t *rfid, int incomplete, const char *data);
+typedef void (*catcierge_rfid_read_f)(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user);
 
 typedef enum catcierge_rfid_state_e
 {
@@ -58,6 +58,7 @@ struct catcierge_rfid_s
 	ssize_t offset;
 	char buf[1024];
 	catcierge_rfid_read_f cb;
+	void *user;
 	catcierge_rfid_state_t state;
 };
 
@@ -72,7 +73,9 @@ typedef struct catcierge_rfid_context_s
 	catcierge_rfid_t *rfids[RFID_COUNT];
 } catcierge_rfid_context_t;
 
-int catcierge_rfid_init(const char *name, catcierge_rfid_t *rfid, const char *serial_path, catcierge_rfid_read_f read_cb);
+int catcierge_rfid_init(const char *name, catcierge_rfid_t *rfid, 
+			const char *serial_path, catcierge_rfid_read_f read_cb, void *user);
+
 void catcierge_rfid_destroy(catcierge_rfid_t *rfid);
 int catcierge_rfid_ctx_service(catcierge_rfid_context_t *ctx);
 void catcierge_rfid_ctx_set_inner(catcierge_rfid_context_t *ctx, catcierge_rfid_t *rfid);

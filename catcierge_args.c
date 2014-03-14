@@ -688,7 +688,7 @@ void catcierge_print_settings(catcierge_args_t *args)
 
 }
 
-int catcierge_init(catcierge_args_t *args)
+int catcierge_args_init(catcierge_args_t *args)
 {
 	memset(args, 0, sizeof(catcierge_args_t));
 
@@ -701,7 +701,7 @@ int catcierge_init(catcierge_args_t *args)
 	return 0;
 }
 
-void catcierge_destroy(catcierge_args_t *args)
+void catcierge_args_destroy(catcierge_args_t *args)
 {
 	assert(args);
 

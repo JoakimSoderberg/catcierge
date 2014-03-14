@@ -19,7 +19,7 @@ char *run_test1()
 	};
 	#define TEST1_COUNT (sizeof(test1) / sizeof(char *))
 
-	catcierge_init(&args);
+	catcierge_args_init(&args);
 
 	// Parse command line arguments.
 	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1));
@@ -28,6 +28,8 @@ char *run_test1()
 	catcierge_test_STATUS("Snout count %zu", args.snout_count);
 	mu_assert("Expected snout count to be 2", args.snout_count == 2);
 	mu_assert("Unexpected snout", !strcmp(test1[2], args.snout_paths[0]));
+	
+	catcierge_args_destroy(&args);
 
 	return NULL;
 }
@@ -50,13 +52,13 @@ char *run_test2()
 	};
 	#define TEST1_COUNT (sizeof(test1) / sizeof(char *))
 
-	catcierge_init(&args);
+	catcierge_args_init(&args);
 
 	// Parse command line arguments.
 	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1));
 	mu_assert("Expected RFID allowed to be 3", args.rfid_allowed_count == 3);
 	
-	catcierge_destroy(&args);
+	catcierge_args_destroy(&args);
 
 	return NULL;
 }

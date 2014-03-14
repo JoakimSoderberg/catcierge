@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include "catcierge_rfid.h"
 
-void rfid_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
+void rfid_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user)
 {
 	printf("%s Reply: %s\n", rfid->name, data);
 }
@@ -33,10 +33,10 @@ int main(int argc, char **argv)
 
 	catcierge_rfid_ctx_init(&ctx);
 
-	catcierge_rfid_init("Inner", &rfidin, "/dev/ttyUSB0", rfid_read_cb);
+	catcierge_rfid_init("Inner", &rfidin, "/dev/ttyUSB0", rfid_read_cb, NULL);
 	catcierge_rfid_ctx_set_inner(&ctx, &rfidin);
 	catcierge_rfid_open(&rfidin);
-	catcierge_rfid_init("Outer", &rfidout, "/dev/ttyUSB1", rfid_read_cb);
+	catcierge_rfid_init("Outer", &rfidout, "/dev/ttyUSB1", rfid_read_cb, NULL);
 	catcierge_rfid_ctx_set_outer(&ctx, &rfidout);
 	catcierge_rfid_open(&rfidout);
 

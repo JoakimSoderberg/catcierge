@@ -318,7 +318,7 @@ static void rfid_set_direction(rfid_match_t *current, rfid_match_t *other,
 		match_get_direction_str(rfid_direction)); // %6 = Direction.
 }
 
-static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
+static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user)
 {
 	// The inner RFID reader has detected a tag, we now pass that
 	// match on to the code that decides which direction the cat
@@ -327,7 +327,7 @@ static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const cha
 			MATCH_DIR_IN, "IN", rfid, incomplete, data);
 }
 
-static void rfid_outer_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data)
+static void rfid_outer_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user)
 {
 	rfid_set_direction(&rfid_out_match, &rfid_in_match,
 			MATCH_DIR_OUT, "OUT", rfid, incomplete, data);
@@ -1664,14 +1664,14 @@ int main(int argc, char **argv)
 
 	if (rfid_inner_path)
 	{
-		catcierge_rfid_init("Inner", &rfid_in, rfid_inner_path, rfid_inner_read_cb);
+		catcierge_rfid_init("Inner", &rfid_in, rfid_inner_path, rfid_inner_read_cb, NULL);
 		catcierge_rfid_ctx_set_inner(&rfid_ctx, &rfid_in);
 		catcierge_rfid_open(&rfid_in);
 	}
 
 	if (rfid_outer_path)
 	{
-		catcierge_rfid_init("Outer", &rfid_out, rfid_outer_path, rfid_outer_read_cb);
+		catcierge_rfid_init("Outer", &rfid_out, rfid_outer_path, rfid_outer_read_cb, NULL);
 		catcierge_rfid_ctx_set_outer(&rfid_ctx, &rfid_out);
 		catcierge_rfid_open(&rfid_out);
 	}
