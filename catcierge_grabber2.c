@@ -204,6 +204,54 @@ static void catcierge_init_rfid_readers(catcierge_grb_t *grb)
 }
 #endif // WITH_RFID
 
+static void catcierge_do_lockout(catcierge_grb_t *grb)
+{
+	catcierge_args_t *args;
+	assert(grb);
+	args = &grb->args;
+
+	if (args->lockout_dummy)
+	{
+		CATLOGFPS("!LOCKOUT DUMMY!\n");
+		return;
+	}
+
+	if (args->do_lockout_cmd)
+	{
+		catcierge_execute(args->do_lockout_cmd, "");
+	}
+	else
+	{
+		#ifdef RPI
+		if (args->lockout_time)
+		{
+			gpio_write(DOOR_PIN, 1);
+		}
+
+		gpio_write(BACKLIGHT_PIN, 1);
+		#endif // RPI
+	}
+}
+
+static void	catcierge_do_unlock(catcierge_grb_t *grb)
+{
+	catcierge_args_t *args;
+	assert(grb);
+	args = &grb->args;
+
+	if (args->do_unlock_cmd)
+	{
+		catcierge_execute(args->do_unlock_cmd, "");
+	}
+	else
+	{
+		#ifdef RPI
+		gpio_write(DOOR_PIN, 0);
+		gpio_write(BACKLIGHT_PIN, 1);
+		#endif // RPI
+	}
+}
+
 int catcierge_grabber_init(catcierge_grb_t *grb)
 {
 	assert(grb);
