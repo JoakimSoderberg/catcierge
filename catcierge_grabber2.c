@@ -74,6 +74,8 @@ typedef struct catcierge_grb_s
 	#endif // WITH_RFID
 } catcierge_grb_t;
 
+catcierge_grb_t grb;
+
 static const char *match_get_direction_str(match_direction_t dir)
 {
 	switch (dir)
@@ -268,11 +270,6 @@ int catcierge_grabber_init(catcierge_grb_t *grb)
 
 void catcierge_grabber_destroy(catcierge_grb_t *grb)
 {
-	if (grb->args.show)
-	{
-		cvDestroyWindow("catcierge");
-	}
-
 	catcierge_args_destroy(&grb->args);
 }
 
@@ -297,6 +294,11 @@ void catcierge_setup_camera(catcierge_grb_t *grb)
 
 void catcierge_destroy_camera(catcierge_grb_t *grb)
 {
+	if (grb->args.show)
+	{
+		cvDestroyWindow("catcierge");
+	}
+
 	#ifdef RPI
 	raspiCamCvReleaseCapture(&grb->capture);
 	#else
@@ -304,9 +306,51 @@ void catcierge_destroy_camera(catcierge_grb_t *grb)
 	#endif
 }
 
+static void sig_handler(int signo)
+{
+	switch (signo)
+	{
+		case SIGINT:
+		{
+			static int sigint_count = 0;
+			CATLOG("Received SIGINT, stopping...\n");
+
+			// Force a quit if we're not in the loop
+			// or the SIGINT is a repeat.
+			if (!grb.running || (sigint_count > 0))
+			{
+				catcierge_do_unlock(&grb);
+				exit(0);
+			}
+
+			// Simply kill the loop and let the program do normal cleanup.
+			grb.running = 0;
+
+			sigint_count++;
+
+			break;
+		}
+		#ifndef _WIN32
+		case SIGUSR1:
+		{
+			CATLOG("Received SIGUSR1, forcing unlock...\n");
+			catcierge_do_unlock(&grb);
+			// TODO: Fix state change here...
+			//state = STATE_WAITING;
+			break;
+		}
+		case SIGUSR2:
+		{
+			CATLOG("Received SIGUSR2, forcing lockout...\n");
+			//start_locked_state();
+			break;
+		}
+		#endif // _WIN32
+	}
+}
+
 int main(int argc, char **argv)
 {
-	catcierge_grb_t grb;
 	fprintf(stderr, "\nCatcierge Grabber2 v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n\n");
 
 	if (catcierge_grabber_init(&grb))
@@ -342,7 +386,7 @@ int main(int argc, char **argv)
 	} while (grb.running);
 
 	catcierge_destroy_camera(&grb);
-	catcierge_args_destroy(&grb.args);
+	catcierge_grabber_destroy(&grb);
 
 	return 0;
 }
