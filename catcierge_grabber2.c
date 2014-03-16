@@ -2,12 +2,14 @@
 #include "catcierge_config.h"
 #include "catcierge_args.h"
 #include "catcierge_log.h"
-#include "catcierge_util.h"
 #include <string.h>
 #include <assert.h>
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
+
+#include "catcierge_util.h"
+#include "catcierge.h"
 
 #ifdef RPI
 #include "RaspiCamCV.h"
@@ -35,13 +37,24 @@ typedef struct rfid_match_s
 #define CATLOGFPS(fmt, ...) CATLOG(fmt, ##__VA_ARGS__)
 #define CATERRFPS(fmt, ...) CATLOG(fmt, ##__VA_ARGS__)
 
-
 typedef enum match_direction_e
 {
 	MATCH_DIR_UNKNOWN = -1,
 	MATCH_DIR_IN = 0,
 	MATCH_DIR_OUT = 1
 } match_direction_t;
+
+#define MATCH_MAX_COUNT 4 // The number of matches to perform before deciding the lock state.
+
+// The state of a single match.
+typedef struct match_state_s
+{
+	char path[1024];				// Path to where the image for this match should be saved.
+	IplImage *img;					// A cached image of the match frame.
+	double result;					// The match result. Normalized value between 0.0 and 1.0.
+	int success;					// Is the match a success (match result >= match threshold).
+	match_direction_t direction;	// The direction we think the cat went in.
+} match_state_t;
 
 typedef struct catcierge_grb_s
 {
@@ -54,6 +67,12 @@ typedef struct catcierge_grb_s
 	#else
 	CvCapture *capture;
 	#endif
+
+	catcierge_t matcher;
+
+	// Consecutive matches decides lockout status.
+	int match_count;					// The current match count, will go up to MATCH_MAX_COUNT.
+	match_state_t matches[MATCH_MAX_COUNT]; // Image cache of matches.
 
 	#ifdef WITH_RFID
 	char *rfid_inner_path;
@@ -76,6 +95,15 @@ typedef struct catcierge_grb_s
 
 catcierge_grb_t grb;
 
+struct catcierge_state_s;
+typedef void (*catcierge_state_func_t)(struct catcierge_state_s *);
+
+typedef struct catcierge_state_s
+{
+	catcierge_state_func_t func;
+	catcierge_grb_t *grb;
+} catcierge_state_t;
+
 static const char *match_get_direction_str(match_direction_t dir)
 {
 	switch (dir)
@@ -85,6 +113,18 @@ static const char *match_get_direction_str(match_direction_t dir)
 		case MATCH_DIR_UNKNOWN: 
 		default: return "unknown";
 	}
+}
+
+void catcierge_run_state(catcierge_state_t *state)
+{
+	assert(state);
+	state->func(state);
+}
+
+void catcierge_set_state(catcierge_state_t *state, catcierge_state_func_t new_state)
+{
+	assert(state);
+	state->func = new_state;
 }
 
 #ifdef WITH_RFID
@@ -254,23 +294,24 @@ static void	catcierge_do_unlock(catcierge_grb_t *grb)
 	}
 }
 
-int catcierge_grabber_init(catcierge_grb_t *grb)
+static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 {
+	int i;
+	catcierge_args_t *args;
 	assert(grb);
+	args = &grb->args;
 
-	memset(grb, 0, sizeof(catcierge_grb_t));
-	
-	if (catcierge_args_init(&grb->args))
+	if (args->saveimg)
 	{
-		return -1;
+		for (i = 0; i < MATCH_MAX_COUNT; i++)
+		{
+			if (grb->matches[i].img)
+			{
+				cvReleaseImage(&grb->matches[i].img);
+				grb->matches[i].img = NULL;
+			}
+		}
 	}
-
-	return 0;
-}
-
-void catcierge_grabber_destroy(catcierge_grb_t *grb)
-{
-	catcierge_args_destroy(&grb->args);
 }
 
 void catcierge_setup_camera(catcierge_grb_t *grb)
@@ -349,8 +390,108 @@ static void sig_handler(int signo)
 	}
 }
 
+static int catcierge_setup_gpio(catcierge_grb_t *grb)
+{
+	int ret = 0;
+	#ifdef RPI
+
+	// Set export for pins.
+	if (gpio_export(DOOR_PIN) || gpio_set_direction(DOOR_PIN, OUT))
+	{
+		CATERRFPS("Failed to export and set direction for door pin\n");
+		ret = -1;
+		goto fail;
+	}
+
+	if (gpio_export(BACKLIGHT_PIN) || gpio_set_direction(BACKLIGHT_PIN, OUT))
+	{
+		CATERRFPS("Failed to export and set direction for backlight pin\n");
+		ret = -1;
+		goto fail;
+	}
+
+	// Start with the door open and light on.
+	gpio_write(DOOR_PIN, 0);
+	gpio_write(BACKLIGHT_PIN, 1);
+
+fail:
+	if (ret)
+	{
+		// Check if we're root.
+		if (getuid() != 0)
+		{
+			CATERR("###############################################\n");
+			CATERR("######## You might have to run as root! #######\n");
+			CATERR("###############################################\n");
+		}
+	}
+	#endif // RPI
+
+	return ret;
+}
+
+static IplImage *catcierge_get_frame(catcierge_grb_t *grb)
+{
+	assert(grb);
+
+	#ifdef RPI
+	return raspiCamCvQueryFrame(grb->capture);
+	#else
+	return cvQueryFrame(grb->capture);
+	#endif	
+}
+
+void catcierge_state_waiting(catcierge_state_t *state)
+{
+	assert(state);
+}
+
+void catcierge_process_frame(catcierge_grb_t *grb)
+{
+	IplImage* img = NULL;
+	catcierge_args_t *args;
+	assert(grb);
+	args = &grb->args;
+
+	// Always feed the RFID readers and read a frame.
+	#ifdef WITH_RFID
+	if ((args->rfid_inner_path || args->rfid_outer_path) 
+		&& catcierge_rfid_ctx_service(&grb->rfid_ctx))
+	{
+		CATERRFPS("Failed to service RFID readers\n");
+	}
+	#endif // WITH_RFID
+
+	img = catcierge_get_frame(grb);
+
+	// TODO: State machine.
+}
+
+int catcierge_grabber_init(catcierge_grb_t *grb)
+{
+	assert(grb);
+
+	memset(grb, 0, sizeof(catcierge_grb_t));
+	
+	if (catcierge_args_init(&grb->args))
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+void catcierge_grabber_destroy(catcierge_grb_t *grb)
+{
+	catcierge_args_destroy(&grb->args);
+	catcierge_cleanup_imgs(grb);
+}
+
 int main(int argc, char **argv)
 {
+	catcierge_args_t *args;
+	args = &grb.args;
+
 	fprintf(stderr, "\nCatcierge Grabber2 v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n\n");
 
 	if (catcierge_grabber_init(&grb))
@@ -361,28 +502,48 @@ int main(int argc, char **argv)
 
 	// Get program settings.
 	{
-		if (catcierge_parse_config(&grb.args, argc, argv))
+		if (catcierge_parse_config(args, argc, argv))
 		{
-			catcierge_show_usage(&grb.args, argv[0]);
+			catcierge_show_usage(args, argv[0]);
 			return -1;
 		}
 
-		if (catcierge_parse_cmdargs(&grb.args, argc, argv))
+		if (catcierge_parse_cmdargs(args, argc, argv))
 		{
-			catcierge_show_usage(&grb.args, argv[0]);
+			catcierge_show_usage(args, argv[0]);
 			return -1;
 		}
 
-		catcierge_print_settings(&grb.args);
+		catcierge_print_settings(args);
 	}
+
+	if (catcierge_setup_gpio(&grb))
+	{
+		CATERR("Failed to setup GPIO pins\n");
+		return -1;
+	}
+
+	CATLOG("Initialized GPIO pins\n");
+
+	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
+	{
+		CATERR("Failed to init catcierge lib!\n");
+		return -1;
+	}
+
+	catcierge_set_match_flipped(&grb.matcher, args->match_flipped);
+	catcierge_set_match_threshold(&grb.matcher, args->match_threshold);
+
+	CATLOG("Initialized catcierge image recognition\n");
 
 	catcierge_setup_camera(&grb);
 	CATLOG("Starting detection!\n");
+	grb.running = 1;
 
+	// Run the program state machine.
 	do
 	{
-		// This does all the program logic.
-		//process_frames();
+		catcierge_process_frame(&grb);
 	} while (grb.running);
 
 	catcierge_destroy_camera(&grb);

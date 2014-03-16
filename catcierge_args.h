@@ -30,7 +30,7 @@ typedef struct catcierge_args_s
 	char *rfid_outer_path;
 	double rfid_lock_time;
 	int lock_on_invalid_rfid;
-	char *snout_paths[MAX_SNOUT_COUNT];
+	const char *snout_paths[MAX_SNOUT_COUNT];
 	size_t snout_count;
 	double match_threshold;
 	char *log_path;
