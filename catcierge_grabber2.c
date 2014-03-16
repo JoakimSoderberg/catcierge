@@ -56,8 +56,12 @@ typedef struct match_state_s
 	match_direction_t direction;	// The direction we think the cat went in.
 } match_state_t;
 
+struct catcierge_grb_s;
+typedef int (*catcierge_state_func_t)(struct catcierge_grb_s *);
+
 typedef struct catcierge_grb_s
 {
+	catcierge_state_func_t state;
 	catcierge_args_t args;
 
 	int running;
@@ -95,14 +99,27 @@ typedef struct catcierge_grb_s
 
 catcierge_grb_t grb;
 
-struct catcierge_state_s;
-typedef void (*catcierge_state_func_t)(struct catcierge_state_s *);
+//struct catcierge_state_s;
 
+/*
 typedef struct catcierge_state_s
 {
 	catcierge_state_func_t func;
 	catcierge_grb_t *grb;
 } catcierge_state_t;
+*/
+
+void catcierge_run_state(catcierge_grb_t *grb)
+{
+	assert(grb);
+	grb->state(grb);
+}
+
+void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
+{
+	assert(grb);
+	grb->state = new_state;
+}
 
 static const char *match_get_direction_str(match_direction_t dir)
 {
@@ -113,18 +130,6 @@ static const char *match_get_direction_str(match_direction_t dir)
 		case MATCH_DIR_UNKNOWN: 
 		default: return "unknown";
 	}
-}
-
-void catcierge_run_state(catcierge_state_t *state)
-{
-	assert(state);
-	state->func(state);
-}
-
-void catcierge_set_state(catcierge_state_t *state, catcierge_state_func_t new_state)
-{
-	assert(state);
-	state->func = new_state;
 }
 
 #ifdef WITH_RFID
@@ -441,14 +446,40 @@ static IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 	#endif	
 }
 
-void catcierge_state_waiting(catcierge_state_t *state)
+int catcierge_state_matching(catcierge_grb_t *grb)
 {
-	assert(state);
+	assert(grb);
+
+	return 0;
+}
+
+int catcierge_state_waiting(catcierge_grb_t *grb)
+{
+	IplImage* img = NULL;
+	int frame_obstructed;
+	assert(grb);
+
+	img = catcierge_get_frame(grb);
+
+	// Wait until the middle of the frame is black
+	// before we try to match anything.
+	if ((frame_obstructed = catcierge_is_matchable(&grb->matcher, img)) < 0)
+	{
+		CATERRFPS("Failed to detect check for obstructed frame\n");
+		return -1;
+	}
+
+	if (frame_obstructed)
+	{
+		CATLOG("Something in frame! Start matching...\n");
+		catcierge_set_state(grb, catcierge_state_matching);
+	}
+
+	return 0;
 }
 
 void catcierge_process_frame(catcierge_grb_t *grb)
 {
-	IplImage* img = NULL;
 	catcierge_args_t *args;
 	assert(grb);
 	args = &grb->args;
@@ -461,8 +492,6 @@ void catcierge_process_frame(catcierge_grb_t *grb)
 		CATERRFPS("Failed to service RFID readers\n");
 	}
 	#endif // WITH_RFID
-
-	img = catcierge_get_frame(grb);
 
 	// TODO: State machine.
 }
