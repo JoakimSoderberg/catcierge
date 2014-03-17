@@ -10,6 +10,7 @@
 
 #include "catcierge_util.h"
 #include "catcierge.h"
+#include "catcierge_timer.h"
 
 #ifdef RPI
 #include "RaspiCamCV.h"
@@ -77,8 +78,10 @@ typedef struct catcierge_grb_s
 	CvRect match_rects[MAX_SNOUT_COUNT];
 
 	// Consecutive matches decides lockout status.
-	int match_count;					// The current match count, will go up to MATCH_MAX_COUNT.
+	int match_count;						// The current match count, will go up to MATCH_MAX_COUNT.
 	match_state_t matches[MATCH_MAX_COUNT]; // Image cache of matches.
+	catcierge_timer_t rematch_timer;
+	catcierge_timer_t lockout_timer;
 
 	#ifdef WITH_RFID
 	char *rfid_inner_path;
@@ -100,16 +103,6 @@ typedef struct catcierge_grb_s
 } catcierge_grb_t;
 
 catcierge_grb_t grb;
-
-//struct catcierge_state_s;
-
-/*
-typedef struct catcierge_state_s
-{
-	catcierge_state_func_t func;
-	catcierge_grb_t *grb;
-} catcierge_state_t;
-*/
 
 void catcierge_run_state(catcierge_grb_t *grb)
 {
@@ -272,11 +265,7 @@ static void catcierge_do_lockout(catcierge_grb_t *grb)
 	else
 	{
 		#ifdef RPI
-		if (args->lockout_time)
-		{
-			gpio_write(DOOR_PIN, 1);
-		}
-
+		gpio_write(DOOR_PIN, 1);
 		gpio_write(BACKLIGHT_PIN, 1);
 		#endif // RPI
 	}
@@ -519,9 +508,182 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 			grb->matches[grb->match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
 }
 
+static void catcierge_save_images(catcierge_grb_t * grb, int total_success)
+{
+	match_state_t *m;
+	int i;
+	catcierge_args_t *args;
+	assert(grb);
+	args = &grb->args;
+
+	for (i = 0; i < MATCH_MAX_COUNT; i++)
+	{
+		m = &grb->matches[i];
+		CATLOGFPS("Saving image %s\n", m->path);
+		cvSaveImage(m->path, m->img, 0);
+
+		catcierge_execute(args->save_img_cmd, "%f %d %s %d",
+			m->result,		// %0 = Match result.
+			m->success, 	// %1 = Match success.
+			m->path,		// %2 = Image path (of now saved image).
+			m->direction);	// %3 = Match direction.
+
+		cvReleaseImage(&m->img);
+		m->img = NULL;
+	}
+
+	catcierge_execute(args->save_imgs_cmd,
+		"%d %s %s %s %s %f %f %f %f %d %d %d %d",
+		total_success, 				// %0 = Match success.
+		grb->matches[0].path,		// %1 = Image 1 path (of now saved image).
+		grb->matches[1].path,		// %2 = Image 2 path (of now saved image).
+		grb->matches[2].path,		// %3 = Image 3 path (of now saved image).
+		grb->matches[3].path,		// %4 = Image 4 path (of now saved image).
+		grb->matches[0].result,		// %5 = Image 1 result.
+		grb->matches[1].result,		// %6 = Image 2 result.
+		grb->matches[2].result,		// %7 = Image 3 result.
+		grb->matches[3].result,		// %8 = Image 4 result.
+		grb->matches[0].direction,	// %9 =  Image 1 direction.
+		grb->matches[1].direction,	// %10 = Image 2 direction.
+		grb->matches[2].direction,	// %11 = Image 3 direction.
+		grb->matches[3].direction);	// %12 = Image 4 direction.
+}
+
+#ifdef WITH_RFID
+// TODO: FIx this.
+#if 0
+static void catcierge_should_we_rfid_lockout(double last_match_time)
+{
+	if (!lock_on_invalid_rfid)
+		return;
+
+	if (!checked_rfid_lock && (rfid_inner_path || rfid_outer_path))
+	{
+		// Have we waited long enough since the camera match was
+		// complete (The cat must have moved far enough for both
+		// readers to have a chance to detect it).
+		if (last_match_time >= rfid_lock_time)
+		{
+			int do_rfid_lockout = 0;
+
+			if (rfid_inner_path && rfid_outer_path)
+			{
+				// Only require one of the readers to have a correct read.
+				do_rfid_lockout = !(rfid_in_match.is_allowed 
+								|| rfid_out_match.is_allowed);
+			}
+			else if (rfid_inner_path)
+			{
+				do_rfid_lockout = !rfid_in_match.is_allowed;
+			}
+			else if (rfid_outer_path)
+			{
+				do_rfid_lockout = !rfid_out_match.is_allowed;
+			}
+
+			if (do_rfid_lockout)
+			{
+				if (rfid_direction == MATCH_DIR_OUT)
+				{
+					CATLOG("RFID lockout: Skipping since cat is going out\n");
+				}
+				else
+				{
+					CATLOG("RFID lockout!\n");
+					log_print_csv(log_file, "rfid_check, lockout\n");
+					start_locked_state();
+				}
+			}
+			else
+			{
+				CATLOG("RFID OK!\n");
+				log_print_csv(log_file, "rfid_check, ok\n");
+			}
+
+			if (rfid_inner_path) CATLOG("  %s RFID: %s\n", rfid_in.name, rfid_in_match.triggered ? rfid_in_match.data : "No tag data");
+			if (rfid_outer_path) CATLOG("  %s RFID: %s\n", rfid_out.name, rfid_out_match.triggered ? rfid_out_match.data : "No tag data");
+
+			// %0 = Match success.
+			// %1 = RFID inner in use.
+			// %2 = RFID outer in use.
+			// %3 = RFID inner success.
+			// %4 = RFID outer success.
+			// %5 = RFID inner data.
+			// %6 = RFID outer data.
+			catcierge_execute(rfid_match_cmd, 
+				"%d %d %d %d %s %s", 
+				!do_rfid_lockout,
+				(rfid_inner_path != NULL),
+				(rfid_outer_path != NULL),
+				rfid_in_match.is_allowed,
+				rfid_out_match.is_allowed,
+				rfid_in_match.data,
+				rfid_out_match.data);
+
+			checked_rfid_lock = 1;
+		}
+	}
+}
+#endif
+#endif // WITH_RFID
+
 // =============================================================================
 // States
 // =============================================================================
+int catcierge_state_waiting(catcierge_grb_t *grb);
+
+int catcierge_state_keepopen(catcierge_grb_t *grb)
+{
+	assert(grb);
+
+	// Wait until the frame is clear before we start the timer.
+	// When this timer ends, we will go back to the WAITING state.
+	if (!catcierge_timer_isactive(&grb->rematch_timer))
+	{
+		int frame_obstructed;
+		IplImage* img = NULL;
+		img = catcierge_get_frame(grb);
+
+		// We have successfully matched a valid cat :D
+
+		if ((frame_obstructed = catcierge_is_matchable(&grb->matcher, img)) < 0)
+		{
+			CATERRFPS("Failed to detect check for obstructed frame\n");
+			return -1;
+		}
+
+		if (frame_obstructed)
+		{
+			return 0;
+		}
+
+		CATLOGFPS("Frame is clear, start successful match timer...\n");
+		catcierge_timer_set(&grb->rematch_timer, grb->args.match_time);
+		catcierge_timer_start(&grb->rematch_timer);
+	}
+
+	if (catcierge_timer_has_timed_out(&grb->rematch_timer))
+	{
+		CATLOGFPS("Go back to waiting...\n");
+		catcierge_set_state(grb, catcierge_state_waiting);
+	}
+
+	return 0;
+}
+
+int catcierge_state_unlock(catcierge_grb_t *grb)
+{
+	assert(grb);
+
+	if (catcierge_timer_has_timed_out(&grb->lockout_timer))
+	{
+		CATLOGFPS("End of lockout!\n");
+		catcierge_do_unlock(grb);
+		catcierge_set_state(grb, catcierge_state_waiting);
+	}
+
+	return 0;
+}
 
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
@@ -549,15 +711,64 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	// Save the match state, execute external processes and so on...
 	catcierge_process_match_result(grb, img, match_success,
 		match_res, going_out);
-	grb->match_count++;
 
-	// This will set STATE_SUCCESS or STATE_LOCKOUT
-	// when enough images has been captured.
-	//should_we_lockout(match_res);
+	grb->match_count++;
 
 	if (grb->match_count < MATCH_MAX_COUNT)
 	{
+		// Continue until we have enough matches for a decision.
 		return 0;
+	}
+	else
+	{
+		// We now have enough images to decide lock status.
+		int success_count = 0;
+		int i;
+		int total_success = 0;
+
+		for (i = 0; i < MATCH_MAX_COUNT; i++)
+		{
+			success_count += grb->matches[i].success;
+		}
+
+		// If 2 out of the matches are ok.
+		total_success = (success_count >= (MATCH_MAX_COUNT - 2));
+
+		if (total_success)
+		{
+			CATLOG("Everything OK! (%d out of %d matches succeeded)"
+					" Door kept open...\n", success_count, MATCH_MAX_COUNT);
+
+			// Make sure the door is open.
+			catcierge_do_unlock(grb);
+
+			#ifdef WITH_RFID
+			// We only want to check for RFID lock once during each match timeout period.
+			grb->checked_rfid_lock = 0;
+			#endif
+
+			catcierge_timer_reset(&grb->rematch_timer);
+			catcierge_set_state(grb, catcierge_state_keepopen);
+		}
+		else
+		{
+			CATLOG("Lockout! %d out of %d matches failed.\n",
+					(MATCH_MAX_COUNT - success_count), MATCH_MAX_COUNT);
+
+
+		}
+
+		catcierge_execute(args->match_done_cmd, "%d %d %d", 
+			total_success, 			// %0 = Match success.
+			success_count, 			// %1 = Successful match count.
+			MATCH_MAX_COUNT);		// %2 = Max matches.
+
+		// Now we can save the images that we cached earlier 
+		// without slowing down the matching FPS.
+		if (args->saveimg)
+		{
+			catcierge_save_images(grb, total_success);
+		}
 	}
 
 	return 0;
