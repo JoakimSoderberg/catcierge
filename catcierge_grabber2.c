@@ -800,24 +800,6 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 	return 0;
 }
 
-void catcierge_process_frame(catcierge_grb_t *grb)
-{
-	catcierge_args_t *args;
-	assert(grb);
-	args = &grb->args;
-
-	// Always feed the RFID readers and read a frame.
-	#ifdef WITH_RFID
-	if ((args->rfid_inner_path || args->rfid_outer_path) 
-		&& catcierge_rfid_ctx_service(&grb->rfid_ctx))
-	{
-		CATERRFPS("Failed to service RFID readers\n");
-	}
-	#endif // WITH_RFID
-
-	// TODO: State machine.
-}
-
 int catcierge_grabber_init(catcierge_grb_t *grb)
 {
 	assert(grb);
@@ -899,11 +881,21 @@ int main(int argc, char **argv)
 	catcierge_setup_camera(&grb);
 	CATLOG("Starting detection!\n");
 	grb.running = 1;
+	catcierge_set_state(&grb, catcierge_state_waiting);
 
 	// Run the program state machine.
 	do
 	{
-		catcierge_process_frame(&grb);
+		// Always feed the RFID readers and read a frame.
+		#ifdef WITH_RFID
+		if ((args->rfid_inner_path || args->rfid_outer_path) 
+			&& catcierge_rfid_ctx_service(&grb.rfid_ctx))
+		{
+			CATERRFPS("Failed to service RFID readers\n");
+		}
+		#endif // WITH_RFID
+
+		catcierge_run_state(&grb);
 	} while (grb.running);
 
 	catcierge_destroy_camera(&grb);
