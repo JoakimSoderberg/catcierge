@@ -63,6 +63,7 @@ typedef struct catcierge_grb_s
 {
 	catcierge_state_func_t state;
 	catcierge_args_t args;
+	FILE *log_file;
 
 	int running;
 
@@ -73,6 +74,7 @@ typedef struct catcierge_grb_s
 	#endif
 
 	catcierge_t matcher;
+	CvRect match_rects[MAX_SNOUT_COUNT];
 
 	// Consecutive matches decides lockout status.
 	int match_count;					// The current match count, will go up to MATCH_MAX_COUNT.
@@ -446,9 +448,117 @@ static IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 	#endif	
 }
 
+match_direction_t get_match_direction(int match_success, int going_out)
+{
+	if (match_success)
+		return (going_out ? MATCH_DIR_OUT : MATCH_DIR_IN);
+
+	return  MATCH_DIR_UNKNOWN;
+}
+
+static void catcierge_process_match_result(catcierge_grb_t *grb,
+				IplImage *img, int match_success,
+				double match_res, int going_out)
+{
+	int i;
+	char time_str[256];
+	catcierge_args_t *args;
+	assert(grb);
+	assert(img);
+	args = &grb->args;
+
+	CATLOGFPS("%f %sMatch%s\n", match_res,
+			match_success ? "" : "No ",
+			going_out ? " OUT" : " IN");
+
+	// Save the current image match status.
+	grb->matches[grb->match_count].result = match_res;
+	grb->matches[grb->match_count].success = match_success;
+	grb->matches[grb->match_count].direction
+								= get_match_direction(match_success, going_out);
+	grb->matches[grb->match_count].img = NULL;
+
+	// Save match image.
+	// (We don't write to disk yet, that will slow down the matcing).
+	if (args->saveimg)
+	{
+		// Draw a white rectangle over the best match.
+		if (args->highlight_match)
+		{
+			for (i = 0; i < args->snout_count; i++)
+			{
+				cvRectangleR(img, grb->match_rects[i],
+						CV_RGB(255, 255, 255), 2, 8, 0);
+			}
+		}
+
+		get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
+		snprintf(grb->matches[grb->match_count].path,
+			sizeof(grb->matches[grb->match_count].path),
+			"%s/match_%s_%s__%d.png",
+			args->output_path,
+			match_success ? "" : "fail",
+			time_str,
+			grb->match_count);
+
+		grb->matches[grb->match_count].img = cvCloneImage(img);
+	}
+
+	// Log match to file.
+	log_print_csv(grb->log_file, "match, %s, %f, %f, %s, %s\n",
+		 match_success ? "success" : "failure",
+		 match_res, args->match_threshold,
+		 args->saveimg ? grb->matches[grb->match_count].path : "-",
+		 (grb->matches[grb->match_count].direction == MATCH_DIR_IN) ? "in" : "out");
+
+	// Runs the --match_cmd progam specified.
+	catcierge_execute(args->match_cmd, "%f %d %s %d",
+			match_res, 											// %0 = Match result.
+			match_success,										// %1 = 0/1 succes or failure.
+			args->saveimg ? grb->matches[grb->match_count].path : "",	// %2 = Image path if saveimg is turned on.
+			grb->matches[grb->match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
+}
+
+// =============================================================================
+// States
+// =============================================================================
+
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
+	int match_success;
+	IplImage* img = NULL;
+	int frame_obstructed;
+	int going_out;
+	double match_res;
+	catcierge_args_t *args;
 	assert(grb);
+	args = &grb->args;
+
+	img = catcierge_get_frame(grb);
+
+	// We have something to match against.
+	if ((match_res = catcierge_match(&grb->matcher, img,
+		grb->match_rects, args->snout_count, &going_out)) < 0)
+	{
+		CATERRFPS("Error when matching frame!\n");
+		return -1;
+	}
+
+	match_success = (match_res >= args->match_threshold);
+
+	// Save the match state, execute external processes and so on...
+	catcierge_process_match_result(grb, img, match_success,
+		match_res, going_out);
+	grb->match_count++;
+
+	// This will set STATE_SUCCESS or STATE_LOCKOUT
+	// when enough images has been captured.
+	//should_we_lockout(match_res);
+
+	if (grb->match_count < MATCH_MAX_COUNT)
+	{
+		return 0;
+	}
 
 	return 0;
 }
@@ -472,6 +582,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 	if (frame_obstructed)
 	{
 		CATLOG("Something in frame! Start matching...\n");
+		grb->match_count = 0;
 		catcierge_set_state(grb, catcierge_state_matching);
 	}
 
@@ -521,7 +632,8 @@ int main(int argc, char **argv)
 	catcierge_args_t *args;
 	args = &grb.args;
 
-	fprintf(stderr, "\nCatcierge Grabber2 v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n\n");
+	fprintf(stderr, "\nCatcierge Grabber2 v" CATCIERGE_VERSION_STR
+					" (C) Joakim Soderberg 2013-2014\n\n");
 
 	if (catcierge_grabber_init(&grb))
 	{
@@ -544,6 +656,14 @@ int main(int argc, char **argv)
 		}
 
 		catcierge_print_settings(args);
+	}
+
+	if (args->log_path)
+	{
+		if (!(grb.log_file = fopen(args->log_path, "a+")))
+		{
+			CATERR("Failed to open log file \"%s\"\n", args->log_path);
+		}
 	}
 
 	if (catcierge_setup_gpio(&grb))
@@ -577,6 +697,11 @@ int main(int argc, char **argv)
 
 	catcierge_destroy_camera(&grb);
 	catcierge_grabber_destroy(&grb);
+
+	if (grb.log_file)
+	{
+		fclose(grb.log_file);
+	}
 
 	return 0;
 }
