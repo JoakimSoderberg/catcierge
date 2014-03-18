@@ -41,7 +41,6 @@ static int write_num_to_file(const char *path, int num)
 	if (write(fd, buf, strlen(buf)) < 0)
 	{
 		CATERR("Failed to write \"%s\" to %s\n", buf, path);
-		//ret = -2;
 	}
 
 	close(fd);
