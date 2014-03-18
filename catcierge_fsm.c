@@ -458,59 +458,63 @@ static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
 		}
 	}
 }
+
 #ifdef WITH_RFID
-// TODO: FIx this.
-#if 0
-static void catcierge_should_we_rfid_lockout(double last_match_time)
+static void catcierge_should_we_rfid_lockout(catcierge_grb_t *grb)
 {
-	if (!lock_on_invalid_rfid)
+	catcierge_args_t *args;
+	assert(grb);
+	args = &grb->args;
+
+	if (!args->lock_on_invalid_rfid)
 		return;
 
-	if (!checked_rfid_lock && (rfid_inner_path || rfid_outer_path))
+	if (!grb->checked_rfid_lock 
+		&& (args->rfid_inner_path || args->rfid_outer_path))
 	{
 		// Have we waited long enough since the camera match was
 		// complete (The cat must have moved far enough for both
 		// readers to have a chance to detect it).
-		if (last_match_time >= rfid_lock_time)
+		if (catcierge_timer_get(&grb->rematch_timer) >= args->rfid_lock_time)
 		{
 			int do_rfid_lockout = 0;
 
-			if (rfid_inner_path && rfid_outer_path)
+			if (args->rfid_inner_path && args->rfid_outer_path)
 			{
 				// Only require one of the readers to have a correct read.
-				do_rfid_lockout = !(rfid_in_match.is_allowed 
-								|| rfid_out_match.is_allowed);
+				do_rfid_lockout = !(grb->rfid_in_match.is_allowed 
+								|| grb->rfid_out_match.is_allowed);
 			}
-			else if (rfid_inner_path)
+			else if (args->rfid_inner_path)
 			{
-				do_rfid_lockout = !rfid_in_match.is_allowed;
+				do_rfid_lockout = !grb->rfid_in_match.is_allowed;
 			}
-			else if (rfid_outer_path)
+			else if (args->rfid_outer_path)
 			{
-				do_rfid_lockout = !rfid_out_match.is_allowed;
+				do_rfid_lockout = !grb->rfid_out_match.is_allowed;
 			}
 
 			if (do_rfid_lockout)
 			{
-				if (rfid_direction == MATCH_DIR_OUT)
+				if (grb->rfid_direction == MATCH_DIR_OUT)
 				{
 					CATLOG("RFID lockout: Skipping since cat is going out\n");
 				}
 				else
 				{
 					CATLOG("RFID lockout!\n");
-					log_print_csv(log_file, "rfid_check, lockout\n");
-					start_locked_state();
+					log_print_csv(grb->log_file, "rfid_check, lockout\n");
+					catcierge_state_transition_lockout(grb);
 				}
 			}
 			else
 			{
 				CATLOG("RFID OK!\n");
-				log_print_csv(log_file, "rfid_check, ok\n");
+				log_print_csv(grb->log_file, "rfid_check, ok\n");
 			}
 
-			if (rfid_inner_path) CATLOG("  %s RFID: %s\n", rfid_in.name, rfid_in_match.triggered ? rfid_in_match.data : "No tag data");
-			if (rfid_outer_path) CATLOG("  %s RFID: %s\n", rfid_out.name, rfid_out_match.triggered ? rfid_out_match.data : "No tag data");
+			if (args->rfid_inner_path) CATLOG("  %s RFID: %s\n", grb->rfid_in.name, grb->rfid_in_match.triggered ? grb->rfid_in_match.data : "No tag data");
+			if (args->rfid_outer_path) CATLOG("  %s RFID: %s\n", grb->rfid_out.name, grb->rfid_out_match.triggered ? grb->rfid_out_match.data : "No tag data");
 
 			// %0 = Match success.
 			// %1 = RFID inner in use.
@@ -519,21 +523,20 @@ static void catcierge_should_we_rfid_lockout(double last_match_time)
 			// %4 = RFID outer success.
 			// %5 = RFID inner data.
 			// %6 = RFID outer data.
-			catcierge_execute(rfid_match_cmd, 
+			catcierge_execute(args->rfid_match_cmd, 
 				"%d %d %d %d %s %s", 
 				!do_rfid_lockout,
-				(rfid_inner_path != NULL),
-				(rfid_outer_path != NULL),
-				rfid_in_match.is_allowed,
-				rfid_out_match.is_allowed,
-				rfid_in_match.data,
-				rfid_out_match.data);
+				(args->rfid_inner_path != NULL),
+				(args->rfid_outer_path != NULL),
+				grb->rfid_in_match.is_allowed,
+				grb->rfid_out_match.is_allowed,
+				grb->rfid_in_match.data,
+				grb->rfid_out_match.data);
 
-			checked_rfid_lock = 1;
+			grb->checked_rfid_lock = 1;
 		}
 	}
 }
-#endif
 #endif // WITH_RFID
 
 static void catcierge_show_image(catcierge_grb_t *grb)
@@ -605,7 +608,15 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 	{
 		CATLOGFPS("Go back to waiting...\n");
 		catcierge_set_state(grb, catcierge_state_waiting);
+		return 0;
 	}
+
+	#ifdef WITH_RFID
+	// The check to block on RFID is performed at a delay after the
+	// image matching has been performed, to give the cat time to
+	// pass both RFID readers.
+	catcierge_should_we_rfid_lockout(grb);
+	#endif
 
 	return 0;
 }
@@ -625,6 +636,19 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 	}
 
 	return 0;
+}
+
+void catcierge_state_transition_lockout(catcierge_grb_t *grb)
+{
+	catcierge_args_t *args;
+	assert(grb);
+	args = &grb->args;
+
+	catcierge_timer_set(&grb->lockout_timer, args->lockout_time);
+	catcierge_timer_start(&grb->lockout_timer);
+
+	catcierge_set_state(grb, catcierge_state_lockout);
+	catcierge_do_lockout(grb);
 }
 
 int catcierge_state_matching(catcierge_grb_t *grb)
@@ -697,12 +721,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 			CATLOG("Lockout! %d out of %d matches failed.\n",
 					(MATCH_MAX_COUNT - success_count), MATCH_MAX_COUNT);
 
-			catcierge_timer_set(&grb->lockout_timer, args->lockout_time);
-			catcierge_timer_start(&grb->lockout_timer);
-
-			catcierge_set_state(grb, catcierge_state_lockout);
-			catcierge_do_lockout(grb);
-
+			catcierge_state_transition_lockout(grb);
 			catcierge_check_max_consecutive_lockouts(grb);
 		}
 
