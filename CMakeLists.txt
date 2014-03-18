@@ -29,7 +29,7 @@ set(CATCIERGE_VERSION_PATCH 0)
 set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
 
 option(CATCIERGE_WITH_MEMCHECK "Run tests with memory check using valgrind" ON)
-option(CATCIERGE_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" ON)
+option(CATCIERGE_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" OFF)
 option(WITH_INI "Build ini config file support" ON)
 option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
 option(RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." ON)
@@ -48,7 +48,7 @@ if (CATCIERGE_COVERAGE)
 	endif()
 
 	if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-	  MESSAGE(FATAL_ERROR "Code coverage results with an optimised (non-Debug) build may be misleading! Add -DCMAKE_BUILD_TYPE=Debug")
+	  message(FATAL_ERROR "Code coverage results with an optimised (non-Debug) build may be misleading! Add -DCMAKE_BUILD_TYPE=Debug")
 	endif()
 
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
