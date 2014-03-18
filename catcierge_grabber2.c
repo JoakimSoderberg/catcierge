@@ -74,7 +74,9 @@ typedef struct catcierge_grb_s
 	CvCapture *capture;
 	#endif
 
+	IplImage *img;
 	catcierge_t matcher;
+	int match_success;
 	CvRect match_rects[MAX_SNOUT_COUNT];
 	int consecutive_lockout_count;
 
@@ -316,11 +318,6 @@ void catcierge_setup_camera(catcierge_grb_t *grb)
 {
 	assert(grb);
 
-	if (grb->args.show)
-	{
-		cvNamedWindow("catcierge", 1);
-	}
-
 	#ifdef RPI
 	grb->capture = raspiCamCvCreateCameraCapture(0);
 	// TODO: Implement the cvSetCaptureProperty stuff below fo raspicamcv.
@@ -329,6 +326,11 @@ void catcierge_setup_camera(catcierge_grb_t *grb)
 	cvSetCaptureProperty(grb->capture, CV_CAP_PROP_FRAME_WIDTH, 320);
 	cvSetCaptureProperty(grb->capture, CV_CAP_PROP_FRAME_HEIGHT, 240);
 	#endif
+
+	if (grb->args.show)
+	{
+		cvNamedWindow("catcierge", 1);
+	}
 }
 
 void catcierge_destroy_camera(catcierge_grb_t *grb)
@@ -666,7 +668,7 @@ static void catcierge_should_we_rfid_lockout(double last_match_time)
 #endif
 #endif // WITH_RFID
 
-static void catcierge_show_image(catcierge_grb_t *grb, IplImage *img)
+static void catcierge_show_image(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args;
 	assert(grb);
@@ -675,20 +677,22 @@ static void catcierge_show_image(catcierge_grb_t *grb, IplImage *img)
 	// Show the video feed.
 	if (args->show)
 	{
-		/*
+		int i;
+		CvScalar match_color;
+
 		#ifdef RPI
 		match_color = CV_RGB(255, 255, 255); // Grayscale so don't bother with color.
 		#else
-		match_color = (match_success) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
-		#endif*/
+		match_color = (grb->match_success) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
+		#endif
 
 		// Always highlight when showing in GUI.
-		/*for (i = 0; i < snout_count; i++)
+		for (i = 0; i < args->snout_count; i++)
 		{
-			cvRectangleR(img, match_rects[i], match_color, 2, 8, 0);
-		}*/
+			cvRectangleR(grb->img, grb->match_rects[i], match_color, 2, 8, 0);
+		}
 
-		cvShowImage("catcierge", img);
+		cvShowImage("catcierge", grb->img);
 		cvWaitKey(10);
 	}
 }
@@ -703,8 +707,7 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 	IplImage* img;
 	assert(grb);
 
-	img = catcierge_get_frame(grb);
-	catcierge_show_image(grb, img);
+	catcierge_show_image(grb);
 
 	// Wait until the frame is clear before we start the timer.
 	// When this timer ends, we will go back to the WAITING state.
@@ -714,7 +717,7 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 
 		// We have successfully matched a valid cat :D
 
-		if ((frame_obstructed = catcierge_is_matchable(&grb->matcher, img)) < 0)
+		if ((frame_obstructed = catcierge_is_matchable(&grb->matcher, grb->img)) < 0)
 		{
 			CATERRFPS("Failed to detect check for obstructed frame\n");
 			return -1;
@@ -744,8 +747,7 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 	IplImage* img;
 	assert(grb);
 
-	img = catcierge_get_frame(grb);
-	catcierge_show_image(grb, img);
+	catcierge_show_image(grb);
 
 	if (catcierge_timer_has_timed_out(&grb->lockout_timer))
 	{
@@ -760,7 +762,6 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
 	int match_success;
-	IplImage* img;
 	int frame_obstructed;
 	int going_out;
 	double match_res;
@@ -768,11 +769,8 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	assert(grb);
 	args = &grb->args;
 
-	img = catcierge_get_frame(grb);
-	catcierge_show_image(grb, img);
-
 	// We have something to match against.
-	if ((match_res = catcierge_match(&grb->matcher, img,
+	if ((match_res = catcierge_match(&grb->matcher, grb->img,
 		grb->match_rects, args->snout_count, &going_out)) < 0)
 	{
 		CATERRFPS("Error when matching frame!\n");
@@ -782,10 +780,12 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	match_success = (match_res >= args->match_threshold);
 
 	// Save the match state, execute external processes and so on...
-	catcierge_process_match_result(grb, img, match_success,
+	catcierge_process_match_result(grb, grb->img, match_success,
 		match_res, going_out);
 
 	grb->match_count++;
+
+	catcierge_show_image(grb);
 
 	if (grb->match_count < MATCH_MAX_COUNT)
 	{
@@ -806,6 +806,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 
 		// If 2 out of the matches are ok.
 		total_success = (success_count >= (MATCH_MAX_COUNT - 2));
+		grb->match_success = total_success;
 
 		if (total_success)
 		{
@@ -855,16 +856,14 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 
 int catcierge_state_waiting(catcierge_grb_t *grb)
 {
-	IplImage* img = NULL;
 	int frame_obstructed;
 	assert(grb);
 
-	img = catcierge_get_frame(grb);
-	catcierge_show_image(grb, img);
+	catcierge_show_image(grb);
 
 	// Wait until the middle of the frame is black
 	// before we try to match anything.
-	if ((frame_obstructed = catcierge_is_matchable(&grb->matcher, img)) < 0)
+	if ((frame_obstructed = catcierge_is_matchable(&grb->matcher, grb->img)) < 0)
 	{
 		CATERRFPS("Failed to detect check for obstructed frame\n");
 		return -1;
@@ -885,28 +884,29 @@ static void catcierge_calculate_fps(catcierge_grb_t *grb)
 	catcierge_args_t *args;
 	assert(grb);
 	args = &grb->args;
-	//frames++;
-	/*gettimeofday(&end, NULL);
-
-	elapsed += (end.tv_sec - start.tv_sec) + 
-				((end.tv_usec - start.tv_usec) / 1000000.0);*/
-
 
 	if (catcierge_timer_has_timed_out(&grb->frame_timer))
 	{
 		char spinner[] = "\\|/-\\|/-";
 		static int spinidx = 0;
+		catcierge_timer_reset(&grb->frame_timer);
 
 		if (grb->state == catcierge_state_lockout)
 		{
 			CATLOGFPS("Lockout for %d more seconds.\n", 
 				(int)(args->lockout_time - catcierge_timer_get(&grb->lockout_timer)));
 		}
-		else if (grb->state == catcierge_state_keepopen
-				&& catcierge_timer_isactive(&grb->rematch_timer))
+		else if (grb->state == catcierge_state_keepopen)
 		{
-			CATLOGFPS("Waiting to match again for %d more seconds.\n", 
-				(int)(args->match_time - catcierge_timer_get(&grb->rematch_timer)));
+			if (catcierge_timer_isactive(&grb->rematch_timer))
+			{
+				CATLOGFPS("Waiting to match again for %d more seconds.\n", 
+					(int)(args->match_time - catcierge_timer_get(&grb->rematch_timer)));
+			}
+			else
+			{
+				CATLOGFPS("Frame is obstructed. Waiting for it to clear...\n");
+			}
 		}
 		else
 		{
@@ -916,10 +916,6 @@ static void catcierge_calculate_fps(catcierge_grb_t *grb)
 		printf("\033[999D");
 		printf("\033[1A");
 		printf("\033[0K");
-
-		//fps = frames;
-		//frames = 0;
-		//elapsed = 0.0;
 	}
 }
 
@@ -971,6 +967,29 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
+		// Set some defaults.
+		if (args->snout_count == 0)
+		{
+			args->snout_paths[0] = "snout.png";
+			args->snout_count++;
+		}
+
+		if (args->output_path)
+		{
+			char cmd[1024];
+			CATLOG("Creating output directory: \"%s\"\n", args->output_path);
+			#ifdef WIN32
+			snprintf(cmd, sizeof(cmd), "md %s", args->output_path);
+			#else
+			snprintf(cmd, sizeof(cmd), "mkdir -p %s", args->output_path);
+			#endif
+			system(cmd);
+		}
+		else
+		{
+			args->output_path = ".";
+		}
+
 		catcierge_print_settings(args);
 	}
 
@@ -1010,8 +1029,10 @@ int main(int argc, char **argv)
 	// Run the program state machine.
 	do
 	{
-		catcierge_timer_start(&grb.frame_timer);
-
+		if (!catcierge_timer_isactive(&grb.frame_timer))
+		{
+			catcierge_timer_start(&grb.frame_timer);
+		}
 		// Always feed the RFID readers and read a frame.
 		#ifdef WITH_RFID
 		if ((args->rfid_inner_path || args->rfid_outer_path) 
@@ -1020,6 +1041,8 @@ int main(int argc, char **argv)
 			CATERRFPS("Failed to service RFID readers\n");
 		}
 		#endif // WITH_RFID
+
+		grb.img = catcierge_get_frame(&grb);
 
 		catcierge_run_state(&grb);
 		catcierge_calculate_fps(&grb);
