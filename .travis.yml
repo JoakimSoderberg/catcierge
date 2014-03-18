@@ -1,0 +1,20 @@
+env:
+  - CAT_METHOD=memcheck
+  - CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug" COVERALLS=yes
+language: c
+compiler:
+  - gcc
+  - clang
+matrix:
+  exclude:
+    - compiler: clang
+      env: CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug" COVERALLS=yes
+install:
+  - if [ x$CAT_METHOD == xcoverage ]; then sudo pip install cpp-coveralls; fi
+  - if [ x$CAT_METHOD == xcoverage ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
+  - if [ x$CAT_METHOD == xmemcheck ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
+script:
+  - if [ x$CAT_METHOD == xcoverage ]; then cmake $CMAKE_ARGS . && cmake --build . && ctest --output-on-failure; fi
+  - if [ x$CAT_METHOD == xmemcheck ]; then mkdir build && cd build && cmake $CMAKE_ARGS .. && cmake --build . && ctest --output-on-failure; fi
+after_success:
+  - if [ x$COVERALLS == xyes ]; then coveralls -x c --exclude test --exclude examples --exclude-pattern 'CMake.*?\.c' --exclude-pattern 'CMake.*?\.cpp' --exclude-pattern '.*?\.h'; fi

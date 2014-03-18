@@ -33,6 +33,17 @@ add_executable(${CATCIERGE_TEST_DRIVER}
 
 target_link_libraries(${CATCIERGE_TEST_DRIVER} catcierge)
 
+if (CATCIERGE_WITH_MEMCHECK)
+	find_program(VALGRIND_PROGRAM NAMES valgrind)
+
+	if (NOT EXISTS ${VALGRIND_PROGRAM})
+		message(WARNING "Valgrind not found! Tests will be run without memory check. Turn this warning off by installing valgrind or settings -DCATCIERGE_WITH_MEMCHECK=0")
+		set(CATCIERGE_WITH_MEMCHECK 0)
+	else()
+		message("Found valgrind: ${VALGRIND_PROGRAM}")
+	endif()	
+endif()
+
 foreach (test_name ${TEST_SRCS_NO_EXT})
 	# Add a test with the filename we just got
 	# And call the driver with the test as an argument.
