@@ -185,7 +185,8 @@ set(GRABBER2_SRC
 		catcierge_args.c
 		catcierge_log.c
 		catcierge_util.c
-		catcierge_timer.c)
+		catcierge_timer.c
+		catcierge_fsm.c)
 
 if (RPI)
 	list(APPEND GRABBER_SRC catcierge_gpio.c)
