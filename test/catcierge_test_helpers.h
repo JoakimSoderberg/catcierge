@@ -8,14 +8,14 @@
 
 enum catcierge_test_color_e
 {
-	NORMAL,
-	GREEN,
-	RED,
-	YELLOW,
-	CYAN,
-	MAGNETA,
-	BRIGHT,
-	CSTATUS
+	COLOR_NORMAL,
+	COLOR_GREEN,
+	COLOR_RED,
+	COLOR_YELLOW,
+	COLOR_CYAN,
+	COLOR_MAGNETA,
+	COLOR_BRIGHT,
+	COLOR_STATUS
 };
 
 int catcierge_test_verbose();

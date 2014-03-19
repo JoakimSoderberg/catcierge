@@ -68,14 +68,14 @@ void catcierge_test_vprintf(FILE *target, enum catcierge_test_color_e test_color
 	switch (test_color)
 	{
 		default:
-		case NORMAL: break;
-		case GREEN: color = (FOREGROUND_GREEN | FOREGROUND_INTENSITY); break;
-		case RED: color = (FOREGROUND_RED | FOREGROUND_INTENSITY); break;
-		case YELLOW: color = (14 | FOREGROUND_INTENSITY); break;
-		case CYAN: color = (FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY); break;
-		case MAGNETA: color =  (FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY); break;
-		case BRIGHT: color = (FOREGROUND_INTENSITY | FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED); break;
-		case CSTATUS: color = FOREGROUND_INTENSITY; break;
+		case COLOR_NORMAL: break;
+		case COLOR_GREEN: color = (FOREGROUND_GREEN | FOREGROUND_INTENSITY); break;
+		case COLOR_RED: color = (FOREGROUND_RED | FOREGROUND_INTENSITY); break;
+		case COLOR_YELLOW: color = (14 | FOREGROUND_INTENSITY); break;
+		case COLOR_CYAN: color = (FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY); break;
+		case COLOR_MAGNETA: color =  (FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY); break;
+		case COLOR_BRIGHT: color = (FOREGROUND_INTENSITY | FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED); break;
+		case COLOR_STATUS: color = FOREGROUND_INTENSITY; break;
 	}
 
 	// Set color.
@@ -110,14 +110,14 @@ void catcierge_test_vprintf(FILE *target, enum catcierge_test_color_e test_color
 		switch (test_color)
 		{
 			default:
-			case NORMAL: break;
-			case GREEN: fprintf(target, ANSI_COLOR_LIGHT_GREEN);  break;
-			case RED:	fprintf(target, ANSI_COLOR_LIGHT_RED); break;
-			case YELLOW: fprintf(target, ANSI_COLOR_YELLOW); break;
-			case CYAN: fprintf(target, ANSI_COLOR_LIGHT_CYAN); break;
-			case MAGNETA: fprintf(target, ANSI_COLOR_LIGHT_MAGNETA); break;
-			case BRIGHT: fprintf(target, ANSI_COLOR_WHITE); break;
-			case CSTATUS: fprintf(target, ANSI_COLOR_DARK_GRAY); break;
+			case COLOR_NORMAL: break;
+			case COLOR_GREEN: fprintf(target, ANSI_COLOR_LIGHT_GREEN);  break;
+			case COLOR_RED:	fprintf(target, ANSI_COLOR_LIGHT_RED); break;
+			case COLOR_YELLOW: fprintf(target, ANSI_COLOR_YELLOW); break;
+			case COLOR_CYAN: fprintf(target, ANSI_COLOR_LIGHT_CYAN); break;
+			case COLOR_MAGNETA: fprintf(target, ANSI_COLOR_LIGHT_MAGNETA); break;
+			case COLOR_BRIGHT: fprintf(target, ANSI_COLOR_WHITE); break;
+			case COLOR_STATUS: fprintf(target, ANSI_COLOR_DARK_GRAY); break;
 		}
 	}
 
@@ -143,9 +143,9 @@ void catcierge_test_SUCCESS(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	
-	catcierge_test_printf(stdout, BRIGHT, "[");
-	catcierge_test_printf(stdout, GREEN, "SUCCESS");
-	catcierge_test_printf(stdout, BRIGHT, "] ");
+	catcierge_test_printf(stdout, COLOR_BRIGHT, "[");
+	catcierge_test_printf(stdout, COLOR_GREEN, "SUCCESS");
+	catcierge_test_printf(stdout, COLOR_BRIGHT, "] ");
 	vfprintf(stdout, fmt, args);
 	printf("\n");
 
@@ -160,9 +160,9 @@ void catcierge_test_FAILURE(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	
-	catcierge_test_printf(stderr, BRIGHT, "[");
-	catcierge_test_printf(stderr, RED, "FAILURE");
-	catcierge_test_printf(stderr, BRIGHT, "] ");
+	catcierge_test_printf(stderr, COLOR_BRIGHT, "[");
+	catcierge_test_printf(stderr, COLOR_RED, "FAILURE");
+	catcierge_test_printf(stderr, COLOR_BRIGHT, "] ");
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 
@@ -174,7 +174,7 @@ void catcierge_test_STATUS_ex(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	
-	catcierge_test_vprintf(stdout, CSTATUS, fmt, args);
+	catcierge_test_vprintf(stdout, COLOR_STATUS, fmt, args);
 
 	va_end(args);
 }
@@ -184,7 +184,7 @@ void catcierge_test_STATUS(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	
-	catcierge_test_vprintf(stdout, CSTATUS, fmt, args);
+	catcierge_test_vprintf(stdout, COLOR_STATUS, fmt, args);
 	printf("\n");
 
 	va_end(args);
@@ -195,9 +195,9 @@ void catcierge_test_SKIPPED(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	
-	catcierge_test_printf(stderr, BRIGHT, "[");
-	catcierge_test_printf(stderr, YELLOW, "SKIPPED");
-	catcierge_test_printf(stderr, BRIGHT, "] ");
+	catcierge_test_printf(stderr, COLOR_BRIGHT, "[");
+	catcierge_test_printf(stderr, COLOR_YELLOW, "SKIPPED");
+	catcierge_test_printf(stderr, COLOR_BRIGHT, "] ");
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 
@@ -213,14 +213,14 @@ void catcierge_test_HEADLINE(const char *headline)
 
 	for (i = 0; i < (start - 1); i++)
 	{
-		catcierge_test_printf(stdout, BRIGHT, "=");
+		catcierge_test_printf(stdout, COLOR_BRIGHT, "=");
 	}
 
-	catcierge_test_printf(stdout, MAGNETA, " %s ", headline);
+	catcierge_test_printf(stdout, COLOR_MAGNETA, " %s ", headline);
 
 	for (i = start + len + 1; i < MAX_HEADLINE_WIDTH; i++)
 	{
-		catcierge_test_printf(stdout, BRIGHT, "=");
+		catcierge_test_printf(stdout, COLOR_BRIGHT, "=");
 	}
 
 	fprintf(stdout, "\n");
