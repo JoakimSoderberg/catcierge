@@ -10,6 +10,7 @@ matrix:
     - compiler: clang
       env: CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug" COVERALLS=yes
 install:
+  - sudo apt-get install libopencv-core-dev libopencv-highgui-dev libopencv-imgproc-dev
   - if [ x$CAT_METHOD == xcoverage ]; then sudo pip install cpp-coveralls; fi
   - if [ x$CAT_METHOD == xcoverage ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
   - if [ x$CAT_METHOD == xmemcheck ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
