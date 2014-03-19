@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/JoakimSoderberg/catcierge.png)](https://travis-ci.org/JoakimSoderberg/catcierge)
+[![Coverage Status](https://coveralls.io/repos/JoakimSoderberg/catcierge/badge.png)](https://coveralls.io/r/JoakimSoderberg/catcierge)
+
 Catcierge
 =========
 ![Catcierge](https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/diy/small_logo.jpg)
