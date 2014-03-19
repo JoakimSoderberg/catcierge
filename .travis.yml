@@ -19,4 +19,4 @@ script:
   - if [ x$CAT_METHOD == xcoverage ]; then cmake -DRPI=0 $CMAKE_ARGS . && cmake --build . && ctest --output-on-failure; fi
   - if [ x$CAT_METHOD == xmemcheck ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && ctest --output-on-failure; fi
 after_success:
-  - if [ x$COVERALLS == xyes ]; then coveralls -x c --exclude test --exclude examples --exclude-pattern 'CMake.*?\.c' --exclude-pattern 'CMake.*?\.cpp' --exclude-pattern '.*?\.h'; fi
+  - if [ x$COVERALLS == xyes ]; then coveralls -x c --exclude-pattern 'CMake.*?\.c' --exclude-pattern 'TEST_.*?\.c' --exclude-pattern 'CMake.*?\.cpp' --exclude-pattern '.*?\.h'; fi
