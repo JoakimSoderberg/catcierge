@@ -9,6 +9,7 @@
 #include "catcierge_util.h"
 #include "catcierge.h"
 #include "catcierge_timer.h"
+#include "catcierge_args.h"
 
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"

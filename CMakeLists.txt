@@ -237,6 +237,19 @@ if (RPI)
 endif()
 
 ################################## Tests ##################################
+set(REGRESS_SRC
+	${PROJECT_SOURCE_DIR}/catcierge_args.c
+	${PROJECT_SOURCE_DIR}/catcierge_fsm.c
+	${PROJECT_SOURCE_DIR}/catcierge_gpio.c
+	${PROJECT_SOURCE_DIR}/catcierge_log.c
+	${PROJECT_SOURCE_DIR}/catcierge_rfid.c
+	${PROJECT_SOURCE_DIR}/catcierge_timer.c
+	${PROJECT_SOURCE_DIR}/catcierge_util.c)
+
+if (WIN32)
+	list(APPED REGRESS_SRC win32/gettimeofday.c)
+endif()
+
 ENABLE_TESTING()
 add_subdirectory(test)
 

@@ -181,6 +181,7 @@ int main(int argc, char **argv)
 		catcierge_calculate_fps(&grb);
 	} while (grb.running);
 
+	catcierge_destroy(&grb.matcher);
 	catcierge_destroy_camera(&grb);
 	catcierge_grabber_destroy(&grb);
 

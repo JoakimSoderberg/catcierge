@@ -14,6 +14,7 @@ char *run_tests()
 	catcierge_timer_set(&t, 5.0);
 
 	catcierge_test_STATUS("Wait 5 seconds for timer...");
+	mu_assert("Expected timer to be active", catcierge_timer_isactive(&t));
 
 	sleep(5);
 	val = catcierge_timer_get(&t);

@@ -22,6 +22,7 @@
 void catcierge_run_state(catcierge_grb_t *grb)
 {
 	assert(grb);
+	assert(grb->state);
 	grb->state(grb);
 }
 
@@ -357,7 +358,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		snprintf(grb->matches[grb->match_count].path,
 			sizeof(grb->matches[grb->match_count].path),
 			"%s/match_%s_%s__%d.png",
-			args->output_path,
+			args->output_path ? args->output_path : ".",
 			match_success ? "" : "fail",
 			time_str,
 			grb->match_count);
