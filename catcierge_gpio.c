@@ -18,9 +18,17 @@
 //
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef CATCIERGE_HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+
+#ifdef CATCIERGE_HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+
 #include <string.h>
+#include "catcierge_util.h"
 #include "catcierge_log.h"
 
 static int write_num_to_file(const char *path, int num)

@@ -6,11 +6,11 @@
 #include <catcierge_config.h>
 #include "catcierge_args.h"
 #include "catcierge_log.h"
+#ifdef WITH_RFID
 #include "catcierge_rfid.h"
+#endif // WITH_RFID
 
-#ifdef WITH_INI
 #include "alini/alini.h"
-#endif
 
 static int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char *allowed)
 {
@@ -437,14 +437,16 @@ static void catcierge_config_free_temp_strings(catcierge_args_t *args)
 void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 {
 	fprintf(stderr, "Usage: %s [options]\n\n", prog);
-	fprintf(stderr, " --snout <paths>        Path to the snout images to use. If more than one path is\n");
-	fprintf(stderr, "                        given, the average match result is used.\n");
-	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0. Default %.1f\n", DEFAULT_MATCH_THRESH);
+	fprintf(stderr, " --snout <paths>        Path to the snout images to use. If more than \n");
+	fprintf(stderr, "                        one path is given, the average match result is used.\n");
+	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0.\n");
+	fprintf(stderr, "                        Default %.1f\n", DEFAULT_MATCH_THRESH);
 	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
 	fprintf(stderr, " --lockout_error <n>    Number of lockouts in a row is allowed before we\n");
 	fprintf(stderr, "                        consider it an error and quit the program. \n");
 	fprintf(stderr, "                        Default is to never do this.\n");
-	fprintf(stderr, " --lockout_dummy        Do everything as normal, but don't actually lock the door.\n");
+	fprintf(stderr, " --lockout_dummy        Do everything as normal, but don't actually\n");
+	fprintf(stderr, "                        lock the door.\n");
 	fprintf(stderr, "                        This is useful for testing.\n");
 	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
 	fprintf(stderr, " --match_flipped <0|1>  Match a flipped version of the snout\n");
@@ -456,8 +458,10 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
 	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
 	#ifdef WITH_INI
-	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg or /etc/catcierge.cfg\n");
-	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are the same as these options.\n");
+	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg\n");
+	fprintf(stderr, "                        or /etc/catcierge.cfg\n");
+	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are\n");
+	fprintf(stderr, "                        the same as these options.\n");
 	#endif // WITH_INI
 	#ifdef WITH_RFID
 	fprintf(stderr, "\n");
@@ -472,23 +476,26 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	#endif // WITH_RFID
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Commands:\n");
-	fprintf(stderr, "   (Note that %%0, %%1, %%2... will be replaced in the input, see --cmdhelp for details)\n");
+	fprintf(stderr, "(Note that %%0, %%1, ... will be replaced in the input, see --cmdhelp for details)\n");
 	#define EPRINT_CMD_HELP(fmt, ...) if (args->show_cmd_help) fprintf(stderr, fmt, ##__VA_ARGS__);
 	EPRINT_CMD_HELP("\n");
 	EPRINT_CMD_HELP("   General: %%cwd will output the current working directory for this program.\n");
-	EPRINT_CMD_HELP("            Any paths returned are relative to this. %%%% Produces a literal %% sign.\n");
+	EPRINT_CMD_HELP("            Any paths returned are relative to this.\n");
+	EPRINT_CMD_HELP("            %%%% Produces a literal %% sign.\n");
 	EPRINT_CMD_HELP("\n");
 	fprintf(stderr, " --match_cmd <cmd>      Command to run after a match is made.\n");
 	EPRINT_CMD_HELP("                         %%0 = [float] Match result.\n");
 	EPRINT_CMD_HELP("                         %%1 = [0/1]   Success or failure.\n");
-	EPRINT_CMD_HELP("                         %%2 = [path]  Path to where image will be saved (Not saved yet!)\n");
+	EPRINT_CMD_HELP("                         %%2 = [path]  Path to where image will be saved\n");
+	EPRINT_CMD_HELP("                                       (Not saved yet!)\n");
 	EPRINT_CMD_HELP("\n");
 	fprintf(stderr, " --save_img_cmd <cmd>   Command to run at the moment a match image is saved.\n");
 	EPRINT_CMD_HELP("                         %%0 = [float]  Match result, 0.0-1.0\n");
 	EPRINT_CMD_HELP("                         %%1 = [0/1]    Match success.\n");
 	EPRINT_CMD_HELP("                         %%2 = [string] Image path (Image is saved to disk).\n");
 	EPRINT_CMD_HELP("\n");
-	fprintf(stderr, " --save_imgs_cmd <cmd>  Command that runs when all match images have been saved to disk.\n");
+	fprintf(stderr, " --save_imgs_cmd <cmd>  Command that runs when all match images have been saved\n");
+	fprintf(stderr, "                        to disk.\n");
 	fprintf(stderr, "                        (This is most likely what you want to use in most cases)\n");
 	EPRINT_CMD_HELP("                         %%0 = [0/1]    Match success.\n");
 	EPRINT_CMD_HELP("                         %%1 = [string] Image path for first match.\n");

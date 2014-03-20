@@ -30,7 +30,6 @@ set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}
 
 option(CATCIERGE_WITH_MEMCHECK "Run tests with memory check using valgrind" ON)
 option(CATCIERGE_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" OFF)
-option(WITH_INI "Build ini config file support" ON)
 option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
 option(RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." ON)
 set(RPI_USERLAND "/home/pi/dev/userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
@@ -54,6 +53,15 @@ if (CATCIERGE_COVERAGE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
 endif()
+
+add_definitions(-DWITH_INI)
+
+#
+# System introspection.
+#
+include(CheckIncludeFiles)
+check_include_files(unistd.h CATCIERGE_HAVE_UNISTD_H)
+check_include_files(fcntl.h CATCIERGE_HAVE_FCNTL_H)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/catcierge_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -240,14 +248,20 @@ endif()
 set(REGRESS_SRC
 	${PROJECT_SOURCE_DIR}/catcierge_args.c
 	${PROJECT_SOURCE_DIR}/catcierge_fsm.c
-	${PROJECT_SOURCE_DIR}/catcierge_gpio.c
 	${PROJECT_SOURCE_DIR}/catcierge_log.c
-	${PROJECT_SOURCE_DIR}/catcierge_rfid.c
 	${PROJECT_SOURCE_DIR}/catcierge_timer.c
 	${PROJECT_SOURCE_DIR}/catcierge_util.c)
 
+if (WITH_RFID)
+	list(APPEND REGRESS_SRC ${PROJECT_SOURCE_DIR}/catcierge_rfid.c)
+endif()
+
 if (WIN32)
-	list(APPED REGRESS_SRC win32/gettimeofday.c)
+	list(APPEND REGRESS_SRC ${PROJECT_SOURCE_DIR}/win32/gettimeofday.c)
+endif()
+
+if (RPI)
+	list(APPEND REGRESS_SRC ${PROJECT_SOURCE_DIR}/catcierge_gpio.c)
 endif()
 
 ENABLE_TESTING()
@@ -259,7 +273,6 @@ message("------------------------------------------------------------------")
 message("                                 Version: v${CATCIERGE_VERSION_STR}")
 message("          Built for Raspberry pi (-DRPI): ${RPI}")
 message("  Raspberry pi userland (-DRPI_USERLAND): ${RPI_USERLAND}")
-message("         INI Config support (-DWITH_INI): ${WITH_INI}")
 message("              RFID support (-DWITH_RFID): ${WITH_RFID}")
 message("          Run valgrind memcheck on tests ")
 message("             (-DCATCIERGE_WITH_MEMCHECK): ${CATCIERGE_WITH_MEMCHECK}")
