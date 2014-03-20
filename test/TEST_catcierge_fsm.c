@@ -7,6 +7,10 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
+// TODO: Enable these to run from any build tree...
+#define SNOUT1_PATH "../examples/snout/snout320x240.png"
+#define SNOUT2_PATH "../examples/snout/snout320x240_04b.png"
+
 static IplImage *open_test_image(int series, int i)
 {
 	char path[1024];
@@ -14,7 +18,7 @@ static IplImage *open_test_image(int series, int i)
 	snprintf(path, sizeof(path), "../examples/real/series/%04d_%02d.png", series, i);
 	catcierge_test_STATUS("%s", path);
 
-	return cvLoadImage(path, 0);	
+	return cvLoadImage(path, 0);
 }
 
 static void free_test_image(catcierge_grb_t *grb)
@@ -33,7 +37,7 @@ static void load_test_image_and_run(catcierge_grb_t *grb, int series, int i)
 	free_test_image(grb);		
 }
 
-static char *run_tests()
+static char *run_normal_tests(int obstruct)
 {
 	int i;
 	int j;
@@ -43,9 +47,9 @@ static char *run_tests()
 
 	catcierge_grabber_init(&grb);
 
-	args->snout_paths[0] = "../examples/snout/snout320x240.png";
+	args->snout_paths[0] = SNOUT1_PATH;
 	args->snout_count++;
-	args->snout_paths[1] = "../examples/snout/snout320x240_04b.png";
+	args->snout_paths[1] = SNOUT2_PATH;
 	args->snout_count++;
 
 	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
@@ -68,7 +72,7 @@ static char *run_tests()
 		// and triggers the matching.
 		load_test_image_and_run(&grb, j, 1);
 		mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
-		
+
 		// Match against 4 pictures, and decide the lockout status.
 		for (i = 1; i <= 4; i++)
 		{
@@ -77,9 +81,22 @@ static char *run_tests()
 
 		mu_assert("Expected KEEP OPEN state", (grb.state == catcierge_state_keepopen));
 		
-		// Give it a clear frame so that it will stop
-		load_test_image_and_run(&grb, 1, 5);
-		mu_assert("Expected WAITING state", (grb.state == catcierge_state_waiting));
+		if (obstruct)
+		{
+			// First obstruct the frame.
+			load_test_image_and_run(&grb, j, 1);
+			mu_assert("Expected WAITING state", (grb.state == catcierge_state_keepopen));
+
+			// And then clear it.
+			load_test_image_and_run(&grb, 1, 5);
+			mu_assert("Expected WAITING state", (grb.state == catcierge_state_waiting));
+		}
+		else
+		{
+			// Give it a clear frame so that it will stop
+			load_test_image_and_run(&grb, 1, 5);
+			mu_assert("Expected WAITING state", (grb.state == catcierge_state_waiting));	
+		}
 	}
 
 	catcierge_grabber_destroy(&grb);
@@ -93,7 +110,12 @@ int TEST_catcierge_fsm(int argc, char **argv)
 
 	catcierge_test_HEADLINE("TEST_catcierge_fsm");
 
-	if ((e = run_tests())) catcierge_test_FAILURE(e);
+	catcierge_test_STATUS("Run normal tests. Without obstruct");
+	if ((e = run_normal_tests(0))) catcierge_test_FAILURE(e);
+	else catcierge_test_SUCCESS("");
+
+	catcierge_test_STATUS("Run normal tests. With obstruct");
+	if ((e = run_normal_tests(1))) catcierge_test_FAILURE(e);
 	else catcierge_test_SUCCESS("");
 
 	return 0;
