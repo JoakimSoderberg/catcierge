@@ -754,7 +754,7 @@ match_direction_t get_match_direction(int match_success, int going_out)
 static void process_match_result(IplImage *img, CvRect *match_rects, size_t match_rect_count,
 								int match_success, double match_res, int going_out)
 {
-	int i;
+	size_t i;
 	char time_str[256];
 	CATLOGFPS("%f %sMatch%s\n", match_res, match_success ? "" : "No ", going_out ? " OUT" : " IN");
 
@@ -1401,7 +1401,7 @@ static void process_frames()
 	int frame_obstructed = 0;
 	int match_success = 0;
 	int going_out = 0;
-	int i;
+	size_t i;
 	int enough_time = 0;
 
 	// Start time of loop used for FPS calculations.
@@ -1524,7 +1524,7 @@ static void process_frames()
 
 int main(int argc, char **argv)
 {
-	int i;
+	size_t i;
 	int cfg_err = -1;
 
 	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n\n");

@@ -196,7 +196,7 @@ int catcierge_init(catcierge_t *ctx, const char **snout_paths, int snout_count)
 
 void catcierge_destroy(catcierge_t *ctx)
 {
-	int i;
+	size_t i;
 	assert(ctx);
 
 	if (ctx->snouts)
@@ -260,7 +260,7 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img,
 	double max_val;
 	double match_sum = 0.0;
 	double match_avg = 0.0;
-	int i;
+	size_t i;
 	assert(ctx);
 
 	if ((img_size.width != ctx->width)

@@ -20,6 +20,7 @@
 #define __CATCIERGE_H__
 
 #include <opencv2/imgproc/imgproc_c.h>
+#include <stdio.h>
 
 #define CATCIERGE_LOW_BINARY_THRESH_DEFAULT 90
 #define CATCIERGE_HIGH_BINARY_THRESH_DEFAULT 255
@@ -33,7 +34,7 @@ typedef struct catcierge_s
 	int width;
 	int height;
 	IplImage **snouts;
-	int snout_count;
+	size_t snout_count;
 	IplImage **flipped_snouts;
 	IplConvKernel *kernel;
 	IplImage **matchres;

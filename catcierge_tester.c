@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 	catcierge_set_debug(&ctx, debug);
 	//catcierge_set_binary_thresholds(&ctx, 90, 200);
 
-	for (i = 0; i < img_count; i++)
+	for (i = 0; i < (int)img_count; i++)
 	{
 		match_success = 0;
 
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 			match_color = CV_RGB(255, 0, 0);
 		}
 
-		for (j = 0; j < snout_count; j++)
+		for (j = 0; j < (int)snout_count; j++)
 		{
 			cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
 		}
