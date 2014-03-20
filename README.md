@@ -37,7 +37,9 @@ For the image recognition catcierge users OpenCV using the
 [raspicam_cv library][raspicam_cv] written by [Emil Valkov][emil_valkov]
 (which is included in the catcierge source).
 
-To install OpenCV:
+### Raspberry pi
+
+To install OpenCV on raspbian:
 
 ```bash
 $ sudo apt-get install cmake opencv-dev build-essential
@@ -53,11 +55,27 @@ $ ./buildme
 $ pwd # Save this path for compiling.
 ```
 
+### Linux / OSX
+
+Use your favorite package system to install OpenCV.
+
+You can also use your own build of OpenCV when compiling:
+
+from git [https://github.com/itseez/opencv](https://github.com/itseez/opencv)
+
+or download: [http://opencv.org/downloads.html](http://opencv.org/downloads.html)
+
+### Windows
+
+Download OpenCV 2.x for Windows: [http://opencv.org/downloads.html](http://opencv.org/downloads.html)
+
+Unpack it to a known path (you need this when compiling).
+
 Compiling
 ---------
-Catcierge uses the CMake build system.
+Catcierge uses the CMake build system. To compile:
 
-To compile on Raspbian:
+### Raspbian:
 
 ```bash
 $ git clone <url>
@@ -74,6 +92,37 @@ it from the compilation:
 $ cmake -DRPI_USERLAND=/path/to/rpi/userland -DWITH_RFID=OFF ..
 ```
 
+### Linux / OSX
+
+```bash
+$ git clone <url>
+$ cd catcierge
+$ mkdir build && cd build
+$ cmake -DRPI=0 ..
+$ cmake --build .
+```
+
+If OpenCV is not automatically found, build your own (See above for downloads)
+and point CMake to that build:
+
+```bash
+... # Same as above...
+$ cmake -DRPI=0 -DOpenCV_DIR=/path/to/opencv/build .. # This should be the path containing OpenCVConfig.cmake
+$ cmake --build .
+```
+
+### Windows
+
+Assuming you're using [git bash](http://git-scm.com/) and [Visual Studio Express](http://www.visualstudio.com/downloads/download-visual-studio-vs) (or more advanced version).
+
+```bash
+$ git clone <url>
+$ cd catcierge
+$ mkdir build && cd build
+$ cmake -DOpenCV_DIR=/c/PATH/TO/OPENCV/build .. # The OpenCV path must contain OpenCVConfig.cmake
+$ cmake --build .     # Either build from command line...
+$ start catcierge.sln # Or launch Visual Studio and build from there...
+```
 Running
 -------
 The main program is named [catcierge_grabber](catcierge_grabber.c) which 
