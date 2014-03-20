@@ -29,7 +29,7 @@
 #define PATH_MAX MAX_PATH
 #define getcwd _getcwd
 #define snprintf _snprintf
-#define sleep Sleep
+#define sleep(x) Sleep((x)*1000)
 #endif // _WIN32
 
 void catcierge_execute(char *command, char *fmt, ...);

@@ -26,7 +26,7 @@ char *run_test1()
 	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1));
 
 	mu_assert("Expected show to be set", args.show);
-	catcierge_test_STATUS("Snout count %zu", args.snout_count);
+	catcierge_test_STATUS("Snout count %lu", args.snout_count);
 	mu_assert("Expected snout count to be 2", args.snout_count == 2);
 	mu_assert("Unexpected snout", !strcmp(test1[2], args.snout_paths[0]));
 	
