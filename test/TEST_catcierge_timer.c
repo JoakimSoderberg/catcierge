@@ -36,12 +36,13 @@ char *run_tests()
 
 int TEST_catcierge_timer(int argc, char **argv)
 {
+	int ret = 0;
 	char *e = NULL;
 
 	catcierge_test_HEADLINE("TEST_catcierge_timer");
 
-	if ((e = run_tests())) catcierge_test_FAILURE(e);
+	if ((e = run_tests())) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("");
 	
-	return 0;
+	return ret;
 }

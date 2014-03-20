@@ -3,13 +3,10 @@
 #include <string.h>
 #include "catcierge_fsm.h"
 #include "minunit.h"
+#include "catcierge_test_config.h"
 #include "catcierge_test_helpers.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
-
-// TODO: Enable these to run from any build tree...
-#define SNOUT1_PATH "../examples/snout/snout320x240.png"
-#define SNOUT2_PATH "../examples/snout/snout320x240_04b.png"
 
 static IplImage *open_test_image(int series, int i)
 {
@@ -37,6 +34,12 @@ static void load_test_image_and_run(catcierge_grb_t *grb, int series, int i)
 	free_test_image(grb);		
 }
 
+//
+// Tests passing 1 initial image that triggers matching.
+// Then pass 4 images that should result in a successful match.
+// Finally if "obstruct" is set, a single image is passed that obstructs the frame.
+// After that we expect to go back to waiting.
+//
 static char *run_normal_tests(int obstruct)
 {
 	int i;
@@ -47,9 +50,9 @@ static char *run_normal_tests(int obstruct)
 
 	catcierge_grabber_init(&grb);
 
-	args->snout_paths[0] = SNOUT1_PATH;
+	args->snout_paths[0] = CATCIERGE_SNOUT1_PATH;
 	args->snout_count++;
-	args->snout_paths[1] = SNOUT2_PATH;
+	args->snout_paths[1] = CATCIERGE_SNOUT2_PATH;
 	args->snout_count++;
 
 	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
@@ -106,17 +109,18 @@ static char *run_normal_tests(int obstruct)
 
 int TEST_catcierge_fsm(int argc, char **argv)
 {
+	int ret = 0;
 	char *e = NULL;
 
 	catcierge_test_HEADLINE("TEST_catcierge_fsm");
 
 	catcierge_test_STATUS("Run normal tests. Without obstruct");
-	if ((e = run_normal_tests(0))) catcierge_test_FAILURE(e);
+	if ((e = run_normal_tests(0))) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("");
 
 	catcierge_test_STATUS("Run normal tests. With obstruct");
-	if ((e = run_normal_tests(1))) catcierge_test_FAILURE(e);
+	if ((e = run_normal_tests(1))) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("");
 
-	return 0;
+	return ret;
 }

@@ -71,6 +71,7 @@ char *run_test2()
 
 int TEST_catcierge_args(int argc, char **argv)
 {
+	int ret = 0;
 	int i;
 	test_func funcs[] = { run_test1, run_test2 };
 	#define FUNC_COUNT (sizeof(funcs) / sizeof(test_func))
@@ -79,8 +80,8 @@ int TEST_catcierge_args(int argc, char **argv)
 
 	for (i = 0; i < FUNC_COUNT; i++)
 	{
-		if ((e = funcs[i]())) catcierge_test_FAILURE("%s", e);
+		if ((e = funcs[i]())) { catcierge_test_FAILURE("%s", e); ret = -1; }
 		else catcierge_test_SUCCESS("");
 	}
-	return 0;
+	return ret;
 }
