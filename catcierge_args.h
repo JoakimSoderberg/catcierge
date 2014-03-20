@@ -26,10 +26,6 @@ typedef struct catcierge_args_s
 	int match_time;
 	int match_flipped;
 	char *output_path;
-	char *rfid_inner_path;
-	char *rfid_outer_path;
-	double rfid_lock_time;
-	int lock_on_invalid_rfid;
 	const char *snout_paths[MAX_SNOUT_COUNT];
 	size_t snout_count;
 	double match_threshold;
@@ -40,14 +36,20 @@ typedef struct catcierge_args_s
 	char *match_done_cmd;
 	char *do_lockout_cmd;
 	char *do_unlock_cmd;
-	char *rfid_detect_cmd;
-	char *rfid_match_cmd;
 	char *config_path;
 	int temp_config_count;
 	char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
 
+	#ifdef WITH_RFID
+	char *rfid_detect_cmd;
+	char *rfid_match_cmd;
+	char *rfid_inner_path;
+	char *rfid_outer_path;
+	double rfid_lock_time;
+	int lock_on_invalid_rfid;
 	char **rfid_allowed;
 	int rfid_allowed_count;
+	#endif // WITH_RFID
 } catcierge_args_t;
 
 int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv);

@@ -4,6 +4,7 @@
 #include "catcierge_args.h"
 #include "minunit.h"
 #include "catcierge_test_helpers.h"
+#include "catcierge_config.h"
 
 typedef char *(*test_func)();
 
@@ -47,8 +48,10 @@ char *run_test2()
 		"--lockout", "5",
 		"--lockout_error", "3",
 		"--lockout_dummy",
-		"--matchtime", "10",
-		"--rfid_allowed", "444,555,3333"
+		"--matchtime", "10"
+		#ifdef WITH_RFID
+		,"--rfid_allowed", "444,555,3333"
+		#endif
 	};
 	#define TEST1_COUNT (sizeof(test1) / sizeof(char *))
 
@@ -56,7 +59,10 @@ char *run_test2()
 
 	// Parse command line arguments.
 	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1));
+	
+	#ifdef WITH_RFID
 	mu_assert("Expected RFID allowed to be 3", args.rfid_allowed_count == 3);
+	#endif // WITH_RFID
 	
 	catcierge_args_destroy(&args);
 

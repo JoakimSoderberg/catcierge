@@ -50,9 +50,7 @@
 #define CATLOGFPS(fmt, ...) { if (show_fps) log_print(stdout, "%d fps  " fmt, fps, ##__VA_ARGS__); else CATLOG(fmt, ##__VA_ARGS__); }
 #define CATERRFPS(fmt, ...) { if (show_fps) log_print(stderr, "%d fps  " fmt, fps, ##__VA_ARGS__); else CATLOG(fmt, ##__VA_ARGS__); }
 
-#ifdef WITH_INI
 #include "alini/alini.h"
-#endif
 
 //
 // Piborg Picoborg pins.
@@ -103,10 +101,8 @@ size_t snout_count = 0;		// The number of snout images to use.
 char *output_path = NULL;	// Output directory for match images.
 char *log_path = NULL;		// Log path.
 FILE *log_file = NULL;		// Log file handle.
-#ifdef WITH_INI
 char *config_path = NULL;	// Configuraton path.
 alini_parser_t *parser;		// Config file parser (ini file format).
-#endif // WITH_INI
 int running = 0;	// Main loop is running (SIGINT will kill it).
 int show = 0;		// Show the output video (X11 only).
 int show_fps = 1;	// Show FPS in log output.
@@ -1157,8 +1153,6 @@ static int parse_setting(const char *key, char **values, size_t value_count)
 	return -1;
 }
 
-#ifdef WITH_INI
-
 int temp_config_count = 0;
 #define MAX_TEMP_CONFIG_VALUES 128
 char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
@@ -1201,7 +1195,6 @@ static void config_free_temp_strings()
 		temp_config_values[i] = NULL;
 	}
 }
-#endif // WITH_INI
 
 static void usage(const char *prog)
 {
@@ -1224,10 +1217,8 @@ static void usage(const char *prog)
 	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
 	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
 	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
-	#ifdef WITH_INI
 	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg or /etc/catcierge.cfg\n");
 	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are the same as these options.\n");
-	#endif // WITH_INI
 	#ifdef WITH_RFID
 	fprintf(stderr, "\n");
 	fprintf(stderr, "RFID:\n");
@@ -1539,11 +1530,9 @@ int main(int argc, char **argv)
 	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR " (C) Joakim Soderberg 2013-2014\n\n");
 
 	if (
-		#ifdef WITH_INI
 			(cfg_err = alini_parser_create(&parser, "catcierge.cfg") < 0)
 		 && (cfg_err = alini_parser_create(&parser, "/etc/catcierge.cfg") < 0)
 		 &&
-		#endif // WITH_INI
 		(argc < 2)
 		)
 	{
@@ -1568,7 +1557,6 @@ int main(int argc, char **argv)
 	}
 	#endif // _WIN32
 
-	#ifdef WITH_INI
 	// Parse once first so we can load the config path if it's missing.
 	// We parse again later so that command line options override the config.
 	if (cfg_err < 0)
@@ -1593,7 +1581,6 @@ int main(int argc, char **argv)
 		alini_parser_setcallback_foundkvpair(parser, alini_cb);
 		alini_parser_start(parser);
 	}
-	#endif // WITH_INI
 
 	if (parse_cmdargs(argc, argv))
 	{
@@ -1766,14 +1753,12 @@ int main(int argc, char **argv)
 	free_rfid_allowed_list();
 	#endif // WITH_RFID
 
-	#ifdef WITH_INI
 	if (!cfg_err)
 	{
 		alini_parser_dispose(parser);
 	}
 
 	config_free_temp_strings();
-	#endif // WITH_INI
 
 	if (log_file)
 	{

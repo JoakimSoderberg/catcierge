@@ -322,7 +322,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 				IplImage *img, int match_success,
 				double match_res, int going_out)
 {
-	int i;
+	size_t i;
 	char time_str[256];
 	catcierge_args_t *args;
 	assert(grb);
@@ -549,7 +549,7 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 	// Show the video feed.
 	if (args->show)
 	{
-		int i;
+		size_t i;
 		CvScalar match_color;
 
 		#ifdef RPI
@@ -576,7 +576,6 @@ int catcierge_state_waiting(catcierge_grb_t *grb);
 
 int catcierge_state_keepopen(catcierge_grb_t *grb)
 {
-	IplImage* img;
 	assert(grb);
 
 	catcierge_show_image(grb);
@@ -624,7 +623,6 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 
 int catcierge_state_lockout(catcierge_grb_t *grb)
 {
-	IplImage* img;
 	assert(grb);
 
 	catcierge_show_image(grb);
@@ -654,9 +652,8 @@ void catcierge_state_transition_lockout(catcierge_grb_t *grb)
 
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
-	int match_success;
-	int frame_obstructed;
 	int going_out;
+	int match_success;
 	double match_res;
 	catcierge_args_t *args;
 	assert(grb);

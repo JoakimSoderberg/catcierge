@@ -54,7 +54,6 @@ if (CATCIERGE_COVERAGE)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
 endif()
 
-add_definitions(-DWITH_INI)
 
 #
 # System introspection.
@@ -181,10 +180,7 @@ if (WITH_RFID)
 	list(APPEND LIB_SRC catcierge_rfid.c)
 endif()
 
-if (WITH_INI)
-	add_definitions(-DWITH_INI)
-	list(APPEND LIB_SRC alini/alini.c)
-endif()
+list(APPEND LIB_SRC alini/alini.c)
 
 add_library(catcierge ${LIB_SRC})
 target_link_libraries(catcierge ${LIBS})

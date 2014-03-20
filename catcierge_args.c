@@ -12,6 +12,7 @@
 
 #include "alini/alini.h"
 
+#ifdef WITH_RFID
 static int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char *allowed)
 {
 	int i;
@@ -74,7 +75,7 @@ static void catcierge_free_rfid_allowed_list(catcierge_args_t *args)
 	free(args->rfid_allowed);
 	args->rfid_allowed = NULL;
 }
-
+#endif // WITH_RFID
 
 static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count)
 {
@@ -387,8 +388,6 @@ static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char
 	return -1;
 }
 
-#ifdef WITH_INI
-
 int temp_config_count = 0;
 #define MAX_TEMP_CONFIG_VALUES 128
 char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
@@ -396,7 +395,7 @@ char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
 static void alini_cb(alini_parser_t *parser, char *section, char *key, char *value)
 {
 	char *value_cpy = NULL;
-	catcierge_args_t *args = alini_parser_get_context(parser);
+	catcierge_args_t *args = (catcierge_args_t *)alini_parser_get_context(parser);
 
 	// We must make a copy of the string and keep it so that
 	// it won't dissapear after the parser has done its thing.
@@ -432,7 +431,6 @@ static void catcierge_config_free_temp_strings(catcierge_args_t *args)
 		args->temp_config_values[i] = NULL;
 	}
 }
-#endif // WITH_INI
 
 void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 {
@@ -457,12 +455,10 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
 	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
 	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
-	#ifdef WITH_INI
 	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg\n");
 	fprintf(stderr, "                        or /etc/catcierge.cfg\n");
 	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are\n");
 	fprintf(stderr, "                        the same as these options.\n");
-	#endif // WITH_INI
 	#ifdef WITH_RFID
 	fprintf(stderr, "\n");
 	fprintf(stderr, "RFID:\n");
@@ -618,7 +614,6 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
 int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
 {
 	int i;
-	int ret;
 	assert(args);
 
 	// If the user has supplied us with a config use that.
@@ -662,7 +657,7 @@ int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
 
 void catcierge_print_settings(catcierge_args_t *args)
 {
-	int i;
+	size_t i;
 
 	printf("--------------------------------------------------------------------------------\n");
 	printf("Settings:\n");
@@ -713,6 +708,9 @@ void catcierge_args_destroy(catcierge_args_t *args)
 	assert(args);
 
 	catcierge_config_free_temp_strings(args);
+
+	#ifdef WITH_RFID
 	catcierge_free_rfid_allowed_list(args);
+	#endif
 }
 
