@@ -28,11 +28,13 @@ set(CATCIERGE_VERSION_PATCH 0)
 
 set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
 
-option(CATCIERGE_WITH_MEMCHECK "Run tests with memory check using valgrind" ON)
-option(CATCIERGE_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" OFF)
-option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
-option(RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." ON)
-set(RPI_USERLAND "/home/pi/dev/userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
+if (UNIX)
+	option(CATCIERGE_WITH_MEMCHECK "Run tests with memory check using valgrind" ON)
+	option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
+	option(RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." ON)
+	option(CATCIERGE_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" OFF)
+	set(RPI_USERLAND "/home/pi/dev/userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
+endif()
 
 # Set some nicer output dirs.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
@@ -54,6 +56,22 @@ if (CATCIERGE_COVERAGE)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
 endif()
 
+if (WIN32)
+	set(WITH_RFID OFF)
+	message("\n!!! Windows currently doesn't support RFID readers !!!\n")
+
+	# Windows couldn't possibly be a raspberry pi...
+	set(RPI OFF)
+endif()
+
+if (MSVC)
+	# Turn off deprecation warnings
+	add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS)
+endif()
+
+if (RPI)
+	add_definitions(-DRPI)
+endif()
 
 #
 # System introspection.
@@ -67,19 +85,25 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-if (WIN32)
-	set(WITH_RFID OFF)
-	message("\n!!! Windows currently doesn't support RFID readers !!!\n")
+if (NOT RPI AND NOT OpenCV_DIR)
+message("-----------------------------------------------------------------")
+message("If CMake cannot find your OpenCV install automatically, you can set:")
+message("")
+message("-DOpenCV_DIR=<path>")
+message("")
+message("to point to the <path> where OpenCVConfig.cmake can be found.")
+message("This file can be found in the build tree of OpenCV")
+message("-----------------------------------------------------------------")
 endif()
 
-if (MSVC)
-	# Turn off deprecation warnings
-	add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS)
-endif()
-
-if (RPI)
-	add_definitions(-DRPI)
-
+# Lazy solution for linking against OpenCV on Raspbian.
+# Simply hard code the paths to the libs...
+#
+# This can be overridden by specifying your own OpenCV build
+# using -DOpenCV_DIR=<path>
+# Where <path> is the directory containing OpenCVConfig.cmake
+# 
+if (RPI AND NOT OpenCV_DIR)
 	set(OpenCV_LIBS 
 		/usr/lib/libopencv_calib3d.a
 		/usr/lib/libopencv_features2d.a
@@ -274,6 +298,12 @@ message("          Run valgrind memcheck on tests ")
 message("             (-DCATCIERGE_WITH_MEMCHECK): ${CATCIERGE_WITH_MEMCHECK}")
 message("           Compile with coverage support")
 message("                  (-DCATCIERGE_COVERAGE): ${CATCIERGE_COVERAGE}")
-message("------------------------------------------------------------------")
+message("-----------------------------------------------------------------")
+if (RPI)
+message(" If compiling on another platform than raspberry pi, make sure ")
+message(" you add -DRPI=OFF to the command line !!!")
+message("-----------------------------------------------------------------")
+endif()
+
 
 
