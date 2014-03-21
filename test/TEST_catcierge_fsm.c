@@ -10,12 +10,18 @@
 
 static IplImage *open_test_image(int series, int i)
 {
+	IplImage *img;
 	char path[1024];
 
-	snprintf(path, sizeof(path), "../examples/real/series/%04d_%02d.png", series, i);
+	snprintf(path, sizeof(path), "%s/real/series/%04d_%02d.png", CATCIERGE_IMG_ROOT, series, i);
 	catcierge_test_STATUS("%s", path);
 
-	return cvLoadImage(path, 0);
+	if (!(img = cvLoadImage(path, 0)))
+	{
+		catcierge_test_FAILURE("Failed to load image %s", path);
+	}
+
+	return img;
 }
 
 static void free_test_image(catcierge_grb_t *grb)
@@ -27,11 +33,16 @@ static void free_test_image(catcierge_grb_t *grb)
 //
 // Helper function for loading an image from disk and running the state machine.
 //
-static void load_test_image_and_run(catcierge_grb_t *grb, int series, int i)
+static int load_test_image_and_run(catcierge_grb_t *grb, int series, int i)
 {
-	grb->img = open_test_image(series, i);
+	if ((grb->img = open_test_image(series, i)) == NULL)
+	{
+		return -1;
+	}
+
 	catcierge_run_state(grb);
-	free_test_image(grb);		
+	free_test_image(grb);
+	return 0;
 }
 
 //

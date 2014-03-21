@@ -23,8 +23,9 @@ endforeach()
 
 include_directories("${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 
-set(CATCIERGE_SNOUT1_PATH "${PROJECT_SOURCE_DIR}/examples/snout/snout320x240.png")
-set(CATCIERGE_SNOUT2_PATH "${PROJECT_SOURCE_DIR}/examples/snout/snout320x240_04b.png")
+set(CATCIERGE_IMG_ROOT "${PROJECT_SOURCE_DIR}/examples")
+set(CATCIERGE_SNOUT1_PATH "${CATCIERGE_IMG_ROOT}/snout/snout320x240.png")
+set(CATCIERGE_SNOUT2_PATH "${CATCIERGE_IMG_ROOT}/snout/snout320x240_04b.png")
 configure_file(catcierge_test_config.h.in ${PROJECT_BINARY_DIR}/catcierge_test_config.h)
 
 # Test drivers.
