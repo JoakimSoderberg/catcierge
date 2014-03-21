@@ -798,6 +798,7 @@ void catcierge_calculate_fps(catcierge_grb_t *grb)
 			CATLOGFPS("%c\n", spinner[spinidx++ % (sizeof(spinner) - 1)]);
 		}
 
+		// Moves the cursor back so that we print the spinner in place.
 		printf("\033[999D");
 		printf("\033[1A");
 		printf("\033[0K");

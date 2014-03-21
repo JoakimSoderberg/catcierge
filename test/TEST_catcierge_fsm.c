@@ -5,6 +5,7 @@
 #include "minunit.h"
 #include "catcierge_test_config.h"
 #include "catcierge_test_helpers.h"
+#include "catcierge_args.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
@@ -45,13 +46,7 @@ static int load_test_image_and_run(catcierge_grb_t *grb, int series, int i)
 	return 0;
 }
 
-//
-// Tests passing 1 initial image that triggers matching.
-// Then pass 4 images that should result in a successful match.
-// Finally if "obstruct" is set, a single image is passed that obstructs the frame.
-// After that we expect to go back to waiting.
-//
-static char *run_normal_tests(int obstruct)
+static char *run_failure_tests(int obstruct)
 {
 	int i;
 	int j;
@@ -61,6 +56,62 @@ static char *run_normal_tests(int obstruct)
 
 	catcierge_grabber_init(&grb);
 
+	args->saveimg = 0;
+	args->snout_paths[0] = CATCIERGE_SNOUT1_PATH;
+	args->snout_count++;
+	args->snout_paths[1] = CATCIERGE_SNOUT2_PATH;
+	args->snout_count++;
+
+	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
+	{
+		return "Failed to init catcierge lib!\n";
+	}
+
+	catcierge_set_match_flipped(&grb.matcher, 1);
+	catcierge_set_match_threshold(&grb.matcher, 0.8);
+
+	catcierge_set_state(&grb, catcierge_state_waiting);
+
+	// Obstruct the frame to begin matching.
+	load_test_image_and_run(&grb, 1, 2);
+
+	// Pass 4 frames (first ok, the rest not...)
+	load_test_image_and_run(&grb, 1, 2);
+	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
+
+	load_test_image_and_run(&grb, 1, 3);
+	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
+
+	load_test_image_and_run(&grb, 1, 4);
+	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
+
+	load_test_image_and_run(&grb, 1, 4);
+	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_lockout));
+	catcierge_test_STATUS("Lockout state as expected");
+
+fail:
+	catcierge_grabber_destroy(&grb);
+
+	return NULL;
+}
+
+//
+// Tests passing 1 initial image that triggers matching.
+// Then pass 4 images that should result in a successful match.
+// Finally if "obstruct" is set, a single image is passed that obstructs the frame.
+// After that we expect to go back to waiting.
+//
+static char *run_success_tests(int obstruct)
+{
+	int i;
+	int j;
+	catcierge_grb_t grb;
+	catcierge_args_t *args;
+	args = &grb.args;
+
+	catcierge_grabber_init(&grb);
+
+	args->saveimg = 0;
 	args->snout_paths[0] = CATCIERGE_SNOUT1_PATH;
 	args->snout_count++;
 	args->snout_paths[1] = CATCIERGE_SNOUT2_PATH;
@@ -125,12 +176,20 @@ int TEST_catcierge_fsm(int argc, char **argv)
 
 	catcierge_test_HEADLINE("TEST_catcierge_fsm");
 
-	catcierge_test_STATUS("Run normal tests. Without obstruct");
-	if ((e = run_normal_tests(0))) { catcierge_test_FAILURE(e); ret = -1; }
+	// Test without anything obstructing the frame after
+	// the successful match.
+	catcierge_test_STATUS("Run success tests. Without obstruct");
+	if ((e = run_success_tests(0))) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("");
 
-	catcierge_test_STATUS("Run normal tests. With obstruct");
-	if ((e = run_normal_tests(1))) { catcierge_test_FAILURE(e); ret = -1; }
+	// Same as above, but add an extra frame obstructing at the end.
+	catcierge_test_STATUS("Run success tests. With obstruct");
+	if ((e = run_success_tests(1))) { catcierge_test_FAILURE(e); ret = -1; }
+	else catcierge_test_SUCCESS("");
+
+	// Pass a set of images known to fail.
+	catcierge_test_STATUS("Run failure tests.");
+	if ((e = run_failure_tests(0))) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("");
 
 	return ret;
