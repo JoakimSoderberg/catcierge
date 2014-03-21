@@ -89,7 +89,7 @@ static char *run_failure_tests(int obstruct)
 	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_lockout));
 	catcierge_test_STATUS("Lockout state as expected");
 
-fail:
+	catcierge_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -164,6 +164,7 @@ static char *run_success_tests(int obstruct)
 		}
 	}
 
+	catcierge_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
