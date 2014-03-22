@@ -1,0 +1,8 @@
+# zlib problems
+{
+   # Fixed in zlib-1.2.4.  See http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=577135
+   zlib_1_2_3_bug
+   Memcheck:Cond
+   fun:inflateReset2
+   fun:inflateInit2_
+}
