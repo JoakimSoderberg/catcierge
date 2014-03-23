@@ -123,6 +123,17 @@ static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char
 		return 0;
 	}
 
+	if (!strcmp(key, "lockout_error_delay"))
+	{
+		if (value_count == 1)
+		{
+			args->consecutive_lockout_delay = atof(values[0]);
+			return 0;
+		}
+
+		return -1;
+	}
+
 	if (!strcmp(key, "lockout_error"))
 	{
 		if (value_count == 1)
@@ -443,6 +454,9 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, " --lockout_error <n>    Number of lockouts in a row is allowed before we\n");
 	fprintf(stderr, "                        consider it an error and quit the program. \n");
 	fprintf(stderr, "                        Default is to never do this.\n");
+	fprintf(stderr, " --lockout_error_delay <seconds>\n");
+	fprintf(stderr, "                        The delay in seconds between lockouts that should be\n");
+	fprintf(stderr, "                        counted as a consecutive lockout. Default %0.1f\n", DEFAULT_CONSECUTIVE_LOCKOUT_DELAY);
 	fprintf(stderr, " --lockout_dummy        Do everything as normal, but don't actually\n");
 	fprintf(stderr, "                        lock the door.\n");
 	fprintf(stderr, "                        This is useful for testing.\n");
@@ -699,6 +713,7 @@ int catcierge_args_init(catcierge_args_t *args)
 	args->match_time = DEFAULT_MATCH_WAIT;
 	args->match_flipped = 1;
 	args->lockout_time = DEFAULT_LOCKOUT_TIME;
+	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
 
 	return 0;
 }

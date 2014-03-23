@@ -448,7 +448,8 @@ static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
 	// might be an error. Such as the backlight failing.
 	if (args->max_consecutive_lockout_count)
 	{
-		if (catcierge_timer_get(&grb->lockout_timer) <= (args->lockout_time + 3.0))
+		if (catcierge_timer_get(&grb->lockout_timer)
+			<= (args->lockout_time + args->consecutive_lockout_delay))
 		{
 			grb->consecutive_lockout_count++;
 			CATLOGFPS("Consecutive lockout! %d out of %d before quiting\n",

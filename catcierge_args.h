@@ -9,6 +9,7 @@
 #define DEFAULT_MATCH_THRESH 0.8	// The threshold signifying a good match returned by catcierge_match.
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 0		// How long to wait after a match try before we match again.
+#define DEFAULT_CONSECUTIVE_LOCKOUT_DELAY 3.0
 #define MAX_TEMP_CONFIG_VALUES 128
 
 typedef struct catcierge_args_s
@@ -20,6 +21,7 @@ typedef struct catcierge_args_s
 	int highlight_match;
 	int show_fps;
 	int lockout_time;
+	double consecutive_lockout_delay;
 	int max_consecutive_lockout_count;
 	int lockout_dummy;
 	int show_cmd_help;
