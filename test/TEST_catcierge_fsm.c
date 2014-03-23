@@ -78,6 +78,11 @@ static char *run_consecutive_lockout_abort_tests()
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
 	args->max_consecutive_lockout_count = 3;
+	// It's important we change this from the default 3 seconds.
+	// Since when the tests run under valgrind they are much slower
+	// we need to extend the time that is counted as consecutive tests
+	// otherwise the consecutive count will become invalid.
+	args->consecutive_lockout_delay = 10;
 	args->lockout_time = 0;
 
 	grb.running = 1;
@@ -163,6 +168,7 @@ static char *run_consecutive_lockout_tests()
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
 	args->max_consecutive_lockout_count = 3;
+	args->consecutive_lockout_delay = 10;
 	args->lockout_time = 0;
 
 	grb.running = 1;
