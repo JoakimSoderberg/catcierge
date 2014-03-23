@@ -91,9 +91,8 @@ static char *run_consecutive_lockout_abort_tests()
 		load_test_image_and_run(&grb, 1, 4);
 		load_test_image_and_run(&grb, 1, 4);
 		catcierge_run_state(&grb);
-		mu_assert("Expected 1 consecutive lockout count", (grb.consecutive_lockout_count == 1));
-
 		catcierge_test_STATUS("Consecutive lockout %d", grb.consecutive_lockout_count);
+		mu_assert("Expected 1 consecutive lockout count", (grb.consecutive_lockout_count == 1));
 
 		load_test_image_and_run(&grb, 1, 2); // Obstruct.
 		load_test_image_and_run(&grb, 1, 2); // Pass 4 images (invalid).
@@ -101,9 +100,8 @@ static char *run_consecutive_lockout_abort_tests()
 		load_test_image_and_run(&grb, 1, 4);
 		load_test_image_and_run(&grb, 1, 4);
 		catcierge_run_state(&grb);
-		mu_assert("Expected 2 consecutive lockout count", (grb.consecutive_lockout_count == 2));
-
 		catcierge_test_STATUS("Consecutive lockout %d", grb.consecutive_lockout_count);
+		mu_assert("Expected 2 consecutive lockout count", (grb.consecutive_lockout_count == 2));
 
 		// Here we expect the lockou count to be reset.
 		// Note that we must sleep at least args->consecutive_lockout_delay seconds
