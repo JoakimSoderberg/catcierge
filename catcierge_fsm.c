@@ -26,9 +26,23 @@ void catcierge_run_state(catcierge_grb_t *grb)
 	grb->state(grb);
 }
 
+char *catcierge_get_state_string(catcierge_state_func_t state)
+{
+	if (state == catcierge_state_waiting) return "waiting";
+	if (state == catcierge_state_matching) return "matching";
+	if (state == catcierge_state_keepopen) return "keep open";
+	if (state == catcierge_state_lockout) return "lockout";
+
+	return "initial";
+}
+
 void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 {
 	assert(grb);
+	CATLOG("      %s -> %s\n",
+		catcierge_get_state_string(grb->state),
+		catcierge_get_state_string(new_state));
+
 	grb->state = new_state;
 }
 
@@ -455,7 +469,7 @@ static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
 			catcierge_do_unlock(grb);
 			// TODO: Add a special event the user can trigger an external program with here...
 			grb->running = 0;
-			exit(1);
+			//exit(1);
 		}
 	}
 }
@@ -545,6 +559,9 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 	catcierge_args_t *args;
 	assert(grb);
 	args = &grb->args;
+
+	if (!grb->img)
+		return;
 
 	// Show the video feed.
 	if (args->show)

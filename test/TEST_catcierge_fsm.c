@@ -46,10 +46,65 @@ static int load_test_image_and_run(catcierge_grb_t *grb, int series, int i)
 	return 0;
 }
 
-static char *run_failure_tests(int obstruct)
+static char *run_consecutive_lockout_tests()
 {
 	int i;
-	int j;
+	catcierge_grb_t grb;
+	catcierge_args_t *args;
+	args = &grb.args;
+
+	catcierge_grabber_init(&grb);
+
+	args->saveimg = 0;
+	args->snout_paths[0] = CATCIERGE_SNOUT1_PATH;
+	args->snout_count++;
+	args->snout_paths[1] = CATCIERGE_SNOUT2_PATH;
+	args->snout_count++;
+
+	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
+	{
+		return "Failed to init catcierge lib!\n";
+	}
+
+	catcierge_set_match_flipped(&grb.matcher, 1);
+	catcierge_set_match_threshold(&grb.matcher, 0.8);
+
+	catcierge_set_state(&grb, catcierge_state_waiting);
+
+	args->max_consecutive_lockout_count = 3;
+	args->lockout_time = 0;
+
+	grb.running = 1;
+
+	// Cause "max consecutive lockout count" of lockouts
+	// to make sure an abort is triggered.
+	for (i = 0; i <= 3; i++)
+	{
+		// Obstruct the frame to begin matching.
+		load_test_image_and_run(&grb, 1, 2);
+
+		load_test_image_and_run(&grb, 1, 2);
+		load_test_image_and_run(&grb, 1, 3);
+		load_test_image_and_run(&grb, 1, 4);
+		load_test_image_and_run(&grb, 1, 4);
+
+		// Run the statemachine to end lockout
+		// without passing a new image.
+		catcierge_run_state(&grb);
+
+		catcierge_test_STATUS("Consecutive lockout %d", i+1);
+	}
+
+	mu_assert("Expected program to be in non-running state after max_consecutive_lockout_count", (grb.running == 0));
+
+	catcierge_destroy(&grb.matcher);
+	catcierge_grabber_destroy(&grb);
+
+	return NULL;
+}
+
+static char *run_failure_tests(int obstruct)
+{
 	catcierge_grb_t grb;
 	catcierge_args_t *args;
 	args = &grb.args;
@@ -74,6 +129,7 @@ static char *run_failure_tests(int obstruct)
 
 	// Obstruct the frame to begin matching.
 	load_test_image_and_run(&grb, 1, 2);
+	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
 
 	// Pass 4 frames (first ok, the rest not...)
 	load_test_image_and_run(&grb, 1, 2);
@@ -191,6 +247,11 @@ int TEST_catcierge_fsm(int argc, char **argv)
 	// Pass a set of images known to fail.
 	catcierge_test_STATUS("Run failure tests.");
 	if ((e = run_failure_tests(0))) { catcierge_test_FAILURE(e); ret = -1; }
+	else catcierge_test_SUCCESS("");
+
+	// Trigger max consecutive lockout.
+	catcierge_test_STATUS("Run consecutive lockout tests.");
+	if ((e = run_consecutive_lockout_tests())) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("");
 
 	return ret;
