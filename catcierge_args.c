@@ -681,20 +681,23 @@ void catcierge_print_settings(catcierge_args_t *args)
 	{
 		printf("                 %s\n", args->snout_paths[i]);
 	}
-	printf("Match threshold: %.2f\n", args->match_threshold);
-	printf("  Match flipped: %d\n", args->match_flipped);
-	printf("     Show video: %d\n", args->show);
-	printf("   Save matches: %d\n", args->saveimg);
-	printf("Highlight match: %d\n", args->highlight_match);
-	printf("      Lock time: %d seconds\n", args->lockout_time);
-	printf("  Match timeout: %d seconds\n", args->match_time);
-	printf("       Log file: %s\n", args->log_path ? args->log_path : "-");
+	printf("  Match threshold: %.2f\n", args->match_threshold);
+	printf("    Match flipped: %d\n", args->match_flipped);
+	printf("       Show video: %d\n", args->show);
+	printf("     Save matches: %d\n", args->saveimg);
+	printf("  Highlight match: %d\n", args->highlight_match);
+	printf("        Lock time: %d seconds\n", args->lockout_time);
+	printf("    Lockout error: %d %s\n", args->max_consecutive_lockout_count,
+							(args->max_consecutive_lockout_count == 0) ? "(off)" : "");
+	printf("Lockout err delay: %0.1f\n", args->consecutive_lockout_delay);
+	printf("    Match timeout: %d seconds\n", args->match_time);
+	printf("         Log file: %s\n", args->log_path ? args->log_path : "-");
 	#ifdef WITH_RFID
-	printf("     Inner RFID: %s\n", args->rfid_inner_path ? args->rfid_inner_path : "-");
-	printf("     Outer RFID: %s\n", args->rfid_outer_path ? args->rfid_outer_path : "-");
-	printf("Lock on no RFID: %d\n", args->lock_on_invalid_rfid);
-	printf(" RFID lock time: %.2f seconds\n", args->rfid_lock_time);
-	printf("   Allowed RFID: %s\n", (args->rfid_allowed_count <= 0) ? "-" : args->rfid_allowed[0]);
+	printf("       Inner RFID: %s\n", args->rfid_inner_path ? args->rfid_inner_path : "-");
+	printf("       Outer RFID: %s\n", args->rfid_outer_path ? args->rfid_outer_path : "-");
+	printf("  Lock on no RFID: %d\n", args->lock_on_invalid_rfid);
+	printf("   RFID lock time: %.2f seconds\n", args->rfid_lock_time);
+	printf("     Allowed RFID: %s\n", (args->rfid_allowed_count <= 0) ? "-" : args->rfid_allowed[0]);
 	for (i = 1; i < args->rfid_allowed_count; i++)
 	{
 		printf("                 %s\n", args->rfid_allowed[i]);

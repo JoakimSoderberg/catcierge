@@ -179,6 +179,7 @@ static char *run_consecutive_lockout_tests()
 		// Run the statemachine to end lockout
 		// without passing a new image.
 		catcierge_run_state(&grb);
+		mu_assert("Unexpeced consecutive lockout count", (grb.consecutive_lockout_count == (i+1)));
 
 		catcierge_test_STATUS("Consecutive lockout %d", i+1);
 	}
