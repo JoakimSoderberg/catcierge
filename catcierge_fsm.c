@@ -594,6 +594,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb);
 int catcierge_state_keepopen(catcierge_grb_t *grb)
 {
 	assert(grb);
+	grb->consecutive_lockout_count = 0;
 
 	catcierge_show_image(grb);
 
