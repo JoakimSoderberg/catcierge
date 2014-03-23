@@ -440,7 +440,6 @@ static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args;
 	assert(grb);
-	assert(catcierge_timer_isactive(&grb->lockout_timer));
 	args = &grb->args;
 
 	// Check how long ago we perform the last lockout.
@@ -595,7 +594,6 @@ int catcierge_state_waiting(catcierge_grb_t *grb);
 int catcierge_state_keepopen(catcierge_grb_t *grb)
 {
 	assert(grb);
-	grb->consecutive_lockout_count = 0;
 
 	catcierge_show_image(grb);
 
@@ -738,8 +736,8 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 			CATLOG("Lockout! %d out of %d matches failed.\n",
 					(MATCH_MAX_COUNT - success_count), MATCH_MAX_COUNT);
 
-			catcierge_state_transition_lockout(grb);
 			catcierge_check_max_consecutive_lockouts(grb);
+			catcierge_state_transition_lockout(grb);
 		}
 
 		catcierge_execute(args->match_done_cmd, "%d %d %d", 

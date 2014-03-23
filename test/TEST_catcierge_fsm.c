@@ -93,7 +93,7 @@ static char *run_consecutive_lockout_abort_tests()
 		catcierge_run_state(&grb);
 		mu_assert("Expected 1 consecutive lockout count", (grb.consecutive_lockout_count == 1));
 
-		catcierge_test_STATUS("Consecutive lockout %d", 1);
+		catcierge_test_STATUS("Consecutive lockout %d", grb.consecutive_lockout_count);
 
 		load_test_image_and_run(&grb, 1, 2); // Obstruct.
 		load_test_image_and_run(&grb, 1, 2); // Pass 4 images (invalid).
@@ -103,17 +103,22 @@ static char *run_consecutive_lockout_abort_tests()
 		catcierge_run_state(&grb);
 		mu_assert("Expected 2 consecutive lockout count", (grb.consecutive_lockout_count == 2));
 
-		catcierge_test_STATUS("Consecutive lockout %d", 2);
+		catcierge_test_STATUS("Consecutive lockout %d", grb.consecutive_lockout_count);
 
+		// Here we expect the lockou count to be reset.
+		// Note that we must sleep at least args->consecutive_lockout_delay seconds
+		// before causing another lockout, otherwise we will still count it as
+		// a consecutive lockout...
 		load_test_image_and_run(&grb, 1, 1); // Obstruct.
 		load_test_image_and_run(&grb, 1, 1); // Pass 4 images (valid).
 		load_test_image_and_run(&grb, 1, 2);
 		load_test_image_and_run(&grb, 1, 3);
 		load_test_image_and_run(&grb, 1, 4);
 		load_test_image_and_run(&grb, 1, 5); // Clear frame.
-		mu_assert("Expected reset consecutive lockout count", (grb.consecutive_lockout_count == 0));
-
 		catcierge_test_STATUS("Consecutive lockout reset");
+
+		catcierge_test_STATUS("Sleep %0.1f seconds so that the next lockout isn't counted as consecutive", args->consecutive_lockout_delay);
+		sleep(args->consecutive_lockout_delay);
 
 		load_test_image_and_run(&grb, 1, 2); // Obstruct.
 		load_test_image_and_run(&grb, 1, 2); // Pass 4 images (invalid).
@@ -121,9 +126,9 @@ static char *run_consecutive_lockout_abort_tests()
 		load_test_image_and_run(&grb, 1, 4);
 		load_test_image_and_run(&grb, 1, 4);
 		catcierge_run_state(&grb);
-		mu_assert("Expected 1 lockout count", (grb.consecutive_lockout_count == 1));
-
-		catcierge_test_STATUS("Consecutive lockout %d", 1);
+		
+		catcierge_test_STATUS("Consecutive lockout %d", grb.consecutive_lockout_count);
+		mu_assert("Expected 0 lockout count", (grb.consecutive_lockout_count == 0));
 	}
 
 	mu_assert("Expected program to be in running state after consecutive lockout count is aborted", (grb.running == 1));
@@ -321,29 +326,29 @@ int TEST_catcierge_fsm(int argc, char **argv)
 
 	// Test without anything obstructing the frame after
 	// the successful match.
-	catcierge_test_STATUS("Run success tests. Without obstruct");
+	catcierge_test_HEADLINE("Run success tests. Without obstruct");
 	if ((e = run_success_tests(0))) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("");
 
 	// Same as above, but add an extra frame obstructing at the end.
-	catcierge_test_STATUS("Run success tests. With obstruct");
+	catcierge_test_HEADLINE("Run success tests. With obstruct");
 	if ((e = run_success_tests(1))) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("Success match with obstruct");
 
 	// Pass a set of images known to fail.
-	catcierge_test_STATUS("Run failure tests.");
+	catcierge_test_HEADLINE("Run failure tests.");
 	if ((e = run_failure_tests(0))) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("Failure tests");
 
 	// Trigger max consecutive lockout.
-	catcierge_test_STATUS("Run consecutive lockout tests.");
+	catcierge_test_HEADLINE("Run consecutive lockout tests.");
 	if ((e = run_consecutive_lockout_tests())) { catcierge_test_FAILURE(e); ret = -1; }
 	else catcierge_test_SUCCESS("Consecuive lockout tests");
 
 	// Trigger max consecutive lockout.
-	catcierge_test_STATUS("Run consecutive lockout test. Reset counter");
+	catcierge_test_HEADLINE("Run consecutive lockout test. Reset counter");
 	if ((e = run_consecutive_lockout_abort_tests())) { catcierge_test_FAILURE(e); ret = -1; }
-	else catcierge_test_SUCCESS("Consecuive lockout test (with reset counter)");
+	else catcierge_test_SUCCESS("Consecutive lockout test (with reset counter)");
 
 	return ret;
 }
