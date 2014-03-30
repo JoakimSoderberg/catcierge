@@ -166,6 +166,7 @@ int main(int argc, char **argv)
 		{
 			catcierge_timer_start(&grb.frame_timer);
 		}
+
 		// Always feed the RFID readers and read a frame.
 		#ifdef WITH_RFID
 		if ((args->rfid_inner_path || args->rfid_outer_path) 
@@ -178,7 +179,7 @@ int main(int argc, char **argv)
 		grb.img = catcierge_get_frame(&grb);
 
 		catcierge_run_state(&grb);
-		catcierge_calculate_fps(&grb);
+		catcierge_print_spinner(&grb);
 	} while (grb.running);
 
 	catcierge_destroy(&grb.matcher);

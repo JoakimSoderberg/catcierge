@@ -781,7 +781,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 	return 0;
 }
 
-void catcierge_calculate_fps(catcierge_grb_t *grb)
+void catcierge_print_spinner(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args;
 	assert(grb);
@@ -816,6 +816,7 @@ void catcierge_calculate_fps(catcierge_grb_t *grb)
 		}
 
 		// Moves the cursor back so that we print the spinner in place.
+		// TODO: Fix this on windows.
 		printf("\033[999D");
 		printf("\033[1A");
 		printf("\033[0K");

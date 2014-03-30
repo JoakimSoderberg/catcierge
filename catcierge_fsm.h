@@ -104,7 +104,7 @@ void catcierge_do_lockout(catcierge_grb_t *grb);
 void catcierge_do_unlock(catcierge_grb_t *grb);
 IplImage *catcierge_get_frame(catcierge_grb_t *grb);
 void catcierge_run_state(catcierge_grb_t *grb);
-void catcierge_calculate_fps(catcierge_grb_t *grb);
+void catcierge_print_spinner(catcierge_grb_t *grb);
 void catcierge_destroy_camera(catcierge_grb_t *grb);
 int catcierge_setup_gpio(catcierge_grb_t *grb);
 int catcierge_grabber_init(catcierge_grb_t *grb);
