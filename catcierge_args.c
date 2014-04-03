@@ -80,6 +80,8 @@ static void catcierge_free_rfid_allowed_list(catcierge_args_t *args)
 static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count)
 {
 	size_t i;
+	assert(args);
+	assert(key);
 
 	if (!strcmp(key, "show"))
 	{
@@ -592,6 +594,13 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
 			exit(1);
 		}
 
+		if (!strcmp(argv[i], "--config"))
+		{
+			// This isn't handled here, but don't treat it as an error.
+			// (This is parsed in catcierge_parse_config).
+			continue;
+		}
+
 		// Normal options. These can be parsed from the
 		// config file as well.
 		if (!strncmp(argv[i], "--", 2))
@@ -628,6 +637,7 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
 int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
 {
 	int i;
+	int cfg_err = 0;
 	assert(args);
 
 	// If the user has supplied us with a config use that.
@@ -651,7 +661,9 @@ int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
 
 	if (args->config_path)
 	{
-		if (alini_parser_create(&args->parser, args->config_path) < 0)
+		printf("Using config: %s\n", args->config_path);
+
+		if ((cfg_err = alini_parser_create(&args->parser, args->config_path)) < 0)
 		{
 			fprintf(stderr, "Failed to load config %s\n", args->config_path);
 			return -1;
@@ -660,10 +672,21 @@ int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
 	else
 	{
 		// Use default.
-		if (alini_parser_create(&args->parser, "catcierge.cfg") < 0)
+		if ((cfg_err = alini_parser_create(&args->parser, "catcierge.cfg")) < 0)
 		{
-			alini_parser_create(&args->parser, "/etc/catcierge.cfg");
+			cfg_err = alini_parser_create(&args->parser, "/etc/catcierge.cfg");
 		}
+	}
+
+	if (!cfg_err)
+	{
+		alini_parser_setcallback_foundkvpair(args->parser, alini_cb);
+		alini_parser_set_context(args->parser, args);
+		alini_parser_start(args->parser);
+	}
+	else
+	{
+		fprintf(stderr, "No config file found\n");
 	}
 
 	return 0;
@@ -686,6 +709,7 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("       Show video: %d\n", args->show);
 	printf("     Save matches: %d\n", args->saveimg);
 	printf("  Highlight match: %d\n", args->highlight_match);
+	printf("    Lockout dummy: %d\n", args->lockout_dummy);
 	printf("        Lock time: %d seconds\n", args->lockout_time);
 	printf("    Lockout error: %d %s\n", args->max_consecutive_lockout_count,
 							(args->max_consecutive_lockout_count == 0) ? "(off)" : "");

@@ -39,7 +39,7 @@ char *catcierge_get_state_string(catcierge_state_func_t state)
 void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 {
 	assert(grb);
-	CATLOG("      %s -> %s\n",
+	CATLOG("      [%s] -> [%s]\n",
 		catcierge_get_state_string(grb->state),
 		catcierge_get_state_string(new_state));
 
