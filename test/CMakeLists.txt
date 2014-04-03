@@ -36,6 +36,10 @@ add_executable(${CATCIERGE_TEST_DRIVER}
 
 target_link_libraries(${CATCIERGE_TEST_DRIVER} catcierge)
 
+if (RPI)
+	target_link_libraries(${CATCIERGE_TEST_DRIVER} raspicamcv)
+endif()
+
 if (CATCIERGE_WITH_MEMCHECK AND UNIX)
 	find_program(VALGRIND_PROGRAM NAMES valgrind)
 

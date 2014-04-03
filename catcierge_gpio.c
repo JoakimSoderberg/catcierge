@@ -19,6 +19,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "catcierge_config.h"
+
 #ifdef CATCIERGE_HAVE_UNISTD_H
 #include <unistd.h>
 #endif
