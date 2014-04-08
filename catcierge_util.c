@@ -55,7 +55,6 @@ void catcierge_execute(char *command, char *fmt, ...)
 	static char tmp[2048];
 	char *s;
 	int cur_opt = 0;
-	char *argv[3] = {0};
 	char *extras[32];
 	int count = 0;
 	va_list args;
@@ -139,10 +138,12 @@ void catcierge_execute(char *command, char *fmt, ...)
 	//
 	#ifndef _WIN32
 	{
+		char *argv[4] = {0};
 		pid_t pid;
 		argv[0] = "/bin/sh";
 		argv[1] = "-c";
 		argv[2] = buf;
+		argv[3] = NULL;
 
 		// Fork a child process.
 		if ((pid = fork()) < 0)
