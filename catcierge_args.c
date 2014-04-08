@@ -374,6 +374,18 @@ static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char
 		return -1;
 	}
 
+	if (!strcmp(key, "nocolor"))
+	{
+		args->nocolor = 1;
+
+		if (value_count == 1)
+		{
+			args->nocolor = atoi(values[0]);
+		}
+
+		return 0;
+	}
+
 	#ifdef WITH_RFID
 	if (!strcmp(key, "rfid_detect_cmd"))
 	{

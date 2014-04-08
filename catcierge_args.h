@@ -41,6 +41,7 @@ typedef struct catcierge_args_s
 	char *config_path;
 	int temp_config_count;
 	char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
+	int nocolor;
 
 	#ifdef WITH_RFID
 	char *rfid_detect_cmd;

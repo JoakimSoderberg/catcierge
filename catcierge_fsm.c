@@ -28,20 +28,33 @@ void catcierge_run_state(catcierge_grb_t *grb)
 
 char *catcierge_get_state_string(catcierge_state_func_t state)
 {
-	if (state == catcierge_state_waiting) return "waiting";
-	if (state == catcierge_state_matching) return "matching";
-	if (state == catcierge_state_keepopen) return "keep open";
-	if (state == catcierge_state_lockout) return "lockout";
+	if (state == catcierge_state_waiting) return "Waiting";
+	if (state == catcierge_state_matching) return "Matching";
+	if (state == catcierge_state_keepopen) return "Keep open";
+	if (state == catcierge_state_lockout) return "Lockout";
 
-	return "initial";
+	return "Initial";
+}
+
+void catcierge_print_state(catcierge_state_func_t state)
+{
+	log_printf(stdout, COLOR_NORMAL, "[");
+	log_printf(stdout, COLOR_YELLOW, "%s",
+		catcierge_get_state_string(state));
+	log_printf(stdout, COLOR_NORMAL, "]");
 }
 
 void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 {
 	assert(grb);
-	CATLOG("      [%s] -> [%s]\n",
-		catcierge_get_state_string(grb->state),
-		catcierge_get_state_string(new_state));
+
+	// Prints timestamp.
+	log_printc(stdout, COLOR_NORMAL, "");
+
+	catcierge_print_state(grb->state);
+	log_printf(stdout, COLOR_MAGNETA, " -> ");
+	catcierge_print_state(new_state);
+	log_printf(stdout, COLOR_NORMAL, "\n");
 
 	grb->state = new_state;
 }
@@ -343,9 +356,11 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	assert(img);
 	args = &grb->args;
 
-	CATLOGFPS("%f %sMatch%s\n", match_res,
-			match_success ? "" : "No ",
-			going_out ? " OUT" : " IN");
+	log_printc(stdout, match_success ? COLOR_GREEN : COLOR_RED,
+		"%f %sMatch%s\n",
+		match_res,
+		match_success ? "" : "No ",
+		going_out ? " OUT" : " IN");
 
 	// Save the current image match status.
 	grb->matches[grb->match_count].result = match_res;
@@ -793,26 +808,31 @@ void catcierge_print_spinner(catcierge_grb_t *grb)
 		static int spinidx = 0;
 		catcierge_timer_reset(&grb->frame_timer);
 
+		// This prints the log timestamp.
+		log_printc(stdout, COLOR_NORMAL, "");
+		catcierge_print_state(grb->state);
+		log_printf(stdout, COLOR_NORMAL, "  ");
+
 		if (grb->state == catcierge_state_lockout)
 		{
-			CATLOGFPS("Lockout for %d more seconds.\n", 
+			log_printf(stdout, COLOR_RED, "Lockout for %d more seconds.\n",
 				(int)(args->lockout_time - catcierge_timer_get(&grb->lockout_timer)));
 		}
 		else if (grb->state == catcierge_state_keepopen)
 		{
 			if (catcierge_timer_isactive(&grb->rematch_timer))
 			{
-				CATLOGFPS("Waiting to match again for %d more seconds.\n", 
+				log_printf(stdout, COLOR_RED, "Waiting to match again for %d more seconds.\n",
 					(int)(args->match_time - catcierge_timer_get(&grb->rematch_timer)));
 			}
 			else
 			{
-				CATLOGFPS("Frame is obstructed. Waiting for it to clear...\n");
+				log_printf(stdout, COLOR_NORMAL, "Frame is obstructed. Waiting for it to clear...\n");
 			}
 		}
 		else
 		{
-			CATLOGFPS("%c\n", spinner[spinidx++ % (sizeof(spinner) - 1)]);
+			log_printf(stdout, COLOR_CYAN, "%c\n", spinner[spinidx++ % (sizeof(spinner) - 1)]);
 		}
 
 		// Moves the cursor back so that we print the spinner in place.

@@ -75,16 +75,8 @@ int main(int argc, char **argv)
 	catcierge_args_t *args;
 	args = &grb.args;
 
-	fprintf(stderr, "\nCatcierge Grabber2 v" CATCIERGE_VERSION_STR
+	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR
 					" (C) Joakim Soderberg 2013-2014\n\n");
-
-	if (catcierge_grabber_init(&grb))
-	{
-		fprintf(stderr, "Failed to init\n");
-		return -1;
-	}
-
-	setup_sig_handlers();
 
 	// Get program settings.
 	{
@@ -98,6 +90,11 @@ int main(int argc, char **argv)
 		{
 			catcierge_show_usage(args, argv[0]);
 			return -1;
+		}
+
+		if (args->nocolor)
+		{
+			catcierge_nocolor = 1;
 		}
 
 		// Set some defaults.
@@ -125,6 +122,14 @@ int main(int argc, char **argv)
 
 		catcierge_print_settings(args);
 	}
+
+	if (catcierge_grabber_init(&grb))
+	{
+		fprintf(stderr, "Failed to init\n");
+		return -1;
+	}
+
+	setup_sig_handlers();
 
 	if (args->log_path)
 	{
@@ -167,7 +172,7 @@ int main(int argc, char **argv)
 			catcierge_timer_start(&grb.frame_timer);
 		}
 
-		// Always feed the RFID readers and read a frame.
+		// Always feed the RFID readers.
 		#ifdef WITH_RFID
 		if ((args->rfid_inner_path || args->rfid_outer_path) 
 			&& catcierge_rfid_ctx_service(&grb.rfid_ctx))

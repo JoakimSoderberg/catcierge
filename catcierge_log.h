@@ -20,13 +20,17 @@
 #define __CATCIERGE_LOG_H__
 
 #include <stdio.h>
+#include "catcierge_color.h"
+
+extern int catcierge_nocolor;
 
 char *get_time_str_fmt(char *time_str, size_t len, const char *fmt);
 char *get_time_str(char *time_str, size_t len);
-void log_print(FILE *fd, const char *fmt, ...);
+void log_printc(FILE *fd, enum catcierge_color_e print_color, const char *fmt, ...);
 void log_print_csv(FILE *fd, const char *fmt, ...);
 
-#define CATLOG(fmt, ...) log_print(stdout, fmt, ##__VA_ARGS__)
-#define CATERR(fmt, ...) log_print(stderr, fmt, ##__VA_ARGS__)
+#define log_print(fd, fmt, ...) log_printc(fd, COLOR_NORMAL, fmt, ##__VA_ARGS__)
+#define CATLOG(fmt, ...) log_printc(stdout, COLOR_NORMAL, fmt, ##__VA_ARGS__)
+#define CATERR(fmt, ...) log_printc(stderr, COLOR_RED, fmt, ##__VA_ARGS__)
 
 #endif // __CATCIERGE_LOG_H__

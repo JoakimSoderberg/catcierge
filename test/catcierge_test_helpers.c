@@ -56,7 +56,7 @@ int catcierge_test_parse_cmdline(int argc, char **argv)
 	return 0;
 }
 
-void catcierge_test_vprintf(FILE *target, enum catcierge_test_color_e test_color, const char *fmt, va_list args)
+void catcierge_test_vprintf(FILE *target, enum catcierge_color_e test_color, const char *fmt, va_list args)
 {
 	#ifdef _WIN32
 	WORD color = 0;
@@ -128,7 +128,7 @@ void catcierge_test_vprintf(FILE *target, enum catcierge_test_color_e test_color
 	#endif
 }
 
-void catcierge_test_printf(FILE *target, enum catcierge_test_color_e test_color, const char *fmt, ...)
+void catcierge_test_printf(FILE *target, enum catcierge_color_e test_color, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -159,7 +159,6 @@ void catcierge_test_FAILURE(const char *fmt, ...)
 	// of a long test!
 	va_list args;
 	va_start(args, fmt);
-	
 	catcierge_test_printf(stderr, COLOR_BRIGHT, "[");
 	catcierge_test_printf(stderr, COLOR_RED, "FAILURE");
 	catcierge_test_printf(stderr, COLOR_BRIGHT, "] ");

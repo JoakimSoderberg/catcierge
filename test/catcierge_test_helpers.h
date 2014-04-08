@@ -5,18 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-
-enum catcierge_test_color_e
-{
-	COLOR_NORMAL,
-	COLOR_GREEN,
-	COLOR_RED,
-	COLOR_YELLOW,
-	COLOR_CYAN,
-	COLOR_MAGNETA,
-	COLOR_BRIGHT,
-	COLOR_STATUS
-};
+#include "catcierge_color.h"
 
 int catcierge_test_verbose();
 int catcierge_test_log_on();
@@ -25,11 +14,11 @@ int catcierge_test_parse_cmdline(int argc, char **argv);
 int catcierge_test_init(int argc, char **argv);
 
 void catcierge_test_vprintf(FILE *target,
-		enum catcierge_test_color_e test_color,
+		enum catcierge_color_e test_color,
 		const char *fmt, va_list args);
 
 void catcierge_test_printf(FILE *target,
-		enum catcierge_test_color_e test_color,
+		enum catcierge_color_e test_color,
 		const char *fmt, ...);
 
 void catcierge_test_SUCCESS(const char *fmt, ...);
