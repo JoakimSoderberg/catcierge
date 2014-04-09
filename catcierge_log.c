@@ -140,7 +140,7 @@ void log_printc(FILE *fd, enum catcierge_color_e print_color, const char *fmt, .
 		log_printf(fd, COLOR_NORMAL, "]  ");
 
 		va_start(ap, fmt);
-		log_vprintf(fd, COLOR_NORMAL, fmt, ap);
+		log_vprintf(fd, print_color, fmt, ap);
 		va_end(ap);
 	}
 	else

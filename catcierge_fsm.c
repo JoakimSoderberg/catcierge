@@ -356,7 +356,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	assert(img);
 	args = &grb->args;
 
-	log_printc(stdout, match_success ? COLOR_GREEN : COLOR_RED,
+	log_printc(stdout, (match_success ? COLOR_GREEN : COLOR_RED),
 		"%f %sMatch%s\n",
 		match_res,
 		match_success ? "" : "No ",
@@ -365,8 +365,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	// Save the current image match status.
 	grb->matches[grb->match_count].result = match_res;
 	grb->matches[grb->match_count].success = match_success;
-	grb->matches[grb->match_count].direction
-								= get_match_direction(match_success, going_out);
+	grb->matches[grb->match_count].direction = get_match_direction(match_success, going_out);
 	grb->matches[grb->match_count].img = NULL;
 
 	// Save match image.
@@ -686,7 +685,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 {
 	int going_out;
 	int match_success;
-	double match_res;
+	double match_res = 0.0;
 	catcierge_args_t *args;
 	assert(grb);
 	args = &grb->args;
@@ -739,7 +738,8 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 			catcierge_do_unlock(grb);
 
 			#ifdef WITH_RFID
-			// We only want to check for RFID lock once during each match timeout period.
+			// We only want to check for RFID lock once
+			// during each match timeout period.
 			grb->checked_rfid_lock = 0;
 			#endif
 

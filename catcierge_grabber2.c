@@ -78,6 +78,12 @@ int main(int argc, char **argv)
 	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR
 					" (C) Joakim Soderberg 2013-2014\n\n");
 
+	if (catcierge_grabber_init(&grb))
+	{
+		fprintf(stderr, "Failed to init\n");
+		return -1;
+	}
+
 	// Get program settings.
 	{
 		if (catcierge_parse_config(args, argc, argv))
@@ -123,11 +129,7 @@ int main(int argc, char **argv)
 		catcierge_print_settings(args);
 	}
 
-	if (catcierge_grabber_init(&grb))
-	{
-		fprintf(stderr, "Failed to init\n");
-		return -1;
-	}
+	assert(args->snout_count > 0);
 
 	setup_sig_handlers();
 
