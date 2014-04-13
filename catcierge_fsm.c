@@ -409,7 +409,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 			grb->matches[grb->match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
 }
 
-static void catcierge_save_images(catcierge_grb_t * grb, int total_success)
+static void catcierge_save_images(catcierge_grb_t * grb, int total_success, match_direction_t direction)
 {
 	match_state_t *m;
 	int i;
@@ -434,7 +434,7 @@ static void catcierge_save_images(catcierge_grb_t * grb, int total_success)
 	}
 
 	catcierge_execute(args->save_imgs_cmd,
-		"%d %s %s %s %s %f %f %f %f %d %d %d %d",
+		"%d %s %s %s %s %f %f %f %f %d %d %d %d %d",
 		total_success, 				// %0 = Match success.
 		grb->matches[0].path,		// %1 = Image 1 path (of now saved image).
 		grb->matches[1].path,		// %2 = Image 2 path (of now saved image).
@@ -447,7 +447,8 @@ static void catcierge_save_images(catcierge_grb_t * grb, int total_success)
 		grb->matches[0].direction,	// %9 =  Image 1 direction.
 		grb->matches[1].direction,	// %10 = Image 2 direction.
 		grb->matches[2].direction,	// %11 = Image 3 direction.
-		grb->matches[3].direction);	// %12 = Image 4 direction.
+		grb->matches[3].direction,	// %12 = Image 4 direction.
+		direction); 				// %13 = Total direction.
 }
 
 static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
@@ -685,6 +686,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 {
 	int going_out;
 	int match_success;
+	match_direction_t direction = MATCH_DIR_UNKNOWN;
 	double match_res = 0.0;
 	catcierge_args_t *args;
 	assert(grb);
@@ -723,6 +725,11 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
 			success_count += grb->matches[i].success;
+
+			if (grb->matches[i].success)
+			{
+				direction = grb->matches[i].direction;
+			}
 		}
 
 		// If 2 out of the matches are ok.
@@ -764,7 +771,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		// without slowing down the matching FPS.
 		if (args->saveimg)
 		{
-			catcierge_save_images(grb, total_success);
+			catcierge_save_images(grb, total_success, direction);
 		}
 	}
 
