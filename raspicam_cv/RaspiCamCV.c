@@ -102,6 +102,31 @@ typedef struct _RASPIVID_STATE
    
 } RASPIVID_STATE;
 
+static void set_camera_params(RASPICAM_CAMERA_PROPERTIES *params)
+{
+	params->sharpness = 0;
+	params->contrast = 0;
+	params->brightness = 50;
+	params->saturation = 0;
+	params->ISO = 100;                    // 0 = auto
+	params->videoStabilisation = 0;
+	params->exposureCompensation = 10;
+	params->exposureMode = MMAL_PARAM_EXPOSUREMODE_OFF;// MMAL_PARAM_EXPOSUREMODE_AUTO;
+	params->exposureMeterMode = MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
+	params->awbMode = MMAL_PARAM_AWBMODE_SHADE; //MMAL_PARAM_AWBMODE_AUTO;
+	params->imageEffect = MMAL_PARAM_IMAGEFX_NONE;
+	params->colourEffects.enable = 0;
+	params->colourEffects.u = 128;
+	params->colourEffects.v = 128;
+	params->rotation = 0;
+	params->hflip = params->vflip = 0;
+	params->roi.x = params->roi.y = 0.0;
+	params->roi.w = params->roi.h = 1.0;
+	params->shutter_speed = 0;          // 0 = auto
+	params->awb_gains_r = 0;      // Only have any function if AWB OFF is used.
+	params->awb_gains_b = 0;
+}
+
 // default status
 static void default_status(RASPIVID_STATE *state)
 {
@@ -124,7 +149,8 @@ static void default_status(RASPIVID_STATE *state)
    state->graymode 			= 1;		// Gray (1) much faster than color (0)
    
    // Set up the camera_parameters to default
-   raspicamcontrol_set_defaults(&state->camera_parameters);
+   set_camera_params(&state->camera_parameters);
+   //raspicamcontrol_set_defaults(&state->camera_parameters);
 }
 
 /**
