@@ -27,6 +27,7 @@
 #else
 #include <limits.h>
 #endif
+#include <time.h>
 
 int main(int argc, char **argv)
 {
@@ -35,6 +36,7 @@ int main(int argc, char **argv)
 	const char *snout_paths[MAX_SNOUT_COUNT];
 	size_t snout_count = 0;
 	char *img_paths[4096];
+	IplImage *imgs[4096];
 	size_t img_count = 0;
 	IplImage *img = NULL;
 	CvRect match_rects[MAX_SNOUT_COUNT];
@@ -52,14 +54,18 @@ int main(int argc, char **argv)
 	int match_flipped = 1;
 	int was_flipped = 0;
 	int success_count = 0;
+	int preload = 1;
+	clock_t start;
+	clock_t end;
 
 	fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
 
 	if (argc < 4)
 	{
-		fprintf(stderr, "Usage: %s --snout <snout images>\n"
-						"         [--output [path]] [--show] [--match_flipped <0|1>] [--threshold]\n"
-						"         --images <input images>\n", argv[0]);
+		fprintf(stderr, "Usage: %s [--output [path]] [--debug] [--show]\n"
+						"          [--match_flipped <0|1>] [--threshold]\n"
+						"          [--preload]\n"
+						"           --snout <snout images> --images <input images>\n", argv[0]);
 		return -1;
 	}
 
@@ -126,6 +132,15 @@ int main(int argc, char **argv)
 				img_count++;
 			}
 		}
+		else if (!strcmp(argv[i], "--preload"))
+		{
+			if ((i + 1) < argc)
+			{
+				i++;
+				preload = 1;
+				continue;
+			}
+		}
 	}
 
 	if (snout_count == 0)
@@ -163,16 +178,39 @@ int main(int argc, char **argv)
 	catcierge_set_debug(&ctx, debug);
 	//catcierge_set_binary_thresholds(&ctx, 90, 200);
 
+	// If we should preload the images or not
+	// (Don't let file IO screw with benchmark)
+	if (preload)
+	{
+		for (i = 0; i < (int)img_count; i++)
+		{
+			if (!(imgs[i] = cvLoadImage(img_paths[i], 1)))
+			{
+				fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
+				goto fail;
+			}
+		}
+	}
+
+	start = clock();
+
 	for (i = 0; i < (int)img_count; i++)
 	{
 		match_success = 0;
 
 		printf("%s:\n", img_paths[i]);
 
-		if (!(img = cvLoadImage(img_paths[i], 1)))
+		if (preload)
 		{
-			fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
-			goto fail;
+			img = imgs[i];
+		}
+		else
+		{
+			if (!(img = cvLoadImage(img_paths[i], 1)))
+			{
+				fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
+				goto fail;
+			}
 		}
 
 		img_size = cvGetSize(img);
@@ -199,50 +237,56 @@ int main(int argc, char **argv)
 			match_color = CV_RGB(255, 0, 0);
 		}
 
-		for (j = 0; j < (int)snout_count; j++)
+		if (show || save)
 		{
-			cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
-		}
-	
-		if (show)
-		{
-			cvShowImage("image", img);
-			cvWaitKey(0);
-		}
+			for (j = 0; j < (int)snout_count; j++)
+			{
+				cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
+			}
 
-		if (save)
-		{
-			char out_file[PATH_MAX]; 
-			char tmp[PATH_MAX];
-			char *filename = tmp;
-			char *ext;
-			char *start;
+			if (show)
+			{
+				cvShowImage("image", img);
+				cvWaitKey(0);
+			}
 
-			// Get the extension.
-			strncpy(tmp, img_paths[i], sizeof(tmp));
-			ext = strrchr(tmp, '.');
-			*ext = '\0';
-			ext++;
+			if (save)
+			{
+				char out_file[PATH_MAX]; 
+				char tmp[PATH_MAX];
+				char *filename = tmp;
+				char *ext;
+				char *start;
 
-			// And filename.
-			filename = strrchr(tmp, '/');
-			start = strrchr(tmp, '\\');
-			if (start> filename)
-				filename = start;
-			filename++;
+				// Get the extension.
+				strncpy(tmp, img_paths[i], sizeof(tmp));
+				ext = strrchr(tmp, '.');
+				*ext = '\0';
+				ext++;
 
-			snprintf(out_file, sizeof(out_file) - 1, "%s/match_%s__%s.%s", 
-					output_path, match_success ? "ok" : "fail", filename, ext);
+				// And filename.
+				filename = strrchr(tmp, '/');
+				start = strrchr(tmp, '\\');
+				if (start> filename)
+					filename = start;
+				filename++;
 
-			printf("Saving image \"%s\"\n", out_file);
+				snprintf(out_file, sizeof(out_file) - 1, "%s/match_%s__%s.%s", 
+						output_path, match_success ? "ok" : "fail", filename, ext);
 
-			cvSaveImage(out_file, img, 0);
+				printf("Saving image \"%s\"\n", out_file);
+
+				cvSaveImage(out_file, img, 0);
+			}
 		}
 
 		cvReleaseImage(&img);
 	}
 
-	printf("%d of %zu successful!\n", success_count, img_count);
+	end = clock();
+
+	printf("%d of %zu successful! (%f seconds)\n",
+		success_count, img_count, (float)(end - start) / CLOCKS_PER_SEC);
 
 fail:
 	catcierge_destroy(&ctx);
