@@ -409,7 +409,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 			grb->matches[grb->match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
 }
 
-static void catcierge_save_images(catcierge_grb_t * grb, int total_success, match_direction_t direction)
+static void catcierge_save_images(catcierge_grb_t * grb, match_direction_t direction)
 {
 	match_state_t *m;
 	int i;
@@ -435,7 +435,7 @@ static void catcierge_save_images(catcierge_grb_t * grb, int total_success, matc
 
 	catcierge_execute(args->save_imgs_cmd,
 		"%d %s %s %s %s %f %f %f %f %d %d %d %d %d",
-		total_success, 				// %0 = Match success.
+		grb->match_success, 		// %0 = Match success.
 		grb->matches[0].path,		// %1 = Image 1 path (of now saved image).
 		grb->matches[1].path,		// %2 = Image 2 path (of now saved image).
 		grb->matches[2].path,		// %3 = Image 3 path (of now saved image).
@@ -720,8 +720,11 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		// We now have enough images to decide lock status.
 		int success_count = 0;
 		int i;
-		int total_success = 0;
+		grb->match_success = 0;
 
+		// Get any successful direction.
+		// (It is very uncommon for 2 successful matches to give different
+		// direction, so we can be pretty sure this is correct).
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
 			success_count += grb->matches[i].success;
@@ -732,11 +735,20 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 			}
 		}
 
-		// If 2 out of the matches are ok.
-		total_success = (success_count >= (MATCH_MAX_COUNT - 2));
-		grb->match_success = total_success;
+		// When going out, if only 1 image is a succesful match
+		// we still count it as overall succesful so we don't get
+		// so many false negatives.
+		if (direction == MATCH_DIR_OUT)
+		{
+			grb->match_success = 1;
+		}
+		else
+		{
+			// Otherwise if 2 out of the matches are ok.
+			grb->match_success = (success_count >= (MATCH_MAX_COUNT - 2));
+		}
 
-		if (total_success)
+		if (grb->match_success)
 		{
 			CATLOG("Everything OK! (%d out of %d matches succeeded)"
 					" Door kept open...\n", success_count, MATCH_MAX_COUNT);
@@ -763,7 +775,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		}
 
 		catcierge_execute(args->match_done_cmd, "%d %d %d", 
-			total_success, 			// %0 = Match success.
+			grb->match_success, 	// %0 = Match success.
 			success_count, 			// %1 = Successful match count.
 			MATCH_MAX_COUNT);		// %2 = Max matches.
 
@@ -771,7 +783,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		// without slowing down the matching FPS.
 		if (args->saveimg)
 		{
-			catcierge_save_images(grb, total_success, direction);
+			catcierge_save_images(grb, direction);
 		}
 	}
 
