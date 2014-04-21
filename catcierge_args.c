@@ -410,6 +410,21 @@ static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char
 	}
 	#endif // WITH_RFID
 
+	#ifdef RPI
+	if (!strncmp(key, "rpi-", 4))
+	{
+		int rpiret = 0;
+		const char *rpikey = key + strlen("rpi");
+
+		if (!raspicamcontrol_parse_cmdline(&args->rpi_settings.camera_parameters,
+			rpikey, (value_count == 1) ? values[0] : NULL))
+		{
+			return -1;
+		}
+		return 0;
+	}
+	#endif // RPI
+
 	return -1;
 }
 
@@ -563,6 +578,11 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	#endif // WITH_RFID
 	fprintf(stderr, " --help                 Show this help.\n");
 	fprintf(stderr, " --cmdhelp              Show extra command help.\n");
+	#ifdef RPI
+	fprintf(stderr, " --camhelp              Show extra Raspberry pi camera settings help.\n");
+	fprintf(stderr, "                        Note that all these settings must be prepended\n");
+	fprintf(stderr, "                        with \"rpi-\"\n");
+	#endif
 	fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
 	fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
 	fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n");
@@ -574,6 +594,19 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, " SIGUSR2 = Force the cat door to lock (for lock timeout)\n");
 	fprintf(stderr, "\n");
 	#endif // _WIN32
+}
+
+static void catcierge_show_cam_help()
+{
+	fprintf(stderr, "--------------------------------------------------------------------------------\n");
+	fprintf(stderr, "Raspberry Pi camera settings:\n");
+	fprintf(stderr, "--------------------------------------------------------------------------------\n");
+	raspicamcontrol_display_help();
+	fprintf(stderr, "--------------------------------------------------------------------------------\n");
+	fprintf(stderr, "\nNote! To use the above command line parameters\n");
+	fprintf(stderr, "you must prepend them with \"rpi-\".\n");
+	fprintf(stderr, "For example --rpi-ISO\n");
+	fprintf(stderr, "--------------------------------------------------------------------------------\n");
 }
 
 int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
@@ -593,15 +626,21 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
 	for (i = 1; i < argc; i++)
 	{
 		// These are command line specific.
-		if (!strcmp(argv[i], "--help"))
+		if (!strcmp(argv[i], "--cmdhelp"))
 		{
+			args->show_cmd_help = 1;
 			catcierge_show_usage(args, argv[0]);
 			exit(1);
 		}
 
-		if (!strcmp(argv[i], "--cmdhelp"))
+		if (!strcmp(argv[i], "--camhelp"))
 		{
-			args->show_cmd_help = 1;
+			catcierge_show_cam_help();
+			exit(1);
+		}
+
+		if (!strcmp(argv[i], "--help"))
+		{
 			catcierge_show_usage(args, argv[0]);
 			exit(1);
 		}
@@ -753,6 +792,20 @@ int catcierge_args_init(catcierge_args_t *args)
 	args->match_flipped = 1;
 	args->lockout_time = DEFAULT_LOCKOUT_TIME;
 	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
+
+	#ifdef RPI
+	{
+		RASPIVID_SETTINGS *settings = &args->rpi_settings;
+		// TODO: Enable setting these via commandline as well.
+		settings->width = 320;
+		settings->height = 240;
+		settings->bitrate = 500000;
+		settings->framerate = 30;
+		settings->immutableInput = 1;
+		settings->graymode = 1;
+		raspiCamCvSetDefaultCameraParameters(&settings->camera_parameters);
+	}
+	#endif // RPI
 
 	return 0;
 }

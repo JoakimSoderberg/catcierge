@@ -258,8 +258,7 @@ void catcierge_setup_camera(catcierge_grb_t *grb)
 	assert(grb);
 
 	#ifdef RPI
-	grb->capture = raspiCamCvCreateCameraCapture(0);
-	// TODO: Implement the cvSetCaptureProperty stuff below fo raspicamcv.
+	grb->capture = raspiCamCvCreateCameraCaptureEx(0, &grb->args.rpi_settings);
 	#else
 	grb->capture = cvCreateCameraCapture(0);
 	cvSetCaptureProperty(grb->capture, CV_CAP_PROP_FRAME_WIDTH, 320);

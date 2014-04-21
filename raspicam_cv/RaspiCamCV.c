@@ -78,14 +78,7 @@ int mmal_status_to_int(MMAL_STATUS_T status);
 typedef struct _RASPIVID_STATE
 {
 	int finished;
-	int width;                          /// Requested width of image
-	int height;                         /// requested height of image
-	int bitrate;                        /// Requested bitrate
-	int framerate;                      /// Requested frame rate (fps)
-	int graymode;			/// capture in gray only (2x faster)
-	int immutableInput;     /// Flag to specify whether encoder works in place or creates a new buffer. Result is preview can display either
-                            /// the camera output or the encoder output (with compression artifacts)
-	RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
+	RASPIVID_SETTINGS settings;
 
 	MMAL_COMPONENT_T *camera_component;    /// Pointer to the camera component
 	MMAL_COMPONENT_T *encoder_component;   /// Pointer to the encoder component
@@ -102,16 +95,16 @@ typedef struct _RASPIVID_STATE
    
 } RASPIVID_STATE;
 
-static void set_camera_params(RASPICAM_CAMERA_PROPERTIES *params)
+void raspiCamCvSetDefaultCameraParameters(RASPICAM_CAMERA_PARAMETERS *params)
 {
 	params->sharpness = 0;
 	params->contrast = 0;
 	params->brightness = 50;
 	params->saturation = 0;
-	params->ISO = 100;                    // 0 = auto
+	params->ISO = 400;                    // 0 = auto
 	params->videoStabilisation = 0;
 	params->exposureCompensation = 10;
-	params->exposureMode = MMAL_PARAM_EXPOSUREMODE_OFF;// MMAL_PARAM_EXPOSUREMODE_AUTO;
+	params->exposureMode = MMAL_PARAM_EXPOSUREMODE_NIGHT;
 	params->exposureMeterMode = MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
 	params->awbMode = MMAL_PARAM_AWBMODE_SHADE; //MMAL_PARAM_AWBMODE_AUTO;
 	params->imageEffect = MMAL_PARAM_IMAGEFX_NONE;
@@ -123,33 +116,32 @@ static void set_camera_params(RASPICAM_CAMERA_PROPERTIES *params)
 	params->roi.x = params->roi.y = 0.0;
 	params->roi.w = params->roi.h = 1.0;
 	params->shutter_speed = 0;          // 0 = auto
-	params->awb_gains_r = 0;      // Only have any function if AWB OFF is used.
-	params->awb_gains_b = 0;
+	//params->awb_gains_r = 0;      // Only have any function if AWB OFF is used.
+	//params->awb_gains_b = 0;
 }
 
 // default status
-static void default_status(RASPIVID_STATE *state)
+static void default_status(RASPIVID_SETTINGS *settings)
 {
-   if (!state)
+   if (!settings)
    {
       vcos_assert(0);
       return;
    }
 
    // Default everything to zero
-   memset(state, 0, sizeof(RASPIVID_STATE));
+   memset(settings, 0, sizeof(RASPIVID_STATE));
 
    // Now set anything non-zero
-   state->finished          = 0;
-   state->width 			= 320;      // use a multiple of 320 (640, 1280)
-   state->height 			= 240;		// use a multiple of 240 (480, 960)
-   state->bitrate 			= 500000; //17000000; // This is a decent default bitrate for 1080p
-   state->framerate 		= VIDEO_FRAME_RATE_NUM;
-   state->immutableInput 	= 1;
-   state->graymode 			= 1;		// Gray (1) much faster than color (0)
+   settings->width 				= 320;  // use a multiple of 320 (640, 1280)
+   settings->height 			= 240;	// use a multiple of 240 (480, 960)
+   settings->bitrate 			= 500000; //17000000; // This is a decent default bitrate for 1080p
+   settings->framerate 			= VIDEO_FRAME_RATE_NUM;
+   settings->immutableInput 	= 1;
+   settings->graymode 			= 1;	// Gray (1) much faster than color (0)
    
    // Set up the camera_parameters to default
-   set_camera_params(&state->camera_parameters);
+   raspiCamCvSetDefaultCameraParameters(&settings->camera_parameters);
    //raspicamcontrol_set_defaults(&state->camera_parameters);
 }
 
@@ -162,7 +154,8 @@ static void default_status(RASPIVID_STATE *state)
 static void video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer)
 {
 	MMAL_BUFFER_HEADER_T *new_buffer;
-	RASPIVID_STATE * state = (RASPIVID_STATE *)port->userdata;		
+	RASPIVID_STATE *state = (RASPIVID_STATE *)port->userdata;
+	RASPIVID_SETTINGS *settings = &state->settings;
 
 	if (state)
 	{
@@ -177,16 +170,16 @@ static void video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffe
 			//
 			// *** PR : OPEN CV Stuff here !
 			//
-			int w=state->width;	// get image size
-			int h=state->height;
-			int h4=h/4;
+			int w = settings->width;	// get image size
+			int h = settings->height;
+			int h4 = h / 4;
 
-			memcpy(state->py->imageData,buffer->data,w*h);	// read Y
+			memcpy(state->py->imageData, buffer->data, w * h);	// read Y
 		
-			if (state->graymode==0)
+			if (settings->graymode == 0)
 			{
-				memcpy(state->pu->imageData,buffer->data+w*h,w*h4); // read U
-				memcpy(state->pv->imageData,buffer->data+w*h+w*h4,w*h4); // read v
+				memcpy(state->pu->imageData, buffer->data + w * h, w * h4); // read U
+				memcpy(state->pv->imageData, buffer->data + w * h + w * h4, w * h4); // read v
 			}
 
 			vcos_semaphore_post(&state->capture_done_sem);
@@ -237,6 +230,7 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
 	MMAL_ES_FORMAT_T *format;
 	MMAL_PORT_T *preview_port = NULL, *video_port = NULL, *still_port = NULL;
 	MMAL_STATUS_T status;
+	RASPIVID_SETTINGS *settings = &state->settings;
 	
 	/* Create the component */
 	status = mmal_component_create(MMAL_COMPONENT_DEFAULT_CAMERA, &camera);
@@ -261,12 +255,12 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
 	   MMAL_PARAMETER_CAMERA_CONFIG_T cam_config =
 	   {
 	      { MMAL_PARAMETER_CAMERA_CONFIG, sizeof(cam_config) },
-	      .max_stills_w = state->width,
-	      .max_stills_h = state->height,
+	      .max_stills_w = settings->width,
+	      .max_stills_h = settings->height,
 	      .stills_yuv422 = 0,
 	      .one_shot_stills = 0,
-	      .max_preview_video_w = state->width,
-	      .max_preview_video_h = state->height,
+	      .max_preview_video_w = settings->width,
+	      .max_preview_video_h = settings->height,
 	      .num_preview_video_frames = 3,
 	      .stills_capture_circular_buffer_height = 0,
 	      .fast_preview_resume = 0,
@@ -279,13 +273,13 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
 	format = video_port->format;
 	format->encoding_variant = MMAL_ENCODING_I420;
 	format->encoding = MMAL_ENCODING_I420;
-	format->es->video.width = state->width;
-	format->es->video.height = state->height;
+	format->es->video.width = settings->width;
+	format->es->video.height = settings->height;
 	format->es->video.crop.x = 0;
 	format->es->video.crop.y = 0;
-	format->es->video.crop.width = state->width;
-	format->es->video.crop.height = state->height;
-	format->es->video.frame_rate.num = state->framerate;
+	format->es->video.crop.width = settings->width;
+	format->es->video.crop.height = settings->height;
+	format->es->video.frame_rate.num = settings->framerate;
 	format->es->video.frame_rate.den = VIDEO_FRAME_RATE_DEN;
 	
 	status = mmal_port_format_commit(video_port);
@@ -312,12 +306,12 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    format = still_port->format;
    format->encoding = MMAL_ENCODING_OPAQUE;
    format->encoding_variant = MMAL_ENCODING_I420;
-   format->es->video.width = state->width;
-   format->es->video.height = state->height;
+   format->es->video.width = settings->width;
+   format->es->video.height = settings->height;
    format->es->video.crop.x = 0;
    format->es->video.crop.y = 0;
-   format->es->video.crop.width = state->width;
-   format->es->video.crop.height = state->height;
+   format->es->video.crop.width = settings->width;
+   format->es->video.crop.height = settings->height;
    format->es->video.frame_rate.num = 1;
    format->es->video.frame_rate.den = 1;
 
@@ -353,7 +347,7 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
 	   goto error;
 	}
 	
-	raspicamcontrol_set_all_parameters(camera, &state->camera_parameters);
+	raspicamcontrol_set_all_parameters(camera, &settings->camera_parameters);
 	
 	state->camera_component = camera;
 	
@@ -441,11 +435,11 @@ static void check_disable_port(MMAL_PORT_T *port)
       mmal_port_disable(port);
 }
 
-RaspiCamCvCapture * raspiCamCvCreateCameraCapture(int index)
+RaspiCamCvCapture *raspiCamCvCreateCameraCaptureEx(int index, RASPIVID_SETTINGS *settings)
 {
-	RaspiCamCvCapture * capture = (RaspiCamCvCapture*)malloc(sizeof(RaspiCamCvCapture));
+	RaspiCamCvCapture *capture = (RaspiCamCvCapture*)malloc(sizeof(RaspiCamCvCapture));
 	// Our main data storage vessel..
-	RASPIVID_STATE * state = (RASPIVID_STATE*)malloc(sizeof(RASPIVID_STATE));
+	RASPIVID_STATE *state = (RASPIVID_STATE*)calloc(1, sizeof(RASPIVID_STATE));
 	capture->pState = state;
 	
 	MMAL_STATUS_T status = -1;
@@ -454,20 +448,27 @@ RaspiCamCvCapture * raspiCamCvCreateCameraCapture(int index)
 
 	bcm_host_init();
 
-	// read default status
-	default_status(state);
+	if (settings)
+	{
+		memcpy(&state->settings, settings, sizeof(RASPIVID_SETTINGS));
+	}
+	else
+	{
+		default_status(settings);
+	}
 
-	int w = state->width;
-	int h = state->height;
+	int w = settings->width;
+	int h = settings->height;
 	state->py = cvCreateImage(cvSize(w,h), IPL_DEPTH_8U, 1);		// Y component of YUV I420 frame
-	if (state->graymode==0) {
+	
+	if (settings->graymode == 0) {
 		state->pu = cvCreateImage(cvSize(w/2,h/2), IPL_DEPTH_8U, 1);	// U component of YUV I420 frame
 		state->pv = cvCreateImage(cvSize(w/2,h/2), IPL_DEPTH_8U, 1);	// V component of YUV I420 frame
 	}
 	vcos_semaphore_create(&state->capture_sem, "Capture-Sem", 0);
 	vcos_semaphore_create(&state->capture_done_sem, "Capture-Done-Sem", 0);
 
-	if (state->graymode==0) {
+	if (settings->graymode == 0) {
 		state->pu_big = cvCreateImage(cvSize(w,h), IPL_DEPTH_8U, 1);
 		state->pv_big = cvCreateImage(cvSize(w,h), IPL_DEPTH_8U, 1);
 		state->yuvImage = cvCreateImage(cvSize(w,h), IPL_DEPTH_8U, 3);
@@ -523,9 +524,15 @@ RaspiCamCvCapture * raspiCamCvCreateCameraCapture(int index)
 	return capture;
 }
 
+RaspiCamCvCapture *raspiCamCvCreateCameraCapture(int index)
+{
+	return raspiCamCvCreateCameraCaptureEx(index, NULL);
+}
+
 void raspiCamCvReleaseCapture(RaspiCamCvCapture ** capture)
 {
-	RASPIVID_STATE * state = (*capture)->pState;
+	RASPIVID_STATE *state = (*capture)->pState;
+	RASPIVID_SETTINGS *settings = &state->settings;
 
 	// Unblock the the callback.
 	state->finished = 1;
@@ -541,12 +548,12 @@ void raspiCamCvReleaseCapture(RaspiCamCvCapture ** capture)
 	destroy_camera_component(state);
 
 	cvReleaseImage(&state->pu);
-	if (state->graymode==0) {
+	if (settings->graymode == 0) {
 		cvReleaseImage(&state->pv);
 		cvReleaseImage(&state->py);
 	}
 
-	if (state->graymode==0) {
+	if (settings->graymode == 0) {
 		cvReleaseImage(&state->pu_big);
 		cvReleaseImage(&state->pv_big);
 		cvReleaseImage(&state->yuvImage);
@@ -584,13 +591,13 @@ IplImage * raspiCamCvQueryFrame(RaspiCamCvCapture * capture)
 	vcos_semaphore_post(&state->capture_sem);
 	vcos_semaphore_wait(&state->capture_done_sem);
 
-	if (state->graymode==0)
+	if (state->settings.graymode == 0)
 	{
 		cvResize(state->pu, state->pu_big, CV_INTER_NN);
 		cvResize(state->pv, state->pv_big, CV_INTER_NN);  //CV_INTER_LINEAR looks better but it's slower
 		cvMerge(state->py, state->pu_big, state->pv_big, NULL, state->yuvImage);
 	
-		cvCvtColor(state->yuvImage,state->dstImage,CV_YCrCb2RGB);	// convert in RGB color space (slow)
+		cvCvtColor(state->yuvImage, state->dstImage, CV_YCrCb2RGB);	// convert in RGB color space (slow)
 		return state->dstImage;
 	}
 	return state->py;

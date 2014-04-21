@@ -4,6 +4,9 @@
 
 #include <stdio.h>
 #include "alini/alini.h"
+#ifdef RPI
+#include "RaspiCamCV.h"
+#endif
 
 #define MAX_SNOUT_COUNT 24
 #define DEFAULT_MATCH_THRESH 0.8	// The threshold signifying a good match returned by catcierge_match.
@@ -53,6 +56,10 @@ typedef struct catcierge_args_s
 	char **rfid_allowed;
 	int rfid_allowed_count;
 	#endif // WITH_RFID
+
+	#ifdef RPI
+	RASPIVID_SETTINGS rpi_settings;
+	#endif // RPI
 } catcierge_args_t;
 
 int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv);

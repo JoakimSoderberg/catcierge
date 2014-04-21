@@ -374,7 +374,7 @@ int catcierge_is_matchable(catcierge_t *ctx, IplImage *img)
 	// in the center of the image.
 	// (This should contain only the white background)
 	size = cvGetSize(img);
-	w = (int)(size.width * 0.1);
+	w = (int)(size.width * 0.5);
 	h = (int)(size.height * 0.1);
 	x = (size.width - w) / 2;
 	y = (size.height - h) / 2;
