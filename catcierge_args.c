@@ -596,6 +596,7 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	#endif // _WIN32
 }
 
+#ifdef RPI
 static void catcierge_show_cam_help()
 {
 	fprintf(stderr, "--------------------------------------------------------------------------------\n");
@@ -608,6 +609,7 @@ static void catcierge_show_cam_help()
 	fprintf(stderr, "For example --rpi-ISO\n");
 	fprintf(stderr, "--------------------------------------------------------------------------------\n");
 }
+#endif // RPI
 
 int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
 {
@@ -633,11 +635,13 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
 			exit(1);
 		}
 
+		#ifdef RPI
 		if (!strcmp(argv[i], "--camhelp"))
 		{
 			catcierge_show_cam_help();
 			exit(1);
 		}
+		#endif // RPI
 
 		if (!strcmp(argv[i], "--help"))
 		{

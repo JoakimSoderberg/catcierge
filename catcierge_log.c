@@ -18,7 +18,9 @@
 //
 #include <stdlib.h>
 #include <stdio.h>
-#ifndef WIN32
+#ifdef WIN32
+#include <Windows.h>
+#else
 #include <sys/time.h>
 #include <unistd.h>
 #endif
