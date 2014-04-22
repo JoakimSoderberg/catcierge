@@ -29,6 +29,29 @@
 #include <limits.h>
 #include "catcierge_log.h"
 
+void catcierge_reset_cursor_position()
+{
+	#ifdef _WIN32
+	COORD pos;
+	CONSOLE_SCREEN_BUFFER_INFO info;
+	HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	// Get current position.
+	GetConsoleScreenBufferInfo(output, &info);
+	pos.X = 0;
+	pos.Y = info.dwCursorPosition.Y - 1; // Move one up.
+
+	SetConsoleCursorPosition(output, pos);
+
+	#else // _WIN32
+
+	printf("\033[999D"); // Move cursor back 999 steps (beginning of line).
+	printf("\033[1A"); // Move cursor up 1 step.
+	printf("\033[0K"); // Clear from cursor to end of line.
+
+	#endif // !_WIN32
+}
+
 //
 // The string "command" contains a commandline that will be
 // executed. This can contain variable references (%0, %1, %2, ...) 

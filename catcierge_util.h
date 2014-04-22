@@ -33,5 +33,6 @@
 #endif // _WIN32
 
 void catcierge_execute(char *command, char *fmt, ...);
+void catcierge_reset_cursor_position();
 
 #endif // __CATCIERGE_UTIL_H__
