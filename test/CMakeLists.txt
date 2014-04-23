@@ -40,6 +40,17 @@ if (RPI)
 	target_link_libraries(${CATCIERGE_TEST_DRIVER} raspicamcv)
 endif()
 
+if (CATCIERGE_COVERAGE)
+	if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+		include(CodeCoverage)
+		setup_target_for_coverage(
+			${CATCIERGE_TEST_DRIVER}_coverage 	# Coverage make target.
+			coverage 						# Name of output directory.
+			make							# Name of test runner executable.
+			test)							# Arguments to the test runner above (make test).
+	endif()
+endif()
+
 if (CATCIERGE_WITH_MEMCHECK AND UNIX)
 	find_program(VALGRIND_PROGRAM NAMES valgrind)
 
