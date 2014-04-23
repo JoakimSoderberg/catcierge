@@ -49,8 +49,8 @@ typedef struct catcierge_args_s
 	#ifdef WITH_RFID
 	char *rfid_detect_cmd;
 	char *rfid_match_cmd;
-	char *rfid_inner_path;
-	char *rfid_outer_path;
+	const char *rfid_inner_path;
+	const char *rfid_outer_path;
 	double rfid_lock_time;
 	int lock_on_invalid_rfid;
 	char **rfid_allowed;
