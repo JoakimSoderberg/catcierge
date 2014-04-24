@@ -421,6 +421,7 @@ static char *run_success_tests(int obstruct)
 void run_camera_test()
 {
 	catcierge_grb_t grb;
+	memset(&grb, 0, sizeof(grb));
 	catcierge_setup_camera(&grb);
 	catcierge_destroy_camera(&grb);
 }
