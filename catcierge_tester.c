@@ -31,6 +31,7 @@
 
 int main(int argc, char **argv)
 {
+	int ret = 0;
 	catcierge_t ctx;
 	#define MAX_SNOUT_COUNT 24
 	const char *snout_paths[MAX_SNOUT_COUNT];
@@ -55,6 +56,7 @@ int main(int argc, char **argv)
 	int was_flipped = 0;
 	int success_count = 0;
 	int preload = 1;
+	int test_matchable = 0;
 	clock_t start;
 	clock_t end;
 
@@ -64,7 +66,7 @@ int main(int argc, char **argv)
 	{
 		fprintf(stderr, "Usage: %s [--output [path]] [--debug] [--show]\n"
 						"          [--match_flipped <0|1>] [--threshold]\n"
-						"          [--preload]\n"
+						"          [--preload] [--test_matchable]\n"
 						"           --snout <snout images> --images <input images>\n", argv[0]);
 		return -1;
 	}
@@ -108,6 +110,11 @@ int main(int argc, char **argv)
 				match_threshold = atof(argv[i]);
 				continue;
 			}
+		}
+		else if (!strcmp(argv[i], "--test_matchable"))
+		{
+			test_matchable = 1;
+			preload = 1;
 		}
 		else if (!strcmp(argv[i], "--match_flipped"))
 		{
@@ -187,6 +194,7 @@ int main(int argc, char **argv)
 			if (!(imgs[i] = cvLoadImage(img_paths[i], 1)))
 			{
 				fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
+				ret = -1;
 				goto fail;
 			}
 		}
@@ -194,103 +202,125 @@ int main(int argc, char **argv)
 
 	start = clock();
 
-	for (i = 0; i < (int)img_count; i++)
+	if (test_matchable)
 	{
-		match_success = 0;
+		// This tests if an image frame is clear or not (matchable).
+		int frame_obstructed;
 
-		printf("%s:\n", img_paths[i]);
-
-		if (preload)
+		if ((frame_obstructed = catcierge_is_matchable(&ctx, img) < 0))
 		{
-			img = imgs[i];
+			fprintf(stderr, "Failed to detect check for obstructed frame\n");
+			return -1;
 		}
-		else
+
+		if (frame_obstructed)
 		{
-			if (!(img = cvLoadImage(img_paths[i], 1)))
+			return 0;
+		}
+	}
+	else
+	{
+		for (i = 0; i < (int)img_count; i++)
+		{
+			match_success = 0;
+
+			printf("%s:\n", img_paths[i]);
+
+			if (preload)
 			{
-				fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
-				goto fail;
+				img = imgs[i];
 			}
-		}
-
-		img_size = cvGetSize(img);
-
-		printf("  Image size: %dx%d\n", img_size.width, img_size.height);
-
-		if ((match_res = catcierge_match(&ctx, img, match_rects, snout_count, &was_flipped)) < 0)
-		{
-			fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
-			catcierge_destroy(&ctx);
-		}
-
-		match_success = (match_res >= match_threshold);
-
-		if (match_success)
-		{
-			printf("  Match%s! %f\n", was_flipped ? " (Flipped)": "", match_res);
-			match_color = CV_RGB(0, 255, 0);
-			success_count++;
-		}
-		else
-		{
-			printf("  No match! %f\n", match_res);
-			match_color = CV_RGB(255, 0, 0);
-		}
-
-		if (show || save)
-		{
-			for (j = 0; j < (int)snout_count; j++)
+			else
 			{
-				cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
+				if (!(img = cvLoadImage(img_paths[i], 1)))
+				{
+					fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
+					goto fail;
+				}
 			}
 
-			if (show)
+			img_size = cvGetSize(img);
+
+			printf("  Image size: %dx%d\n", img_size.width, img_size.height);
+
+			if ((match_res = catcierge_match(&ctx, img, match_rects, snout_count, &was_flipped)) < 0)
 			{
-				cvShowImage("image", img);
-				cvWaitKey(0);
+				fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
+				catcierge_destroy(&ctx);
 			}
 
-			if (save)
+			match_success = (match_res >= match_threshold);
+
+			if (match_success)
 			{
-				char out_file[PATH_MAX]; 
-				char tmp[PATH_MAX];
-				char *filename = tmp;
-				char *ext;
-				char *start;
-
-				// Get the extension.
-				strncpy(tmp, img_paths[i], sizeof(tmp));
-				ext = strrchr(tmp, '.');
-				*ext = '\0';
-				ext++;
-
-				// And filename.
-				filename = strrchr(tmp, '/');
-				start = strrchr(tmp, '\\');
-				if (start> filename)
-					filename = start;
-				filename++;
-
-				snprintf(out_file, sizeof(out_file) - 1, "%s/match_%s__%s.%s", 
-						output_path, match_success ? "ok" : "fail", filename, ext);
-
-				printf("Saving image \"%s\"\n", out_file);
-
-				cvSaveImage(out_file, img, 0);
+				printf("  Match%s! %f\n", was_flipped ? " (Flipped)": "", match_res);
+				match_color = CV_RGB(0, 255, 0);
+				success_count++;
 			}
+			else
+			{
+				printf("  No match! %f\n", match_res);
+				match_color = CV_RGB(255, 0, 0);
+			}
+
+			if (show || save)
+			{
+				for (j = 0; j < (int)snout_count; j++)
+				{
+					cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
+				}
+
+				if (show)
+				{
+					cvShowImage("image", img);
+					cvWaitKey(0);
+				}
+
+				if (save)
+				{
+					char out_file[PATH_MAX]; 
+					char tmp[PATH_MAX];
+					char *filename = tmp;
+					char *ext;
+					char *start;
+
+					// Get the extension.
+					strncpy(tmp, img_paths[i], sizeof(tmp));
+					ext = strrchr(tmp, '.');
+					*ext = '\0';
+					ext++;
+
+					// And filename.
+					filename = strrchr(tmp, '/');
+					start = strrchr(tmp, '\\');
+					if (start> filename)
+						filename = start;
+					filename++;
+
+					snprintf(out_file, sizeof(out_file) - 1, "%s/match_%s__%s.%s", 
+							output_path, match_success ? "ok" : "fail", filename, ext);
+
+					printf("Saving image \"%s\"\n", out_file);
+
+					cvSaveImage(out_file, img, 0);
+				}
+			}
+
+			cvReleaseImage(&img);
 		}
-
-		cvReleaseImage(&img);
 	}
 
 	end = clock();
 
-	printf("%d of %zu successful! (%f seconds)\n",
-		success_count, img_count, (float)(end - start) / CLOCKS_PER_SEC);
+	if (!test_matchable)
+	{	
+		printf("%d of %zu successful! (%f seconds)\n",
+			success_count, img_count, (float)(end - start) / CLOCKS_PER_SEC);
+	}
 
 fail:
 	catcierge_destroy(&ctx);
 	cvDestroyAllWindows();
 
-	return 0;
+	return ret;
 }
