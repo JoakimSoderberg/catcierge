@@ -357,7 +357,7 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img,
 	return match_avg;
 }
 
-int catcierge_is_matchable(catcierge_t *ctx, IplImage *img)
+int catcierge_is_frame_obstructed(catcierge_t *ctx, IplImage *img)
 {
 	CvSize size;
 	int w;
@@ -399,8 +399,17 @@ int catcierge_is_matchable(catcierge_t *ctx, IplImage *img)
 
 	// Get a binary image and sum the pixel values.
 	tmp2 = cvCreateImage(cvSize(w, h), 8, 1);
-	cvThreshold(tmp, tmp2, 35, 255, CV_THRESH_BINARY);
+	cvThreshold(tmp, tmp2,
+		ctx->low_binary_thresh,
+		ctx->high_binary_thresh,
+		CV_THRESH_BINARY);
+
 	sum = cvSum(tmp2);
+
+	if (ctx->debug)
+	{
+		cvShowImage("Matchable", tmp2);
+	}
 
 	cvSetImageROI(img, cvRect(0, 0, size.width, size.height));
 
@@ -411,7 +420,7 @@ int catcierge_is_matchable(catcierge_t *ctx, IplImage *img)
 
 	cvReleaseImage(&tmp2);
 
-	return (int)sum.val[0] != expected_sum;
+	return ((int)sum.val[0] != expected_sum);
 }
 
 

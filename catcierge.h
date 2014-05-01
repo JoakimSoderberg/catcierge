@@ -63,6 +63,6 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img,
 						CvRect *match_rects, size_t rect_count, 
 						int *flipped);
 
-int catcierge_is_matchable(catcierge_t *ctx, IplImage *img);
+int catcierge_is_frame_obstructed(catcierge_t *ctx, IplImage *img);
 
 #endif // __CATCIERGE_H__

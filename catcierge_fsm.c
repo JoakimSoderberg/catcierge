@@ -398,7 +398,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		 match_success ? "success" : "failure",
 		 match_res, args->match_threshold,
 		 args->saveimg ? grb->matches[grb->match_count].path : "-",
-		 (grb->matches[grb->match_count].direction == MATCH_DIR_IN) ? "in" : "out");
+		 match_get_direction_str(grb->matches[grb->match_count].direction));
 
 	// Runs the --match_cmd progam specified.
 	catcierge_execute(args->match_cmd, "%f %d %s %d",
@@ -619,7 +619,7 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 
 		// We have successfully matched a valid cat :D
 
-		if ((frame_obstructed = catcierge_is_matchable(&grb->matcher, grb->img)) < 0)
+		if ((frame_obstructed = catcierge_is_frame_obstructed(&grb->matcher, grb->img)) < 0)
 		{
 			CATERRFPS("Failed to detect check for obstructed frame\n");
 			return -1;
@@ -798,7 +798,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 
 	// Wait until the middle of the frame is black
 	// before we try to match anything.
-	if ((frame_obstructed = catcierge_is_matchable(&grb->matcher, grb->img)) < 0)
+	if ((frame_obstructed = catcierge_is_frame_obstructed(&grb->matcher, grb->img)) < 0)
 	{
 		CATERRFPS("Failed to detect check for obstructed frame\n");
 		return -1;

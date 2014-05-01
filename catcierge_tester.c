@@ -191,6 +191,8 @@ int main(int argc, char **argv)
 	{
 		for (i = 0; i < (int)img_count; i++)
 		{
+			printf("Preload image %s\n", img_paths[i]);
+
 			if (!(imgs[i] = cvLoadImage(img_paths[i], 1)))
 			{
 				fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
@@ -204,18 +206,25 @@ int main(int argc, char **argv)
 
 	if (test_matchable)
 	{
-		// This tests if an image frame is clear or not (matchable).
-		int frame_obstructed;
-
-		if ((frame_obstructed = catcierge_is_matchable(&ctx, img) < 0))
+		for (i = 0; i < (int)img_count; i++)
 		{
-			fprintf(stderr, "Failed to detect check for obstructed frame\n");
-			return -1;
-		}
+			// This tests if an image frame is clear or not (matchable).
+			int frame_obstructed;
 
-		if (frame_obstructed)
-		{
-			return 0;
+			if ((frame_obstructed = catcierge_is_frame_obstructed(&ctx, imgs[i])) < 0)
+			{
+				fprintf(stderr, "Failed to detect check for matchability frame\n");
+				return -1;
+			}
+
+			printf("%s: Frame obstructed = %d\n",
+				img_paths[i], frame_obstructed);
+
+			if (show)
+			{
+				cvShowImage("image", img);
+				cvWaitKey(0);
+			}
 		}
 	}
 	else

@@ -1424,7 +1424,7 @@ static void process_frames()
 		{
 			// Wait until the middle of the frame is black
 			// before we try to match anything.
-			if ((frame_obstructed = catcierge_is_matchable(&ctx, img)) < 0)
+			if ((frame_obstructed = catcierge_is_frame_obstructed(&ctx, img)) < 0)
 			{
 				CATERRFPS("Failed to detect check for obstructed frame\n");
 				break;
@@ -1463,7 +1463,7 @@ static void process_frames()
 
 			// Wait until the frame is clear before we start the timer.
 			// When this timer ends, we will go back to STATE_WAITING.
-			if ((frame_obstructed = catcierge_is_matchable(&ctx, img)) < 0)
+			if ((frame_obstructed = catcierge_is_frame_obstructed(&ctx, img)) < 0)
 			{
 				CATERRFPS("Failed to detect check for obstructed frame\n");
 				break;
