@@ -386,6 +386,17 @@ static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char
 		return 0;
 	}
 
+	if (!strcmp(key, "chuid"))
+	{
+		if (value_count == 1)
+		{
+			args->chuid = values[0];
+			return 0;
+		}
+
+		return -1;
+	}
+
 	#ifdef WITH_RFID
 	if (!strcmp(key, "rfid_detect_cmd"))
 	{

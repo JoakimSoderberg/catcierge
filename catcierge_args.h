@@ -42,6 +42,7 @@ typedef struct catcierge_args_s
 	char *do_lockout_cmd;
 	char *do_unlock_cmd;
 	char *config_path;
+	char *chuid;
 	int temp_config_count;
 	char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
 	int nocolor;
