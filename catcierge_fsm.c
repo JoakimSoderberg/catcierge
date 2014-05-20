@@ -289,6 +289,80 @@ void catcierge_destroy_camera(catcierge_grb_t *grb)
 	#endif
 }
 
+int catcierge_drop_root_privileges(const char *user)
+{
+	int group_count = 0;
+	gid_t *groups = NULL;
+	int ret = 0;
+
+	// Process is running as root, drop privileges.
+
+	// Note! pwd is static, do not free!
+	struct passwd *pwd = getpwnam(user);
+
+	if (!pwd)
+	{
+		CATERR("Failed to get uid/gid for user \"%s\": %s\n", strerror(errno));
+		ret = -1;
+		goto fail;
+	}
+
+	// Get the user supplementary groups and set
+	// those for the process as well.
+	{
+		if (getgrouplist(user, pwd->pw_gid, NULL, &group_count) != -1)
+		{
+			CATERR("Failed to get user \"%s\" group count\n", user);
+			ret = -1;
+			goto fail;
+		}
+
+		if (!(groups = calloc(group_count, sizeof(gid_t))))
+		{
+			CATERR("Out of memory\n");
+			ret = -1;
+			goto fail;
+		}
+
+		if (getgrouplist(user, pwd->pw_gid, groups, &group_count) < 0)
+		{
+			CATERR("Failed to get groups for user \"%s\"\n", user);
+			ret = -1;
+			goto fail;
+		}
+
+		if (setgroups(group_count, groups))
+		{
+			CATERR("Failed to set supplementary groups for process\n");
+			ret = -1;
+			goto fail;
+		}
+	}
+
+	// Change the group and user id for the process.
+	if (setgid(pwd->pw_gid))
+	{
+		CATERR("setgid: Unable to drop group privileges: %s\n", strerror(errno));
+		ret = -1;
+		goto fail;
+	}
+
+	if (setuid(pwd->pw_uid))
+	{
+		CATERR("setuid: Unable to drop user privileges: %s\n", strerror(errno));
+		ret = -1;
+		goto fail;
+	}
+
+fail:
+	if (groups)
+	{
+		free(groups);
+	}
+
+	return ret;
+}
+
 int catcierge_setup_gpio(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args = &grb->args;
@@ -325,80 +399,13 @@ fail:
 			CATERR("###############################################\n");
 		}
 	}
-	else
+	else if (args->chuid && (getuid() == 0))
 	{
-		int group_count = 0;
-		gid_t *groups = NULL;
-
-		if (args->chuid && (getuid() == 0))
+		if (!catcierge_drop_root_privileges(args->chuid))
 		{
-			// Process is running as root, drop privileges.
-
-			// Note! pwd is static, do not free!
-			struct passwd *pwd = getpwnam(args->chuid);
-
-			if (!pwd)
-			{
-				CATERR("Failed to get uid/gid for user \"%s\": %s\n", strerror(errno));
-				ret = -1;
-				goto fail2;
-			}
-
-			// Get the user supplementary groups and set
-			// those for the process as well.
-			{
-				if (getgrouplist(args->chuid, pwd->pw_gid, NULL, &group_count) != -1)
-				{
-					CATERR("Failed to get user \"%s\" group count\n", args->chuid);
-					ret = -1;
-					goto fail2;
-				}
-
-				if (!(groups = calloc(group_count, sizeof(gid_t))))
-				{
-					CATERR("Out of memory\n");
-					ret = -1;
-					goto fail2;
-				}
-
-				if (getgrouplist(args->chuid, pwd->pw_gid, groups, &group_count) < 0)
-				{
-					CATERR("Failed to get groups for user \"%s\"\n", args->chuid);
-					ret = -1;
-					goto fail2;
-				}
-
-				if (setgroups(group_count, groups))
-				{
-					CATERR("Failed to set supplementary groups for process\n");
-					ret = -1;
-					goto fail2;
-				}
-			}
-
-			// Change the group and user id for the process.
-			if (setgid(pwd->pw_gid))
-			{
-				CATERR("setgid: Unable to drop group privileges: %s\n", strerror(errno));
-				ret = -1;
-				goto fail2;
-			}
-
-			if (setuid(pwd->pw_uid))
-			{
-				CATERR("setuid: Unable to drop user privileges: %s\n", strerror(errno));
-				ret = -1;
-				goto fail2;
-			}
-
 			CATLOG("###############################################\n");
 			CATLOG("########## Root privileges dropped ############\n");
 			CATLOG("###############################################\n");
-		}
-	fail2:
-		if (groups)
-		{
-			free(groups);
 		}
 	}
 	#endif // RPI
