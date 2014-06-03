@@ -8,6 +8,7 @@
 #include <catcierge_config.h>
 #include "catcierge_util.h"
 #include "catcierge_template_matcher.h"
+#include "catcierge_haar_matcher.h"
 #include "catcierge_timer.h"
 #include "catcierge_args.h"
 #include "catcierge_types.h"
@@ -82,6 +83,7 @@ typedef struct catcierge_grb_s
 
 	IplImage *img;
 	catcierge_template_matcher_t matcher;
+	catcierge_haar_matcher_t haar;
 	int match_success;
 	CvRect match_rects[MAX_SNOUT_COUNT];
 	int consecutive_lockout_count;

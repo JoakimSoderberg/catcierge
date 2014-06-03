@@ -28,10 +28,10 @@ static IplImage *open_test_image(int series, int i)
 static void set_default_test_snouts(catcierge_args_t *args)
 {
 	assert(args);
-	args->snout_paths[0] = CATCIERGE_SNOUT1_PATH;
-	args->snout_count++;
-	args->snout_paths[1] = CATCIERGE_SNOUT2_PATH;
-	args->snout_count++;
+	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
+	args->templ.snout_count++;
+	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
+	args->templ.snout_count++;
 }
 
 static void free_test_image(catcierge_grb_t *grb)
@@ -67,7 +67,7 @@ static char *run_consecutive_lockout_abort_tests()
 	args->saveimg = 0;
 	set_default_test_snouts(args);
 
-	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
@@ -157,7 +157,7 @@ static char *run_consecutive_lockout_tests()
 	args->saveimg = 0;
 	set_default_test_snouts(args);
 
-	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
@@ -230,12 +230,12 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	grb.rfid_in_match.is_allowed = conf->inner_valid_rfid;
 	grb.rfid_out_match.is_allowed = conf->outer_valid_rfid;
 	grb.rfid_direction = conf->direction;
-	args->snout_paths[0] = CATCIERGE_SNOUT1_PATH;
-	args->snout_count++;
-	args->snout_paths[1] = CATCIERGE_SNOUT2_PATH;
-	args->snout_count++;
+	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
+	args->templ.snout_count++;
+	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
+	args->templ.snout_count++;
 
-	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
@@ -309,7 +309,7 @@ static char *run_failure_tests(int obstruct)
 	args->saveimg = 0;
 	set_default_test_snouts(args);
 
-	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
@@ -360,12 +360,12 @@ static char *run_success_tests(int obstruct)
 	catcierge_grabber_init(&grb);
 
 	args->saveimg = 0;
-	args->snout_paths[0] = CATCIERGE_SNOUT1_PATH;
-	args->snout_count++;
-	args->snout_paths[1] = CATCIERGE_SNOUT2_PATH;
-	args->snout_count++;
+	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
+	args->templ.snout_count++;
+	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
+	args->templ.snout_count++;
 
-	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}

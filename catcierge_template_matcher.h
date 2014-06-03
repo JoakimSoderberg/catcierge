@@ -27,6 +27,8 @@
 
 #define CATCIERGE_DEFAULT_RESOLUTION_WIDTH 320
 #define CATCIERGE_DEFUALT_RESOLUTION_HEIGHT 240
+#define DEFAULT_MATCH_THRESH 0.8	// The threshold signifying a good match returned by catcierge_match.
+#define MAX_SNOUT_COUNT 24
 
 typedef struct catcierge_template_matcher_s
 {
@@ -48,8 +50,16 @@ typedef struct catcierge_template_matcher_s
 	int debug;
 } catcierge_template_matcher_t;
 
+typedef struct catcierge_template_matcher_args_s
+{
+	const char *snout_paths[MAX_SNOUT_COUNT];
+	size_t snout_count;
+	double match_threshold;
+	int match_flipped;
+} catcierge_template_matcher_args_t;
+
 int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, 
-					const char **snout_paths, int snout_count);
+					catcierge_template_matcher_args_t *args);
 
 void catcierge_template_matcher_set_match_flipped(catcierge_template_matcher_t *ctx, int match_flipped);
 void catcierge_template_matcher_set_match_threshold(catcierge_template_matcher_t *ctx, double match_threshold);
@@ -64,5 +74,10 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const
 						int *flipped);
 
 int catcierge_template_matcher_is_frame_obstructed(catcierge_template_matcher_t *ctx, IplImage *img);
+
+void catcierge_template_matcher_usage();
+int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *args, const char *key, char **values, size_t value_count);
+void catcierge_template_matcher_print_settings(catcierge_template_matcher_args_t * args);
+void catcierge_template_matcher_args_init(catcierge_template_matcher_args_t *args);
 
 #endif // __CATCIERGE_TEMPLATE_MATCHER_H__

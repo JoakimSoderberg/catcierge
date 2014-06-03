@@ -108,14 +108,25 @@ void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int
 	ctx->debug = debug;
 }
 
-int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, const char **snout_paths, int snout_count)
+int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, catcierge_template_matcher_args_t *args)
 {
 	int i;
 	CvSize snout_size;
 	CvSize matchres_size;
 	IplImage *snout_prep = NULL;
+	const char **snout_paths = NULL;
+	int snout_count;
+	assert(args);
 	assert(ctx);
 	memset(ctx, 0, sizeof(catcierge_template_matcher_t));
+
+	if (args->snout_count == 0)
+		return -1;
+
+	snout_paths = args->snout_paths;
+	snout_count = args->snout_count;
+	ctx->match_flipped = args->match_flipped;
+	ctx->match_threshold = args->match_threshold;
 
 	ctx->low_binary_thresh = CATCIERGE_LOW_BINARY_THRESH_DEFAULT;
 	ctx->high_binary_thresh = CATCIERGE_HIGH_BINARY_THRESH_DEFAULT;
@@ -423,5 +434,107 @@ int catcierge_template_matcher_is_frame_obstructed(catcierge_template_matcher_t 
 	return ((int)sum.val[0] != expected_sum);
 }
 
+void catcierge_template_matcher_usage()
+{
+	fprintf(stderr, " --snout <paths>        Path to the snout images to use. If more than \n");
+	fprintf(stderr, "                        one path is given, the average match result is used.\n");
+	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0.\n");
+	fprintf(stderr, "                        Default %.1f\n", DEFAULT_MATCH_THRESH);
+	fprintf(stderr, " --match_flipped <0|1>  Match a flipped version of the snout\n");
+	fprintf(stderr, "                        (don't consider going out a failed match). Default on.\n");
+	fprintf(stderr, "\n");
+}
+
+int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *args, const char *key, char **values, size_t value_count)
+{
+	int i;
+
+	printf("Parse: \"%s\" %s %zu\n", key, values[0], value_count);
+
+	if (!strcmp(key, "match_flipped"))
+	{
+		if (value_count == 1)
+		{
+			args->match_flipped = atoi(values[0]);
+		}
+		else
+		{
+			args->match_flipped = 1;
+		}
+
+		return 0;
+	}
+
+	// On the command line you can specify multiple snouts like this:
+	// --snout_paths <path1> <path2> <path3>
+	// or 
+	// --snout_path <path1> --snout_path <path2>
+	// In the config file you do
+	// snout_path=<path1>
+	// snout_path=<path2>
+	if (!strcmp(key, "snout") || 
+		!strcmp(key, "snout_paths") || 
+		!strcmp(key, "snout_path"))
+	{
+		if (value_count == 0)
+		{
+			fprintf(stderr, "No value given\n");
+			return -1;
+		}
+
+		for (i = 0; i < value_count; i++)
+		{
+			if (args->snout_count >= MAX_SNOUT_COUNT)
+			{
+				fprintf(stderr, "Max snout count reached %d\n", MAX_SNOUT_COUNT);
+				return -1;
+			}
+			args->snout_paths[args->snout_count] = values[i];
+			args->snout_count++;
+		}
+
+		return 0;
+	}
+
+	if (!strcmp(key, "threshold"))
+	{
+		if (value_count == 1)
+		{
+			args->match_threshold = atof(values[0]);
+		}
+		else
+		{
+			args->match_threshold = DEFAULT_MATCH_THRESH;
+		}
+
+		return 0;
+	}
+
+	return 1;
+}
+
+void catcierge_template_matcher_print_settings(catcierge_template_matcher_args_t *args)
+{
+	size_t i;
+	assert(args);
+
+	printf("Template Matcher:\n");
+	printf(" Snout image(s): %s\n", args->snout_paths[0]);
+	for (i = 1; i < args->snout_count; i++)
+	{
+		printf("                 %s\n", args->snout_paths[i]);
+	}
+	printf("  Match threshold: %.2f\n", args->match_threshold);
+	printf("    Match flipped: %d\n", args->match_flipped);
+	printf("\n");
+}
+
+void catcierge_template_matcher_args_init(catcierge_template_matcher_args_t *args)
+{
+	assert(args);
+	memset(args, 0, sizeof(catcierge_template_matcher_args_t));
+	args->match_threshold = DEFAULT_MATCH_THRESH;
+	args->match_flipped = 1;
+}
 
 

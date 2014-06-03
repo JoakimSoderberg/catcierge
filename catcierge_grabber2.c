@@ -103,13 +103,6 @@ int main(int argc, char **argv)
 			catcierge_nocolor = 1;
 		}
 
-		// Set some defaults.
-		if (args->snout_count == 0)
-		{
-			args->snout_paths[0] = "snout.png";
-			args->snout_count++;
-		}
-
 		if (args->output_path)
 		{
 			char cmd[1024];
@@ -129,8 +122,6 @@ int main(int argc, char **argv)
 		catcierge_print_settings(args);
 	}
 
-	assert(args->snout_count > 0);
-
 	setup_sig_handlers();
 
 	if (args->log_path)
@@ -149,14 +140,20 @@ int main(int argc, char **argv)
 
 	CATLOG("Initialized GPIO pins\n");
 
-	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (!args->matcher || !strcmp(args->matcher, "template"))
 	{
-		CATERR("Failed to init catcierge lib!\n");
-		return -1;
+		if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
+		{
+			CATERR("Failed to init catcierge lib!\n");
+			return -1;
+		}
 	}
-
-	catcierge_template_matcher_set_match_flipped(&grb.matcher, args->match_flipped);
-	catcierge_template_matcher_set_match_threshold(&grb.matcher, args->match_threshold);
+	else
+	{
+		// TODO: Use haar cascade.
+		fprintf(stderr, "Not supported yet\n");
+		exit(1);
+	}
 
 	CATLOG("Initialized catcierge image recognition\n");
 

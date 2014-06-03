@@ -480,7 +480,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		// Draw a white rectangle over the best match.
 		if (args->highlight_match)
 		{
-			for (i = 0; i < args->snout_count; i++)
+			for (i = 0; i < args->templ.snout_count; i++)
 			{
 				cvRectangleR(img, grb->match_rects[i],
 						CV_RGB(255, 255, 255), 2, 8, 0);
@@ -502,7 +502,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	// Log match to file.
 	log_print_csv(grb->log_file, "match, %s, %f, %f, %s, %s\n",
 		 match_success ? "success" : "failure",
-		 match_res, args->match_threshold,
+		 match_res, args->templ.match_threshold,
 		 args->saveimg ? grb->matches[grb->match_count].path : "-",
 		 match_get_direction_str(grb->matches[grb->match_count].direction));
 
@@ -696,7 +696,8 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 		#endif
 
 		// Always highlight when showing in GUI.
-		for (i = 0; i < args->snout_count; i++)
+		// TODO: Move this to the template matcher instead.
+		for (i = 0; i < args->templ.snout_count; i++)
 		{
 			cvRectangleR(grb->img, grb->match_rects[i], match_color, 2, 8, 0);
 		}
@@ -798,14 +799,15 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	args = &grb->args;
 
 	// We have something to match against.
+	// TODO: Snout count is no needed here it's already in the matcher...
 	if ((match_res = catcierge_template_matcher_match(&grb->matcher, grb->img,
-		grb->match_rects, args->snout_count, &going_out)) < 0)
+		grb->match_rects, args->templ.snout_count, &going_out)) < 0)
 	{
 		CATERRFPS("Error when matching frame!\n");
 		return -1;
 	}
 
-	match_success = (match_res >= args->match_threshold);
+	match_success = (match_res >= args->templ.match_threshold);
 
 	// Save the match state, execute external processes and so on...
 	catcierge_process_match_result(grb, grb->img, match_success,

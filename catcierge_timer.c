@@ -2,6 +2,8 @@
 #include <assert.h>
 #include "catcierge_timer.h"
 #include <string.h>
+#include <errno.h>
+#include <stdio.h>
 
 void catcierge_timer_reset(catcierge_timer_t *t)
 {

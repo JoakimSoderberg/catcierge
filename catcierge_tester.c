@@ -29,13 +29,21 @@
 #endif
 #include <time.h>
 
+static int parse_arg(catcierge_template_matcher_args_t *args, const char *key, char **values, size_t value_count)
+{
+	if (catcierge_template_matcher_parse_args(args, key, values, value_count))
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	int ret = 0;
 	catcierge_template_matcher_t ctx;
 	#define MAX_SNOUT_COUNT 24
-	const char *snout_paths[MAX_SNOUT_COUNT];
-	size_t snout_count = 0;
 	char *img_paths[4096];
 	IplImage *imgs[4096];
 	size_t img_count = 0;
@@ -59,6 +67,11 @@ int main(int argc, char **argv)
 	int test_matchable = 0;
 	clock_t start;
 	clock_t end;
+	catcierge_template_matcher_args_t args;
+	memset(&args, 0, sizeof(args));
+	char *key = NULL;
+	char *values[256];
+	size_t value_count = 0;
 
 	fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
 
@@ -92,38 +105,11 @@ int main(int argc, char **argv)
 			}
 			continue;
 		}
-		else if (!strcmp(argv[i], "--snout"))
-		{
-			while (((i + 1) < argc) 
-				&& strncmp(argv[i+1], "--", 2))
-			{
-				i++;
-				snout_paths[snout_count] = argv[i];
-				snout_count++;
-			}
-		}
-		else if (!strcmp(argv[i], "--threshold"))
-		{
-			if ((i + 1) < argc)
-			{
-				i++;
-				match_threshold = atof(argv[i]);
-				continue;
-			}
-		}
-		else if (!strcmp(argv[i], "--test_matchable"))
+		else if (!strcmp(argv[i], "--test_matchable")
+				|| !strcmp(argv[i], "--test_obstructed"))
 		{
 			test_matchable = 1;
 			preload = 1;
-		}
-		else if (!strcmp(argv[i], "--match_flipped"))
-		{
-			if ((i + 1) < argc)
-			{
-				i++;
-				match_flipped = atoi(argv[i]);
-				continue;
-			}
 		}
 		else if (!strcmp(argv[i], "--debug"))
 		{
@@ -148,9 +134,34 @@ int main(int argc, char **argv)
 				continue;
 			}
 		}
+
+		if (!strncmp(argv[i], "--", 2))
+		{
+			int j = i + 1;
+			key = &argv[i][2];
+			memset(values, 0, value_count * sizeof(char *));
+			value_count = 0;
+
+			// Look for values for the option.
+			// Continue fetching values until we get another option
+			// or there are no more options.
+			while ((j < argc) && strncmp(argv[j], "--", 2))
+			{
+				values[value_count] = argv[j];
+				value_count++;
+				i++;
+				j = i + 1;
+			}
+
+			if ((ret = parse_arg(&args, key, values, value_count)) < 0)
+			{
+				fprintf(stderr, "Failed to parse command line arguments for \"%s\"\n", key);
+				return ret;
+			}
+		}
 	}
 
-	if (snout_count == 0)
+	if (args.snout_count == 0)
 	{
 		fprintf(stderr, "No snout image specified\n");
 		return -1;
@@ -174,7 +185,7 @@ int main(int argc, char **argv)
 		system(cmd);
 	}
 
-	if (catcierge_template_matcher_init(&ctx, snout_paths, snout_count))
+	if (catcierge_template_matcher_init(&ctx, &args))
 	{
 		fprintf(stderr, "Failed to init catcierge lib!\n");
 		return -1;
@@ -252,7 +263,7 @@ int main(int argc, char **argv)
 
 			printf("  Image size: %dx%d\n", img_size.width, img_size.height);
 
-			if ((match_res = catcierge_template_matcher_match(&ctx, img, match_rects, snout_count, &was_flipped)) < 0)
+			if ((match_res = catcierge_template_matcher_match(&ctx, img, match_rects, args.snout_count, &was_flipped)) < 0)
 			{
 				fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
 				catcierge_template_matcher_destroy(&ctx);
@@ -274,7 +285,7 @@ int main(int argc, char **argv)
 
 			if (show || save)
 			{
-				for (j = 0; j < (int)snout_count; j++)
+				for (j = 0; j < (int)args.snout_count; j++)
 				{
 					cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
 				}
