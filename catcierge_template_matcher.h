@@ -28,7 +28,7 @@
 #define CATCIERGE_DEFAULT_RESOLUTION_WIDTH 320
 #define CATCIERGE_DEFUALT_RESOLUTION_HEIGHT 240
 
-typedef struct catcierge_s
+typedef struct catcierge_template_matcher_s
 {
 	CvMemStorage *storage;
 	int width;
@@ -46,23 +46,23 @@ typedef struct catcierge_s
 	int erode;
 
 	int debug;
-} catcierge_t;
+} catcierge_template_matcher_t;
 
-int catcierge_init(catcierge_t *ctx, 
+int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, 
 					const char **snout_paths, int snout_count);
 
-void catcierge_set_match_flipped(catcierge_t *ctx, int match_flipped);
-void catcierge_set_match_threshold(catcierge_t *ctx, double match_threshold);
-void catcierge_set_binary_thresholds(catcierge_t *ctx, int low, int high);
-void catcierge_set_erode(catcierge_t *ctx, int erode);
-void catcierge_set_debug(catcierge_t *ctx, int debug);
+void catcierge_template_matcher_set_match_flipped(catcierge_template_matcher_t *ctx, int match_flipped);
+void catcierge_template_matcher_set_match_threshold(catcierge_template_matcher_t *ctx, double match_threshold);
+void catcierge_template_matcher_set_binary_thresholds(catcierge_template_matcher_t *ctx, int low, int high);
+void catcierge_template_matcher_set_erode(catcierge_template_matcher_t *ctx, int erode);
+void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int debug);
 
-void catcierge_destroy(catcierge_t *ctx);
+void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx);
 
-double catcierge_match(catcierge_t *ctx, const IplImage *img, 
+double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const IplImage *img, 
 						CvRect *match_rects, size_t rect_count, 
 						int *flipped);
 
-int catcierge_is_frame_obstructed(catcierge_t *ctx, IplImage *img);
+int catcierge_template_matcher_is_frame_obstructed(catcierge_template_matcher_t *ctx, IplImage *img);
 
 #endif // __CATCIERGE_TEMPLATE_MATCHER_H__

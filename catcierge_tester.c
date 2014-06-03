@@ -20,7 +20,7 @@
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "catcierge.h"
+#include "catcierge_template_matcher.h"
 #include "catcierge_util.h"
 #ifdef _WIN32
 #include <process.h>
@@ -32,7 +32,7 @@
 int main(int argc, char **argv)
 {
 	int ret = 0;
-	catcierge_t ctx;
+	catcierge_template_matcher_t ctx;
 	#define MAX_SNOUT_COUNT 24
 	const char *snout_paths[MAX_SNOUT_COUNT];
 	size_t snout_count = 0;
@@ -174,15 +174,15 @@ int main(int argc, char **argv)
 		system(cmd);
 	}
 
-	if (catcierge_init(&ctx, snout_paths, snout_count))
+	if (catcierge_template_matcher_init(&ctx, snout_paths, snout_count))
 	{
 		fprintf(stderr, "Failed to init catcierge lib!\n");
 		return -1;
 	}
 
-	catcierge_set_match_flipped(&ctx, match_flipped);
-	catcierge_set_match_threshold(&ctx, match_threshold);
-	catcierge_set_debug(&ctx, debug);
+	catcierge_template_matcher_set_match_flipped(&ctx, match_flipped);
+	catcierge_template_matcher_set_match_threshold(&ctx, match_threshold);
+	catcierge_template_matcher_set_debug(&ctx, debug);
 	//catcierge_set_binary_thresholds(&ctx, 90, 200);
 
 	// If we should preload the images or not
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 			// This tests if an image frame is clear or not (matchable).
 			int frame_obstructed;
 
-			if ((frame_obstructed = catcierge_is_frame_obstructed(&ctx, imgs[i])) < 0)
+			if ((frame_obstructed = catcierge_template_matcher_is_frame_obstructed(&ctx, imgs[i])) < 0)
 			{
 				fprintf(stderr, "Failed to detect check for matchability frame\n");
 				return -1;
@@ -252,10 +252,10 @@ int main(int argc, char **argv)
 
 			printf("  Image size: %dx%d\n", img_size.width, img_size.height);
 
-			if ((match_res = catcierge_match(&ctx, img, match_rects, snout_count, &was_flipped)) < 0)
+			if ((match_res = catcierge_template_matcher_match(&ctx, img, match_rects, snout_count, &was_flipped)) < 0)
 			{
 				fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
-				catcierge_destroy(&ctx);
+				catcierge_template_matcher_destroy(&ctx);
 			}
 
 			match_success = (match_res >= match_threshold);
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 	}
 
 fail:
-	catcierge_destroy(&ctx);
+	catcierge_template_matcher_destroy(&ctx);
 	cvDestroyAllWindows();
 
 	return ret;

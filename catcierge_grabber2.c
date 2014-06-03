@@ -149,14 +149,14 @@ int main(int argc, char **argv)
 
 	CATLOG("Initialized GPIO pins\n");
 
-	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
 	{
 		CATERR("Failed to init catcierge lib!\n");
 		return -1;
 	}
 
-	catcierge_set_match_flipped(&grb.matcher, args->match_flipped);
-	catcierge_set_match_threshold(&grb.matcher, args->match_threshold);
+	catcierge_template_matcher_set_match_flipped(&grb.matcher, args->match_flipped);
+	catcierge_template_matcher_set_match_threshold(&grb.matcher, args->match_threshold);
 
 	CATLOG("Initialized catcierge image recognition\n");
 
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 		catcierge_print_spinner(&grb);
 	} while (grb.running);
 
-	catcierge_destroy(&grb.matcher);
+	catcierge_template_matcher_destroy(&grb.matcher);
 	catcierge_destroy_camera(&grb);
 	catcierge_grabber_destroy(&grb);
 

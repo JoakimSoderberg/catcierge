@@ -31,7 +31,7 @@
 #include <unistd.h>
 #endif
 
-static int _catcierge_prepare_img(catcierge_t *ctx, const IplImage *src, IplImage *dst)
+static int _catcierge_prepare_img(catcierge_template_matcher_t *ctx, const IplImage *src, IplImage *dst)
 {
 	const IplImage *img_gray = NULL;
 	IplImage *tmp = NULL;
@@ -78,44 +78,44 @@ static int _catcierge_prepare_img(catcierge_t *ctx, const IplImage *src, IplImag
 	return 0;
 }
 
-void catcierge_set_erode(catcierge_t *ctx, int erode)
+void catcierge_template_matcher_set_erode(catcierge_template_matcher_t *ctx, int erode)
 {
 	assert(ctx);
 	ctx->erode = erode;
 }
 
-void catcierge_set_match_flipped(catcierge_t *ctx, int match_flipped)
+void catcierge_template_matcher_set_match_flipped(catcierge_template_matcher_t *ctx, int match_flipped)
 {
 	assert(ctx);
 	ctx->match_flipped = match_flipped;
 }
 
-void catcierge_set_match_threshold(catcierge_t *ctx, double match_threshold)
+void catcierge_template_matcher_set_match_threshold(catcierge_template_matcher_t *ctx, double match_threshold)
 {
 	assert(ctx);
 	ctx->match_threshold = match_threshold;
 }
 
-void catcierge_set_binary_thresholds(catcierge_t *ctx, int low, int high)
+void catcierge_template_matcher_set_binary_thresholds(catcierge_template_matcher_t *ctx, int low, int high)
 {
 	assert(ctx);
 	ctx->low_binary_thresh = low;
 	ctx->high_binary_thresh = high;
 }
 
-void catcierge_set_debug(catcierge_t *ctx, int debug)
+void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int debug)
 {
 	ctx->debug = debug;
 }
 
-int catcierge_init(catcierge_t *ctx, const char **snout_paths, int snout_count)
+int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, const char **snout_paths, int snout_count)
 {
 	int i;
 	CvSize snout_size;
 	CvSize matchres_size;
 	IplImage *snout_prep = NULL;
 	assert(ctx);
-	memset(ctx, 0, sizeof(catcierge_t));
+	memset(ctx, 0, sizeof(catcierge_template_matcher_t));
 
 	ctx->low_binary_thresh = CATCIERGE_LOW_BINARY_THRESH_DEFAULT;
 	ctx->high_binary_thresh = CATCIERGE_HIGH_BINARY_THRESH_DEFAULT;
@@ -194,7 +194,7 @@ int catcierge_init(catcierge_t *ctx, const char **snout_paths, int snout_count)
 	return 0;
 }
 
-void catcierge_destroy(catcierge_t *ctx)
+void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx)
 {
 	size_t i;
 	assert(ctx);
@@ -246,7 +246,7 @@ void catcierge_destroy(catcierge_t *ctx)
 
 // TODO: Replace match_rects with a match_result struct that includes
 // match_rect and result value for each snout image.
-double catcierge_match(catcierge_t *ctx, const IplImage *img,
+double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const IplImage *img,
 						CvRect *match_rects, size_t rect_count, 
 						int *flipped)
 {
@@ -357,7 +357,7 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img,
 	return match_avg;
 }
 
-int catcierge_is_frame_obstructed(catcierge_t *ctx, IplImage *img)
+int catcierge_template_matcher_is_frame_obstructed(catcierge_template_matcher_t *ctx, IplImage *img)
 {
 	CvSize size;
 	int w;

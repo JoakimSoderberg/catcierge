@@ -81,7 +81,7 @@ typedef struct catcierge_grb_s
 	#endif
 
 	IplImage *img;
-	catcierge_t matcher;
+	catcierge_template_matcher_t matcher;
 	int match_success;
 	CvRect match_rects[MAX_SNOUT_COUNT];
 	int consecutive_lockout_count;

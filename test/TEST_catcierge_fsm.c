@@ -67,13 +67,13 @@ static char *run_consecutive_lockout_abort_tests()
 	args->saveimg = 0;
 	set_default_test_snouts(args);
 
-	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
 
-	catcierge_set_match_flipped(&grb.matcher, 1);
-	catcierge_set_match_threshold(&grb.matcher, 0.8);
+	catcierge_template_matcher_set_match_flipped(&grb.matcher, 1);
+	catcierge_template_matcher_set_match_threshold(&grb.matcher, 0.8);
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
@@ -139,7 +139,7 @@ static char *run_consecutive_lockout_abort_tests()
 	// Now trigger "max consecutive lockouts" but add a success in the middle
 	// to make sure the consecutive count is reset.
 
-	catcierge_destroy(&grb.matcher);
+	catcierge_template_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -157,13 +157,13 @@ static char *run_consecutive_lockout_tests()
 	args->saveimg = 0;
 	set_default_test_snouts(args);
 
-	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
 
-	catcierge_set_match_flipped(&grb.matcher, 1);
-	catcierge_set_match_threshold(&grb.matcher, 0.8);
+	catcierge_template_matcher_set_match_flipped(&grb.matcher, 1);
+	catcierge_template_matcher_set_match_threshold(&grb.matcher, 0.8);
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
@@ -195,7 +195,7 @@ static char *run_consecutive_lockout_tests()
 
 	mu_assert("Expected program to be in non-running state after max_consecutive_lockout_count", (grb.running == 0));
 
-	catcierge_destroy(&grb.matcher);
+	catcierge_template_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -235,13 +235,13 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	args->snout_paths[1] = CATCIERGE_SNOUT2_PATH;
 	args->snout_count++;
 
-	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
 
-	catcierge_set_match_flipped(&grb.matcher, 1);
-	catcierge_set_match_threshold(&grb.matcher, 0.8);
+	catcierge_template_matcher_set_match_flipped(&grb.matcher, 1);
+	catcierge_template_matcher_set_match_threshold(&grb.matcher, 0.8);
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
@@ -291,7 +291,7 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 		}
 	}
 
-	catcierge_destroy(&grb.matcher);
+	catcierge_template_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -309,13 +309,13 @@ static char *run_failure_tests(int obstruct)
 	args->saveimg = 0;
 	set_default_test_snouts(args);
 
-	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
 
-	catcierge_set_match_flipped(&grb.matcher, 1);
-	catcierge_set_match_threshold(&grb.matcher, 0.8);
+	catcierge_template_matcher_set_match_flipped(&grb.matcher, 1);
+	catcierge_template_matcher_set_match_threshold(&grb.matcher, 0.8);
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
@@ -337,7 +337,7 @@ static char *run_failure_tests(int obstruct)
 	mu_assert("Expected LOCKOUT state", (grb.state == catcierge_state_lockout));
 	catcierge_test_STATUS("Lockout state as expected");
 
-	catcierge_destroy(&grb.matcher);
+	catcierge_template_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -365,13 +365,13 @@ static char *run_success_tests(int obstruct)
 	args->snout_paths[1] = CATCIERGE_SNOUT2_PATH;
 	args->snout_count++;
 
-	if (catcierge_init(&grb.matcher, args->snout_paths, args->snout_count))
+	if (catcierge_template_matcher_init(&grb.matcher, args->snout_paths, args->snout_count))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
 
-	catcierge_set_match_flipped(&grb.matcher, 1);
-	catcierge_set_match_threshold(&grb.matcher, 0.8);
+	catcierge_template_matcher_set_match_flipped(&grb.matcher, 1);
+	catcierge_template_matcher_set_match_threshold(&grb.matcher, 0.8);
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
@@ -412,7 +412,7 @@ static char *run_success_tests(int obstruct)
 		}
 	}
 
-	catcierge_destroy(&grb.matcher);
+	catcierge_template_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
