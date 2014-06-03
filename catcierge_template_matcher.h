@@ -16,8 +16,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
-#ifndef __CATCIERGE_H__
-#define __CATCIERGE_H__
+#ifndef __CATCIERGE_TEMPLATE_MATCHER_H__
+#define __CATCIERGE_TEMPLATE_MATCHER_H__
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <stdio.h>
@@ -65,4 +65,4 @@ double catcierge_match(catcierge_t *ctx, const IplImage *img,
 
 int catcierge_is_frame_obstructed(catcierge_t *ctx, IplImage *img);
 
-#endif // __CATCIERGE_H__
+#endif // __CATCIERGE_TEMPLATE_MATCHER_H__

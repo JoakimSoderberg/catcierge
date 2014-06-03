@@ -7,7 +7,7 @@
 
 #include <catcierge_config.h>
 #include "catcierge_util.h"
-#include "catcierge.h"
+#include "catcierge_template_matcher.h"
 #include "catcierge_timer.h"
 #include "catcierge_args.h"
 #include "catcierge_types.h"

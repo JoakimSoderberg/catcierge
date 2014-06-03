@@ -4,12 +4,13 @@
 #include "catcierge_log.h"
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
 #include "catcierge_util.h"
-#include "catcierge.h"
+#include "catcierge_template_matcher.h"
 #include "catcierge_timer.h"
 
 #ifdef RPI
@@ -302,7 +303,11 @@ int catcierge_drop_root_privileges(const char *user)
 {
 	#ifdef CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
 	int group_count = 0;
+	#ifdef __APPLE__
+	int *groups = NULL;
+	#else
 	gid_t *groups = NULL;
+	#endif
 	int ret = 0;
 
 	// Process is running as root, drop privileges.
@@ -341,7 +346,7 @@ int catcierge_drop_root_privileges(const char *user)
 			goto fail;
 		}
 
-		if (setgroups(group_count, groups))
+		if (setgroups(group_count, (gid_t *)groups))
 		{
 			CATERR("Failed to set supplementary groups for process\n");
 			ret = -1;

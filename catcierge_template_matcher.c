@@ -16,7 +16,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "catcierge.h"
+#include "catcierge_template_matcher.h"
 #include "catcierge_log.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
