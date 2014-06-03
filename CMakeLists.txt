@@ -79,6 +79,8 @@ endif()
 include(CheckIncludeFiles)
 check_include_files(unistd.h CATCIERGE_HAVE_UNISTD_H)
 check_include_files(fcntl.h CATCIERGE_HAVE_FCNTL_H)
+check_include_files(sys/types.h CATCIERGE_HAVE_SYS_TYPES_H)
+check_include_files(pwd.h CATCIERGE_HAVE_PWD_H)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/catcierge_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})

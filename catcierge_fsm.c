@@ -15,10 +15,19 @@
 #ifdef RPI
 #include "RaspiCamCV.h"
 #include "catcierge_gpio.h"
-#include <sys/types.h>
+#endif
+
+#ifdef CATCIERGE_HAVE_UNISTD_H
 #include <unistd.h>
-#include <pwd.h>
+#endif
+#ifdef CATCIERGE_HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef CATCIERGE_HAVE_GRP_H
 #include <grp.h>
+#endif
+#ifdef CATCIERGE_HAVE_PWD_H
+#include <pwd.h>
 #endif
 
 #include "catcierge_fsm.h"
@@ -291,6 +300,7 @@ void catcierge_destroy_camera(catcierge_grb_t *grb)
 
 int catcierge_drop_root_privileges(const char *user)
 {
+	#ifdef CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
 	int group_count = 0;
 	gid_t *groups = NULL;
 	int ret = 0;
@@ -361,6 +371,9 @@ fail:
 	}
 
 	return ret;
+	#else // CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
+	return 0;
+	#endif
 }
 
 int catcierge_setup_gpio(catcierge_grb_t *grb)
