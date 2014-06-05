@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "catcierge_template_matcher.h"
+#include "catcierge_haar_matcher.h"
 #include "catcierge_util.h"
 #ifdef _WIN32
 #include <process.h>
@@ -29,9 +30,19 @@
 #endif
 #include <time.h>
 
-static int parse_arg(catcierge_template_matcher_args_t *args, const char *key, char **values, size_t value_count)
+static int parse_arg(catcierge_template_matcher_args_t *args,
+	catcierge_haar_matcher_args_t *hargs, const char *key, char **values, size_t value_count)
 {
-	if (catcierge_template_matcher_parse_args(args, key, values, value_count))
+	int res;
+
+	res = catcierge_template_matcher_parse_args(args, key, values, value_count);
+	if (res < 0)
+	{
+		return -1;
+	}
+
+	res = catcierge_haar_matcher_parse_args(hargs, key, values, value_count);
+	if (res < 0)
 	{
 		return -1;
 	}
@@ -43,6 +54,7 @@ int main(int argc, char **argv)
 {
 	int ret = 0;
 	catcierge_template_matcher_t ctx;
+	catcierge_haar_matcher_t hctx;
 	#define MAX_SNOUT_COUNT 24
 	char *img_paths[4096];
 	IplImage *imgs[4096];
@@ -60,14 +72,17 @@ int main(int argc, char **argv)
 	int save = 0;
 	char *output_path = "output";
 	double match_threshold = 0.8;
-	int match_flipped = 1;
 	int was_flipped = 0;
 	int success_count = 0;
 	int preload = 1;
 	int test_matchable = 0;
+	const char *matcher = NULL;
+	size_t rect_count;
+
 	clock_t start;
 	clock_t end;
 	catcierge_template_matcher_args_t args;
+	catcierge_haar_matcher_args_t hargs;
 	memset(&args, 0, sizeof(args));
 	char *key = NULL;
 	char *values[256];
@@ -80,7 +95,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Usage: %s [--output [path]] [--debug] [--show]\n"
 						"          [--match_flipped <0|1>] [--threshold]\n"
 						"          [--preload] [--test_matchable]\n"
-						"           --snout <snout images> --images <input images>\n", argv[0]);
+						"          [--snout <snout images for template matching>]\n"
+						"          [--cascade <haar cascade xml>]"
+						"           --images <input images>\n"
+						"           --matcher <template|haar>\n", argv[0]);
 		return -1;
 	}
 
@@ -134,6 +152,24 @@ int main(int argc, char **argv)
 				continue;
 			}
 		}
+		else if (!strcmp(argv[i], "--matcher"))
+		{
+			if ((i + 1) < argc)
+			{
+				if (strncmp(argv[i+1], "--", 2))
+				{
+					i++;
+					matcher = argv[i];
+
+					if (strcmp(matcher, "template") && strcmp(matcher, "haar"))
+					{
+						fprintf(stderr, "Invalid matcher type \"%s\"\n", matcher);
+						return -1;
+					}
+				}
+			}
+			continue;
+		}
 
 		if (!strncmp(argv[i], "--", 2))
 		{
@@ -153,7 +189,7 @@ int main(int argc, char **argv)
 				j = i + 1;
 			}
 
-			if ((ret = parse_arg(&args, key, values, value_count)) < 0)
+			if ((ret = parse_arg(&args, &hargs, key, values, value_count)) < 0)
 			{
 				fprintf(stderr, "Failed to parse command line arguments for \"%s\"\n", key);
 				return ret;
@@ -161,9 +197,15 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (args.snout_count == 0)
+	if (!strcmp(matcher, "template") && (args.snout_count == 0))
 	{
 		fprintf(stderr, "No snout image specified\n");
+		return -1;
+	}
+
+	if (!strcmp(matcher, "haar") && !hargs.cascade)
+	{
+		fprintf(stderr, "No haar cascade specified\n");
 		return -1;
 	}
 
@@ -185,14 +227,27 @@ int main(int argc, char **argv)
 		system(cmd);
 	}
 
-	if (catcierge_template_matcher_init(&ctx, &args))
+	if (!strcmp(matcher, "template"))
 	{
-		fprintf(stderr, "Failed to init catcierge lib!\n");
-		return -1;
+		if (catcierge_template_matcher_init(&ctx, &args))
+		{
+			fprintf(stderr, "Failed to init template matcher\n");
+			return -1;
+		}
+
+		rect_count = args.snout_count;
+	}
+	else
+	{
+		if (catcierge_haar_matcher_init(&hctx, &hargs))
+		{
+			fprintf(stderr, "Failed to init haar matcher.\n");
+			return -1;
+		}
+
+		rect_count = MAX_SNOUT_COUNT;
 	}
 
-	catcierge_template_matcher_set_match_flipped(&ctx, match_flipped);
-	catcierge_template_matcher_set_match_threshold(&ctx, match_threshold);
 	catcierge_template_matcher_set_debug(&ctx, debug);
 	//catcierge_set_binary_thresholds(&ctx, 90, 200);
 
@@ -263,10 +318,23 @@ int main(int argc, char **argv)
 
 			printf("  Image size: %dx%d\n", img_size.width, img_size.height);
 
-			if ((match_res = catcierge_template_matcher_match(&ctx, img, match_rects, args.snout_count, &was_flipped)) < 0)
+			if (!strcmp(matcher, "template"))
 			{
-				fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
-				catcierge_template_matcher_destroy(&ctx);
+				if ((match_res = catcierge_template_matcher_match(&ctx, img, match_rects, rect_count, &was_flipped)) < 0)
+				{
+					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
+					catcierge_template_matcher_destroy(&ctx);
+					return -1;
+				}
+			}
+			else
+			{
+				if ((match_res = catcierge_haar_matcher_match(&hctx, img, match_rects, &rect_count)) < 0)
+				{
+					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
+					catcierge_haar_matcher_destroy(&hctx);
+					return -1;
+				}
 			}
 
 			match_success = (match_res >= match_threshold);
@@ -285,7 +353,7 @@ int main(int argc, char **argv)
 
 			if (show || save)
 			{
-				for (j = 0; j < (int)args.snout_count; j++)
+				for (j = 0; j < (int)rect_count; j++)
 				{
 					cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
 				}

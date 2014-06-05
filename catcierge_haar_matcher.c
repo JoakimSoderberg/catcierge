@@ -1,12 +1,27 @@
 
 #include <assert.h>
 #include "catcierge_haar_matcher.h"
-
+#include "catcierge_haar_wrapper.h"
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args)
 {
 	assert(args);
 	assert(ctx);
+
+	if (!args->cascade)
+	{
+		return -1;
+	}
+
+	if (!(ctx->cascade = cv2CascadeClassifier_create()))
+	{
+		return -1;
+	}
+
+	if (cv2CascadeClassifier_load(ctx->cascade, args->cascade))
+	{
+		return -1;
+	}
 
 	return 0;
 }
@@ -14,13 +29,33 @@ int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_ma
 void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
 {
 	assert(ctx);
+	if (ctx->cascade)
+	{
+		cv2CascadeClassifier_destroy(ctx->cascade);
+	}
 }
 
-double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx)
+double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, const IplImage *img,
+		CvRect *match_rects, size_t *rect_count)
 {
 	assert(ctx);
+	CvSize max_size;
+	CvSize min_size;
+	min_size.width = 80;
+	min_size.height = 80;
+	max_size.width = 200;
+	max_size.height = 200;
 
-	return 0.0;
+	if (cv2CascadeClassifier_detectMultiScale(ctx->cascade,
+			img, match_rects, rect_count,
+			1.1, 3, 0, &min_size, &max_size))
+	{
+		return -1.0;
+	}
+
+	printf("Rect count: %zu\n", *rect_count);
+
+	return (*rect_count > 0) ? 1.0 : 0.0;
 }
 
 void catcierge_haar_matcher_usage()
@@ -32,6 +67,7 @@ void catcierge_haar_matcher_usage()
 
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const char *key, char **values, size_t value_count)
 {
+	printf("Parse: %s %s", key, values[0]);
 	if (!strcmp(key, "cascade"))
 	{
 		if (value_count == 1)
@@ -82,4 +118,6 @@ void catcierge_haar_matcher_args_init(catcierge_haar_matcher_args_t *args)
 {
 	assert(args);
 	memset(args, 0, sizeof(catcierge_haar_matcher_args_t));
+	args->min_width = 80;
+	args->min_height = 80;
 }

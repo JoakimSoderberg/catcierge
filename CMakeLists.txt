@@ -202,7 +202,8 @@ endif()
 # Catcierge lib.
 set(LIB_SRC
 	catcierge_template_matcher.c
-	catcierge_haar_matcher.c)
+	catcierge_haar_matcher.c
+	catcierge_haar_wrapper.cpp)
 
 if (WITH_RFID)
 	add_definitions(-DWITH_RFID)

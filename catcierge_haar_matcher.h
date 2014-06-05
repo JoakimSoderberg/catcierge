@@ -21,15 +21,17 @@
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <stdio.h>
+#include "catcierge_haar_wrapper.h"
 
 typedef struct catcierge_haar_matcher_s
 {
 	CvMemStorage *storage;
 	IplConvKernel *kernel;
-	//IplImage **matchres;
 
 	int low_binary_thresh;
 	int high_binary_thresh;
+
+	cv2CascadeClassifier *cascade;
 
 	int debug;
 } catcierge_haar_matcher_t;
@@ -43,7 +45,8 @@ typedef struct catcierge_haar_matcher_args_s
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args);
 void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx);
-double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx);
+double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, const IplImage *img,
+		CvRect *match_rects, size_t *rect_count);
 
 void catcierge_haar_matcher_usage();
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const char *key, char **values, size_t value_count);

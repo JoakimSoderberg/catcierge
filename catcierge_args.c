@@ -497,7 +497,7 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "                        this is useful while gathering enough data to train the cascade.\n");
 	fprintf(stderr, "Haar cascade matcher:\n");
 	catcierge_haar_matcher_usage();
-	fprintf(stderr, "Template matcher settings:\n");
+	fprintf(stderr, "Template matcher:\n");
 	catcierge_template_matcher_usage();
 	#ifdef WITH_RFID
 	fprintf(stderr, "\n");
