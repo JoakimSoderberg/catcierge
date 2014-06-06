@@ -17,9 +17,20 @@
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#ifndef __CATCIERGE_TYPES_H__
+#define __CATCIERGE_TYPES_H__
+
 typedef enum match_direction_e
 {
 	MATCH_DIR_UNKNOWN = -1,
 	MATCH_DIR_IN = 0,
 	MATCH_DIR_OUT = 1
 } match_direction_t;
+
+typedef enum direction_e
+{
+	DIR_LEFT = 0,
+	DIR_RIGHT = 1
+} direction_t;
+
+#endif // __CATCIERGE_TYPES_H__

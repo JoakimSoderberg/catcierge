@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <opencv/cv.h>
 #include "catcierge_haar_wrapper.h"
+#include "catcierge_types.h"
 
 typedef struct catcierge_haar_matcher_s
 {
@@ -33,6 +34,7 @@ typedef struct catcierge_haar_matcher_s
 	int high_binary_thresh;
 
 	cv2CascadeClassifier *cascade;
+	direction_t in_direction;
 
 	int debug;
 } catcierge_haar_matcher_t;
@@ -42,6 +44,7 @@ typedef struct catcierge_haar_matcher_args_s
 	const char *cascade;
 	int min_width;
 	int min_height;
+	direction_t in_direction;
 } catcierge_haar_matcher_args_t;
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args);

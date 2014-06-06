@@ -55,6 +55,7 @@ int cv2CascadeClassifier_detectMultiScale(cv2CascadeClassifier *c,
 	Size minSize = *min_size;
 	Size maxSize = *max_size;
 
+	// TODO: Find out why this differs from the Python version.
 	cc->detectMultiScale(m, objectVector, scale_factor,
 		min_neighbours, flags, minSize, maxSize);
 

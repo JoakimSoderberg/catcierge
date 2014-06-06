@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "catcierge_haar_matcher.h"
 #include "catcierge_haar_wrapper.h"
+#include "catcierge_types.h"
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args)
 {
@@ -23,6 +24,8 @@ int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_ma
 		return -1;
 	}
 
+	ctx->in_direction = args->in_direction;
+
 	return 0;
 }
 
@@ -35,6 +38,41 @@ void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
 	}
 }
 
+match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, IplImage *img)
+{
+	assert(ctx);
+	int left_sum;
+	int right_sum;
+	match_direction_t dir = MATCH_DIR_UNKNOWN;
+	CvRect roi = cvGetImageROI(img);
+
+	// Left.
+	cvSetImageROI(img, cvRect(0, 0, 1, roi.height));
+	left_sum = (int)cvSum(img).val[0];
+
+	// Right.
+	cvSetImageROI(img, cvRect(roi.width - 1, 0, roi.width, roi.height));
+	right_sum = (int)cvSum(img).val[0];
+
+	if (abs(left_sum - right_sum) > 25)
+	{
+		if (left_sum > right_sum)
+		{
+			// Going right.
+			dir = (ctx->in_direction == DIR_RIGHT) ? MATCH_DIR_IN : MATCH_DIR_OUT;
+		}
+		else
+		{
+			// Going left.
+			dir = (ctx->in_direction == DIR_LEFT) ? MATCH_DIR_IN : MATCH_DIR_OUT;
+		}
+	}
+
+	cvSetImageROI(img, roi);
+
+	return dir;
+}
+
 double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
 		CvRect *match_rects, size_t *rect_count)
 {
@@ -43,6 +81,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	IplImage *img_eq = NULL;
 	IplImage *img_gray = NULL;
 	IplImage *tmp = NULL;
+	match_direction_t dir = MATCH_DIR_UNKNOWN;
 	CvSize max_size;
 	CvSize min_size;
 	min_size.width = 80;
@@ -50,6 +89,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	max_size.width = 0;
 	max_size.height = 0;
 
+	// Make gray scale if needed.
 	if (img->nChannels != 1)
 	{
 		tmp = cvCreateImage(cvGetSize(img), 8, 1);
@@ -61,6 +101,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 		img_gray = img;
 	}
 
+	// Equalize histogram.
 	img_eq = cvCreateImage(cvGetSize(img), 8, 1);
 	cvEqualizeHist(img_gray, img_eq);
 
@@ -74,9 +115,34 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 
 	printf("Rect count: %zu\n", *rect_count);
 	ret = (*rect_count > 0) ? 1.0 : 0.0;
+
+	// TODO: Set image roi to match rect.
+	// TODO: Threshold the image.
+
+	// TODO: Either find contour or simpler solution.
+	// 		If we only have one contour, do:
+	// 		erode 12x12
+	// 		MORP_OPEN 5x1
+	//		Find contours again.
+
+	if (ret > 0.0)
+	{
+		dir = catcierge_haar_guess_direction(ctx, img);
+
+		printf("Direction: ");
+		switch (dir)
+		{
+			case MATCH_DIR_IN: printf("IN"); break;
+			case MATCH_DIR_OUT: printf("OUT"); break;
+			default: printf("Unknown"); break;
+		}
+	}
 fail:
-	cvReleaseImage(&img_gray);
 	cvReleaseImage(&img_eq);
+	if (tmp)
+	{
+		cvReleaseImage(&tmp);
+	}
 
 	return ret;
 }
@@ -143,4 +209,5 @@ void catcierge_haar_matcher_args_init(catcierge_haar_matcher_args_t *args)
 	memset(args, 0, sizeof(catcierge_haar_matcher_args_t));
 	args->min_width = 80;
 	args->min_height = 80;
+	args->in_direction = DIR_RIGHT;
 }
