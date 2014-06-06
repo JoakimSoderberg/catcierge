@@ -35,27 +35,50 @@ void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
 	}
 }
 
-double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, const IplImage *img,
+double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
 		CvRect *match_rects, size_t *rect_count)
 {
 	assert(ctx);
+	double ret = 0.0;
+	IplImage *img_eq = NULL;
+	IplImage *img_gray = NULL;
+	IplImage *tmp = NULL;
 	CvSize max_size;
 	CvSize min_size;
 	min_size.width = 80;
 	min_size.height = 80;
-	max_size.width = 200;
-	max_size.height = 200;
+	max_size.width = 0;
+	max_size.height = 0;
+
+	if (img->nChannels != 1)
+	{
+		tmp = cvCreateImage(cvGetSize(img), 8, 1);
+		cvCvtColor(img, tmp, CV_BGR2GRAY);
+		img_gray = tmp;
+	}
+	else
+	{
+		img_gray = img;
+	}
+
+	img_eq = cvCreateImage(cvGetSize(img), 8, 1);
+	cvEqualizeHist(img_gray, img_eq);
 
 	if (cv2CascadeClassifier_detectMultiScale(ctx->cascade,
-			img, match_rects, rect_count,
-			1.1, 3, 0, &min_size, &max_size))
+			img_eq, match_rects, rect_count,
+			1.1, 3, CV_HAAR_SCALE_IMAGE, &min_size, &max_size))
 	{
-		return -1.0;
+		ret = -1.0;
+		goto fail;
 	}
 
 	printf("Rect count: %zu\n", *rect_count);
+	ret = (*rect_count > 0) ? 1.0 : 0.0;
+fail:
+	cvReleaseImage(&img_gray);
+	cvReleaseImage(&img_eq);
 
-	return (*rect_count > 0) ? 1.0 : 0.0;
+	return ret;
 }
 
 void catcierge_haar_matcher_usage()

@@ -21,6 +21,7 @@
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <stdio.h>
+#include <opencv/cv.h>
 #include "catcierge_haar_wrapper.h"
 
 typedef struct catcierge_haar_matcher_s
@@ -45,7 +46,7 @@ typedef struct catcierge_haar_matcher_args_s
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args);
 void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx);
-double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, const IplImage *img,
+double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
 		CvRect *match_rects, size_t *rect_count);
 
 void catcierge_haar_matcher_usage();

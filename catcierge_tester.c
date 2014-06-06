@@ -355,6 +355,10 @@ int main(int argc, char **argv)
 			{
 				for (j = 0; j < (int)rect_count; j++)
 				{
+					printf("x: %d\n", match_rects[j].x);
+					printf("y: %d\n", match_rects[j].y);
+					printf("w: %d\n", match_rects[j].width);
+					printf("h: %d\n", match_rects[j].height);
 					cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
 				}
 
