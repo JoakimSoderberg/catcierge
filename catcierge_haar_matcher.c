@@ -51,12 +51,14 @@ match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, 
 	left_sum = (int)cvSum(img).val[0];
 
 	// Right.
-	cvSetImageROI(img, cvRect(roi.width - 1, 0, roi.width, roi.height));
+	cvSetImageROI(img, cvRect(roi.width - 1, 0, 1, roi.height));
 	right_sum = (int)cvSum(img).val[0];
 
 	if (abs(left_sum - right_sum) > 25)
 	{
-		if (left_sum > right_sum)
+		if (ctx->debug) printf("Left: %d, Right: %d\n", left_sum, right_sum);
+
+		if (right_sum > left_sum)
 		{
 			// Going right.
 			dir = (ctx->in_direction == DIR_RIGHT) ? MATCH_DIR_IN : MATCH_DIR_OUT;
