@@ -102,6 +102,9 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	catcierge_haar_matcher_args_init(&hargs);
+	catcierge_template_matcher_args_init(&args);
+
 	for (i = 1; i < argc; i++)
 	{
 		if (!strcmp(argv[i], "--show"))
@@ -411,7 +414,14 @@ int main(int argc, char **argv)
 	}
 
 fail:
-	catcierge_template_matcher_destroy(&ctx);
+	if (!strcmp(matcher, "template"))
+	{
+		catcierge_template_matcher_destroy(&ctx);
+	}
+	else
+	{
+		catcierge_haar_matcher_destroy(&hctx);
+	}
 	cvDestroyAllWindows();
 
 	return ret;

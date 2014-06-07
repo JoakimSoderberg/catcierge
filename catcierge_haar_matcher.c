@@ -24,7 +24,24 @@ int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_ma
 		return -1;
 	}
 
+	if (!(ctx->storage = cvCreateMemStorage(0)))
+	{
+		return -1;
+	}
+
+	if (!(ctx->kernel = cvCreateStructuringElementEx(3, 3, 0, 0, CV_SHAPE_RECT, NULL)))
+	{
+		return -1;
+	}
+
+	if (!(ctx->kernel_tall = cvCreateStructuringElementEx(5, 1, 0, 0, CV_SHAPE_RECT, NULL)))
+	{
+		return -1;
+	}
+
 	ctx->in_direction = args->in_direction;
+	ctx->debug = args->debug;
+	ctx->eq_histogram = args->eq_histogram;
 
 	return 0;
 }
@@ -35,6 +52,15 @@ void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
 	if (ctx->cascade)
 	{
 		cv2CascadeClassifier_destroy(ctx->cascade);
+		ctx->cascade = NULL;
+	}
+
+	// TODO: We might have to release the xml as well..
+
+	if (ctx->storage)
+	{
+		cvReleaseMemStorage(&ctx->storage);
+		ctx->storage = NULL;
 	}
 }
 
@@ -75,6 +101,90 @@ match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, 
 	return dir;
 }
 
+size_t catcierge_haar_matcher_count_contours(catcierge_haar_matcher_t *ctx, CvSeq *contours)
+{
+	assert(ctx);
+	size_t contour_count = 0;
+	double area;
+	int big_enough = 0;
+	CvSeq *it = NULL;
+
+	if (!contours)
+		return 0;
+
+	it = contours;
+	while (it)
+	{
+		area = cvContourArea(it, CV_WHOLE_SEQ, 0);
+		big_enough = (area > 10.0);
+		if (ctx->debug) printf("Area: %f %s\n", area, big_enough ? "" : "(too small)");
+
+		if (big_enough)
+		{
+			contour_count++;
+		}
+
+		it = it->h_next;
+	}
+
+	return contour_count;
+}
+
+int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx, IplImage *img)
+{
+	assert(ctx);
+	assert(img);
+	IplImage *thr_img = NULL;
+	IplImage *thr_img2 = NULL;
+	CvSeq *contours = NULL;
+	size_t contour_count = 0;
+
+	thr_img = cvCreateImage(cvGetSize(img), 8, 1);
+	cvThreshold(img, thr_img,
+				0, 255,
+				CV_THRESH_OTSU);
+
+	thr_img2 = cvCloneImage(thr_img);
+
+	if (ctx->debug) cvShowImage("Haar image th", thr_img);
+
+	cvFindContours(thr_img, ctx->storage, &contours,
+		sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
+
+	contour_count = catcierge_haar_matcher_count_contours(ctx, contours);
+
+	if (contour_count == 1)
+	{
+		IplImage *erod_img = NULL;
+		IplImage *open_img = NULL;
+		CvSeq *contours2 = NULL;
+
+		erod_img = cvCreateImage(cvGetSize(thr_img2), 8, 1);
+		cvErode(thr_img2, erod_img, ctx->kernel, 3);
+		if (ctx->debug) cvShowImage("haar eroded img", erod_img);
+
+		open_img = cvCreateImage(cvGetSize(thr_img2), 8, 1);
+		cvMorphologyEx(erod_img, open_img, NULL, ctx->kernel_tall, CV_MOP_OPEN, 1);
+		if (ctx->debug) cvShowImage("haar opened img", erod_img);
+
+		cvFindContours(erod_img, ctx->storage, &contours2,
+			sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
+		cvReleaseImage(&erod_img);
+		cvReleaseImage(&open_img);
+
+		contour_count = catcierge_haar_matcher_count_contours(ctx, contours2);
+	}
+
+	if (ctx->debug)
+	{
+		cvDrawContours(img, contours, cvScalarAll(0), cvScalarAll(0), 1, 1, 8, cvPoint(0, 0));
+		cvShowImage("Haar Contours", img);
+	}
+
+	cvReleaseImage(&thr_img);
+	return (contour_count > 1);
+}
+
 double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
 		CvRect *match_rects, size_t *rect_count)
 {
@@ -104,8 +214,15 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	}
 
 	// Equalize histogram.
-	img_eq = cvCreateImage(cvGetSize(img), 8, 1);
-	cvEqualizeHist(img_gray, img_eq);
+	if (ctx->eq_histogram)
+	{
+		img_eq = cvCreateImage(cvGetSize(img), 8, 1);
+		cvEqualizeHist(img_gray, img_eq);
+	}
+	else
+	{
+		img_eq = img_gray;
+	}
 
 	if (cv2CascadeClassifier_detectMultiScale(ctx->cascade,
 			img_eq, match_rects, rect_count,
@@ -115,32 +232,65 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 		goto fail;
 	}
 
-	printf("Rect count: %zu\n", *rect_count);
+	if (ctx->debug) printf("Rect count: %zu\n", *rect_count);
 	ret = (*rect_count > 0) ? 1.0 : 0.0;
 
-	// TODO: Set image roi to match rect.
-	// TODO: Threshold the image.
-
-	// TODO: Either find contour or simpler solution.
-	// 		If we only have one contour, do:
-	// 		erode 12x12
-	// 		MORP_OPEN 5x1
-	//		Find contours again.
-
-	if (ret > 0.0)
+	if ((*rect_count > 0))
 	{
-		dir = catcierge_haar_guess_direction(ctx, img);
+		CvRect roi = match_rects[0];
 
-		printf("Direction: ");
+		// TODO: Break out into a function.
+		// Limit the roi to the lower part where the prey might be.
+		// (This gets rid of some false positives)
+		roi.height /= 2;
+		roi.y += roi.height;
+
+		// Extend the rect a bit towards the outside.
+		// This way for big mice and such we still get some white on each side of it.
+		roi.width += 30;
+		roi.x = roi.x + ((ctx->in_direction == DIR_RIGHT) ? -30 : 30);
+		if (roi.x < 0) roi.x = 0;
+
+		cvSetImageROI(img_eq, roi);
+
+		// TODO: Is this more effective before or after ROI is set?
+		dir = catcierge_haar_guess_direction(ctx, img_eq);
+
+		if (ctx->debug) printf("Direction: ");
 		switch (dir)
 		{
-			case MATCH_DIR_IN: printf("IN"); break;
-			case MATCH_DIR_OUT: printf("OUT"); break;
-			default: printf("Unknown"); break;
+			case MATCH_DIR_IN:
+			{
+				if (ctx->debug) printf("IN\n"); 
+				break;
+			}
+			case MATCH_DIR_OUT:
+			{
+				if (ctx->debug) printf("OUT\n");
+				// Don't bother looking for prey when the cat
+				// is going outside.
+				goto done;
+			}
+			default: if (ctx->debug) printf("Unknown\n"); break;
+		}
+
+		if (catcierge_haar_matcher_find_prey(ctx, img_eq))
+		{
+			if (ctx->debug) printf("Found prey!\n");
+			ret = 0.0;
+		}
+		else
+		{
+			ret = 1.0;
 		}
 	}
+done:
 fail:
-	cvReleaseImage(&img_eq);
+	if (ctx->eq_histogram)
+	{
+		cvReleaseImage(&img_eq);
+	}
+
 	if (tmp)
 	{
 		cvReleaseImage(&tmp);
@@ -212,4 +362,6 @@ void catcierge_haar_matcher_args_init(catcierge_haar_matcher_args_t *args)
 	args->min_width = 80;
 	args->min_height = 80;
 	args->in_direction = DIR_RIGHT;
+	args->eq_histogram = 0;
+	args->debug = 1; // TODO: Don't make this default.
 }

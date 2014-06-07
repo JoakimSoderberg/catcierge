@@ -29,6 +29,7 @@ typedef struct catcierge_haar_matcher_s
 {
 	CvMemStorage *storage;
 	IplConvKernel *kernel;
+	IplConvKernel *kernel_tall;
 
 	int low_binary_thresh;
 	int high_binary_thresh;
@@ -37,6 +38,7 @@ typedef struct catcierge_haar_matcher_s
 	direction_t in_direction;
 
 	int debug;
+	int eq_histogram;
 } catcierge_haar_matcher_t;
 
 typedef struct catcierge_haar_matcher_args_s
@@ -45,6 +47,8 @@ typedef struct catcierge_haar_matcher_args_s
 	int min_width;
 	int min_height;
 	direction_t in_direction;
+	int eq_histogram;
+	int debug;
 } catcierge_haar_matcher_args_t;
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args);
