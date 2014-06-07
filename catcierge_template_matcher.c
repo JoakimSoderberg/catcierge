@@ -246,13 +246,16 @@ void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx)
 		ctx->kernel = NULL;
 	}
 
-	for (i = 0; i < ctx->snout_count; i++)
+	if (ctx->matchres)
 	{
-		cvReleaseImage(&ctx->matchres[i]);
-	}
+		for (i = 0; i < ctx->snout_count; i++)
+		{
+			cvReleaseImage(&ctx->matchres[i]);
+		}
 
-	free(ctx->matchres);
-	ctx->matchres = NULL;
+		free(ctx->matchres);
+		ctx->matchres = NULL;
+	}
 }
 
 // TODO: Replace match_rects with a match_result struct that includes
@@ -535,6 +538,7 @@ void catcierge_template_matcher_args_init(catcierge_template_matcher_args_t *arg
 	memset(args, 0, sizeof(catcierge_template_matcher_args_t));
 	args->match_threshold = DEFAULT_MATCH_THRESH;
 	args->match_flipped = 1;
+	args->snout_count = 0;
 }
 
 
