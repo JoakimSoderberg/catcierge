@@ -21,7 +21,6 @@
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <stdio.h>
-#include <opencv/cv.h>
 #include "catcierge_haar_wrapper.h"
 #include "catcierge_types.h"
 

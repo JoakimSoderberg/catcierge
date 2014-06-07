@@ -21,7 +21,13 @@
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
-#include <opencv/cv.h>
+
+// TODO: Fix this properly!
+//#include <opencv2/objdetect/objdetect_c.h>
+
+#ifndef CV_HAAR_SCALE_IMAGE
+#define CV_HAAR_SCALE_IMAGE 2
+#endif
 
 typedef void cv2CascadeClassifier;
 
