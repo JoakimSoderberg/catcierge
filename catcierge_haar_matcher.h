@@ -24,22 +24,6 @@
 #include "catcierge_haar_wrapper.h"
 #include "catcierge_types.h"
 
-typedef struct catcierge_haar_matcher_s
-{
-	CvMemStorage *storage;
-	IplConvKernel *kernel;
-	IplConvKernel *kernel_tall;
-
-	int low_binary_thresh;
-	int high_binary_thresh;
-
-	cv2CascadeClassifier *cascade;
-	direction_t in_direction;
-
-	int debug;
-	int eq_histogram;
-} catcierge_haar_matcher_t;
-
 typedef struct catcierge_haar_matcher_args_s
 {
 	const char *cascade;
@@ -47,13 +31,28 @@ typedef struct catcierge_haar_matcher_args_s
 	int min_height;
 	direction_t in_direction;
 	int eq_histogram;
+	int low_binary_thresh;
+	int high_binary_thresh;
 	int debug;
 } catcierge_haar_matcher_args_t;
+
+typedef struct catcierge_haar_matcher_s
+{
+	CvMemStorage *storage;
+	IplConvKernel *kernel;
+	IplConvKernel *kernel_tall;
+
+	cv2CascadeClassifier *cascade;
+
+	catcierge_haar_matcher_args_t *args;
+	int debug;
+} catcierge_haar_matcher_t;
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args);
 void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx);
 double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
 		CvRect *match_rects, size_t *rect_count, match_direction_t *direction);
+void catcierge_haar_matcher_set_debug(catcierge_haar_matcher_t *ctx, int debug);
 
 void catcierge_haar_matcher_usage();
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const char *key, char **values, size_t value_count);

@@ -252,6 +252,7 @@ int main(int argc, char **argv)
 	}
 
 	catcierge_template_matcher_set_debug(&ctx, debug);
+	catcierge_haar_matcher_set_debug(&hctx, debug);
 	//catcierge_set_binary_thresholds(&ctx, 90, 200);
 
 	// If we should preload the images or not

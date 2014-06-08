@@ -39,9 +39,8 @@ int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_ma
 		return -1;
 	}
 
-	ctx->in_direction = args->in_direction;
+	ctx->args = args;
 	ctx->debug = args->debug;
-	ctx->eq_histogram = args->eq_histogram;
 
 	return 0;
 }
@@ -67,8 +66,10 @@ void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
 match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, IplImage *img)
 {
 	assert(ctx);
+	assert(ctx->args);
 	int left_sum;
 	int right_sum;
+	catcierge_haar_matcher_args_t *args = ctx->args;
 	match_direction_t dir = MATCH_DIR_UNKNOWN;
 	CvRect roi = cvGetImageROI(img);
 
@@ -87,12 +88,12 @@ match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, 
 		if (right_sum > left_sum)
 		{
 			// Going right.
-			dir = (ctx->in_direction == DIR_RIGHT) ? MATCH_DIR_IN : MATCH_DIR_OUT;
+			dir = (args->in_direction == DIR_RIGHT) ? MATCH_DIR_IN : MATCH_DIR_OUT;
 		}
 		else
 		{
 			// Going left.
-			dir = (ctx->in_direction == DIR_LEFT) ? MATCH_DIR_IN : MATCH_DIR_OUT;
+			dir = (args->in_direction == DIR_LEFT) ? MATCH_DIR_IN : MATCH_DIR_OUT;
 		}
 	}
 
@@ -104,10 +105,12 @@ match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, 
 size_t catcierge_haar_matcher_count_contours(catcierge_haar_matcher_t *ctx, CvSeq *contours)
 {
 	assert(ctx);
+	assert(ctx->args);
 	size_t contour_count = 0;
 	double area;
 	int big_enough = 0;
 	CvSeq *it = NULL;
+	catcierge_haar_matcher_args_t *args = ctx->args;
 
 	if (!contours)
 		return 0;
@@ -134,6 +137,8 @@ int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx, IplImage *im
 {
 	assert(ctx);
 	assert(img);
+	assert(ctx->args);
+	catcierge_haar_matcher_args_t *args = ctx->args;
 	IplImage *thr_img = NULL;
 	IplImage *thr_img2 = NULL;
 	CvSeq *contours = NULL;
@@ -189,6 +194,8 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 		CvRect *match_rects, size_t *rect_count, match_direction_t *direction)
 {
 	assert(ctx);
+	assert(ctx->args);
+	catcierge_haar_matcher_args_t *args = ctx->args;
 	double ret = 0.0;
 	IplImage *img_eq = NULL;
 	IplImage *img_gray = NULL;
@@ -218,7 +225,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	}
 
 	// Equalize histogram.
-	if (ctx->eq_histogram)
+	if (args->eq_histogram)
 	{
 		img_eq = cvCreateImage(cvGetSize(img), 8, 1);
 		cvEqualizeHist(img_gray, img_eq);
@@ -252,7 +259,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 		// Extend the rect a bit towards the outside.
 		// This way for big mice and such we still get some white on each side of it.
 		roi.width += 30;
-		roi.x = roi.x + ((ctx->in_direction == DIR_RIGHT) ? -30 : 30);
+		roi.x = roi.x + ((args->in_direction == DIR_RIGHT) ? -30 : 30);
 		if (roi.x < 0) roi.x = 0;
 
 		cvSetImageROI(img_eq, roi);
@@ -293,7 +300,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	}
 done:
 fail:
-	if (ctx->eq_histogram)
+	if (args->eq_histogram)
 	{
 		cvReleaseImage(&img_eq);
 	}
@@ -370,5 +377,11 @@ void catcierge_haar_matcher_args_init(catcierge_haar_matcher_args_t *args)
 	args->min_height = 80;
 	args->in_direction = DIR_RIGHT;
 	args->eq_histogram = 0;
-	args->debug = 1; // TODO: Don't make this default.
+	args->debug = 0;
+}
+
+void catcierge_haar_matcher_set_debug(catcierge_haar_matcher_t *ctx, int debug)
+{
+	assert(ctx);
+	ctx->debug = debug;
 }
