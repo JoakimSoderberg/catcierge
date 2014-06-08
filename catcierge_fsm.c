@@ -736,12 +736,10 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 	// When this timer ends, we will go back to the WAITING state.
 	if (!catcierge_timer_isactive(&grb->rematch_timer))
 	{
+		// We have successfully matched a valid cat :D
 		int frame_obstructed;
 
-		// We have successfully matched a valid cat :D
-
-		// TODO: Move this function to a common file, no in the template matcher.
-		if ((frame_obstructed = catcierge_template_matcher_is_frame_obstructed(&grb->matcher, grb->img)) < 0)
+		if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img)) < 0)
 		{
 			CATERRFPS("Failed to detect check for obstructed frame\n");
 			return -1;
@@ -927,7 +925,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 
 	// Wait until the middle of the frame is black
 	// before we try to match anything.
-	if ((frame_obstructed = catcierge_template_matcher_is_frame_obstructed(&grb->matcher, grb->img)) < 0)
+	if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img)) < 0)
 	{
 		CATERRFPS("Failed to detect check for obstructed frame\n");
 		return -1;

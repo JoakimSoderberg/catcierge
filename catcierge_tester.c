@@ -281,7 +281,7 @@ int main(int argc, char **argv)
 			// This tests if an image frame is clear or not (matchable).
 			int frame_obstructed;
 
-			if ((frame_obstructed = catcierge_template_matcher_is_frame_obstructed(&ctx, imgs[i])) < 0)
+			if ((frame_obstructed = catcierge_is_frame_obstructed(imgs[i])) < 0)
 			{
 				fprintf(stderr, "Failed to detect check for matchability frame\n");
 				return -1;

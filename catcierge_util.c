@@ -28,6 +28,8 @@
 #include <stdarg.h>
 #include <limits.h>
 #include "catcierge_log.h"
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/highgui/highgui_c.h>
 
 const char *catcierge_get_direction_str(match_direction_t dir)
 {
@@ -231,3 +233,61 @@ void catcierge_execute(char *command, char *fmt, ...)
 	}
 	#endif // _WIN32
 }
+
+int catcierge_is_frame_obstructed(IplImage *img)
+{
+	CvSize size;
+	int w;
+	int h;
+	int x;
+	int y;
+	int expected_sum;
+	IplImage *tmp = NULL;
+	IplImage *tmp2 = NULL;
+	CvScalar sum;
+
+	// Get a suitable Region Of Interest (ROI)
+	// in the center of the image.
+	// (This should contain only the white background)
+	size = cvGetSize(img);
+	w = (int)(size.width * 0.5);
+	h = (int)(size.height * 0.1);
+	x = (size.width - w) / 2;
+	y = (size.height - h) / 2;
+
+	// When there is nothing in our ROI, we
+	// expect the thresholded image to be completely
+	// white. 255 signifies white.
+	expected_sum = (w * h) * 255;
+
+	cvSetImageROI(img, cvRect(x, y, w, h));
+
+	// Only covert to grayscale if needed.
+	if (img->nChannels != 1)
+	{
+		tmp = cvCreateImage(cvSize(w, h), 8, 1);
+		cvCvtColor(img, tmp, CV_BGR2GRAY);
+	}
+	else
+	{
+		tmp = img;
+	}
+
+	// Get a binary image and sum the pixel values.
+	tmp2 = cvCreateImage(cvSize(w, h), 8, 1);
+	cvThreshold(tmp, tmp2, 90, 255, CV_THRESH_BINARY);
+
+	sum = cvSum(tmp2);
+
+	cvSetImageROI(img, cvRect(0, 0, size.width, size.height));
+
+	if (img->nChannels != 1)
+	{
+		cvReleaseImage(&tmp);
+	}
+
+	cvReleaseImage(&tmp2);
+
+	return ((int)sum.val[0] != expected_sum);
+}
+

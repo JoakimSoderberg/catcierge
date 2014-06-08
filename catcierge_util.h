@@ -20,6 +20,8 @@
 #define __CATCIERGE_UTIL_H__
 
 #include "catcierge_types.h"
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/highgui/highgui_c.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -38,5 +40,6 @@ void catcierge_execute(char *command, char *fmt, ...);
 void catcierge_reset_cursor_position();
 
 const char *catcierge_get_direction_str(match_direction_t dir);
+int catcierge_is_frame_obstructed(IplImage *img);
 
 #endif // __CATCIERGE_UTIL_H__
