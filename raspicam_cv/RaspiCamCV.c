@@ -101,12 +101,12 @@ void raspiCamCvSetDefaultCameraParameters(RASPICAM_CAMERA_PARAMETERS *params)
 	params->contrast = 0;
 	params->brightness = 50;
 	params->saturation = 0;
-	params->ISO = 400;                    // 0 = auto
+	params->ISO = 100;                    // 0 = auto
 	params->videoStabilisation = 0;
 	params->exposureCompensation = 10;
-	params->exposureMode = MMAL_PARAM_EXPOSUREMODE_NIGHT;
+	params->exposureMode = MMAL_PARAM_EXPOSUREMODE_AUTO;
 	params->exposureMeterMode = MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
-	params->awbMode = MMAL_PARAM_AWBMODE_SHADE; //MMAL_PARAM_AWBMODE_AUTO;
+	params->awbMode = MMAL_PARAM_AWBMODE_AUTO;
 	params->imageEffect = MMAL_PARAM_IMAGEFX_NONE;
 	params->colourEffects.enable = 0;
 	params->colourEffects.u = 128;
