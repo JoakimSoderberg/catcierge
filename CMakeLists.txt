@@ -107,16 +107,17 @@ endif()
 # Where <path> is the directory containing OpenCVConfig.cmake
 # 
 if (RPI AND NOT OpenCV_DIR)
-	set(OpenCV_LIBS 
+	# NOTE! The order below is important!
+	set(OpenCV_LIBS
+		/usr/lib/libopencv_highgui.a
+		/usr/lib/libopencv_objdetect.a
+		/usr/lib/libopencv_imgproc.a
+		/usr/lib/libopencv_core.a
 		/usr/lib/libopencv_calib3d.a
 		/usr/lib/libopencv_features2d.a
-		/usr/lib/libopencv_highgui.a
 		/usr/lib/libopencv_ml.a
 		/usr/lib/libopencv_contrib.a
 		/usr/lib/libopencv_flann.a
-		/usr/lib/libopencv_imgproc.a
-		/usr/lib/libopencv_objdetect.a
-		/usr/lib/libopencv_core.a
 		/usr/lib/libopencv_gpu.a
 		/usr/lib/libopencv_legacy.a
 		/usr/lib/libopencv_video.a
