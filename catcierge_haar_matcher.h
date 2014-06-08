@@ -53,7 +53,7 @@ typedef struct catcierge_haar_matcher_args_s
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args);
 void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx);
 double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
-		CvRect *match_rects, size_t *rect_count);
+		CvRect *match_rects, size_t *rect_count, match_direction_t *direction);
 
 void catcierge_haar_matcher_usage();
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const char *key, char **values, size_t value_count);

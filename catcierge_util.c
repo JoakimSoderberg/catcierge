@@ -29,6 +29,17 @@
 #include <limits.h>
 #include "catcierge_log.h"
 
+const char *catcierge_get_direction_str(match_direction_t dir)
+{
+	switch (dir)
+	{
+		case MATCH_DIR_IN: return "in";
+		case MATCH_DIR_OUT: return "out";
+		case MATCH_DIR_UNKNOWN: 
+		default: return "unknown";
+	}
+}
+
 void catcierge_reset_cursor_position()
 {
 	#ifdef _WIN32

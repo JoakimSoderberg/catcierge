@@ -262,7 +262,7 @@ void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx)
 // match_rect and result value for each snout image.
 double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const IplImage *img,
 						CvRect *match_rects, size_t rect_count, 
-						int *flipped)
+						match_direction_t *direction)
 {
 	IplImage *img_cpy = NULL;
 	IplImage *img_prep = NULL;
@@ -300,9 +300,9 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const
 		return -1;
 	}
 
-	if (flipped)
+	if (direction)
 	{
-		*flipped = 0;
+		*direction = MATCH_DIR_UNKNOWN;
 	}
 
 	// First check normal facing snouts.
@@ -332,14 +332,13 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const
 
 	match_avg = match_sum / ctx->snout_count;
 
-	// TODO: Do all normal facing snouts first, and THEN if the
-	// average isn't a good match, try the flipped snouts instead..
-
-	// If we fail the match, try the flipped snout as well.
-	if (ctx->match_flipped 
-		&& ctx->flipped_snouts
-		&& (match_avg < ctx->match_threshold))
+	if (match_avg >= ctx->match_threshold)
 	{
+		*direction = MATCH_DIR_IN;
+	}
+	else if (ctx->match_flipped && ctx->flipped_snouts)
+	{
+		// If we fail the match, try the flipped snout as well.
 		match_sum = 0.0;
 
 		for (i = 0; i < ctx->snout_count; i++)
@@ -359,9 +358,9 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const
 		match_avg = match_sum / ctx->snout_count;
 
 		// Only qualify as OUT if it was a good match.
-		if ((match_avg >= ctx->match_threshold) && flipped)
+		if ((match_avg >= ctx->match_threshold) && direction)
 		{
-			*flipped = 1;
+			*direction = MATCH_DIR_OUT;
 		}
 	}
 

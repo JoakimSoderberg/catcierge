@@ -11,6 +11,7 @@
 
 #include "catcierge_util.h"
 #include "catcierge_template_matcher.h"
+#include "catcierge_haar_matcher.h"
 #include "catcierge_timer.h"
 
 #ifdef RPI
@@ -71,17 +72,6 @@ void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 	log_printf(stdout, COLOR_NORMAL, "\n");
 
 	grb->state = new_state;
-}
-
-static const char *match_get_direction_str(match_direction_t dir)
-{
-	switch (dir)
-	{
-		case MATCH_DIR_IN: return "in";
-		case MATCH_DIR_OUT: return "out";
-		case MATCH_DIR_UNKNOWN: 
-		default: return "unknown";
-	}
 }
 
 #ifdef WITH_RFID
@@ -155,7 +145,7 @@ static void rfid_set_direction(catcierge_grb_t *grb, rfid_match_t *current, rfid
 		current->incomplete, 		// %3 = Is data incomplete.
 		current->data,				// %4 = Tag data.
 		other->triggered,			// %5 = Other reader triggered.
-		match_get_direction_str(grb->rfid_direction)); // %6 = Direction.
+		catcierge_get_direction_str(grb->rfid_direction)); // %6 = Direction.
 }
 
 static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user)
@@ -442,17 +432,9 @@ IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 	#endif	
 }
 
-match_direction_t get_match_direction(int match_success, int going_out)
-{
-	if (match_success)
-		return (going_out ? MATCH_DIR_OUT : MATCH_DIR_IN);
-
-	return  MATCH_DIR_UNKNOWN;
-}
-
 static void catcierge_process_match_result(catcierge_grb_t *grb,
 				IplImage *img, int match_success,
-				double match_res, int going_out)
+				double match_res, match_direction_t direction)
 {
 	size_t i;
 	char time_str[256];
@@ -465,12 +447,12 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		"%f %sMatch%s\n",
 		match_res,
 		match_success ? "" : "No ",
-		going_out ? " OUT" : " IN");
+		catcierge_get_direction_str(direction));
 
 	// Save the current image match status.
 	grb->matches[grb->match_count].result = match_res;
 	grb->matches[grb->match_count].success = match_success;
-	grb->matches[grb->match_count].direction = get_match_direction(match_success, going_out);
+	grb->matches[grb->match_count].direction = direction;
 	grb->matches[grb->match_count].img = NULL;
 
 	// Save match image.
@@ -480,7 +462,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		// Draw a white rectangle over the best match.
 		if (args->highlight_match)
 		{
-			for (i = 0; i < args->templ.snout_count; i++)
+			for (i = 0; i < grb->match_rect_count; i++)
 			{
 				cvRectangleR(img, grb->match_rects[i],
 						CV_RGB(255, 255, 255), 2, 8, 0);
@@ -504,7 +486,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		 match_success ? "success" : "failure",
 		 match_res, args->templ.match_threshold,
 		 args->saveimg ? grb->matches[grb->match_count].path : "-",
-		 match_get_direction_str(grb->matches[grb->match_count].direction));
+		 catcierge_get_direction_str(grb->matches[grb->match_count].direction));
 
 	// Runs the --match_cmd progam specified.
 	catcierge_execute(args->match_cmd, "%f %d %s %d",
@@ -697,7 +679,7 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 
 		// Always highlight when showing in GUI.
 		// TODO: Move this to the template matcher instead.
-		for (i = 0; i < args->templ.snout_count; i++)
+		for (i = 0; i < grb->match_rect_count; i++)
 		{
 			cvRectangleR(grb->img, grb->match_rects[i], match_color, 2, 8, 0);
 		}
@@ -705,6 +687,38 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 		cvShowImage("catcierge", grb->img);
 		cvWaitKey(10);
 	}
+}
+
+double catcierge_do_match(catcierge_grb_t *grb, match_direction_t *direction)
+{
+	double match_res = 0.0;
+	assert(grb);
+
+	if (grb->args.matcher_type == MATCHER_TEMPLATE)
+	{
+		grb->match_rect_count = grb->args.templ.snout_count;
+
+		if ((match_res = catcierge_template_matcher_match(&grb->matcher, grb->img,
+			grb->match_rects, grb->match_rect_count, direction)) < 0.0)
+		{
+			CATERR("Template matcher: Error when matching frame!\n");
+		}
+	}
+	else
+	{
+		// Haar matcher.
+
+		// How many matches we have room for.
+		grb->match_rect_count = MAX_SNOUT_COUNT;
+
+		if ((match_res = catcierge_haar_matcher_match(&grb->haar,grb->img,
+			grb->match_rects, &grb->match_rect_count, direction)) < 0.0)
+		{
+			CATERR("Haar matcher: Error when matching frame!\n");
+		}
+	}
+
+	return match_res;
 }
 
 // =============================================================================
@@ -726,6 +740,7 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 
 		// We have successfully matched a valid cat :D
 
+		// TODO: Move this function to a common file, no in the template matcher.
 		if ((frame_obstructed = catcierge_template_matcher_is_frame_obstructed(&grb->matcher, grb->img)) < 0)
 		{
 			CATERRFPS("Failed to detect check for obstructed frame\n");
@@ -799,19 +814,25 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	args = &grb->args;
 
 	// We have something to match against.
-	// TODO: Snout count is no needed here it's already in the matcher...
-	if ((match_res = catcierge_template_matcher_match(&grb->matcher, grb->img,
-		grb->match_rects, args->templ.snout_count, &going_out)) < 0)
+	if ((match_res = catcierge_do_match(grb, &direction)) < 0)
 	{
 		CATERRFPS("Error when matching frame!\n");
 		return -1;
 	}
 
-	match_success = (match_res >= args->templ.match_threshold);
+	if (args->matcher_type == MATCHER_TEMPLATE)
+	{
+		match_success = (match_res >= args->templ.match_threshold);
+	}
+	else
+	{
+		// Haar cascade matcher.
+		match_success = (match_res > 0.0);
+	}
 
 	// Save the match state, execute external processes and so on...
 	catcierge_process_match_result(grb, grb->img, match_success,
-		match_res, going_out);
+		match_res, direction);
 
 	grb->match_count++;
 

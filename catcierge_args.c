@@ -99,6 +99,9 @@ static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char
 				return -1;
 			}
 
+			args->matcher_type = !strcmp(args->matcher, "template")
+				? MATCHER_TEMPLATE : MATCHER_HAAR;
+
 			return 0;
 		}
 		else

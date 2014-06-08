@@ -33,4 +33,11 @@ typedef enum direction_e
 	DIR_RIGHT = 1
 } direction_t;
 
+
+typedef enum catcierge_matcher_type_e
+{
+	MATCHER_TEMPLATE,
+	MATCHER_HAAR
+} catcierge_matcher_type_t;
+
 #endif // __CATCIERGE_TYPES_H__

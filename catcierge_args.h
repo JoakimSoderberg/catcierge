@@ -9,6 +9,7 @@
 #endif
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
+#include "catcierge_types.h"
 
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 0		// How long to wait after a match try before we match again.
@@ -32,6 +33,7 @@ typedef struct catcierge_args_s
 	char *output_path;
 
 	const char *matcher;
+	catcierge_matcher_type_t matcher_type;
 	catcierge_template_matcher_args_t templ;
 	catcierge_haar_matcher_args_t haar;
 

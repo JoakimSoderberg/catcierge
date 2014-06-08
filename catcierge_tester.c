@@ -65,6 +65,7 @@ int main(int argc, char **argv)
 	CvScalar match_color;
 	int match_success = 0;
 	double match_res = 0;
+	match_direction_t direction = MATCH_DIR_UNKNOWN;
 	int debug = 0;
 	int i;
 	int j;
@@ -72,7 +73,6 @@ int main(int argc, char **argv)
 	int save = 0;
 	char *output_path = "output";
 	double match_threshold = 0.8;
-	int was_flipped = 0;
 	int success_count = 0;
 	int preload = 1;
 	int test_matchable = 0;
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
 
 			if (!strcmp(matcher, "template"))
 			{
-				if ((match_res = catcierge_template_matcher_match(&ctx, img, match_rects, rect_count, &was_flipped)) < 0)
+				if ((match_res = catcierge_template_matcher_match(&ctx, img, match_rects, rect_count, &direction)) < 0)
 				{
 					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
 					catcierge_template_matcher_destroy(&ctx);
@@ -332,7 +332,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				if ((match_res = catcierge_haar_matcher_match(&hctx, img, match_rects, &rect_count)) < 0)
+				if ((match_res = catcierge_haar_matcher_match(&hctx, img, match_rects, &rect_count, &direction)) < 0)
 				{
 					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
 					catcierge_haar_matcher_destroy(&hctx);
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
 
 			if (match_success)
 			{
-				printf("  Match%s! %f\n", was_flipped ? " (Flipped)": "", match_res);
+				printf("  Match (%s)! %f\n", catcierge_get_direction_str(direction), match_res);
 				match_color = CV_RGB(0, 255, 0);
 				success_count++;
 			}

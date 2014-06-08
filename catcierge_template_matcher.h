@@ -21,6 +21,7 @@
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <stdio.h>
+#include "catcierge_types.h"
 
 #define CATCIERGE_LOW_BINARY_THRESH_DEFAULT 90
 #define CATCIERGE_HIGH_BINARY_THRESH_DEFAULT 255
@@ -71,7 +72,7 @@ void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx);
 
 double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const IplImage *img, 
 						CvRect *match_rects, size_t rect_count, 
-						int *flipped);
+						match_direction_t *direction);
 
 int catcierge_template_matcher_is_frame_obstructed(catcierge_template_matcher_t *ctx, IplImage *img);
 

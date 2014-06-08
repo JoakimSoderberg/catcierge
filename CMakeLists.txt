@@ -216,7 +216,7 @@ add_library(catcierge ${LIB_SRC})
 target_link_libraries(catcierge ${LIBS})
 
 # Test program for the catcierge matcher.
-set(PROG_SRC catcierge_tester.c)
+set(PROG_SRC catcierge_tester.c catcierge_util.c catcierge_log.c)
 add_executable(catcierge_tester ${PROG_SRC})
 add_dependencies(catcierge_tester catcierge)
 target_link_libraries(catcierge_tester catcierge)

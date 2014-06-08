@@ -186,14 +186,13 @@ int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx, IplImage *im
 }
 
 double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
-		CvRect *match_rects, size_t *rect_count)
+		CvRect *match_rects, size_t *rect_count, match_direction_t *direction)
 {
 	assert(ctx);
 	double ret = 0.0;
 	IplImage *img_eq = NULL;
 	IplImage *img_gray = NULL;
 	IplImage *tmp = NULL;
-	match_direction_t dir = MATCH_DIR_UNKNOWN;
 	CvSize max_size;
 	CvSize min_size;
 	min_size.width = 80;
@@ -211,6 +210,11 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	else
 	{
 		img_gray = img;
+	}
+
+	if (direction)
+	{
+		*direction = MATCH_DIR_UNKNOWN;
 	}
 
 	// Equalize histogram.
@@ -254,24 +258,27 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 		cvSetImageROI(img_eq, roi);
 
 		// TODO: Is this more effective before or after ROI is set?
-		dir = catcierge_haar_guess_direction(ctx, img_eq);
-
-		if (ctx->debug) printf("Direction: ");
-		switch (dir)
+		if (direction)
 		{
-			case MATCH_DIR_IN:
+			*direction = catcierge_haar_guess_direction(ctx, img_eq);
+
+			if (ctx->debug) printf("Direction: ");
+			switch (*direction)
 			{
-				if (ctx->debug) printf("IN\n"); 
-				break;
+				case MATCH_DIR_IN:
+				{
+					if (ctx->debug) printf("IN\n"); 
+					break;
+				}
+				case MATCH_DIR_OUT:
+				{
+					if (ctx->debug) printf("OUT\n");
+					// Don't bother looking for prey when the cat
+					// is going outside.
+					goto done;
+				}
+				default: if (ctx->debug) printf("Unknown\n"); break;
 			}
-			case MATCH_DIR_OUT:
-			{
-				if (ctx->debug) printf("OUT\n");
-				// Don't bother looking for prey when the cat
-				// is going outside.
-				goto done;
-			}
-			default: if (ctx->debug) printf("Unknown\n"); break;
 		}
 
 		if (catcierge_haar_matcher_find_prey(ctx, img_eq))

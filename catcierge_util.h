@@ -19,6 +19,8 @@
 #ifndef __CATCIERGE_UTIL_H__
 #define __CATCIERGE_UTIL_H__
 
+#include "catcierge_types.h"
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <WinSock2.h>
@@ -34,5 +36,7 @@
 
 void catcierge_execute(char *command, char *fmt, ...);
 void catcierge_reset_cursor_position();
+
+const char *catcierge_get_direction_str(match_direction_t dir);
 
 #endif // __CATCIERGE_UTIL_H__

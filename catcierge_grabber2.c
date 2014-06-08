@@ -132,6 +132,7 @@ int main(int argc, char **argv)
 		}
 	}
 
+	#ifdef RPI
 	if (catcierge_setup_gpio(&grb))
 	{
 		CATERR("Failed to setup GPIO pins\n");
@@ -139,8 +140,12 @@ int main(int argc, char **argv)
 	}
 
 	CATLOG("Initialized GPIO pins\n");
+	#endif // RPI
 
-	if (!args->matcher || !strcmp(args->matcher, "template"))
+	assert((args->matcher_type == MATCHER_TEMPLATE)
+		|| (args->matcher_type == MATCHER_HAAR));
+
+	if (args->matcher_type == MATCHER_TEMPLATE)
 	{
 		if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
 		{
@@ -150,9 +155,11 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		// TODO: Use haar cascade.
-		fprintf(stderr, "Not supported yet\n");
-		exit(1);
+		if (catcierge_haar_matcher_init(&grb.haar, &args->haar))
+		{
+			CATERR("Failed to init catcierge lib!\n");
+			return -1;
+		}
 	}
 
 	CATLOG("Initialized catcierge image recognition\n");
@@ -186,7 +193,15 @@ int main(int argc, char **argv)
 		catcierge_print_spinner(&grb);
 	} while (grb.running);
 
-	catcierge_template_matcher_destroy(&grb.matcher);
+	if (args->matcher_type == MATCHER_TEMPLATE)
+	{
+		catcierge_template_matcher_destroy(&grb.matcher);
+	}
+	else
+	{
+		catcierge_haar_matcher_destroy(&grb.haar);
+	}
+
 	catcierge_destroy_camera(&grb);
 	catcierge_grabber_destroy(&grb);
 
