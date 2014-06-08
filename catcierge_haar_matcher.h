@@ -33,6 +33,8 @@ typedef struct catcierge_haar_matcher_args_s
 	int eq_histogram;
 	int low_binary_thresh;
 	int high_binary_thresh;
+	int no_match_is_fail;
+	int prey_steps;
 	int debug;
 } catcierge_haar_matcher_args_t;
 
