@@ -190,20 +190,34 @@ int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx, IplImage *im
 	return (contour_count > 1);
 }
 
+void catcierge_haar_matcher_calculate_roi(catcierge_haar_matcher_t *ctx, CvRect *roi)
+{
+	// Limit the roi to the lower part where the prey might be.
+	// (This gets rid of some false positives)
+	roi->height /= 2;
+	roi->y += roi->height;
+
+	// Extend the rect a bit towards the outside.
+	// This way for big mice and such we still get some white on each side of it.
+	roi->width += 30;
+	roi->x = roi->x + ((ctx->args->in_direction == DIR_RIGHT) ? -30 : 30);
+	if (roi->x < 0) roi->x = 0;
+}
+
 double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
 		CvRect *match_rects, size_t *rect_count, match_direction_t *direction)
 {
 	assert(ctx);
 	assert(ctx->args);
 	catcierge_haar_matcher_args_t *args = ctx->args;
-	double ret = 1.0;
+	double ret = 0.998;
 	IplImage *img_eq = NULL;
 	IplImage *img_gray = NULL;
 	IplImage *tmp = NULL;
 	CvSize max_size;
 	CvSize min_size;
-	min_size.width = 80;
-	min_size.height = 80;
+	min_size.width = args->min_width;
+	min_size.height = args->min_height;
 	max_size.width = 0;
 	max_size.height = 0;
 
@@ -250,28 +264,22 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	// Unless args->no_match_is_fail is set.
 	if (args->no_match_is_fail)
 	{
-		ret = (*rect_count > 0) ? 1.0 : 0.0;
+		// Any return value above 0.0 is considered
+		// a success. Just so we can distinguish the types of successes.
+		ret = (*rect_count > 0) ? 0.999 : 0.0;
 	}
 
 	if ((*rect_count > 0))
 	{
 		CvRect roi = match_rects[0];
 
-		// TODO: Break out into a function.
-		// Limit the roi to the lower part where the prey might be.
-		// (This gets rid of some false positives)
-		roi.height /= 2;
-		roi.y += roi.height;
-
-		// Extend the rect a bit towards the outside.
-		// This way for big mice and such we still get some white on each side of it.
-		roi.width += 30;
-		roi.x = roi.x + ((args->in_direction == DIR_RIGHT) ? -30 : 30);
-		if (roi.x < 0) roi.x = 0;
-
+		// Only use the lower part of the region of interest
+		// and extend it some towards the "outside" for better result.
+		// (We only use the first haar cascade match).
+		catcierge_haar_matcher_calculate_roi(ctx, &roi);
 		cvSetImageROI(img_eq, roi);
 
-		// TODO: Is this more effective before or after ROI is set?
+		// TODO: Is this more effective before or after ROI is set? (test in python prototype)
 		if (direction)
 		{
 			*direction = catcierge_haar_guess_direction(ctx, img_eq);
