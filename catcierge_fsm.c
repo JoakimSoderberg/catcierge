@@ -444,7 +444,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	args = &grb->args;
 
 	log_printc(stdout, (match_success ? COLOR_GREEN : COLOR_RED),
-		"%f %sMatch%s\n",
+		"%f %sMatch %s\n",
 		match_res,
 		match_success ? "" : "No ",
 		catcierge_get_direction_str(direction));

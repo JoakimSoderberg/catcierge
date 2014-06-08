@@ -308,6 +308,8 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	}
 done:
 fail:
+	cvResetImageROI(img);
+
 	if (args->eq_histogram)
 	{
 		cvReleaseImage(&img_eq);
