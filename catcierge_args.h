@@ -13,8 +13,9 @@
 
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 0		// How long to wait after a match try before we match again.
-#define DEFAULT_CONSECUTIVE_LOCKOUT_DELAY 3.0
+#define DEFAULT_CONSECUTIVE_LOCKOUT_DELAY 3.0 // The time in seconds between lockouts that is considered consecutive.
 #define MAX_TEMP_CONFIG_VALUES 128
+#define DEFAULT_OK_MATCHES_NEEDED 2
 
 typedef struct catcierge_args_s
 {
@@ -31,6 +32,7 @@ typedef struct catcierge_args_s
 	int show_cmd_help;
 	int match_time;
 	char *output_path;
+	int ok_matches_needed;
 
 	const char *matcher;
 	catcierge_matcher_type_t matcher_type;

@@ -389,15 +389,8 @@ int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *arg
 
 	if (!strcmp(key, "match_flipped"))
 	{
-		if (value_count == 1)
-		{
-			args->match_flipped = atoi(values[0]);
-		}
-		else
-		{
-			args->match_flipped = 1;
-		}
-
+		args->match_flipped = 1;
+		if (value_count == 1) args->match_flipped = atoi(values[0]);
 		return 0;
 	}
 
@@ -434,15 +427,8 @@ int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *arg
 
 	if (!strcmp(key, "threshold"))
 	{
-		if (value_count == 1)
-		{
-			args->match_threshold = atof(values[0]);
-		}
-		else
-		{
-			args->match_threshold = DEFAULT_MATCH_THRESH;
-		}
-
+		args->match_threshold = DEFAULT_MATCH_THRESH;
+		if (value_count == 1) args->match_threshold = atof(values[0]);
 		return 0;
 	}
 

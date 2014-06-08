@@ -128,6 +128,26 @@ static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char
 		return 0;
 	}
 
+	if (!strcmp(key, "ok_matches_needed"))
+	{
+		if (value_count == 1)
+		{
+			args->ok_matches_needed = atoi(values[0]);
+
+			if ((args->ok_matches_needed < 0)
+				|| (args->ok_matches_needed > MATCH_MAX_COUNT))
+			{
+				fprintf(stderr, "--ok_matches_needed must be between 0 and %d\n", MATCH_MAX_COUNT);
+				return -1;
+			}
+
+			return 0;
+		}
+
+		fprintf(stderr, "--ok_matches_needed missing an integer value\n");
+		return -1;
+	}
+
 	if (!strcmp(key, "save"))
 	{
 		args->saveimg = 1;
@@ -151,14 +171,8 @@ static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char
 
 	if (!strcmp(key, "lockout"))
 	{
-		if (value_count == 1)
-		{
-			args->lockout_time = atoi(values[0]);
-		}
-		else
-		{
-			args->lockout_time = DEFAULT_LOCKOUT_TIME;
-		}
+		args->lockout_time = DEFAULT_LOCKOUT_TIME;
+		if (value_count == 1) args->lockout_time = atoi(values[0]);
 
 		return 0;
 	}
@@ -171,6 +185,7 @@ static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char
 			return 0;
 		}
 
+		fprintf(stderr, "--lockout_error_delay missing a seconds value\n");
 		return -1;
 	}
 
@@ -473,17 +488,16 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 {
 	fprintf(stderr, "Usage: %s [options]\n\n", prog);
 	fprintf(stderr, "General settigs:\n");
-	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %ds\n", DEFAULT_LOCKOUT_TIME);
-	fprintf(stderr, " --lockout_error <n>    Number of lockouts in a row is allowed before we\n");
+	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %d seconds.\n", DEFAULT_LOCKOUT_TIME);
+	fprintf(stderr, " --lockout_error <n>    Number of lockouts in a row that's allowed before we\n");
 	fprintf(stderr, "                        consider it an error and quit the program. \n");
 	fprintf(stderr, "                        Default is to never do this.\n");
 	fprintf(stderr, " --lockout_error_delay <seconds>\n");
 	fprintf(stderr, "                        The delay in seconds between lockouts that should be\n");
 	fprintf(stderr, "                        counted as a consecutive lockout. Default %0.1f\n", DEFAULT_CONSECUTIVE_LOCKOUT_DELAY);
 	fprintf(stderr, " --lockout_dummy        Do everything as normal, but don't actually\n");
-	fprintf(stderr, "                        lock the door.\n");
-	fprintf(stderr, "                        This is useful for testing.\n");
-	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %ds\n", DEFAULT_MATCH_WAIT);
+	fprintf(stderr, "                        lock the door. This is useful for testing.\n");
+	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %d seconds.\n", DEFAULT_MATCH_WAIT);
 	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
 	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
 	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
@@ -754,26 +768,30 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("--------------------------------------------------------------------------------\n");
 	printf("Settings:\n");
 	printf("--------------------------------------------------------------------------------\n");
+	printf("General:\n");
+	printf("        Show video: %d\n", args->show);
+	printf("      Save matches: %d\n", args->saveimg);
+	printf("   Highlight match: %d\n", args->highlight_match);
+	printf("     Lockout dummy: %d\n", args->lockout_dummy);
+	printf("         Lock time: %d seconds\n", args->lockout_time);
+	printf("     Lockout error: %d %s\n", args->max_consecutive_lockout_count,
+							(args->max_consecutive_lockout_count == 0) ? "(off)" : "");
+	printf(" Lockout err delay: %0.1f\n", args->consecutive_lockout_delay);
+	printf("     Match timeout: %d seconds\n", args->match_time);
+	printf("          Log file: %s\n", args->log_path ? args->log_path : "-");
+	printf("\n");
 	if (!args->matcher || !strcmp(args->matcher, "template"))
 		catcierge_template_matcher_print_settings(&args->templ);
 	else
 		catcierge_haar_matcher_print_settings(&args->haar);
-	printf("       Show video: %d\n", args->show);
-	printf("     Save matches: %d\n", args->saveimg);
-	printf("  Highlight match: %d\n", args->highlight_match);
-	printf("    Lockout dummy: %d\n", args->lockout_dummy);
-	printf("        Lock time: %d seconds\n", args->lockout_time);
-	printf("    Lockout error: %d %s\n", args->max_consecutive_lockout_count,
-							(args->max_consecutive_lockout_count == 0) ? "(off)" : "");
-	printf("Lockout err delay: %0.1f\n", args->consecutive_lockout_delay);
-	printf("    Match timeout: %d seconds\n", args->match_time);
-	printf("         Log file: %s\n", args->log_path ? args->log_path : "-");
 	#ifdef WITH_RFID
-	printf("       Inner RFID: %s\n", args->rfid_inner_path ? args->rfid_inner_path : "-");
-	printf("       Outer RFID: %s\n", args->rfid_outer_path ? args->rfid_outer_path : "-");
-	printf("  Lock on no RFID: %d\n", args->lock_on_invalid_rfid);
-	printf("   RFID lock time: %.2f seconds\n", args->rfid_lock_time);
-	printf("     Allowed RFID: %s\n", (args->rfid_allowed_count <= 0) ? "-" : args->rfid_allowed[0]);
+	printf("\n");
+	printf("RFID:\n");
+	printf("        Inner RFID: %s\n", args->rfid_inner_path ? args->rfid_inner_path : "-");
+	printf("        Outer RFID: %s\n", args->rfid_outer_path ? args->rfid_outer_path : "-");
+	printf("   Lock on no RFID: %d\n", args->lock_on_invalid_rfid);
+	printf("    RFID lock time: %.2f seconds\n", args->rfid_lock_time);
+	printf("      Allowed RFID: %s\n", (args->rfid_allowed_count <= 0) ? "-" : args->rfid_allowed[0]);
 	for (i = 1; i < args->rfid_allowed_count; i++)
 	{
 		printf("                 %s\n", args->rfid_allowed[i]);
@@ -793,6 +811,7 @@ int catcierge_args_init(catcierge_args_t *args)
 	args->match_time = DEFAULT_MATCH_WAIT;
 	args->lockout_time = DEFAULT_LOCKOUT_TIME;
 	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
+	args->ok_matches_needed = DEFAULT_OK_MATCHES_NEEDED;
 
 	#ifdef RPI
 	{

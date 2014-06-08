@@ -111,7 +111,6 @@ size_t catcierge_haar_matcher_count_contours(catcierge_haar_matcher_t *ctx, CvSe
 	double area;
 	int big_enough = 0;
 	CvSeq *it = NULL;
-	catcierge_haar_matcher_args_t *args = ctx->args;
 
 	if (!contours)
 		return 0;
@@ -363,12 +362,14 @@ int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const
 	if (!strcmp(key, "no_match_is_fail"))
 	{
 		args->no_match_is_fail = 1;
+		if (value_count == 1) args->no_match_is_fail = atoi(values[0]);
 		return 0;
 	}
 
 	if (!strcmp(key, "equalize_historgram") || !strcmp(key, "eqhist"))
 	{
 		args->eq_histogram = 1;
+		if (value_count == 1) args->eq_histogram = atoi(values[0]);
 		return 0;
 	}
 
@@ -402,12 +403,12 @@ int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const
 			}
 			else
 			{
-				fprintf(stderr, "Invalid direction \"%s\"\n", d);
+				fprintf(stderr, "Invalid direction \"%s\", must be \"left\" or \"right\".\n", d);
 			}
 		}
 		else
 		{
-			fprintf(stderr, "Missing value for --prey_steps\n");
+			fprintf(stderr, "Missing either \"left\" or \"right\" for --in_direction\n");
 			return -1;
 		}
 
