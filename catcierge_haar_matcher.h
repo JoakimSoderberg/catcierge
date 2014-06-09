@@ -24,6 +24,12 @@
 #include "catcierge_haar_wrapper.h"
 #include "catcierge_types.h"
 
+typedef enum catcierge_haar_prey_method_e
+{
+	PREY_METHOD_ADAPTIVE,
+	PREY_METHOD_NORMAL
+} catcierge_haar_prey_method_t;
+
 typedef struct catcierge_haar_matcher_args_s
 {
 	const char *cascade;
@@ -34,6 +40,7 @@ typedef struct catcierge_haar_matcher_args_s
 	int low_binary_thresh;
 	int high_binary_thresh;
 	int no_match_is_fail;
+	catcierge_haar_prey_method_t prey_method;
 	int prey_steps;
 	int debug;
 } catcierge_haar_matcher_args_t;
@@ -41,14 +48,18 @@ typedef struct catcierge_haar_matcher_args_s
 typedef struct catcierge_haar_matcher_s
 {
 	CvMemStorage *storage;
-	IplConvKernel *kernel;
-	IplConvKernel *kernel_tall;
+	IplConvKernel *kernel2x2;
+	IplConvKernel *kernel3x3;
+	IplConvKernel *kernel5x1;
 
 	cv2CascadeClassifier *cascade;
 
 	catcierge_haar_matcher_args_t *args;
 	int debug;
 } catcierge_haar_matcher_t;
+
+typedef int (*find_prey_f)(catcierge_haar_matcher_t *ctx,
+		IplImage *img, IplImage *inv_thr_img);
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args);
 void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx);

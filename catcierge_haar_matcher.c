@@ -30,12 +30,17 @@ int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_ma
 		return -1;
 	}
 
-	if (!(ctx->kernel = cvCreateStructuringElementEx(3, 3, 0, 0, CV_SHAPE_RECT, NULL)))
+	if (!(ctx->kernel2x2 = cvCreateStructuringElementEx(2, 2, 0, 0, CV_SHAPE_RECT, NULL)))
 	{
 		return -1;
 	}
 
-	if (!(ctx->kernel_tall = cvCreateStructuringElementEx(5, 1, 0, 0, CV_SHAPE_RECT, NULL)))
+	if (!(ctx->kernel3x3 = cvCreateStructuringElementEx(3, 3, 0, 0, CV_SHAPE_RECT, NULL)))
+	{
+		return -1;
+	}
+
+	if (!(ctx->kernel5x1 = cvCreateStructuringElementEx(5, 1, 0, 0, CV_SHAPE_RECT, NULL)))
 	{
 		return -1;
 	}
@@ -57,6 +62,24 @@ void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
 
 	// TODO: We might have to release the xml as well..
 
+	if (ctx->kernel2x2)
+	{
+		cvReleaseStructuringElement(&ctx->kernel2x2);
+		ctx->kernel2x2 = NULL;
+	}
+
+	if (ctx->kernel3x3)
+	{
+		cvReleaseStructuringElement(&ctx->kernel3x3);
+		ctx->kernel3x3 = NULL;
+	}
+
+	if (ctx->kernel5x1)
+	{
+		cvReleaseStructuringElement(&ctx->kernel5x1);
+		ctx->kernel5x1 = NULL;
+	}
+
 	if (ctx->storage)
 	{
 		cvReleaseMemStorage(&ctx->storage);
@@ -64,7 +87,7 @@ void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
 	}
 }
 
-match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, IplImage *img)
+match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, IplImage *thr_img, int inverted)
 {
 	assert(ctx);
 	assert(ctx->args);
@@ -72,15 +95,15 @@ match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, 
 	int right_sum;
 	catcierge_haar_matcher_args_t *args = ctx->args;
 	match_direction_t dir = MATCH_DIR_UNKNOWN;
-	CvRect roi = cvGetImageROI(img);
+	CvRect roi = cvGetImageROI(thr_img);
 
 	// Left.
-	cvSetImageROI(img, cvRect(0, 0, 1, roi.height));
-	left_sum = (int)cvSum(img).val[0];
+	cvSetImageROI(thr_img, cvRect(0, 0, 1, roi.height));
+	left_sum = (int)cvSum(thr_img).val[0];
 
 	// Right.
-	cvSetImageROI(img, cvRect(roi.width - 1, 0, 1, roi.height));
-	right_sum = (int)cvSum(img).val[0];
+	cvSetImageROI(thr_img, cvRect(roi.width - 1, 0, 1, roi.height));
+	right_sum = (int)cvSum(thr_img).val[0];
 
 	if (abs(left_sum - right_sum) > 25)
 	{
@@ -98,9 +121,17 @@ match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, 
 		}
 	}
 
-	cvSetImageROI(img, roi);
+	cvSetImageROI(thr_img, roi);
 
-	return dir;
+	if (inverted && (dir != MATCH_DIR_UNKNOWN))
+	{
+		if (dir == MATCH_DIR_IN) return MATCH_DIR_OUT;
+		return MATCH_DIR_IN;
+	}
+	else
+	{
+		return dir;
+	}
 }
 
 size_t catcierge_haar_matcher_count_contours(catcierge_haar_matcher_t *ctx, CvSeq *contours)
@@ -133,31 +164,92 @@ size_t catcierge_haar_matcher_count_contours(catcierge_haar_matcher_t *ctx, CvSe
 	return contour_count;
 }
 
-int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx, IplImage *img)
+int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
+											IplImage *img, IplImage *inv_thr_img)
+{
+	assert(ctx);
+	assert(img);
+	assert(ctx->args);
+	//catcierge_haar_matcher_args_t *args = ctx->args;
+	IplImage *inv_adpthr_img = NULL;
+	IplImage *inv_combined = NULL;
+	IplImage *open_combined = NULL;
+	IplImage *dilate_combined = NULL;
+	CvSeq *contours = NULL;
+	size_t contour_count = 0;
+	CvSize img_size = cvGetSize(img);
+
+	// We expect to be given an inverted global thresholded image (inv_thr_img)
+	// that contains the rough cat profile.
+
+	// Do an inverted adaptive threshold of the original image as well.
+	// This brings out small details such as a mouse tail that fades
+	// into the background during a global threshold.
+	inv_adpthr_img = cvCreateImage(img_size, 8, 1);
+	cvAdaptiveThreshold(img, inv_adpthr_img, 255,
+		CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY_INV, 11, 5);
+	if (ctx->debug) cvShowImage("Inv adaptive thr", inv_adpthr_img);
+
+	// Now we can combine the two thresholded images into one.
+	inv_combined = cvCreateImage(img_size, 8, 1);
+	cvAdd(inv_thr_img, inv_adpthr_img, inv_combined, NULL);
+	if (ctx->debug) cvShowImage("Inv combined", inv_combined);
+
+	// Get rid of noise from the adaptive threshold.
+	open_combined = cvCreateImage(img_size, 8, 1);
+	cvMorphologyEx(inv_combined, open_combined, NULL, ctx->kernel2x2, CV_MOP_OPEN, 2);
+	if (ctx->debug) cvShowImage("Haar opened img", open_combined);
+
+	dilate_combined = cvCreateImage(img_size, 8, 1);
+	cvDilate(open_combined, dilate_combined, ctx->kernel3x3, 3);
+	if (ctx->debug) cvShowImage("Haar dilate combined", dilate_combined);
+
+	// Invert back the result so the background is white again.
+	cvNot(dilate_combined, dilate_combined);
+	if (ctx->debug) cvShowImage("Haar inv combined", dilate_combined);
+
+	cvFindContours(dilate_combined, ctx->storage, &contours,
+		sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
+
+	// If we get more than 1 contour we count it as a prey.
+	contour_count = catcierge_haar_matcher_count_contours(ctx, contours);
+
+	if (ctx->debug)
+	{
+		cvDrawContours(img, contours, cvScalarAll(0), cvScalarAll(0), 1, 1, 8, cvPoint(0, 0));
+		cvShowImage("Haar Contours", img);
+	}
+
+	cvReleaseImage(&inv_adpthr_img);
+	cvReleaseImage(&inv_combined);
+	cvReleaseImage(&open_combined);
+	cvReleaseImage(&dilate_combined);
+
+	return (contour_count > 1);
+}
+
+int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx,
+									IplImage *img, IplImage *thr_img)
 {
 	assert(ctx);
 	assert(img);
 	assert(ctx->args);
 	catcierge_haar_matcher_args_t *args = ctx->args;
-	IplImage *thr_img = NULL;
 	IplImage *thr_img2 = NULL;
 	CvSeq *contours = NULL;
 	size_t contour_count = 0;
 
-	thr_img = cvCreateImage(cvGetSize(img), 8, 1);
-	cvThreshold(img, thr_img,
-				0, 255,
-				CV_THRESH_OTSU);
-
+	// thr_img is modified by FindContours so we clone it first.
 	thr_img2 = cvCloneImage(thr_img);
-
-	if (ctx->debug) cvShowImage("Haar image th", thr_img);
 
 	cvFindContours(thr_img, ctx->storage, &contours,
 		sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
 
+	// If we get more than 1 contour we count it as a prey. At least something
+	// is intersecting the white are to split up the image.
 	contour_count = catcierge_haar_matcher_count_contours(ctx, contours);
 
+	// If we don't find any prey 
 	if ((args->prey_steps >= 2) && (contour_count == 1))
 	{
 		IplImage *erod_img = NULL;
@@ -165,11 +257,11 @@ int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx, IplImage *im
 		CvSeq *contours2 = NULL;
 
 		erod_img = cvCreateImage(cvGetSize(thr_img2), 8, 1);
-		cvErode(thr_img2, erod_img, ctx->kernel, 3);
+		cvErode(thr_img2, erod_img, ctx->kernel3x3, 3);
 		if (ctx->debug) cvShowImage("haar eroded img", erod_img);
 
 		open_img = cvCreateImage(cvGetSize(thr_img2), 8, 1);
-		cvMorphologyEx(erod_img, open_img, NULL, ctx->kernel_tall, CV_MOP_OPEN, 1);
+		cvMorphologyEx(erod_img, open_img, NULL, ctx->kernel5x1, CV_MOP_OPEN, 1);
 		if (ctx->debug) cvShowImage("haar opened img", erod_img);
 
 		cvFindContours(erod_img, ctx->storage, &contours2,
@@ -186,7 +278,6 @@ int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx, IplImage *im
 		cvShowImage("Haar Contours", img);
 	}
 
-	cvReleaseImage(&thr_img);
 	return (contour_count > 1);
 }
 
@@ -214,6 +305,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	IplImage *img_eq = NULL;
 	IplImage *img_gray = NULL;
 	IplImage *tmp = NULL;
+	IplImage *thr_img = NULL;
 	CvSize max_size;
 	CvSize min_size;
 	min_size.width = args->min_width;
@@ -271,39 +363,52 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 
 	if ((*rect_count > 0))
 	{
-		CvRect roi = match_rects[0];
+		int inverted; 
+		int flags;
+		CvRect roi;
+		find_prey_f find_prey = NULL;
 
 		// Only use the lower part of the region of interest
 		// and extend it some towards the "outside" for better result.
 		// (We only use the first haar cascade match).
+		roi = match_rects[0];
 		catcierge_haar_matcher_calculate_roi(ctx, &roi);
 		cvSetImageROI(img_eq, roi);
 
-		// TODO: Is this more effective before or after ROI is set? (test in python prototype)
+		if (args->prey_method == PREY_METHOD_ADAPTIVE)
+		{
+			inverted = 1;
+			flags = CV_THRESH_BINARY_INV | CV_THRESH_OTSU;
+			find_prey = catcierge_haar_matcher_find_prey_adaptive;
+		}
+		else
+		{
+			inverted = 0;
+			flags = CV_THRESH_BINARY | CV_THRESH_OTSU;
+			find_prey = catcierge_haar_matcher_find_prey;
+		}
+
+		// Both "find prey" and "guess direction" needs
+		// a thresholded image, so perform it before calling those.
+		thr_img = cvCreateImage(cvGetSize(img_eq), 8, 1);
+		cvThreshold(img_eq, thr_img, 0, 255, flags);
+		if (ctx->debug) cvShowImage("Haar image binary", thr_img);
+
 		if (direction)
 		{
-			*direction = catcierge_haar_guess_direction(ctx, img_eq);
+			*direction = catcierge_haar_guess_direction(ctx, thr_img, inverted);
+			if (ctx->debug) printf("Direction: %s\n", catcierge_get_direction_str(*direction));
 
-			if (ctx->debug) printf("Direction: ");
-			switch (*direction)
+			// Don't bother looking for prey when the cat is going outside.
+			if ((*direction) == MATCH_DIR_OUT)
 			{
-				case MATCH_DIR_IN:
-				{
-					if (ctx->debug) printf("IN\n"); 
-					break;
-				}
-				case MATCH_DIR_OUT:
-				{
-					if (ctx->debug) printf("OUT\n");
-					// Don't bother looking for prey when the cat
-					// is going outside.
-					goto done;
-				}
-				default: if (ctx->debug) printf("Unknown\n"); break;
+				if (ctx->debug) printf("Skipping prey detection!\n");
+				goto done;
 			}
 		}
 
-		if (catcierge_haar_matcher_find_prey(ctx, img_eq))
+		// Note that thr_img will be modified.
+		if (find_prey(ctx, img_eq, thr_img))
 		{
 			if (ctx->debug) printf("Found prey!\n");
 			ret = 0.0; // Fail.
@@ -325,6 +430,11 @@ fail:
 	if (tmp)
 	{
 		cvReleaseImage(&tmp);
+	}
+
+	if (thr_img)
+	{
+		cvReleaseImage(&thr_img);
 	}
 
 	return ret;
@@ -423,6 +533,33 @@ int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const
 		return 0;
 	}
 
+	if (!strcmp(key, "prey_method"))
+	{
+		if (value_count == 1)
+		{
+			char *d = values[0];
+			if (!strcasecmp(d, "adaptive"))
+			{
+				args->prey_method = PREY_METHOD_ADAPTIVE;
+			}
+			else if (!strcasecmp(d, "normal"))
+			{
+				args->prey_method = PREY_METHOD_NORMAL;
+			}
+			else
+			{
+				fprintf(stderr, "Invalid prey method \"%s\", must be \"adaptive\" or \"normal\".\n", d);
+			}
+		}
+		else
+		{
+			fprintf(stderr, "Missing either \"adaptive\" or \"normal\" for --prey_method\n");
+			return -1;
+		}
+
+		return 0;
+	}
+
 	return 1;
 }
 
@@ -436,7 +573,13 @@ void catcierge_haar_matcher_usage()
 	fprintf(stderr, "                        The default is to only consider found prey a failure.\n");
 	fprintf(stderr, " --eq_histogram         Equalize the histogram of the image before doing.\n");
 	fprintf(stderr, "                        the haar cascade detection step.\n");
-	fprintf(stderr, " --prey_steps           The algorithm for finding the prey \n");
+	fprintf(stderr, " --prey_method <adaptive|normal>  (Adaptive is default)\n");
+	fprintf(stderr, "                        Sets the prey matching method. Adaptive combines the result\n");
+	fprintf(stderr, "                        of both a global and adaptive thresholding to be better able to\n");
+	fprintf(stderr, "                        find prey parts otherwise blended into the background.\n");
+	fprintf(stderr, "                        Normal is simpler and doesn't catch such corner cases as well.\n");
+	fprintf(stderr, " --prey_steps <1-2>     Only applicable for normal prey mode. 2 means a secondary\n");
+	fprintf(stderr, "                        search should be made if no prey is found initially.\n");
 	fprintf(stderr, "\n");
 }
 
@@ -449,6 +592,7 @@ void catcierge_haar_matcher_print_settings(catcierge_haar_matcher_args_t *args)
 	printf("          Min size: %dx%d\n", args->min_width, args->min_height);
 	printf("Equalize histogram: %d\n", args->eq_histogram);
 	printf("  No match is fail: %d\n", args->no_match_is_fail);
+	printf("       Prey method: %s\n", args->prey_method == PREY_METHOD_ADAPTIVE ? "Adaptive" : "Normal");
 	printf("        Prey steps: %d\n", args->prey_steps);
 	printf("\n");
 }
@@ -464,6 +608,7 @@ void catcierge_haar_matcher_args_init(catcierge_haar_matcher_args_t *args)
 	args->debug = 0;
 	args->no_match_is_fail = 0;
 	args->prey_steps = 2;
+	args->prey_method = PREY_METHOD_ADAPTIVE;
 }
 
 void catcierge_haar_matcher_set_debug(catcierge_haar_matcher_t *ctx, int debug)
