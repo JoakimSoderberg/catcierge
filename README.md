@@ -47,16 +47,6 @@ To install OpenCV on raspbian:
 $ sudo apt-get install cmake opencv-dev build-essential
 ```
 
-To get the raspicam_cv libary to compile we need the Raspberry pi 
-userland tools:
-
-```bash
-$ git clone https://github.com/raspberrypi/userland.gi
-$ cd userland
-$ ./buildme
-$ pwd # Save this path for compiling.
-```
-
 ### Linux / OSX
 
 Use your favorite package system to install OpenCV.
@@ -80,10 +70,12 @@ Catcierge uses the CMake build system. To compile:
 ### Raspbian:
 
 ```bash
-$ git clone <url>
+$ git clone https://github.com/JoakimSoderberg/catcierge.git
 $ cd catcierge
+$ git submodule update --init # For the rpi userland sources.
+$ ./build_userland.sh
 $ mkdir build && cd build
-$ cmake -DRPI_USERLAND=/path/to/rpi/userland ..
+$ cmake ..
 $ make
 ```
 
@@ -91,8 +83,18 @@ If you don't have any [RFID cat chip reader][rfid_cat] you can exclude
 it from the compilation:
 
 ```bash
-$ cmake -DRPI_USERLAND=/path/to/rpi/userland -DWITH_RFID=OFF ..
+$ cmake -DWITH_RFID=OFF ..
 ```
+
+If you already have a version of the [raspberry pi userland libraries][rpi_userland] built,
+you can use that instead:
+
+```bash
+$ cmake -DRPI_USERLAND=/path/to/rpi/userland ..
+```
+
+However, note that the program only has been tested with the submodule version of
+the userland sources.
 
 ### Linux / OSX
 
@@ -183,3 +185,4 @@ $ python higgs.py --snout snouts/snout{1,2}.png --output <path/to/output> --nosh
 [raspicam_cv]: https://github.com/robidouille/robidouille/tree/master/raspicam_cv
 [emil_valkov]: http://www.robidouille.com/
 [rfid_cat]: http://www.priority1design.com.au/shopfront/index.php?main_page=product_info&cPath=1&products_id=23
+[rpi_userland]: https://github.com/raspberrypi/userland

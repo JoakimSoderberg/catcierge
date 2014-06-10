@@ -1,3 +1,6 @@
 [submodule "examples"]
 	path = examples
 	url = https://github.com/JoakimSoderberg/catcierge-examples.git
+[submodule "rpi_userland"]
+	path = rpi_userland
+	url = https://github.com/raspberrypi/userland.git

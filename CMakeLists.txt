@@ -33,7 +33,7 @@ if (UNIX)
 	option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
 	option(RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." ON)
 	option(CATCIERGE_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" OFF)
-	set(RPI_USERLAND "/home/pi/dev/userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
+	set(RPI_USERLAND "${PROJECT_SOURCE_DIR}/rpi_userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
 endif()
 
 # Set some nicer output dirs.
@@ -151,6 +151,33 @@ if (RPI AND NOT OpenCV_DIR)
 		stdc++ 
 		rt
 		)
+else()
+	if (WIN32)
+		# We link statically on windows so we don't have to copy DLLs around.
+		option(LINK_STATIC "Link eveything static such as OpenCV. Will produce a single exe (big since it contains OpenCV and more). Default on" ON)
+
+		if (LINK_STATIC)
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+			set(OpenCV_STATIC ON)
+		endif()
+	endif()
+
+	find_package(OpenCV REQUIRED)
+	set(LIBS ${OpenCV_LIBS})
+endif()
+
+# Raspicam lib.
+if (RPI)
+
+	if (NOT EXISTS "${RPI_USERLAND}")
+		message(FATAL_ERROR 
+			"Missing Raspberry Pi userland sources: ${RPI_USERLAND}.\n"
+			"Either point to a separate build using -DRPI_USERLAND=<path>\n"
+			"Or run this to get and build it:\n"
+			"git submodule update --init"
+			"./build_userland.sh")
+	endif()
 
 	include_directories(
 		${RPI_USERLAND}/host_applications/linux/libs/bcm_host/include/
@@ -163,7 +190,6 @@ if (RPI AND NOT OpenCV_DIR)
 		raspicam_cv
 		)
 
-	# Raspicam lib.
 	file(GLOB RASPICAM_SRC ${RPI_USERLAND}/host_applications/linux/apps/raspicam/*.c)
 	list(APPEND RASPICAM_SRC raspicam_cv/RaspiCamCV.c)
 
@@ -184,20 +210,6 @@ if (RPI AND NOT OpenCV_DIR)
 	add_executable(raspicam_test ${RASPICAM_TEST_SRC})
 	add_dependencies(raspicam_test raspicamcv)
 	target_link_libraries(raspicam_test raspicamcv ${LIBS})
-else()
-	if (WIN32)
-		# We link statically on windows so we don't have to copy DLLs around.
-		option(LINK_STATIC "Link eveything static such as OpenCV. Will produce a single exe (big since it contains OpenCV and more). Default on" ON)
-
-		if (LINK_STATIC)
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-			set(OpenCV_STATIC ON)
-		endif()
-	endif()
-
-	find_package(OpenCV REQUIRED)
-	set(LIBS ${OpenCV_LIBS})
 endif()
 
 # Catcierge lib.
