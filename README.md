@@ -35,39 +35,21 @@ To read more about how to build your own hardware that this code can run on, and
 
 Dependencies
 ------------
-For the image recognition catcierge users OpenCV using the 
+For the image recognition catcierge uses OpenCV via the 
 [raspicam_cv library][raspicam_cv] written by [Emil Valkov][emil_valkov]
 (which is included in the catcierge source).
-
-### Raspberry pi
-
-To install OpenCV on raspbian:
-
-```bash
-$ sudo apt-get install cmake opencv-dev build-essential
-```
-
-### Linux / OSX
-
-Use your favorite package system to install OpenCV.
-
-You can also use your own build of OpenCV when compiling:
-
-from git [https://github.com/itseez/opencv](https://github.com/itseez/opencv)
-
-or download: [http://opencv.org/downloads.html](http://opencv.org/downloads.html)
-
-### Windows
-
-Download OpenCV 2.x for Windows: [http://opencv.org/downloads.html](http://opencv.org/downloads.html)
-
-Unpack it to a known path (you need this when compiling).
 
 Compiling
 ---------
 Catcierge uses the CMake build system. To compile:
 
-### Raspbian:
+### Raspberry Pi:
+
+First, to install OpenCV on raspbian:
+
+```bash
+$ sudo apt-get install cmake opencv-dev build-essential
+```
 
 ```bash
 $ git clone https://github.com/JoakimSoderberg/catcierge.git
@@ -98,6 +80,14 @@ the userland sources.
 
 ### Linux / OSX
 
+Use your favorite package system to install OpenCV.
+
+You can also use your own build of OpenCV when compiling:
+
+from git [https://github.com/itseez/opencv](https://github.com/itseez/opencv)
+
+or download: [http://opencv.org/downloads.html](http://opencv.org/downloads.html)
+
 ```bash
 $ git clone <url>
 $ cd catcierge
@@ -117,6 +107,10 @@ $ cmake --build .
 
 ### Windows
 
+Download OpenCV 2.x for Windows: [http://opencv.org/downloads.html](http://opencv.org/downloads.html)
+
+Unpack it to a known path (you need this when compiling).
+
 Assuming you're using [git bash](http://git-scm.com/) and [Visual Studio Express](http://www.visualstudio.com/downloads/download-visual-studio-vs) (or more advanced version).
 
 ```bash
@@ -127,6 +121,7 @@ $ cmake -DOpenCV_DIR=/c/PATH/TO/OPENCV/build .. # The OpenCV path must contain O
 $ cmake --build .     # Either build from command line...
 $ start catcierge.sln # Or launch Visual Studio and build from there...
 ```
+
 Running
 -------
 The main program is named [catcierge_grabber](catcierge_grabber.c) which 
