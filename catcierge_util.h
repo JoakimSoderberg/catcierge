@@ -34,6 +34,9 @@
 #define getcwd _getcwd
 #define snprintf _snprintf
 #define sleep(x) Sleep((x)*1000)
+#define vsnprintf _vsnprintf 
+#define strcasecmp _stricmp 
+#define strncasecmp _strnicmp 
 #endif // _WIN32
 
 void catcierge_execute(char *command, char *fmt, ...);
