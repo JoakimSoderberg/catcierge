@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	char *output_path = "output";
 	double match_threshold = 0.8;
 	int success_count = 0;
-	int preload = 1;
+	int preload = 0;
 	int test_matchable = 0;
 	const char *matcher = NULL;
 	size_t rect_count;
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 	catcierge_haar_matcher_args_t hargs;
 	memset(&args, 0, sizeof(args));
 	char *key = NULL;
-	char *values[256];
+	char *values[4096];
 	size_t value_count = 0;
 
 	fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 						"          [--match_flipped <0|1>] [--threshold]\n"
 						"          [--preload] [--test_matchable]\n"
 						"          [--snout <snout images for template matching>]\n"
-						"          [--cascade <haar cascade xml>]"
+						"          [--cascade <haar cascade xml>]\n"
 						"           --images <input images>\n"
 						"           --matcher <template|haar>\n", argv[0]);
 		return -1;
