@@ -349,7 +349,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 		goto fail;
 	}
 
-	if (ctx->debug) printf("Rect count: %zu\n", *rect_count);
+	if (ctx->debug) printf("Rect count: %d\n", (int)*rect_count);
 
 	// Even if we don't find a face we count it as a success.
 	// Only when a prey is found we consider it a fail.
@@ -442,7 +442,6 @@ fail:
 
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const char *key, char **values, size_t value_count)
 {
-	printf("Parse: %s %s", key, values[0]);
 	if (!strcmp(key, "cascade"))
 	{
 		if (value_count == 1)

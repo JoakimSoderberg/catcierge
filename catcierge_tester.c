@@ -409,9 +409,10 @@ int main(int argc, char **argv)
 	end = clock();
 
 	if (!test_matchable)
-	{	
-		printf("%d of %zu successful! (%f seconds)\n",
-			success_count, img_count, (float)(end - start) / CLOCKS_PER_SEC);
+	{
+		printf("Note that this time isn't useful with --show\n");
+		printf("%d of %d successful! (%f seconds)\n",
+			success_count, (int)img_count, (float)(end - start) / CLOCKS_PER_SEC);
 	}
 
 fail:

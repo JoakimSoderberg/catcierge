@@ -385,8 +385,6 @@ int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *arg
 {
 	int i;
 
-	printf("Parse: \"%s\" %s %zu\n", key, values[0], value_count);
-
 	if (!strcmp(key, "match_flipped"))
 	{
 		args->match_flipped = 1;
