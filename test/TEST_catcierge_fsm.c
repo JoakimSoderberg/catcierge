@@ -6,6 +6,7 @@
 #include "catcierge_test_config.h"
 #include "catcierge_test_helpers.h"
 #include "catcierge_args.h"
+#include "catcierge_types.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
@@ -77,6 +78,7 @@ static char *run_consecutive_lockout_abort_tests()
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
+	args->lockout_method = TIMER_ONLY_3;
 	args->max_consecutive_lockout_count = 3;
 	// It's important we change this from the default 3 seconds.
 	// Since when the tests run under valgrind they are much slower
@@ -167,6 +169,7 @@ static char *run_consecutive_lockout_tests()
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
+	args->lockout_method = TIMER_ONLY_3;
 	args->max_consecutive_lockout_count = 3;
 	args->consecutive_lockout_delay = 10;
 	args->lockout_time = 0;

@@ -172,11 +172,13 @@ if (RPI)
 
 	if (NOT EXISTS "${RPI_USERLAND}")
 		message(FATAL_ERROR 
+			"**************************************************************\n"
 			"Missing Raspberry Pi userland sources: ${RPI_USERLAND}.\n"
 			"Either point to a separate build using -DRPI_USERLAND=<path>\n"
 			"Or run this to get and build it:\n"
-			"git submodule update --init"
-			"./build_userland.sh")
+			"git submodule update --init\n"
+			"./build_userland.sh\n"
+			"**************************************************************\n")
 	endif()
 
 	include_directories(

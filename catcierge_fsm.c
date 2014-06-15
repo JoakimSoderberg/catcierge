@@ -741,7 +741,7 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 
 		if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img)) < 0)
 		{
-			CATERRFPS("Failed to detect check for obstructed frame\n");
+			CATERR("Failed to run check for obstructed frame\n");
 			return -1;
 		}
 
@@ -750,14 +750,14 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 			return 0;
 		}
 
-		CATLOGFPS("Frame is clear, start successful match timer...\n");
+		CATLOG("Frame is clear, start successful match timer...\n");
 		catcierge_timer_set(&grb->rematch_timer, grb->args.match_time);
 		catcierge_timer_start(&grb->rematch_timer);
 	}
 
 	if (catcierge_timer_has_timed_out(&grb->rematch_timer))
 	{
-		CATLOGFPS("Go back to waiting...\n");
+		CATLOG("Go back to waiting...\n");
 		catcierge_set_state(grb, catcierge_state_waiting);
 		return 0;
 	}
@@ -774,17 +774,61 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 
 int catcierge_state_lockout(catcierge_grb_t *grb)
 {
+	int frame_obstructed;
+	catcierge_args_t *args;
 	assert(grb);
+	args = &grb->args;
 
 	catcierge_show_image(grb);
 
+	if (args->lockout_method == OBSTRUCT_OR_TIMER_1)
+	{
+		// Stop the lockout when frame is clear
+		// OR if the lockout timer ends.
+
+		if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img)) < 0)
+		{
+			CATERR("Failed to run check for obstructed frame\n");
+			return -1;
+		}
+
+		if (!frame_obstructed || catcierge_timer_has_timed_out(&grb->lockout_timer))
+		{
+			CATLOG("End of lockout!\n");
+			catcierge_do_unlock(grb);
+			catcierge_set_state(grb, catcierge_state_waiting);
+			return 0;
+		}
+	}
+	else if (args->lockout_method == OBSTRUCT_THEN_TIMER_2)
+	{
+		// Don't start the lockout timer until the framE becomes clear.
+
+		if (!catcierge_timer_isactive(&grb->rematch_timer))
+		{
+			if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img)) < 0)
+			{
+				CATERR("Failed to run check for obstructed frame\n");
+				return -1;
+			}
+
+			if (frame_obstructed)
+			{
+				return 0;
+			}
+
+			CATLOG("Frame is clear, start lockout timer...\n");
+			catcierge_timer_set(&grb->lockout_timer, grb->args.lockout_time);
+			catcierge_timer_start(&grb->lockout_timer);
+		}
+	}
+
 	if (catcierge_timer_has_timed_out(&grb->lockout_timer))
 	{
-		CATLOGFPS("End of lockout!\n");
+		CATLOG("End of lockout!\n");
 		catcierge_do_unlock(grb);
 		catcierge_set_state(grb, catcierge_state_waiting);
 	}
-
 	return 0;
 }
 
@@ -794,8 +838,16 @@ void catcierge_state_transition_lockout(catcierge_grb_t *grb)
 	assert(grb);
 	args = &grb->args;
 
-	catcierge_timer_set(&grb->lockout_timer, args->lockout_time);
-	catcierge_timer_start(&grb->lockout_timer);
+	// Start the timer up front depending on lockout method.
+	switch (args->lockout_method)
+	{
+		default: break;
+		case OBSTRUCT_OR_TIMER_1:
+		case TIMER_ONLY_3:
+			catcierge_timer_set(&grb->lockout_timer, args->lockout_time);
+			catcierge_timer_start(&grb->lockout_timer);
+			break;
+	}
 
 	catcierge_set_state(grb, catcierge_state_lockout);
 	catcierge_do_lockout(grb);

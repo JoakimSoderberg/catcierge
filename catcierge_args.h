@@ -25,6 +25,7 @@ typedef struct catcierge_args_s
 	int saveimg;
 	int highlight_match;
 	int show_fps;
+	catcierge_lockout_method_t lockout_method;
 	int lockout_time;
 	double consecutive_lockout_delay;
 	int max_consecutive_lockout_count;

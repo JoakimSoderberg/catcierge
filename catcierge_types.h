@@ -42,4 +42,11 @@ typedef enum catcierge_matcher_type_e
 	MATCHER_HAAR
 } catcierge_matcher_type_t;
 
+typedef enum catcierge_lockout_method_s
+{
+	OBSTRUCT_OR_TIMER_1 = 1,
+	OBSTRUCT_THEN_TIMER_2 = 2,
+	TIMER_ONLY_3 = 3
+} catcierge_lockout_method_t;
+
 #endif // __CATCIERGE_TYPES_H__
