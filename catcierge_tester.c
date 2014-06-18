@@ -83,10 +83,10 @@ int main(int argc, char **argv)
 	clock_t end;
 	catcierge_template_matcher_args_t args;
 	catcierge_haar_matcher_args_t hargs;
-	memset(&args, 0, sizeof(args));
 	char *key = NULL;
 	char *values[4096];
 	size_t value_count = 0;
+	memset(&args, 0, sizeof(args));
 
 	fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
 

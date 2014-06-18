@@ -4,6 +4,7 @@
 #include "catcierge_haar_wrapper.h"
 #include "catcierge_types.h"
 #include "catcierge_util.h"
+#include <opencv2/core/core_c.h>
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args)
 {
@@ -89,13 +90,13 @@ void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
 
 match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, IplImage *thr_img, int inverted)
 {
-	assert(ctx);
-	assert(ctx->args);
 	int left_sum;
 	int right_sum;
 	catcierge_haar_matcher_args_t *args = ctx->args;
 	match_direction_t dir = MATCH_DIR_UNKNOWN;
 	CvRect roi = cvGetImageROI(thr_img);
+	assert(ctx);
+	assert(ctx->args);
 
 	// Left.
 	cvSetImageROI(thr_img, cvRect(0, 0, 1, roi.height));
@@ -136,12 +137,12 @@ match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, 
 
 size_t catcierge_haar_matcher_count_contours(catcierge_haar_matcher_t *ctx, CvSeq *contours)
 {
-	assert(ctx);
-	assert(ctx->args);
 	size_t contour_count = 0;
 	double area;
 	int big_enough = 0;
 	CvSeq *it = NULL;
+	assert(ctx);
+	assert(ctx->args);
 
 	if (!contours)
 		return 0;
@@ -167,9 +168,6 @@ size_t catcierge_haar_matcher_count_contours(catcierge_haar_matcher_t *ctx, CvSe
 int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 											IplImage *img, IplImage *inv_thr_img)
 {
-	assert(ctx);
-	assert(img);
-	assert(ctx->args);
 	//catcierge_haar_matcher_args_t *args = ctx->args;
 	IplImage *inv_adpthr_img = NULL;
 	IplImage *inv_combined = NULL;
@@ -178,6 +176,9 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 	CvSeq *contours = NULL;
 	size_t contour_count = 0;
 	CvSize img_size = cvGetSize(img);
+	assert(ctx);
+	assert(img);
+	assert(ctx->args);
 
 	// We expect to be given an inverted global thresholded image (inv_thr_img)
 	// that contains the rough cat profile.
@@ -231,13 +232,13 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx,
 									IplImage *img, IplImage *thr_img)
 {
-	assert(ctx);
-	assert(img);
-	assert(ctx->args);
 	catcierge_haar_matcher_args_t *args = ctx->args;
 	IplImage *thr_img2 = NULL;
 	CvSeq *contours = NULL;
 	size_t contour_count = 0;
+	assert(ctx);
+	assert(img);
+	assert(ctx->args);
 
 	// thr_img is modified by FindContours so we clone it first.
 	thr_img2 = cvCloneImage(thr_img);
@@ -298,8 +299,6 @@ void catcierge_haar_matcher_calculate_roi(catcierge_haar_matcher_t *ctx, CvRect 
 double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
 		CvRect *match_rects, size_t *rect_count, match_direction_t *direction)
 {
-	assert(ctx);
-	assert(ctx->args);
 	catcierge_haar_matcher_args_t *args = ctx->args;
 	double ret = 0.998;
 	IplImage *img_eq = NULL;
@@ -308,6 +307,9 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	IplImage *thr_img = NULL;
 	CvSize max_size;
 	CvSize min_size;
+	assert(ctx);
+	assert(ctx->args);
+
 	min_size.width = args->min_width;
 	min_size.height = args->min_height;
 	max_size.width = 0;
