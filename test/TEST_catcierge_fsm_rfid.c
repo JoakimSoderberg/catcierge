@@ -40,6 +40,8 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	grb.rfid_in_match.is_allowed = conf->inner_valid_rfid;
 	grb.rfid_out_match.is_allowed = conf->outer_valid_rfid;
 	grb.rfid_direction = conf->direction;
+	args->templ.match_flipped = 1;
+	args->templ.match_threshold = 0.8;
 	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
 	args->templ.snout_count++;
 	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
@@ -49,9 +51,6 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	{
 		return "Failed to init catcierge lib!\n";
 	}
-
-	catcierge_template_matcher_set_match_flipped(&grb.matcher, 1);
-	catcierge_template_matcher_set_match_threshold(&grb.matcher, 0.8);
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 

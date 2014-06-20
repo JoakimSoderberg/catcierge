@@ -283,6 +283,8 @@ int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx,
 		cvShowImage("Haar Contours", img);
 	}
 
+	cvReleaseImage(&thr_img2);
+
 	return (contour_count > 1);
 }
 

@@ -65,7 +65,7 @@ static int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char
 	return 0;
 }
 
-static void catcierge_free_rfid_allowed_list(catcierge_args_t *args)
+void catcierge_free_rfid_allowed_list(catcierge_args_t *args)
 {
 	int i;
 
@@ -183,13 +183,6 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return 0;
 	}
 
-	if (!strcmp(key, "show_fps"))
-	{
-		args->show_fps = 1;
-		if (value_count == 1) args->show_fps = atoi(values[0]);
-		return 0;
-	}
-
 	if (!strcmp(key, "lockout"))
 	{
 		args->lockout_time = DEFAULT_LOCKOUT_TIME;
@@ -218,34 +211,21 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--lockout_error missing a value\n");
 		return -1;
 	}
 
 	if (!strcmp(key, "lockout_dummy"))
 	{
-		if (value_count == 1)
-		{
-			args->lockout_dummy = atoi(values[0]);
-		}
-		else
-		{
-			args->lockout_dummy = 1;
-		}
-
+		args->lockout_dummy = 1;
+		if (value_count == 1) args->lockout_dummy = atoi(values[0]);
 		return 0;
 	}
 
 	if (!strcmp(key, "matchtime"))
 	{
-		if (value_count == 1)
-		{
-			args->match_time = atoi(values[0]);
-		}
-		else
-		{
-			args->match_time = DEFAULT_MATCH_WAIT;
-		}
-
+		args->match_time = DEFAULT_MATCH_WAIT;
+		if (value_count == 1) args->match_time = atoi(values[0]);
 		return 0;
 	}
 
@@ -257,6 +237,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--output missing path value\n");
 		return -1;
 	}
 
@@ -269,6 +250,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--rfid_in missing path value\n");
 		return -1;
 	}
 
@@ -280,6 +262,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--rfid_out missing path value\n");
 		return -1;
 	}
 
@@ -296,6 +279,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--rfid_allowed missing comma separated list of values\n");
 		return -1;
 	}
 
@@ -303,11 +287,11 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 	{
 		if (value_count == 1)
 		{
-			printf("val: %s\n", values[0]);
 			args->rfid_lock_time = (double)atof(values[0]);
 			return 0;
 		}
 
+		fprintf(stderr, "--rfid_time missing seconds value (float)\n");
 		return -1;
 	}
 
@@ -327,6 +311,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--log missing path value\n");
 		return -1;
 	}
 
@@ -338,6 +323,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--match_cmd missing value\n");
 		return -1;
 	}
 
@@ -349,6 +335,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--save_img_cmd missing value\n");
 		return -1;
 	}
 
@@ -360,6 +347,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--save_imgs_cmd missing value\n");
 		return -1;
 	}
 
@@ -371,6 +359,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--match_done_cmd missing value\n");
 		return -1;
 	}
 
@@ -382,6 +371,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--do_lockout_cmd missing value\n");
 		return -1;
 	}
 
@@ -393,18 +383,14 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--do_unlock cmd missing value\n");
 		return -1;
 	}
 
 	if (!strcmp(key, "nocolor"))
 	{
 		args->nocolor = 1;
-
-		if (value_count == 1)
-		{
-			args->nocolor = atoi(values[0]);
-		}
-
+		if (value_count == 1) args->nocolor = atoi(values[0]);
 		return 0;
 	}
 
@@ -416,6 +402,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--chuid missing value\n");
 		return -1;
 	}
 
@@ -428,6 +415,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--rfid_detect_cmd missing value\n");
 		return -1;
 	}
 
@@ -439,6 +427,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
+		fprintf(stderr, "--rid_match_cmd missing value\n");
 		return -1;
 	}
 	#endif // WITH_RFID

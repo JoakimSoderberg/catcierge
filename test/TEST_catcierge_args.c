@@ -75,7 +75,8 @@ static void free_values(char **values, size_t value_count)
 
 	for (i = 0; i < value_count; i++)
 	{
-		free(values[i]);
+		if (values[i])
+			free(values[i]);
 		values[i] = NULL;
 	}
 }
@@ -90,51 +91,188 @@ char *run_parse_args_tests()
 	int ret = 0;
 	size_t value_count = 0;
 
+	memset(values, 0, sizeof(values));
+
 	catcierge_args_init(&args);
+
+	#define xstr(a) str(a)
+	#define str(a) #a
 
 	#define GET_KEY_VALUES(str) \
 		do \
 		{ \
-			char s[] = str; \
+			char *s = strdup(str); \
 			value_count = 0; \
 			pch = strtok(s, " "); \
-			key = pch; \
+			key = strdup(pch); \
 			while (pch != NULL) \
 			{ \
 				pch = strtok(NULL, " "); \
 				if (pch) values[value_count++] = strdup(pch); \
 			} \
+			free(s); \
 		} while(0)
 
 	#define PARSE_SETTING(str, expect, assert_stmt) \
 		GET_KEY_VALUES(str); \
 		ret = catcierge_parse_setting(&args, key, values, value_count); \
-		free_values(values, value_count); \
 		catcierge_test_STATUS(str ". Assert: %d <= " #assert_stmt, assert_stmt); \
 		mu_assert(expect, assert_stmt); \
-		catcierge_test_SUCCESS("  Parsed: \"%s\"", str)
+		catcierge_test_SUCCESS("  Parsed: \"%s\"", str); \
+		free(key); \
+		key = NULL; \
+		free_values(values, value_count)
 
 	// Helper macro for a single setting that can either be set using:
 	// "--hello" or "--hello 2".
 	// Example: PARSE_SINGLE_SETTING("hello", args.hello, 2, "Expected")
 	#define PARSE_SINGLE_SETTING(setting_str, setting, val) \
-		PARSE_SETTING(setting_str " 1", "Expected valid parse.", \
+		PARSE_SETTING(setting_str " " str(val), "Expected valid parse.", \
 			(ret == 0) && (setting == val)); \
 		PARSE_SETTING(setting_str, "Expected valid parse.", \
-			(ret == 0) && (args.haar.no_match_is_fail == 1))
+			(ret == 0) && (setting == val))
+
+
+
+	PARSE_SETTING("matcher", "Expected value for matcher", (ret == -1));
+	PARSE_SETTING("matcher haar", "Expected haar matcher",
+		(ret == 0) &&
+		!strcmp(args.matcher, "haar") &&
+		(args.matcher_type == MATCHER_HAAR));
+	PARSE_SETTING("matcher template", "Expected template matcher",
+		(ret == 0) &&
+		!strcmp(args.matcher, "template") &&
+		(args.matcher_type == MATCHER_TEMPLATE));
+
+	PARSE_SINGLE_SETTING("show", args.show, 1);
+
+	PARSE_SETTING("ok_matches_needed 2", "Expected valid parse",
+		(ret == 0) && (args.ok_matches_needed == 2));
+	PARSE_SETTING("ok_matches_needed 20", "Expected too big value",
+		(ret == -1));
+	PARSE_SETTING("ok_matches_needed", "Expected template matcher",
+		(ret == -1));
+
+	PARSE_SETTING("lockout_method 1", "Expected valid parse OBSTRUCT_OR_TIMER_1",
+		(ret == 0) && (args.lockout_method == OBSTRUCT_OR_TIMER_1));
+	PARSE_SETTING("lockout_method 2", "Expected valid parse OBSTRUCT_THEN_TIMER_2",
+		(ret == 0) && (args.lockout_method == OBSTRUCT_THEN_TIMER_2));
+	PARSE_SETTING("lockout_method 3", "Expected valid parse TIMER_ONLY_3",
+		(ret == 0) && (args.lockout_method == TIMER_ONLY_3));
+	PARSE_SETTING("lockout_method 0", "Expected invalid parse for out of bounds",
+		(ret == -1));
+	PARSE_SETTING("lockout_method 4", "Expected invalid parse for out of bounds",
+		(ret == -1));
+	PARSE_SETTING("lockout_method", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SINGLE_SETTING("save", args.saveimg, 1);
+
+	PARSE_SINGLE_SETTING("highlight", args.highlight_match, 1);
+
+	PARSE_SINGLE_SETTING("save", args.saveimg, 1);
+
+	PARSE_SETTING("lockout 5", "Expected a valid parse",
+		(ret == 0) && (args.lockout_time == 5));
+	PARSE_SETTING("lockout", "Expected a valid parse for missing value",
+		(ret == 0));
+
+	PARSE_SETTING("lockout_error_delay 5", "Expected a valid parse",
+		(ret == 0) && (args.consecutive_lockout_delay == 5));
+	PARSE_SETTING("lockout_error_delay", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SETTING("lockout_error 20", "Expected a valid parse",
+		(ret == 0) && (args.max_consecutive_lockout_count == 20));
+	PARSE_SETTING("lockout_error", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SINGLE_SETTING("lockout_dummy", args.lockout_dummy, 1);
+
+	PARSE_SINGLE_SETTING("matchtime", args.match_time, DEFAULT_MATCH_WAIT);
+
+	PARSE_SETTING("output /some/output/path", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.output_path, "/some/output/path"));
+	PARSE_SETTING("output", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	#ifdef WITH_RFID
+	PARSE_SETTING("rfid_in /some/rfid/path", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.rfid_inner_path, "/some/rfid/path"));
+	PARSE_SETTING("rfid_in", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SETTING("rfid_out /some/rfid/path", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.rfid_outer_path, "/some/rfid/path"));
+	PARSE_SETTING("rfid_out", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SETTING("rfid_allowed 1,2,3", "Expected a valid parse",
+		(ret == 0) &&
+		!strcmp(args.rfid_allowed[0], "1") &&
+		!strcmp(args.rfid_allowed[1], "2") &&
+		!strcmp(args.rfid_allowed[2], "3") &&
+		(args.rfid_allowed_count == 3));
+	PARSE_SETTING("rfid_allowed", "Expected invalid parse for missing value",
+		(ret == -1));
+	catcierge_free_rfid_allowed_list(&args);
+	
+	PARSE_SETTING("rfid_time 3.5", "Expected a valid parse",
+		(ret == 0) && (args.rfid_lock_time == 3.5));
+	PARSE_SETTING("rfid_time", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SINGLE_SETTING("rfid_lock", args.lock_on_invalid_rfid, 1);
+	#else
+	catcierge_test_SKIPPED("Skipping RFID args (not compiled)");
+	#endif // WITH_RFID
+
+	PARSE_SETTING("log /log/path", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.log_path, "/log/path"));
+	PARSE_SETTING("log", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	{
+		#define PARSE_CMD_SETTING(cmd) \
+			PARSE_SETTING(#cmd " awesome_cmd.sh", "Expected a valid parse", \
+				(ret == 0) && !strcmp(args.cmd, "awesome_cmd.sh")); \
+			PARSE_SETTING(#cmd, "Expected invalid parse for missing value", \
+				(ret == -1)) \
+
+		PARSE_CMD_SETTING(match_cmd);
+		PARSE_CMD_SETTING(save_img_cmd);
+		PARSE_CMD_SETTING(save_imgs_cmd);
+		PARSE_CMD_SETTING(match_done_cmd);
+		PARSE_CMD_SETTING(do_lockout_cmd);
+		PARSE_CMD_SETTING(do_unlock_cmd);
+		#ifdef WITH_RFID
+		PARSE_CMD_SETTING(rfid_detect_cmd);
+		PARSE_CMD_SETTING(rfid_match_cmd);
+		#endif // WITH_RFID
+	}
+
+	PARSE_SINGLE_SETTING("nocolor", args.nocolor, 1);
+
+	PARSE_SETTING("chuid userid", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.chuid, "userid"));
+	PARSE_SETTING("chuid", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	// Template matcher settings.
+	{
+		PARSE_SINGLE_SETTING("match_flipped", args.templ.match_flipped, 1);
+
+		PARSE_SETTING("snout /the/snout/path/snout.png", "Expected parse success",
+			(ret == 0) &&
+			!strcmp(args.templ.snout_paths[0], "/the/snout/path/snout.png") &&
+			args.templ.snout_count == 1);
+		PARSE_SETTING("snout", "Expected failure for missing value.", (ret == -1));
+
+		PARSE_SINGLE_SETTING("threshold", args.templ.match_threshold, DEFAULT_MATCH_THRESH);
+	}
 
 	// Haar matcher settings.
 	{
-		PARSE_SETTING("matcher", "Expected value for matcher", (ret == -1));
-		PARSE_SETTING("matcher haar", "Expected haar matcher",
-			(ret == 0) &&
-			!strcmp(args.matcher, "haar") &&
-			(args.matcher_type == MATCHER_HAAR));
-		PARSE_SETTING("matcher template", "Expected template matcher",
-			(ret == 0) &&
-			!strcmp(args.matcher, "template") &&
-			(args.matcher_type == MATCHER_TEMPLATE));
-
 		PARSE_SETTING("cascade /path/to/catcierge.xml", "Expected valid cascade path",
 			(ret == 0) && !strcmp(args.haar.cascade, "/path/to/catcierge.xml"));
 		PARSE_SETTING("cascade", "Expected failure for missing value.", (ret == -1));

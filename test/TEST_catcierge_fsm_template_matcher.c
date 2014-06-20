@@ -156,6 +156,8 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 		return "Failed to init catcierge lib!\n";
 	}
 
+	catcierge_template_matcher_print_settings(&args->templ);
+
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
 	// Obstruct the frame to begin matching.
@@ -215,6 +217,10 @@ static char *run_success_tests(int obstruct)
 	{
 		return "Failed to init template matcher!\n";
 	}
+
+	catcierge_template_matcher_set_debug(&grb.matcher, 0);
+
+	catcierge_template_matcher_print_settings(&args->templ);
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
@@ -276,6 +282,8 @@ int TEST_catcierge_fsm_template_matcher(int argc, char **argv)
 	int obstruct;
 
 	catcierge_test_HEADLINE("TEST_catcierge_fsm_template_matcher");
+
+	catcierge_template_matcher_usage();
 
 	// Test without anything obstructing the frame after
 	// the successful match.

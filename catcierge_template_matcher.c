@@ -51,6 +51,7 @@ static int _catcierge_prepare_img(catcierge_template_matcher_t *ctx, const IplIm
 		img_gray = src;
 	}
 
+	#if 0
 	if (ctx->erode)
 	{
 		// Smooths out the image using erode.
@@ -63,6 +64,7 @@ static int _catcierge_prepare_img(catcierge_template_matcher_t *ctx, const IplIm
 		cvReleaseImage(&tmp2);
 	}
 	else
+	#endif
 	{
 		cvThreshold(img_gray, dst,
 					ctx->low_binary_thresh,
@@ -76,31 +78,6 @@ static int _catcierge_prepare_img(catcierge_template_matcher_t *ctx, const IplIm
 	} 
 
 	return 0;
-}
-
-void catcierge_template_matcher_set_erode(catcierge_template_matcher_t *ctx, int erode)
-{
-	assert(ctx);
-	ctx->erode = erode;
-}
-
-void catcierge_template_matcher_set_match_flipped(catcierge_template_matcher_t *ctx, int match_flipped)
-{
-	assert(ctx);
-	ctx->match_flipped = match_flipped;
-}
-
-void catcierge_template_matcher_set_match_threshold(catcierge_template_matcher_t *ctx, double match_threshold)
-{
-	assert(ctx);
-	ctx->match_threshold = match_threshold;
-}
-
-void catcierge_template_matcher_set_binary_thresholds(catcierge_template_matcher_t *ctx, int low, int high)
-{
-	assert(ctx);
-	ctx->low_binary_thresh = low;
-	ctx->high_binary_thresh = high;
 }
 
 void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int debug)

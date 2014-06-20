@@ -78,4 +78,8 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 int catcierge_args_init(catcierge_args_t *args);
 void catcierge_args_destroy(catcierge_args_t *args);
 
+#ifdef WITH_RFID
+void catcierge_free_rfid_allowed_list(catcierge_args_t *args);
+#endif
+
 #endif // __CATCIERGE_ARGS_H__
