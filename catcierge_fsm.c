@@ -923,7 +923,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		else
 		{
 			// Otherwise if enough matches (default 2) are ok.
-			grb->match_success = (success_count >= (MATCH_MAX_COUNT - args->ok_matches_needed));
+			grb->match_success = (success_count >= args->ok_matches_needed);
 		}
 
 		if (grb->match_success)
