@@ -4,6 +4,7 @@
 #include "catcierge_haar_wrapper.h"
 #include "catcierge_types.h"
 #include "catcierge_util.h"
+#include "catcierge_log.h"
 #include <opencv2/core/core_c.h>
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args)
@@ -13,16 +14,19 @@ int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_ma
 
 	if (!args->cascade)
 	{
+		CATERR("Haar matcher: No cascade xml specified.\n");
 		return -1;
 	}
 
 	if (!(ctx->cascade = cv2CascadeClassifier_create()))
 	{
+		CATERR("Failed to create cascade classifier.\n");
 		return -1;
 	}
 
 	if (cv2CascadeClassifier_load(ctx->cascade, args->cascade))
 	{
+		CATERR("Failed to load cascade xml: %s\n", args->cascade);
 		return -1;
 	}
 

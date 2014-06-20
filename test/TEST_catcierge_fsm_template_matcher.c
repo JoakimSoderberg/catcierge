@@ -199,8 +199,7 @@ static char *run_success_tests(int obstruct)
 	int i;
 	int j;
 	catcierge_grb_t grb;
-	catcierge_args_t *args;
-	args = &grb.args;
+	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
 
@@ -214,7 +213,7 @@ static char *run_success_tests(int obstruct)
 
 	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
 	{
-		return "Failed to init catcierge lib!\n";
+		return "Failed to init template matcher!\n";
 	}
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
