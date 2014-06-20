@@ -32,6 +32,7 @@ configure_file(catcierge_test_config.h.in ${PROJECT_BINARY_DIR}/catcierge_test_c
 add_executable(${CATCIERGE_TEST_DRIVER}
 				${CATCIERGE_TESTS_SRCS}
 				catcierge_test_helpers.c
+				catcierge_test_common.c
 				${REGRESS_SRC})
 
 target_link_libraries(${CATCIERGE_TEST_DRIVER} catcierge)

@@ -21,16 +21,13 @@ char *run_tests()
 	catcierge_test_STATUS("Waited %d seconds", val);
 
 	mu_assert("Expected 5 seconds to elapse", (val >= 5.0));
-	mu_assert("Expected timer to have values less than 6.0", 
-			(val < 6.0));
-	mu_assert("Expected timer to have timed out", 
-			catcierge_timer_has_timed_out(&t));
+	mu_assert("Expected timer to have values less than 6.0", (val < 6.0));
+	mu_assert("Expected timer to have timed out", catcierge_timer_has_timed_out(&t));
 
 	catcierge_test_STATUS("Reset timer...");
 	catcierge_timer_reset(&t);
 
-	mu_assert("Expected timer to be 0.0", 
-			catcierge_timer_get(&t) == 0.0);
+	mu_assert("Expected timer to be 0.0", catcierge_timer_get(&t) == 0.0);
 
 	return NULL;
 }
@@ -40,10 +37,9 @@ int TEST_catcierge_timer(int argc, char **argv)
 	int ret = 0;
 	char *e = NULL;
 
-	catcierge_test_HEADLINE("TEST_catcierge_timer");
-
-	if ((e = run_tests())) { catcierge_test_FAILURE(e); ret = -1; }
-	else catcierge_test_SUCCESS("");
+	CATCIERGE_RUN_TEST((e = run_tests()),
+		"TEST_catcierge_timer",
+		"", &ret);
 	
 	return ret;
 }

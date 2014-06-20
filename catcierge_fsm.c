@@ -804,7 +804,7 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 	{
 		// Don't start the lockout timer until the framE becomes clear.
 
-		if (!catcierge_timer_isactive(&grb->rematch_timer))
+		if (!catcierge_timer_isactive(&grb->lockout_timer))
 		{
 			if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img)) < 0)
 			{

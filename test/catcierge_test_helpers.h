@@ -33,4 +33,19 @@ void *catcierge_test_malloc(size_t sz);
 void catcierge_test_set_realloc_fail_count(int count);
 void *catcierge_test_realloc(void *ptr, size_t sz);
 
+#define CATCIERGE_RUN_TEST(err, headline, success, ret) \
+	do \
+	{ \
+		catcierge_test_HEADLINE(headline); \
+		if (err) \
+		{ \
+			catcierge_test_FAILURE(e); \
+			*ret = -1; \
+		} \
+		else \
+		{ \
+			catcierge_test_SUCCESS(success); \
+		} \
+	} while(0)
+
 #endif // __CATCIERGE_TEST_HELPERS_H__
