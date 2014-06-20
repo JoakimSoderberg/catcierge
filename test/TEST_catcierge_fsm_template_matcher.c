@@ -251,7 +251,7 @@ static char *run_success_tests(int obstruct)
 		{
 			// Give it a clear frame so that it will stop
 			load_test_image_and_run(&grb, 1, 5);
-			mu_assert("Expected WAITING state", (grb.state == catcierge_state_waiting));	
+			mu_assert("Expected WAITING state", (grb.state == catcierge_state_waiting));
 		}
 	}
 
