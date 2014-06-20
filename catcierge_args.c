@@ -80,7 +80,7 @@ static void catcierge_free_rfid_allowed_list(catcierge_args_t *args)
 }
 #endif // WITH_RFID
 
-static int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count)
+int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count)
 {
 	int ret;
 	size_t i;

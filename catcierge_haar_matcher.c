@@ -467,7 +467,9 @@ int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const
 	{
 		if (value_count == 1)
 		{
-			if (sscanf(values[0], "%dx%d", &args->min_width, &args->min_height) == EOF)
+			int sret = sscanf(values[0], "%dx%d", &args->min_width, &args->min_height);
+
+			if ((sret == EOF) || (sret != 2))
 			{
 				fprintf(stderr, "Invalid format for --min_size \"%s\"\n", values[0]);
 				return -1;
@@ -527,6 +529,7 @@ int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const
 			else
 			{
 				fprintf(stderr, "Invalid direction \"%s\", must be \"left\" or \"right\".\n", d);
+				return -1;
 			}
 		}
 		else
@@ -554,6 +557,7 @@ int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const
 			else
 			{
 				fprintf(stderr, "Invalid prey method \"%s\", must be \"adaptive\" or \"normal\".\n", d);
+				return -1;
 			}
 		}
 		else

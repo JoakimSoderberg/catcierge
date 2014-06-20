@@ -73,6 +73,7 @@ int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv);
 int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv);
 void catcierge_show_usage(catcierge_args_t *args, const char *prog);
 void catcierge_print_settings(catcierge_args_t *args);
+int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count);
 
 int catcierge_args_init(catcierge_args_t *args);
 void catcierge_args_destroy(catcierge_args_t *args);
