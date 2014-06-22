@@ -63,6 +63,9 @@ char *run_test2()
 	#ifdef WITH_RFID
 	mu_assert("Expected RFID allowed to be 3", args.rfid_allowed_count == 3);
 	#endif // WITH_RFID
+
+	catcierge_show_usage(&args, "catcierge");
+	catcierge_print_settings(&args);
 	
 	catcierge_args_destroy(&args);
 
