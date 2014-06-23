@@ -148,6 +148,7 @@ Haar matcher:
 
 ```bash
 $ ./catcierge_tester --matcher haar --cascade /path/to/catcierge.xml --images *.png --show
+```
 
 Likewise for the RFID matching:
 
