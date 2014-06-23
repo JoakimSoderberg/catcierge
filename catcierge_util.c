@@ -290,6 +290,6 @@ int catcierge_is_frame_obstructed(IplImage *img, int debug)
 	cvReleaseImage(&tmp2);
 
 	// Spiders and other 1 pixel creatures need not bother!
-	return ((int)sum > 50);
+	return ((int)sum > 200);
 }
 

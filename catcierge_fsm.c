@@ -1005,6 +1005,11 @@ void catcierge_print_spinner(catcierge_grb_t *grb)
 		static int spinidx = 0;
 		catcierge_timer_reset(&grb->frame_timer);
 
+		if (args->noanim)
+		{
+			return;
+		}
+
 		// This prints the log timestamp.
 		log_printc(stdout, COLOR_NORMAL, "");
 		catcierge_print_state(grb->state);

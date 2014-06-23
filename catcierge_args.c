@@ -394,6 +394,13 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return 0;
 	}
 
+	if (!strcmp(key, "noanim"))
+	{
+		args->noanim = 1;
+		if (value_count == 1) args->noanim = atoi(values[0]);
+		return 0;
+	}
+
 	if (!strcmp(key, "chuid"))
 	{
 		if (value_count == 1)
@@ -497,7 +504,7 @@ static void catcierge_config_free_temp_strings(catcierge_args_t *args)
 void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 {
 	fprintf(stderr, "Usage: %s [options]\n\n", prog);
-	fprintf(stderr, "General settigs:\n");
+	fprintf(stderr, "General settings:\n");
 	fprintf(stderr, " --lockout_method <1|2|3>\n");
 	fprintf(stderr, "                        Defines the method used to decide when to unlock:\n");
 	fprintf(stderr, "                        [1: Wait for clear frame or that the timer has timed out.]\n");
@@ -516,6 +523,8 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
 	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
 	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
+	fprintf(stderr, " --nocolor              Turn off all color output.\n");
+	fprintf(stderr, " --noanim               Turn off any animation.\n");
 	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
 	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
 	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg\n");
@@ -792,19 +801,22 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("      Save matches: %d\n", args->saveimg);
 	printf("   Highlight match: %d\n", args->highlight_match);
 	printf("     Lockout dummy: %d\n", args->lockout_dummy);
+	printf("    Lockout method: %d\n", args->lockout_method);
 	printf("         Lock time: %d seconds\n", args->lockout_time);
 	printf("     Lockout error: %d %s\n", args->max_consecutive_lockout_count,
 							(args->max_consecutive_lockout_count == 0) ? "(off)" : "");
 	printf(" Lockout err delay: %0.1f\n", args->consecutive_lockout_delay);
 	printf("     Match timeout: %d seconds\n", args->match_time);
 	printf("          Log file: %s\n", args->log_path ? args->log_path : "-");
+	printf("          No color: %d\n", args->nocolor);
+	printf("      No animation: %d\n", args->noanim);
+	printf(" Ok matches needed: %d\n", args->ok_matches_needed);
 	printf("\n");
 	if (!args->matcher || !strcmp(args->matcher, "template"))
 		catcierge_template_matcher_print_settings(&args->templ);
 	else
 		catcierge_haar_matcher_print_settings(&args->haar);
 	#ifdef WITH_RFID
-	printf("\n");
 	printf("RFID:\n");
 	printf("        Inner RFID: %s\n", args->rfid_inner_path ? args->rfid_inner_path : "-");
 	printf("        Outer RFID: %s\n", args->rfid_outer_path ? args->rfid_outer_path : "-");

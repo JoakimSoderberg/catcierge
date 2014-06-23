@@ -256,6 +256,8 @@ char *run_parse_args_tests()
 
 	PARSE_SINGLE_SETTING("nocolor", args.nocolor, 1);
 
+	PARSE_SINGLE_SETTING("noanim", args.noanim, 1);
+
 	PARSE_SETTING("chuid userid", "Expected a valid parse",
 		(ret == 0) && !strcmp(args.chuid, "userid"));
 	PARSE_SETTING("chuid", "Expected invalid parse for missing value",

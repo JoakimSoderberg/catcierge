@@ -119,6 +119,8 @@ int main(int argc, char **argv)
 			args->output_path = ".";
 		}
 
+		// TODO: Add verify function for settings. Make sure we have everything we need...
+
 		catcierge_print_settings(args);
 	}
 
@@ -149,7 +151,7 @@ int main(int argc, char **argv)
 	{
 		if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
 		{
-			CATERR("Failed to init catcierge lib!\n");
+			CATERR("Failed to init template matcher!\n");
 			return -1;
 		}
 	}
@@ -157,7 +159,7 @@ int main(int argc, char **argv)
 	{
 		if (catcierge_haar_matcher_init(&grb.haar, &args->haar))
 		{
-			CATERR("Failed to init catcierge lib!\n");
+			CATERR("Failed to init haar matcher!\n");
 			return -1;
 		}
 	}
