@@ -43,6 +43,6 @@ void catcierge_execute(char *command, char *fmt, ...);
 void catcierge_reset_cursor_position();
 
 const char *catcierge_get_direction_str(match_direction_t dir);
-int catcierge_is_frame_obstructed(IplImage *img);
+int catcierge_is_frame_obstructed(IplImage *img, int debug);
 
 #endif // __CATCIERGE_UTIL_H__

@@ -200,6 +200,12 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (!matcher)
+	{
+		fprintf(stderr, "You must specify a matcher type\n");
+		return -1;
+	}
+
 	if (!strcmp(matcher, "template") && (args.snout_count == 0))
 	{
 		fprintf(stderr, "No snout image specified\n");
@@ -281,7 +287,7 @@ int main(int argc, char **argv)
 			// This tests if an image frame is clear or not (matchable).
 			int frame_obstructed;
 
-			if ((frame_obstructed = catcierge_is_frame_obstructed(imgs[i])) < 0)
+			if ((frame_obstructed = catcierge_is_frame_obstructed(imgs[i], debug)) < 0)
 			{
 				fprintf(stderr, "Failed to detect check for matchability frame\n");
 				return -1;
@@ -292,7 +298,7 @@ int main(int argc, char **argv)
 
 			if (show)
 			{
-				cvShowImage("image", img);
+				cvShowImage("image", imgs[i]);
 				cvWaitKey(0);
 			}
 		}

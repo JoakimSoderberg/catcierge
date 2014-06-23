@@ -234,17 +234,17 @@ void catcierge_execute(char *command, char *fmt, ...)
 	#endif // _WIN32
 }
 
-int catcierge_is_frame_obstructed(IplImage *img)
+int catcierge_is_frame_obstructed(IplImage *img, int debug)
 {
 	CvSize size;
 	int w;
 	int h;
 	int x;
 	int y;
-	int expected_sum;
+	int sum;
 	IplImage *tmp = NULL;
 	IplImage *tmp2 = NULL;
-	CvScalar sum;
+	CvRect roi = cvGetImageROI(img);
 
 	// Get a suitable Region Of Interest (ROI)
 	// in the center of the image.
@@ -254,11 +254,6 @@ int catcierge_is_frame_obstructed(IplImage *img)
 	h = (int)(size.height * 0.1);
 	x = (size.width - w) / 2;
 	y = (size.height - h) / 2;
-
-	// When there is nothing in our ROI, we
-	// expect the thresholded image to be completely
-	// white. 255 signifies white.
-	expected_sum = (w * h) * 255;
 
 	cvSetImageROI(img, cvRect(x, y, w, h));
 
@@ -275,11 +270,17 @@ int catcierge_is_frame_obstructed(IplImage *img)
 
 	// Get a binary image and sum the pixel values.
 	tmp2 = cvCreateImage(cvSize(w, h), 8, 1);
-	cvThreshold(tmp, tmp2, 90, 255, CV_THRESH_BINARY);
+	cvThreshold(tmp, tmp2, 90, 255, CV_THRESH_BINARY_INV);
 
-	sum = cvSum(tmp2);
+	sum = cvSum(tmp2).val[0] / 255;
 
-	cvSetImageROI(img, cvRect(0, 0, size.width, size.height));
+	if (debug)
+	{
+		printf("Sum: %d\n", sum);
+		cvShowImage("obstruct", tmp2);
+	}
+
+	cvSetImageROI(img, cvRect(roi.x, roi.y, roi.width, roi.height));
 
 	if (img->nChannels != 1)
 	{
@@ -288,6 +289,7 @@ int catcierge_is_frame_obstructed(IplImage *img)
 
 	cvReleaseImage(&tmp2);
 
-	return ((int)sum.val[0] != expected_sum);
+	// Spiders and other 1 pixel creatures need not bother!
+	return ((int)sum > 50);
 }
 
