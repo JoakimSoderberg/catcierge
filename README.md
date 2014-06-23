@@ -138,9 +138,16 @@ To test the image recognition there is a test program
 [catcierge_tester](catcierge_tester.c) that allows you to specify an image
 to match against.
 
+Template matcher:
+
 ```bash
-$ ./catcierge_tester --snout /path/to/image/of/catsnout.png --images *.png
+$ ./catcierge_tester --matcher template --snout /path/to/image/of/catsnout.png --images *.png --show
 ```
+
+Haar matcher:
+
+```bash
+$ ./catcierge_tester --matcher haar --cascade /path/to/catcierge.xml --images *.png --show
 
 Likewise for the RFID matching:
 
