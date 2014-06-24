@@ -252,7 +252,8 @@ set(GRABBER2_SRC
 		catcierge_log.c
 		catcierge_util.c
 		catcierge_timer.c
-		catcierge_fsm.c)
+		catcierge_fsm.c
+		catcierge_output.c)
 
 if (RPI)
 	list(APPEND GRABBER2_SRC catcierge_gpio.c)
@@ -277,7 +278,8 @@ set(REGRESS_SRC
 	${PROJECT_SOURCE_DIR}/catcierge_fsm.c
 	${PROJECT_SOURCE_DIR}/catcierge_log.c
 	${PROJECT_SOURCE_DIR}/catcierge_timer.c
-	${PROJECT_SOURCE_DIR}/catcierge_util.c)
+	${PROJECT_SOURCE_DIR}/catcierge_util.c
+	${PROJECT_SOURCE_DIR}/catcierge_output.c)
 
 if (WITH_RFID)
 	list(APPEND REGRESS_SRC ${PROJECT_SOURCE_DIR}/catcierge_rfid.c)

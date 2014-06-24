@@ -115,6 +115,7 @@ typedef struct catcierge_grb_s
 	#endif // WITH_RFID
 } catcierge_grb_t;
 
+const char *catcierge_get_state_string(catcierge_state_func_t state);
 void catcierge_do_lockout(catcierge_grb_t *grb);
 void catcierge_do_unlock(catcierge_grb_t *grb);
 IplImage *catcierge_get_frame(catcierge_grb_t *grb);

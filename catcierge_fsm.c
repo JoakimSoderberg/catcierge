@@ -41,7 +41,7 @@ void catcierge_run_state(catcierge_grb_t *grb)
 	grb->state(grb);
 }
 
-char *catcierge_get_state_string(catcierge_state_func_t state)
+const char *catcierge_get_state_string(catcierge_state_func_t state)
 {
 	if (state == catcierge_state_waiting) return "Waiting";
 	if (state == catcierge_state_matching) return "Matching";
