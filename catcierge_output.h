@@ -30,7 +30,7 @@ typedef struct catcierge_output_var_s
 
 typedef struct catcierge_output_template_s
 {
-	const char *tmpl;
+	char *tmpl;
 	char *target_path;
 } catcierge_output_template_t;
 
@@ -38,12 +38,13 @@ typedef struct catcierge_output_s
 {
 	catcierge_output_template_t *templates;
 	size_t template_count;
+	size_t template_max_count;
 } catcierge_output_t;
 
 int catcierge_output_init(catcierge_output_t *ctx);
 void catcierge_output_destroy(catcierge_output_t *ctx);
 
-int catcierge_output_add_template(catcierge_output_t *ctx, const char *template_str, char *target_path);
+int catcierge_output_add_template(catcierge_output_t *ctx, const char *template_str, const char *target_path);
 char *catcierge_output_generate(catcierge_output_t *ctx, catcierge_grb_t *grb, const char *template_str);
 int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t *grb);
 

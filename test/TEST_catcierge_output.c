@@ -50,16 +50,57 @@ static char *run_generate_tests()
 		
 		for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
 		{
-			catcierge_output_init(&o);
+			if (catcierge_output_init(&o))
+			{
+				return "Failed to init output context";
+			}
 			
 			str = catcierge_output_generate(&o, &grb, tests[i].input);
 			
 			catcierge_test_STATUS("\"%s\" -> \"%s\" Expecting: \"%s\"", tests[i].input, str, tests[i].expected);
 			mu_assert("Invalid template result", str && !strcmp(tests[i].expected, str));
 			catcierge_test_SUCCESS("\"%s\" == \"%s\"\n", str, tests[i].expected);
+			free(str);
 
 			catcierge_output_destroy(&o);
 		}
+	}
+	catcierge_grabber_destroy(&grb);
+
+	return NULL;
+}
+
+char *run_add_and_generate_tests()
+{
+	catcierge_output_t o;
+	catcierge_grb_t grb;
+
+	catcierge_grabber_init(&grb);
+	{
+		if (catcierge_output_init(&o))
+			return "Failed to init output context";
+
+		catcierge_test_STATUS("Add one template");
+		{
+			if (catcierge_output_add_template(&o, "%match_success%", "output/path"))
+				return "Failed to add template";
+			mu_assert("Expected template count 1", o.template_count == 1);
+
+			if (catcierge_output_generate_templates(&o, &grb))
+				return "Failed to generate templates";
+		}
+
+		catcierge_test_STATUS("Add another template");
+		{
+			if (catcierge_output_add_template(&o, "hej %match_success%", "output/path"))
+				return "Failed to add template";
+			mu_assert("Expected template count 2", o.template_count == 2);
+
+			if (catcierge_output_generate_templates(&o, &grb))
+				return "Failed to generate templates";
+		}
+
+		catcierge_output_destroy(&o);
 	}
 	catcierge_grabber_destroy(&grb);
 
@@ -76,6 +117,10 @@ int TEST_catcierge_output(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_generate_tests()),
 		"Run generate tests.",
 		"Generate tests", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_add_and_generate_tests()),
+		"Run add and generate tests.",
+		"Add and generate tests", &ret);
 
 	return ret;
 }

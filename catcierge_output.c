@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "catcierge_log.h"
 #include "catcierge_util.h"
 #include "catcierge_types.h"
 #include "catcierge_output.h"
@@ -38,19 +39,81 @@ catcierge_output_var_t vars[] =
 int catcierge_output_init(catcierge_output_t *ctx)
 {
 	assert(ctx);
+	memset(ctx, 0, sizeof(catcierge_output_t));
+	ctx->template_max_count = 10;
+
+	if (!(ctx->templates = calloc(ctx->template_max_count,
+		sizeof(catcierge_output_template_t))))
+	{
+		CATERR("Out of memory\n");
+		return -1;
+	}
 
 	return 0;
 }
 
 void catcierge_output_destroy(catcierge_output_t *ctx)
 {
+	catcierge_output_template_t *t;
 	assert(ctx);
+
+	if (ctx->templates)
+	{
+		size_t i;
+
+		for (i = 0; i < ctx->template_count; i++)
+		{
+			t = &ctx->templates[i];
+			if (t->target_path) free(t->target_path);
+			t->target_path = NULL;
+			if (t->tmpl) free(t->tmpl);
+			t->tmpl = NULL;
+		}
+
+		free(ctx->templates);
+		ctx->templates = NULL;
+	}
+
+	ctx->template_count = 0;
+	ctx->template_max_count = 0;
 }
 
 int catcierge_output_add_template(catcierge_output_t *ctx,
-		const char *template_str, char *target_path)
+		const char *template_str, const char *target_path)
 {
+	catcierge_output_template_t *t;
 	assert(ctx);
+
+	// Grow the templates array if needed.
+	if (ctx->template_max_count < (ctx->template_count + 1))
+	{
+		ctx->template_max_count *= 2;
+
+		if (!(ctx->templates = realloc(ctx->templates,
+			ctx->template_max_count * sizeof(catcierge_output_template_t))))
+		{
+			CATERR("Out of memory!\n");
+			return -1;
+		}
+	}
+
+	t = &ctx->templates[ctx->template_count];
+
+	if (!(t->target_path = strdup(target_path)))
+	{
+		CATERR("Out of memory!\n");
+		return -1;
+	}
+
+	if (!(t->tmpl = strdup(template_str)))
+	{
+		free(t->target_path);
+		t->target_path = NULL;
+		CATERR("Out of memory!\n");
+		return -1;
+	}
+
+	ctx->template_count++;
 
 	return 0;
 }
@@ -110,7 +173,7 @@ static const char *catcierge_output_translate(catcierge_grb_t *grb,
 char *catcierge_output_generate(catcierge_output_t *ctx, catcierge_grb_t *grb,
 		const char *template_str)
 {
-	char buf[1024];
+	char buf[4096];
 	char *s;
 	char *it;
 	char *output = NULL;
@@ -227,8 +290,29 @@ fail:
 
 int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t *grb)
 {
+	catcierge_output_template_t *t = NULL;
+	char *output = NULL;
+	size_t i;
 	assert(ctx);
 	assert(grb);
+
+	for (i = 0; i < ctx->template_count; i++)
+	{
+		t = &ctx->templates[i];
+
+		printf("Templates %s\n", t->tmpl);
+
+		if (!(output = catcierge_output_generate(ctx, grb, t->tmpl)))
+		{
+			CATERR("Failed to generate output for template");
+			return -1;
+		}
+
+		// TODO: Write template output to target_path.
+		printf("Template %d:\n%s\n", (int)i, output);
+
+		free(output);
+	}
 
 	return 0;
 }
