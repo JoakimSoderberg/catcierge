@@ -105,14 +105,7 @@ int main(int argc, char **argv)
 
 		if (args->output_path)
 		{
-			char cmd[1024];
-			CATLOG("Creating output directory: \"%s\"\n", args->output_path);
-			#ifdef WIN32
-			snprintf(cmd, sizeof(cmd), "md %s", args->output_path);
-			#else
-			snprintf(cmd, sizeof(cmd), "mkdir -p %s", args->output_path);
-			#endif
-			system(cmd);
+			catcierge_make_path(args->output_path);
 		}
 		else
 		{

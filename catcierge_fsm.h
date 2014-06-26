@@ -62,6 +62,8 @@ typedef struct match_state_s
 	double result;					// The match result. Normalized value between 0.0 and 1.0.
 	int success;					// Is the match a success (match result >= match threshold).
 	match_direction_t direction;	// The direction we think the cat went in.
+	time_t time;					// The time of match.
+	char time_str[1024];			// Time string of match (used in image filename).
 } match_state_t;
 
 struct catcierge_grb_s;

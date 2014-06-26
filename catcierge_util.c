@@ -31,6 +31,21 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
+int catcierge_make_path(const char *path)
+{
+	// TODO: This is kind of trivial... Do this properly instead.
+	char cmd[4096];
+	CATLOG("Creating output directory: \"%s\"\n", path);
+	#ifdef WIN32
+	snprintf(cmd, sizeof(cmd), "md %s", path);
+	#else
+	snprintf(cmd, sizeof(cmd), "mkdir -p %s", path);
+	#endif
+	system(cmd);
+
+	return 0;
+}
+
 const char *catcierge_get_direction_str(match_direction_t dir)
 {
 	switch (dir)

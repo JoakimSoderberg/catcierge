@@ -42,6 +42,8 @@
 void catcierge_execute(char *command, char *fmt, ...);
 void catcierge_reset_cursor_position();
 
+int catcierge_make_path(const char *path);
+
 const char *catcierge_get_direction_str(match_direction_t dir);
 int catcierge_is_frame_obstructed(IplImage *img, int debug);
 

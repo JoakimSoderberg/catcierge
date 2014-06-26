@@ -41,6 +41,11 @@ typedef struct catcierge_output_s
 	size_t template_max_count;
 } catcierge_output_t;
 
+int catcierge_output_validate(catcierge_output_t *ctx,
+	catcierge_grb_t *grb, const char *template_str);
+
+void catcierge_output_print_usage();
+
 int catcierge_output_init(catcierge_output_t *ctx);
 void catcierge_output_destroy(catcierge_output_t *ctx);
 

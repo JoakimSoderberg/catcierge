@@ -437,8 +437,9 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 				double match_res, match_direction_t direction)
 {
 	size_t i;
-	char time_str[256];
 	catcierge_args_t *args;
+	match_state_t *m;
+	time_t t;
 	assert(grb);
 	assert(img);
 	args = &grb->args;
@@ -450,10 +451,13 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		catcierge_get_direction_str(direction));
 
 	// Save the current image match status.
-	grb->matches[grb->match_count].result = match_res;
-	grb->matches[grb->match_count].success = match_success;
-	grb->matches[grb->match_count].direction = direction;
-	grb->matches[grb->match_count].img = NULL;
+	m = &grb->matches[grb->match_count];
+	m->result = match_res;
+	m->success = match_success;
+	m->direction = direction;
+	m->img = NULL;
+	m->time = time(NULL);
+	get_time_str_fmt(m->time_str, sizeof(m->time_str), "%Y-%m-%d_%H_%M_%S");
 
 	// Save match image.
 	// (We don't write to disk yet, that will slow down the matcing).
@@ -469,31 +473,30 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 			}
 		}
 
-		get_time_str_fmt(time_str, sizeof(time_str), "%Y-%m-%d_%H_%M_%S");
-		snprintf(grb->matches[grb->match_count].path,
-			sizeof(grb->matches[grb->match_count].path),
+		snprintf(m->path,
+			sizeof(m->path),
 			"%s/match_%s_%s__%d.png",
 			args->output_path ? args->output_path : ".",
 			match_success ? "" : "fail",
-			time_str,
+			m->time_str,
 			grb->match_count);
 
-		grb->matches[grb->match_count].img = cvCloneImage(img);
+		m->img = cvCloneImage(img);
 	}
 
 	// Log match to file.
 	log_print_csv(grb->log_file, "match, %s, %f, %f, %s, %s\n",
 		 match_success ? "success" : "failure",
 		 match_res, args->templ.match_threshold,
-		 args->saveimg ? grb->matches[grb->match_count].path : "-",
-		 catcierge_get_direction_str(grb->matches[grb->match_count].direction));
+		 args->saveimg ? m->path : "-",
+		 catcierge_get_direction_str(m->direction));
 
 	// Runs the --match_cmd progam specified.
 	catcierge_execute(args->match_cmd, "%f %d %s %d",
-			match_res, 											// %0 = Match result.
-			match_success,										// %1 = 0/1 succes or failure.
-			args->saveimg ? grb->matches[grb->match_count].path : "",	// %2 = Image path if saveimg is turned on.
-			grb->matches[grb->match_count].direction);			// %3 = Direction, 0 = in, 1 = out.
+			match_res, 						// %0 = Match result.
+			match_success,					// %1 = 0/1 succes or failure.
+			args->saveimg ? m->path : "",	// %2 = Image path if saveimg is turned on.
+			m->direction);					// %3 = Direction, 0 = in, 1 = out.
 }
 
 static void catcierge_save_images(catcierge_grb_t * grb, match_direction_t direction)
