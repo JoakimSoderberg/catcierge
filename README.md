@@ -20,14 +20,15 @@ of dead, or partly dead / fully alive rodents or birds.
 Instead of simply not allowing our cat to use the cat door like normal people
 I of course set out to find a high-tech solution to solve my perdicament.
 
-My idea was to somehow use image recognition to lock the cat door if it had
-something in it's mouth. My first idea was to use Haar Cascades as is normally
-used for facial recognition, but instead train it to work on cats.
+I found the [Flo Control project][flo_control] project and based the general idea
+on that setup.
 
-In the process of researching possible solutions I found the 
-[Flo Control project][flo_control] that instead uses a controlled envrionment
-to get a good profile image of the cat where the "gift" easily can be
-distingusihed. I decided to implement this idea instead. 
+The first implementation used a simple template matching technique, but after
+evaluating that for a while I realised a better solution was needed. 
+Instead I trained a Haar Cascade recognizer to find the cats head, and then
+used various other techniques to detect if it has prey in it's mouth or not.
+This technique has turned out to be very reliable and successful with
+hardly any false positives.
 
 Hardware design details
 -----------------------
