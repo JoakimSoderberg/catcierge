@@ -273,7 +273,7 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 	char *s;
 	char *it;
 	char *output = NULL;
-	char *tmp;
+	char *tmp = NULL;
 	size_t orig_len = strlen(template_str);
 	size_t out_len = 2 * orig_len;
 	size_t len;
@@ -352,7 +352,7 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 					if (!(output = realloc(output, out_len)))
 					{
 						CATERR("Out of memory\n");
-						return NULL;
+						goto fail;
 					}
 				}
 
@@ -399,7 +399,9 @@ int catcierge_output_validate(catcierge_output_t *ctx,
 	int is_valid = 0;
 	char *output = catcierge_output_generate_ex(ctx, grb, template_str);
 	is_valid = (output != NULL);
-	free(output);
+
+	if (output)
+		free(output);
 
 	return is_valid;
 }
@@ -456,9 +458,6 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 		// Replace whitespace with underscore.
 		catcierge_replace_whitespace(path);
 
-		printf("Path: %s -> %s\n", t->target_path, path);
-		printf("Template %d:\n%s\n", (int)i, output);
-
 		if (!(f = fopen(path, "w")))
 		{
 			CATERR("Failed to open template output file \"%s\" for writing\n", path);
@@ -471,6 +470,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 		}
 
 		free(output);
+		free(path);
 	}
 
 	return 0;
