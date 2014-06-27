@@ -86,7 +86,6 @@ static void free_values(char **values, size_t value_count)
 
 char *run_parse_args_tests()
 {
-	int i;
 	catcierge_args_t args;
 	char *key = NULL;
 	char *values[4096];

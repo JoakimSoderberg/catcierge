@@ -360,7 +360,7 @@ void catcierge_template_matcher_usage()
 
 int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *args, const char *key, char **values, size_t value_count)
 {
-	int i;
+	size_t i;
 
 	if (!strcmp(key, "match_flipped"))
 	{

@@ -439,7 +439,6 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	size_t i;
 	catcierge_args_t *args;
 	match_state_t *m;
-	time_t t;
 	assert(grb);
 	assert(img);
 	args = &grb->args;
@@ -858,7 +857,6 @@ void catcierge_state_transition_lockout(catcierge_grb_t *grb)
 
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
-	int going_out;
 	int match_success;
 	match_direction_t direction = MATCH_DIR_UNKNOWN;
 	double match_res = 0.0;

@@ -22,6 +22,7 @@
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+#include <time.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
@@ -30,6 +31,44 @@
 #include "catcierge_log.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
+
+#if _WIN32
+#include <crtdbg.h>  // For _CrtSetReportMode
+
+static void _catcierge_invalid_param_handler(const wchar_t *expression,
+	const wchar_t* function,
+	const wchar_t* file,
+	unsigned int line,
+	uintptr_t pReserved)
+{
+	// Do nothing!
+}
+#endif // _WIN32
+
+int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct tm *tm)
+{
+	#if _WIN32
+	// As described in the documentation for strftime on windows:
+	//   http://msdn.microsoft.com/fr-fr/library/fe06s4ak(v=vs.80).aspx
+	//
+	// If the formatting is invalid, the "security-enhanced CRT functions" are made to
+	// do some extra parameter validation which can raise an exception and abort the program:
+	// http://msdn.microsoft.com/fr-fr/library/ksazx244(v=vs.80).aspx
+	//
+	// We don't want this obviously and need to disable this:
+	// http://msdn.microsoft.com/en-us/library/a9yf33zb.aspx
+	//
+
+	// Define our own paramter validation handler that does nothing.
+	_set_invalid_parameter_handler(_catcierge_invalid_param_handler);
+
+	// Disable the message box for assertions.
+	_CrtSetReportMode(_CRT_ASSERT, 0);
+
+	#endif // _WIN32
+
+	return strftime(dst, dst_len, fmt, tm);	
+}
 
 int catcierge_make_path(const char *path)
 {
@@ -287,7 +326,7 @@ int catcierge_is_frame_obstructed(IplImage *img, int debug)
 	tmp2 = cvCreateImage(cvSize(w, h), 8, 1);
 	cvThreshold(tmp, tmp2, 90, 255, CV_THRESH_BINARY_INV);
 
-	sum = cvSum(tmp2).val[0] / 255;
+	sum = (int)cvSum(tmp2).val[0] / 255;
 
 	if (debug)
 	{

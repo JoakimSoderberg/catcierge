@@ -13,7 +13,6 @@
 
 static char *run_consecutive_lockout_abort_tests()
 {
-	int i;
 	catcierge_grb_t grb;
 	catcierge_args_t *args;
 	args = &grb.args;

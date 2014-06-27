@@ -36,7 +36,14 @@ catcierge_output_var_t vars[] =
 	{ "match#_result", "Result for match #." },
 	{ "match#_time", "Time of match" },
 	{ "time", "The curent time when generating template." },
-	{ "time:<fmt>", "The time using the given format string using strftime formatting (replace % with @)."}
+	{
+		"time:<fmt>",
+		"The time using the given format string"
+		"using strftime formatting (replace % with @)."
+		#if _WIN32
+		" Note that Windows only supports a subset of formatting characters."
+		#endif // _WIN32
+	}
 };
 
 void catcierge_output_print_usage()
@@ -159,33 +166,60 @@ static char *catcierge_replace_time_format_char(char *fmt)
 	return fmt;
 }
 
+static char *catcierge_get_time_var_format(char *var,
+	char *buf, size_t bufsize, const char *default_fmt, time_t t)
+{
+	int ret;
+	char *fmt = NULL;
+	char *var_fmt = var + 4;
+	assert(!strncmp(var, "time", 4));
+
+	if (*var_fmt == ':')
+	{
+		char *s = NULL;
+		var_fmt++;
+
+		if (!(fmt = strdup(var_fmt)))
+		{
+			CATERR("Out of memory!\n");
+			return NULL;
+		}
+
+		catcierge_replace_time_format_char(fmt);
+	}
+	else
+	{
+		if (!(fmt = strdup(default_fmt)))
+		{
+			CATERR("Out of memory!\n");
+			return NULL;
+		}
+	}
+
+	ret = catcierge_strftime(buf, bufsize - 1, fmt, localtime(&t));
+
+	if (!ret)
+	{
+		CATERR("Invalid time formatting string \"%s\"\n", fmt);
+		buf = NULL;
+	}
+
+	if (fmt)
+	{
+		free(fmt);
+	}
+
+	return buf;
+}
+
 static const char *catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var)
 {
 	// Current time.
 	if (!strncmp(var, "time", 4))
 	{
-		char *fmt = var + 4;
-
-		if (*fmt == ':')
-		{
-			char *tmp;
-			char *s = NULL;
-			fmt++;
-
-			if (!(tmp = strdup(fmt)))
-			{
-				CATERR("Out of memory!\n");
-				return NULL;
-			}
-
-			catcierge_replace_time_format_char(tmp);
-			get_time_str_fmt(buf, bufsize - 1, tmp);
-			free(tmp);
-			return buf;
-		}
-
-		return get_time_str_fmt(buf, bufsize - 1, "%Y-%m-%d %H_%M_%S");
+		return catcierge_get_time_var_format(var, buf, bufsize,
+			"%Y-%m-%d %H:%M:%S", time(NULL));
 	}
 
 	if (!strcmp(var, "state"))
@@ -234,32 +268,8 @@ static const char *catcierge_output_translate(catcierge_grb_t *grb,
 		}
 		else if (!strncmp(subvar, "time", 4))
 		{
-			char *fmt = subvar + 4;
-			printf("Match time! \"%s\"\n", fmt);
-
-			if (*fmt == ':')
-			{
-				char *tmp;
-				char *s = NULL;
-				fmt++;
-
-				if (!(tmp = strdup(fmt)))
-				{
-					CATERR("Out of memory!\n");
-					return NULL;
-				}
-
-				catcierge_replace_time_format_char(tmp);
-				printf("Real format string %s\n", tmp);
-				strftime(buf, bufsize - 1, tmp,
-					localtime(&grb->matches[idx].time));
-				free(tmp);
-				return buf;
-			}
-
-			strftime(buf, bufsize - 1, "%Y-%m-%d %H:%M:%S",
-				localtime(&grb->matches[idx].time));
-			return buf;
+			return catcierge_get_time_var_format(subvar, buf, bufsize,
+					"%Y-%m-%d %H:%M:%S", grb->matches[idx].time);
 		}
 	}
 
@@ -267,7 +277,7 @@ static const char *catcierge_output_translate(catcierge_grb_t *grb,
 }
 
 static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
-		catcierge_grb_t *grb, const char *template_str)
+	catcierge_grb_t *grb, const char *template_str)
 {
 	char buf[4096];
 	char *s;
@@ -277,7 +287,6 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 	size_t orig_len = strlen(template_str);
 	size_t out_len = 2 * orig_len;
 	size_t len;
-	size_t i;
 	size_t linenum;
 	assert(ctx);
 	assert(grb);
@@ -406,15 +415,30 @@ int catcierge_output_validate(catcierge_output_t *ctx,
 	return is_valid;
 }
 
-static char *catcierge_replace_whitespace(char *path)
+static char *catcierge_replace_whitespace(char *path, char *extra_chars)
 {
 	char *p = path;
+	char *e = NULL;
 
 	while (*p)
 	{
 		if ((*p == ' ') || (*p == '\t') || (*p == '\n'))
 		{
 			*p = '_';
+		}
+
+		if (extra_chars)
+		{
+			e = extra_chars;
+			while (*e)
+			{
+				if (*p == *e)
+				{
+					*p = '_';
+				}
+
+				e++;
+			}
 		}
 
 		p++;
@@ -441,14 +465,14 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 		printf("Templates %s\n", t->tmpl);
 
 		// Generate the template.
-		if (!(output = catcierge_output_generate(ctx, grb, t->tmpl)))
+		if (!(output = catcierge_output_generate_ex(ctx, grb, t->tmpl)))
 		{
 			CATERR("Failed to generate output for template\n");
 			return -1;
 		}
 
 		// And the target path.
-		if (!(path = catcierge_output_generate(ctx, grb, t->target_path)))
+		if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
 		{
 			CATERR("Failed to generate output path for template\n");
 			free(output);
@@ -456,7 +480,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 		}
 
 		// Replace whitespace with underscore.
-		catcierge_replace_whitespace(path);
+		catcierge_replace_whitespace(path, ":");
 
 		if (!(f = fopen(path, "w")))
 		{

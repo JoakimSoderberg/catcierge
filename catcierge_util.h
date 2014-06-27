@@ -33,7 +33,7 @@
 #define PATH_MAX MAX_PATH
 #define getcwd _getcwd
 #define snprintf _snprintf
-#define sleep(x) Sleep((x)*1000)
+#define sleep(x) Sleep((DWORD)((x)*1000))
 #define vsnprintf _vsnprintf 
 #define strcasecmp _stricmp 
 #define strncasecmp _strnicmp 
@@ -46,5 +46,7 @@ int catcierge_make_path(const char *path);
 
 const char *catcierge_get_direction_str(match_direction_t dir);
 int catcierge_is_frame_obstructed(IplImage *img, int debug);
+
+int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct tm *tm);
 
 #endif // __CATCIERGE_UTIL_H__

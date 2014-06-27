@@ -18,9 +18,7 @@
 //
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef WIN32
-#include <Windows.h>
-#else
+#ifndef WIN32
 #include <sys/time.h>
 #include <unistd.h>
 #endif
@@ -28,6 +26,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include "catcierge_log.h"
+#include "catcierge_util.h"
 
 int catcierge_nocolor = 0;
 
@@ -39,7 +38,10 @@ char *get_time_str_fmt(char *time_str, size_t len, const char *fmt)
 	t = time(NULL);
 	tm = localtime(&t);
 
-	strftime(time_str, len, fmt, tm);
+	if (catcierge_strftime(time_str, len, fmt, tm))
+	{
+		return NULL;
+	}
 
 	return time_str;
 }

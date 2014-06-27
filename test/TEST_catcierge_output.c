@@ -141,14 +141,13 @@ char *run_add_and_generate_tests()
 
 		catcierge_test_STATUS("Add a third template");
 		{
-			time_t t = time(NULL);
-			grb.matches[1].time = localtime(&t);
+			grb.matches[1].time = time(NULL);
 			strcpy(grb.matches[1].path, "blafile");
 
 			if (catcierge_output_add_template(&o,
 				"Some awesome %match2_path% template. "
-				"Advanced time format is here: %time:Week @V @R%\n"
-				"And match time, %match2_time:@R%",
+				"Advanced time format is here: %time:Week @W @H:@M%\n"
+				"And match time, %match2_time:@H:@M%",
 				"the path"))
 			{
 				return "Failed to add template";
