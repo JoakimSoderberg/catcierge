@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include "catcierge_color.h"
 
+#include <time.h>
+
 extern int catcierge_nocolor;
 
 char *get_time_str_fmt(char *time_str, size_t len, const char *fmt);

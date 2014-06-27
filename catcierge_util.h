@@ -38,6 +38,7 @@
 #define strcasecmp _stricmp 
 #define strncasecmp _strnicmp 
 #endif // _WIN32
+#include <time.h>
 
 void catcierge_execute(char *command, char *fmt, ...);
 void catcierge_reset_cursor_position();

@@ -23,10 +23,11 @@
 #include <unistd.h>
 #endif
 
+#include <time.h>
+
 #include <stdarg.h>
 #include <time.h>
 #include "catcierge_log.h"
-#include "catcierge_util.h"
 
 int catcierge_nocolor = 0;
 
@@ -38,10 +39,14 @@ char *get_time_str_fmt(char *time_str, size_t len, const char *fmt)
 	t = time(NULL);
 	tm = localtime(&t);
 
+	#if 0
+	// TODO: Fix this!
 	if (catcierge_strftime(time_str, len, fmt, tm))
 	{
 		return NULL;
 	}
+	#endif
+	strftime(time_str, len, fmt, tm);
 
 	return time_str;
 }
