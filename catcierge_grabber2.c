@@ -4,6 +4,7 @@
 #include "catcierge_args.h"
 #include "catcierge_log.h"
 #include "catcierge_fsm.h"
+#include "catcierge_output.h"
 
 catcierge_grb_t grb;
 
@@ -159,6 +160,19 @@ int main(int argc, char **argv)
 
 	CATLOG("Initialized catcierge image recognition\n");
 
+	if (catcierge_output_init(&grb.output))
+	{
+		CATERR("Failed to init output template system\n");
+		exit(-1);
+	}
+
+	if (catcierge_output_load_templates(&grb.output,
+			args->inputs, args->input_count))
+	{
+		CATERR("Failed to load output templates\n");
+		exit(-1);
+	}
+
 	catcierge_setup_camera(&grb);
 	CATLOG("Starting detection!\n");
 	grb.running = 1;
@@ -197,6 +211,7 @@ int main(int argc, char **argv)
 		catcierge_haar_matcher_destroy(&grb.haar);
 	}
 
+	catcierge_output_destroy(&grb.output);
 	catcierge_destroy_camera(&grb);
 	catcierge_grabber_destroy(&grb);
 

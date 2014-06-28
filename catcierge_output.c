@@ -17,14 +17,27 @@
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include "catcierge_config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#ifdef CATCIERGE_HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef CATCIERGE_HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+#ifdef CATCIERGE_HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include "catcierge_log.h"
 #include "catcierge_util.h"
 #include "catcierge_types.h"
 #include "catcierge_output.h"
+#include "catcierge_output_types.h"
+#include "catcierge_fsm.h"
 
 catcierge_output_var_t vars[] =
 {
@@ -103,18 +116,13 @@ void catcierge_output_destroy(catcierge_output_t *ctx)
 int catcierge_output_add_template(catcierge_output_t *ctx,
 		const char *template_str, const char *target_path)
 {
+	const char *path;
 	catcierge_output_template_t *t;
 	assert(ctx);
 
-	if (
-		#ifdef WIN32
-		strchr(target_path, '\\') ||
-		#endif
-		strchr(target_path, '/'))
+	if ((path = strrchr(target_path, '/')))
 	{
-		CATERR("Target path contains a path separator it"
-			   " should only contain a filename\n");
-		return -1;
+		target_path = path + 1;
 	}
 
 	// Grow the templates array if needed.
@@ -452,6 +460,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 	catcierge_output_template_t *t = NULL;
 	char *output = NULL;
 	char *path = NULL;
+	char full_path[4096];
 	char *dir = NULL;
 	size_t i;
 	FILE *f = NULL;
@@ -467,14 +476,14 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 		// Generate the template.
 		if (!(output = catcierge_output_generate_ex(ctx, grb, t->tmpl)))
 		{
-			CATERR("Failed to generate output for template\n");
+			CATERR("Failed to generate output for template \"%s\"\n", t->target_path);
 			return -1;
 		}
 
 		// And the target path.
 		if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
 		{
-			CATERR("Failed to generate output path for template\n");
+			CATERR("Failed to generate output path for template \"%s\"\n", t->target_path);
 			free(output);
 			return -1;
 		}
@@ -482,9 +491,20 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 		// Replace whitespace with underscore.
 		catcierge_replace_whitespace(path, ":");
 
-		if (!(f = fopen(path, "w")))
+		// TODO: Get the path char in a nicer way...
+		// Assemble the full output path.
+		snprintf(full_path, sizeof(full_path), "%s%s%s",
+			grb->args.output_path,
+			#ifdef _WIN32
+			"\\",
+			#else
+			"/",
+			#endif
+			path);
+
+		if (!(f = fopen(full_path, "w")))
 		{
-			CATERR("Failed to open template output file \"%s\" for writing\n", path);
+			CATERR("Failed to open template output file \"%s\" for writing\n", full_path);
 		}
 		else
 		{
@@ -499,3 +519,69 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 
 	return 0;
 }
+
+int catcierge_output_load_templates(catcierge_output_t *ctx,
+		char **inputs, size_t input_count)
+{
+	int ret = 0;
+	size_t i;
+	size_t fsize;
+	FILE *f = NULL;
+	char *contents = NULL;
+
+	if (input_count > 0)
+	{
+		CATLOG("Loading output templates:\n");
+	}
+
+	for (i = 0; i < input_count; i++)
+	{
+		if (!(f = fopen(inputs[i], "r")))
+		{
+			CATERR("Failed to open input template file \"%s\"\n", inputs[i]);
+			ret = -1;
+			goto fail;
+		}
+
+		// Get file size.
+		fseek(f, 0, SEEK_END);
+		fsize = ftell(f);
+		rewind(f);
+
+		if (!(contents = malloc(fsize)))
+		{
+			CATERR("Out of memory!\n");
+			ret = -1;
+			goto fail;
+		}
+
+		if (fread(contents, 1, fsize, f) != fsize)
+		{
+			CATERR("Failed to read file contents of template file \"%s\"\n", inputs[i]);
+			ret = -1;
+			goto fail;
+		}
+
+		CATLOG("  %s - %d bytes\n", inputs[i], fsize);
+
+		if (catcierge_output_add_template(ctx, contents, inputs[i]))
+		{
+			CATERR("Failed to load template file \"%s\"\n", inputs[i]);
+			ret = -1;
+			goto fail;
+		}
+
+		free(contents);
+		contents = NULL;
+	}
+
+fail:
+	if (contents)
+	{
+		free(contents);
+		contents = NULL;
+	}
+
+	return ret;
+}
+

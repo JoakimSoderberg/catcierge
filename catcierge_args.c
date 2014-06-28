@@ -82,6 +82,7 @@ void catcierge_free_rfid_allowed_list(catcierge_args_t *args)
 
 int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count)
 {
+	size_t i;
 	int ret;
 	assert(args);
 	assert(key);
@@ -238,6 +239,28 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 
 		fprintf(stderr, "--output missing path value\n");
 		return -1;
+	}
+
+	if (!strcmp(key, "input"))
+	{
+		if (value_count == 0)
+		{
+			fprintf(stderr, "--input missing value\n");
+			return 0;
+		}
+
+		for (i = 0; i < value_count; i++)
+		{
+			if (args->input_count >= MAX_INPUT_TEMPLATES)
+			{
+				fprintf(stderr, "Max template input reached %d\n", MAX_INPUT_TEMPLATES);
+				return -1;
+			}
+			args->inputs[args->input_count] = values[i];
+			args->input_count++;
+		}
+
+		return 0;
 	}
 
 	#ifdef WITH_RFID
@@ -812,6 +835,7 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("          No color: %d\n", args->nocolor);
 	printf("      No animation: %d\n", args->noanim);
 	printf(" Ok matches needed: %d\n", args->ok_matches_needed);
+	printf("       Output path: %s\n", args->output_path);
 	printf("\n");
 	if (!args->matcher || !strcmp(args->matcher, "template"))
 		catcierge_template_matcher_print_settings(&args->templ);

@@ -12,6 +12,7 @@
 #include "catcierge_timer.h"
 #include "catcierge_args.h"
 #include "catcierge_types.h"
+#include "catcierge_output_types.h"
 
 #ifdef RPI
 #include "RaspiCamCV.h"
@@ -97,6 +98,8 @@ typedef struct catcierge_grb_s
 	catcierge_timer_t rematch_timer;
 	catcierge_timer_t lockout_timer;
 	catcierge_timer_t frame_timer;
+
+	catcierge_output_t output;
 
 	#ifdef WITH_RFID
 	char *rfid_inner_path;

@@ -382,7 +382,7 @@ int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *arg
 	{
 		if (value_count == 0)
 		{
-			fprintf(stderr, "No value given\n");
+			fprintf(stderr, "--%s missing value\n", key);
 			return -1;
 		}
 

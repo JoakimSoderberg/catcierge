@@ -20,26 +20,8 @@
 #define __CATCIERGE_OUTPUT_H__
 
 #include <stdio.h>
+#include "catcierge_output_types.h"
 #include "catcierge_fsm.h"
-
-typedef struct catcierge_output_var_s
-{
-	char *name;
-	char *description;
-} catcierge_output_var_t;
-
-typedef struct catcierge_output_template_s
-{
-	char *tmpl;
-	char *target_path;
-} catcierge_output_template_t;
-
-typedef struct catcierge_output_s
-{
-	catcierge_output_template_t *templates;
-	size_t template_count;
-	size_t template_max_count;
-} catcierge_output_t;
 
 int catcierge_output_validate(catcierge_output_t *ctx,
 	catcierge_grb_t *grb, const char *template_str);
@@ -52,5 +34,7 @@ void catcierge_output_destroy(catcierge_output_t *ctx);
 int catcierge_output_add_template(catcierge_output_t *ctx, const char *template_str, const char *target_path);
 char *catcierge_output_generate(catcierge_output_t *ctx, catcierge_grb_t *grb, const char *template_str);
 int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t *grb);
+int catcierge_output_load_templates(catcierge_output_t *ctx,
+		char **inputs, size_t input_count);
 
 #endif // __CATCIERGE_OUTPUT_H__

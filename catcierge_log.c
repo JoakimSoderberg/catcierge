@@ -23,8 +23,6 @@
 #include <unistd.h>
 #endif
 
-#include <time.h>
-
 #include <stdarg.h>
 #include <time.h>
 #include "catcierge_log.h"

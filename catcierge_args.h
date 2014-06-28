@@ -16,6 +16,7 @@
 #define DEFAULT_CONSECUTIVE_LOCKOUT_DELAY 3.0 // The time in seconds between lockouts that is considered consecutive.
 #define MAX_TEMP_CONFIG_VALUES 128
 #define DEFAULT_OK_MATCHES_NEEDED 2
+#define MAX_INPUT_TEMPLATES 32
 
 typedef struct catcierge_args_s
 {
@@ -53,6 +54,8 @@ typedef struct catcierge_args_s
 	char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
 	int nocolor;
 	int noanim;
+	char *inputs[MAX_INPUT_TEMPLATES];
+	size_t input_count;
 
 	#ifdef WITH_RFID
 	char *rfid_detect_cmd;

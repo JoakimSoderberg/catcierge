@@ -8,7 +8,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//    Foobar is distributed in the hope that it will be useful,
+//    Catcierge is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
@@ -16,22 +16,29 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
+#ifndef __CATCIERGE_OUTPUT_TYPES_H__
+#define __CATCIERGE_OUTPUT_TYPES_H__
 
-#ifndef __CATCIERGE_CONFIG_H__
-#define __CATCIERGE_CONFIG_H__
+#include <stdio.h>
 
-#cmakedefine CATCIERGE_VERSION_STR "@CATCIERGE_VERSION_STR@"
+typedef struct catcierge_output_var_s
+{
+	char *name;
+	char *description;
+} catcierge_output_var_t;
 
-#cmakedefine CATCIERGE_HAVE_UNISTD_H 1
-#cmakedefine CATCIERGE_HAVE_FCNTL_H 1
-#cmakedefine CATCIERGE_HAVE_SYS_TYPES_H 1
-#cmakedefine CATCIERGE_HAVE_SYS_STAT_H 1
-#cmakedefine CATCIERGE_HAVE_PWD_H 1
-#cmakedefine CATCIERGE_HAVE_GRP_H 1
+typedef struct catcierge_output_template_s
+{
+	char *tmpl;
+	char *target_path;
+} catcierge_output_template_t;
 
-#if (CATCIERGE_HAVE_SYS_TYPES_H && CATCIERGE_HAVE_PWD_H && CATCIERGE_HAVE_GRP_H)
-#define CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
-#endif
+typedef struct catcierge_output_s
+{
+	char *input_path;
+	catcierge_output_template_t *templates;
+	size_t template_count;
+	size_t template_max_count;
+} catcierge_output_t;
 
-#endif // __CATCIERGE_CONFIG_H__
-
+#endif // __CATCIERGE_OUTPUT_TYPES_H__
