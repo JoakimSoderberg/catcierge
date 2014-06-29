@@ -335,6 +335,31 @@ char *run_parse_args_tests()
 	return NULL;
 }
 
+char *run_parse_config_tests()
+{
+	int ret;
+	FILE *f;
+	catcierge_args_t args;
+	#define TEST_CONFIG_PATH "______test.cfg"
+	char test_cfg[] = "matcher=template\n";
+	char *argv[] = { "program", "--config", TEST_CONFIG_PATH };
+	int argc = sizeof(argv) / sizeof(argv[0]);
+
+	// Create a test config.
+	f = fopen(TEST_CONFIG_PATH, "w");
+	mu_assert("Failed to open test config", f);
+
+	fwrite(test_cfg, 1, sizeof(test_cfg), f);
+	fclose(f);
+
+	catcierge_args_init(&args);
+
+	ret = catcierge_parse_config(&args, argc, argv);
+	mu_assert("Expected matcher = template after parsing config", !strcmp(args.matcher, "template"));
+
+	return NULL;
+}
+
 int TEST_catcierge_args(int argc, char **argv)
 {
 	int ret = 0;
@@ -353,6 +378,10 @@ int TEST_catcierge_args(int argc, char **argv)
 		if ((e = funcs[i]())) { catcierge_test_FAILURE("%s", e); ret = -1; }
 		else catcierge_test_SUCCESS("");
 	}
+
+	CATCIERGE_RUN_TEST((e = run_parse_config_tests()),
+		"Run parse config test",
+		"Parse config test", &ret);
 
 	if (ret)
 	{
