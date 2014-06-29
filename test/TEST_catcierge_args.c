@@ -136,7 +136,8 @@ char *run_parse_args_tests()
 
 
 
-	PARSE_SETTING("matcher", "Expected value for matcher", (ret == -1));
+	PARSE_SETTING("matcher", "Expected failure for missing input value", (ret == -1));
+	PARSE_SETTING("matcher bla", "Expected failure for invalid input value", (ret == -1));
 	PARSE_SETTING("matcher haar", "Expected haar matcher",
 		(ret == 0) &&
 		!strcmp(args.matcher, "haar") &&
@@ -197,6 +198,25 @@ char *run_parse_args_tests()
 		(ret == 0) && !strcmp(args.output_path, "/some/output/path"));
 	PARSE_SETTING("output", "Expected invalid parse for missing value",
 		(ret == -1));
+
+	{
+		size_t i;
+
+		PARSE_SETTING("input /path/to/templ%time%.tmpl", "Expected a valid parse",
+			(ret == 0) && !strcmp(args.inputs[0], "/path/to/templ%time%.tmpl"));
+		PARSE_SETTING("input", "Expected invalid parse for missing value",
+			(ret == -1));
+
+		for (i = 1; i < MAX_INPUT_TEMPLATES; i++)
+		{
+			PARSE_SETTING("input /path/to/last", "Expected a valid parse",
+				(ret == 0) && !strcmp(args.inputs[i], "/path/to/last"));
+		}
+
+		PARSE_SETTING("input /path/to/templ%time%.tmpl",
+			"Expected failure when exceeding MAX_INPUT_TEMPLATES",
+			(ret == -1));
+	}
 
 	#ifdef WITH_RFID
 	PARSE_SETTING("rfid_in /some/rfid/path", "Expected a valid parse",
@@ -333,5 +353,11 @@ int TEST_catcierge_args(int argc, char **argv)
 		if ((e = funcs[i]())) { catcierge_test_FAILURE("%s", e); ret = -1; }
 		else catcierge_test_SUCCESS("");
 	}
+
+	if (ret)
+	{
+		catcierge_test_FAILURE("One or more tests failed!");
+	}
+
 	return ret;
 }

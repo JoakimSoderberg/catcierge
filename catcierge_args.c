@@ -246,7 +246,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		if (value_count == 0)
 		{
 			fprintf(stderr, "--input missing value\n");
-			return 0;
+			return -1;
 		}
 
 		for (i = 0; i < value_count; i++)
