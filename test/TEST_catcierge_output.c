@@ -109,6 +109,8 @@ char *run_add_and_generate_tests()
 
 	catcierge_grabber_init(&grb);
 	{
+		grb.args.output_path = "template_tests";
+
 		if (catcierge_output_init(&o))
 			return "Failed to init output context";
 
@@ -121,7 +123,7 @@ char *run_add_and_generate_tests()
 			}
 			mu_assert("Expected template count 1", o.template_count == 1);
 
-			if (catcierge_output_generate_templates(&o, &grb))
+			if (catcierge_output_generate_templates(&o, &grb, grb.args.output_path))
 				return "Failed to generate templates";
 		}
 
@@ -135,7 +137,7 @@ char *run_add_and_generate_tests()
 			}
 			mu_assert("Expected template count 2", o.template_count == 2);
 
-			if (catcierge_output_generate_templates(&o, &grb))
+			if (catcierge_output_generate_templates(&o, &grb, grb.args.output_path))
 				return "Failed to generate templates";
 		}
 
@@ -154,9 +156,63 @@ char *run_add_and_generate_tests()
 			}
 			mu_assert("Expected template count 3", o.template_count == 3);
 
-			if (catcierge_output_generate_templates(&o, &grb))
+			if (catcierge_output_generate_templates(&o, &grb, grb.args.output_path))
 				return "Failed to generate templates";
 		}
+
+		catcierge_output_destroy(&o);
+	}
+	catcierge_grabber_destroy(&grb);
+
+	return NULL;
+}
+
+static char *run_load_templates_test()
+{
+	catcierge_output_t o;
+	catcierge_grb_t grb;
+
+	catcierge_grabber_init(&grb);
+	{
+		size_t i;
+		char *tmp;
+		FILE *f;
+		char templ_path[4096];
+		catcierge_output_template_t templs[] =
+		{
+			{ "Arne weise %time% %match0_path% julafton", "a_%time%" },
+			{ "the template contents\nis %time:@c%", "b_%time%" },
+			{ "", "c_%time%" }
+		};
+		#define TEST_TEMPLATE_COUNT sizeof(templs) / sizeof(templs[0])
+		char *inputs[TEST_TEMPLATE_COUNT];
+		size_t input_count = 0;
+
+		// Create temporary files to use as test templates.
+		for (i = 0; i < TEST_TEMPLATE_COUNT; i++)
+		{
+			inputs[i] = templs[i].target_path;
+			input_count++;
+
+			f = fopen(templs[i].target_path, "w");
+			mu_assert("Failed to open target path", f);
+
+			fwrite(templs[i].tmpl, 1, strlen(templs[i].tmpl), f);
+			fclose(f);
+		}
+
+		if (catcierge_output_init(&o))
+			return "Failed to init output context";
+
+		if (catcierge_output_load_templates(&o, inputs, input_count))
+		{
+			return "Failed to load templates";
+		}
+
+		mu_assert("Expected template count to be the same as test template count",
+			o.template_count == TEST_TEMPLATE_COUNT);
+		mu_assert("Expected template count to be the same as input count",
+			o.template_count == input_count);
 
 		catcierge_output_destroy(&o);
 	}
@@ -185,6 +241,10 @@ int TEST_catcierge_output(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_validate_tests()),
 		"Run validation tests.",
 		"Validation tests", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_load_templates_test()),
+		"Run load templates tests.",
+		"Load templates tests", &ret);
 
 	if (ret)
 	{

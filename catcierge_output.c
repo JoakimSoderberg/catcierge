@@ -41,19 +41,21 @@
 
 catcierge_output_var_t vars[] =
 {
+	{ "state", "The current state machine state." },
+	{ "prev_state", "The previous state mahchine state."},
 	{ "match_success", "Match success status."},
 	{ "match#_path", "Image path for match #." },
 	{ "match#_path", "Image path for match #." },
 	{ "match#_success", "Success status for match #." },
 	{ "match#_direction", "Direction for match #." },
 	{ "match#_result", "Result for match #." },
-	{ "match#_time", "Time of match" },
+	{ "match#_time", "Time of match #." },
 	{ "time", "The curent time when generating template." },
 	{
 		"time:<fmt>",
 		"The time using the given format string"
 		"using strftime formatting (replace % with @)."
-		#if _WIN32
+		#ifdef _WIN32
 		" Note that Windows only supports a subset of formatting characters."
 		#endif // _WIN32
 	}
@@ -233,6 +235,11 @@ static const char *catcierge_output_translate(catcierge_grb_t *grb,
 	if (!strcmp(var, "state"))
 	{
 		return catcierge_get_state_string(grb->state);
+	}
+
+	if (!strcmp(var, "prev_state"))
+	{
+		return catcierge_get_state_string(grb->prev_state);
 	}
 
 	if (!strcmp(var, "match_success"))
@@ -455,7 +462,8 @@ static char *catcierge_replace_whitespace(char *path, char *extra_chars)
 	return 0;
 }
 
-int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t *grb)
+int catcierge_output_generate_templates(catcierge_output_t *ctx,
+	catcierge_grb_t *grb, const char *output_path)
 {
 	catcierge_output_template_t *t = NULL;
 	char *output = NULL;
@@ -466,6 +474,15 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 	FILE *f = NULL;
 	assert(ctx);
 	assert(grb);
+
+	if (output_path)
+	{
+		catcierge_make_path(output_path);
+	}
+	else
+	{
+		output_path = ".";
+	}
 
 	for (i = 0; i < ctx->template_count; i++)
 	{
@@ -494,7 +511,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 		// TODO: Get the path char in a nicer way...
 		// Assemble the full output path.
 		snprintf(full_path, sizeof(full_path), "%s%s%s",
-			grb->args.output_path,
+			output_path,
 			#ifdef _WIN32
 			"\\",
 			#else
@@ -505,6 +522,9 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx, catcierge_grb_t
 		if (!(f = fopen(full_path, "w")))
 		{
 			CATERR("Failed to open template output file \"%s\" for writing\n", full_path);
+			free(output);
+			free(path);
+			return -1;
 		}
 		else
 		{

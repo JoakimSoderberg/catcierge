@@ -73,6 +73,7 @@ typedef int (*catcierge_state_func_t)(struct catcierge_grb_s *);
 typedef struct catcierge_grb_s
 {
 	catcierge_state_func_t state;
+	catcierge_state_func_t prev_state;
 	catcierge_args_t args;
 	FILE *log_file;
 

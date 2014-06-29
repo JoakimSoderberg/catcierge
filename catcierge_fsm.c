@@ -71,6 +71,7 @@ void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 	catcierge_print_state(new_state);
 	log_printf(stdout, COLOR_NORMAL, "\n");
 
+	grb->prev_state = grb->state;
 	grb->state = new_state;
 }
 

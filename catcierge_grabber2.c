@@ -104,6 +104,10 @@ int main(int argc, char **argv)
 			catcierge_nocolor = 1;
 		}
 
+		// TODO: Add verify function for settings. Make sure we have everything we need...
+
+		catcierge_print_settings(args);
+
 		if (args->output_path)
 		{
 			catcierge_make_path(args->output_path);
@@ -112,10 +116,6 @@ int main(int argc, char **argv)
 		{
 			args->output_path = ".";
 		}
-
-		// TODO: Add verify function for settings. Make sure we have everything we need...
-
-		catcierge_print_settings(args);
 	}
 
 	setup_sig_handlers();
@@ -172,6 +172,8 @@ int main(int argc, char **argv)
 		CATERR("Failed to load output templates\n");
 		exit(-1);
 	}
+
+	CATLOG("Initialized output templates\n");
 
 	catcierge_setup_camera(&grb);
 	CATLOG("Starting detection!\n");
