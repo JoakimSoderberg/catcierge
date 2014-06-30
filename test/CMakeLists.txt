@@ -38,6 +38,11 @@ add_executable(${CATCIERGE_TEST_DRIVER}
 
 target_link_libraries(${CATCIERGE_TEST_DRIVER} catcierge)
 
+if (LINUX)
+	# For openpty in the rfid tests.
+	target_link_libraries(${CATCIERGE_TEST_DRIVER} util)
+endif()
+
 if (RPI)
 	target_link_libraries(${CATCIERGE_TEST_DRIVER} raspicamcv)
 endif()

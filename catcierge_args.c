@@ -895,5 +895,10 @@ void catcierge_args_destroy(catcierge_args_t *args)
 	#ifdef WITH_RFID
 	catcierge_free_rfid_allowed_list(args);
 	#endif
+
+	if (args->parser)
+	{
+		alini_parser_dispose(args->parser);
+	}
 }
 

@@ -355,8 +355,10 @@ char *run_parse_config_tests()
 	catcierge_args_init(&args);
 
 	ret = catcierge_parse_config(&args, argc, argv);
-	mu_assert("Expected matcher = template after parsing config", !strcmp(args.matcher, "template"));
+	mu_assert("Expected matcher = template after parsing config",
+		!strcmp(args.matcher, "template"));
 
+	catcierge_args_destroy(&args);
 	return NULL;
 }
 

@@ -116,6 +116,7 @@ static int catcierge_rfid_read(catcierge_rfid_t *rfid)
 
 		CATERR("%s RFID reader: error %d on read, %s\n", 
 				rfid->name, errorcode, error_msg);
+		// TODO: Hmm should we really just fall through here in all cases?
 	}
 
 	if (rfid->state == CAT_CONNECTED)
