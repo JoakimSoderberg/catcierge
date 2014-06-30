@@ -293,83 +293,25 @@ void catcierge_destroy_camera(catcierge_grb_t *grb)
 int catcierge_drop_root_privileges(const char *user)
 {
 	#ifdef CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
-	int group_count = 0;
-	#ifdef __APPLE__
-	int *groups = NULL;
-	#else
-	gid_t *groups = NULL;
-	#endif
-	int ret = 0;
+	struct passwd *pw = getpwnam(user);
 
-	// Process is running as root, drop privileges.
-
-	// Note! pwd is static, do not free!
-	struct passwd *pwd = getpwnam(user);
-
-	if (!pwd)
+	if (pw->pw_uid != 0)
 	{
-		CATERR("Failed to get uid/gid for user \"%s\": %s\n", strerror(errno));
-		ret = -1;
-		goto fail;
+		CATLOG("Not running as root (no privileges to drop).\n");
+		return 0;
 	}
 
-	// Get the user supplementary groups and set
-	// those for the process as well.
+	if (initgroups(pw->pw_name, pw->pw_gid)
+	 || setgid(pw->pw_gid)
+	 || setuid(pw->pw_uid))
 	{
-		if (getgrouplist(user, pwd->pw_gid, NULL, &group_count) != -1)
-		{
-			CATERR("Failed to get user \"%s\" group count\n", user);
-			ret = -1;
-			goto fail;
-		}
-
-		if (!(groups = calloc(group_count, sizeof(gid_t))))
-		{
-			CATERR("Out of memory\n");
-			ret = -1;
-			goto fail;
-		}
-
-		if (getgrouplist(user, pwd->pw_gid, groups, &group_count) < 0)
-		{
-			CATERR("Failed to get groups for user \"%s\"\n", user);
-			ret = -1;
-			goto fail;
-		}
-
-		if (setgroups(group_count, (gid_t *)groups))
-		{
-			CATERR("Failed to set supplementary groups for process\n");
-			ret = -1;
-			goto fail;
-		}
+		CATERR("Failed to drop root privileges '%.32s' uid=%lu gid=%lu: %s\n",
+			user, (unsigned long)pw->pw_uid, (unsigned long)pw->pw_gid,
+			strerror(errno));
+		return -1;
 	}
-
-	// Change the group and user id for the process.
-	if (setgid(pwd->pw_gid))
-	{
-		CATERR("setgid: Unable to drop group privileges: %s\n", strerror(errno));
-		ret = -1;
-		goto fail;
-	}
-
-	if (setuid(pwd->pw_uid))
-	{
-		CATERR("setuid: Unable to drop user privileges: %s\n", strerror(errno));
-		ret = -1;
-		goto fail;
-	}
-
-fail:
-	if (groups)
-	{
-		free(groups);
-	}
-
-	return ret;
-	#else // CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
+	#endif // CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
 	return 0;
-	#endif
 }
 
 int catcierge_setup_gpio(catcierge_grb_t *grb)
