@@ -175,9 +175,7 @@ static char *run_load_templates_test()
 	catcierge_grabber_init(&grb);
 	{
 		size_t i;
-		char *tmp;
 		FILE *f;
-		char templ_path[4096];
 		catcierge_output_template_t templs[] =
 		{
 			{ "Arne weise %time% %match0_path% julafton", "a_%time%" },
