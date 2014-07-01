@@ -39,12 +39,9 @@ int TEST_catcierge_fsm_droproot(int argc, char **argv)
 	char *e = NULL;
 	int ret = 0;
 
-	// Disable for now, does not work on OSX.
-	#if 1
 	CATCIERGE_RUN_TEST((e = run_droproot_test()),
 		"Run drop root privileges test",
 		"Drop root privileges test", &ret);
-	#endif
 
 	return ret;
 }

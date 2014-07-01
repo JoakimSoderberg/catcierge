@@ -546,6 +546,7 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 	int ret = 0;
 	size_t i;
 	size_t fsize;
+	size_t read_bytes;
 	FILE *f = NULL;
 	char *contents = NULL;
 
@@ -575,12 +576,17 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 			goto fail;
 		}
 
-		if (fread(contents, 1, fsize, f) != fsize)
+		read_bytes = fread(contents, 1, fsize, f);
+
+		#ifndef _WIN32
+		if (read_bytes != fsize)
 		{
-			CATERR("Failed to read file contents of template file \"%s\"\n", inputs[i]);
+			CATERR("Failed to read file contents of template file \"%s\". "
+					"Got %d expected %d\n", inputs[i], (int)read_bytes, (int)fsize);
 			ret = -1;
 			goto fail;
 		}
+		#endif // !_WIN32
 
 		CATLOG("  %s - %d bytes\n", inputs[i], fsize);
 
