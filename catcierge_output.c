@@ -548,6 +548,7 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 	size_t fsize;
 	size_t read_bytes;
 	FILE *f = NULL;
+	struct stat stbuf;
 	char *contents = NULL;
 
 	if (input_count > 0)
@@ -560,31 +561,41 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 		if (!(f = fopen(inputs[i], "r")))
 		{
 			CATERR("Failed to open input template file \"%s\"\n", inputs[i]);
-			ret = -1;
-			goto fail;
+			ret = -1; goto fail;
 		}
 
 		// Get file size.
-		fseek(f, 0, SEEK_END);
-		fsize = ftell(f);
+		if (fseek(f, 0, SEEK_END))
+		{
+			CATERR("Failed to seek in template file \"%s\"\n", inputs[i]);
+			ret = -1; goto fail;
+		}
+
+		if ((fsize = ftell(f)) == -1)
+		{
+			CATERR("Failed to get file size for template file \"%s\"\n", inputs[i]);
+			ret = -1; goto fail;
+		}
+
 		rewind(f);
 
-		if (!(contents = malloc(fsize)))
+		// Make sure we allocate enough to fit a NULL
+		// character at the end of the file contents.
+		if (!(contents = calloc(1, fsize + 1)))
 		{
 			CATERR("Out of memory!\n");
-			ret = -1;
-			goto fail;
+			ret = -1; goto fail;
 		}
 
 		read_bytes = fread(contents, 1, fsize, f);
+		contents[read_bytes] = '\0';
 
 		#ifndef _WIN32
 		if (read_bytes != fsize)
 		{
 			CATERR("Failed to read file contents of template file \"%s\". "
 					"Got %d expected %d\n", inputs[i], (int)read_bytes, (int)fsize);
-			ret = -1;
-			goto fail;
+			ret = -1; goto fail;
 		}
 		#endif // !_WIN32
 
@@ -593,8 +604,7 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 		if (catcierge_output_add_template(ctx, contents, inputs[i]))
 		{
 			CATERR("Failed to load template file \"%s\"\n", inputs[i]);
-			ret = -1;
-			goto fail;
+			ret = -1; goto fail;
 		}
 
 		free(contents);

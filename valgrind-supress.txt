@@ -6,3 +6,13 @@
    fun:inflateReset2
    fun:inflateInit2_
 }
+# openpty and other that are inspecting the nss config
+# is not freeing internal malloced memory in some libc versions.
+# Specifically when calling nss_parse_service_list mallocs
+# a static field that is never freed.
+{
+	nss_parse_service_list_bug
+    Memcheck:Leak
+    fun:malloc
+    fun:nss_parse_service_list
+}

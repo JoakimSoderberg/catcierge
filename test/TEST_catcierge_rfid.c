@@ -51,6 +51,7 @@ char *run_pseudo_console_tests()
 
 	close(master);
 	close(slave);
+	free(slave_name);
 
 	return NULL;
 }
@@ -164,6 +165,7 @@ char *run_rfid_tests()
 
 	close(master);
 	close(slave);
+	free(slave_name);
 
 	return NULL;
 }
@@ -228,6 +230,9 @@ char *run_double_tests()
 	close(out_master);
 	close(in_slave);
 	close(out_slave);
+
+	free(out_slave_name);
+	free(in_slave_name);
 
 	return NULL;	
 }

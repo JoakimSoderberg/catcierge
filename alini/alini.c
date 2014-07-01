@@ -220,7 +220,11 @@ int alini_parser_dispose(alini_parser_t *parser)
 	assert(parser);
 	
 	/* close file */
-	fclose(parser->file);
+	if (parser->file)
+		fclose(parser->file);
+
+	if (parser->path)
+		free(parser->path);
 	
 	/* free parser */
 	free(parser);
