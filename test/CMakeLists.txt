@@ -38,9 +38,10 @@ add_executable(${CATCIERGE_TEST_DRIVER}
 
 target_link_libraries(${CATCIERGE_TEST_DRIVER} catcierge)
 
-if (LINUX)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	# For openpty in the rfid tests.
-	target_link_libraries(${CATCIERGE_TEST_DRIVER} util)
+	find_library(LIBUTIL util)
+	target_link_libraries(${CATCIERGE_TEST_DRIVER} ${LIBUTIL})
 endif()
 
 if (RPI)
