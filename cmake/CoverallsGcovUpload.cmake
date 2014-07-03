@@ -1,4 +1,24 @@
+#
+# This is intended to be run by a custom target in a CMake project like this.
+# 0. Compile program with coverage support.
+# 1. Clear coverage data. (Recursively delete *.gcda in build dir)
+# 2. Run the unit tests.
+# 3. Run this script specifying which source files the coverage should be performed on.
+#
+# This script will then use gcov to generate .gcov files in the directory specified
+# via the COV_PATH var. This should probably be the same as your cmake build dir.
+#
+# It then parses the .gcov files to convert them into the Coveralls JSON format:
+# https://coveralls.io/docs/api
+#
+# Example for running as standalone CMake script from the command line:
+# (Not it is important the -P is at the end...)
+# $ cmake -DCOV_PATH=$(pwd) 
+#         -DCOVERAGE_SRCS="catcierge_rfid.c;catcierge_timer.c" 
+#         -P ../cmake/CoverallsGcovUpload.cmake
+#
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+
 
 #
 # Make sure we have the needed arguments.
