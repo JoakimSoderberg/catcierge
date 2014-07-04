@@ -38,6 +38,12 @@ if (NOT GCOV_EXECUTABLE)
 	message(FATAL_ERROR "gcov not found! Aborting...")
 endif()
 
+find_program(CURL_EXECUTABLE curl)
+
+if (NOT CURL_EXECUTABLE)
+	message(FATAL_ERROR "curl not found! Aborting")
+endif()
+
 # Get the coverage data.
 file(GLOB_RECURSE GCDA_FILES "${COV_PATH}/*.gcda")
 
@@ -59,7 +65,6 @@ file(GLOB ALL_GCOV_FILES ${COV_PATH}/*.gcov)
 # Filter out all but the gcov files we want.
 set(GCOV_FILES "")
 foreach (GCOV_FILE ${ALL_GCOV_FILES})
-	#message("gcov file: ${GCOV_FILE}")
 
 	# Get rid of .gcov and path info.
 	get_filename_component(GCOV_FILE ${GCOV_FILE} NAME)
@@ -70,23 +75,38 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 	list(FIND COVERAGE_SRCS ${GCOV_FILE_WEXT} WAS_FOUND)
 	
 	if (NOT WAS_FOUND EQUAL -1)
-		#message("Found!")
 		list(APPEND GCOV_FILES ${GCOV_FILE})
 	endif() 
 endforeach()
 
 message("Gcov files we want: ${GCOV_FILES}")
 
+set(JSON_SERVICE_NAME "travs-ci")
+set(JSON_SERVICE_JOB_ID $ENV{TRAVIS_JOB_ID})
+
+set(JSON_TEMPLATE
+"{
+  \"service_name\": \"\@JSON_SERVICE_NAME\@\",
+  \"service_job_id\": \"\@JSON_SERVICE_JOB_ID\@\",
+  \"source_files\": \@JSON_GCOV_FILES\@
+}"
+)
+
 set(SRC_FILE_TEMPLATE
 "{
-  \"name\": \"\@GCOV_FILE\@\",
+  \"name\": \"\@GCOV_FILE_WEXT\@\",
   \"source\": \"\@GCOV_FILE_SOURCE\@\",
   \"coverage\": \@GCOV_FILE_COVERAGE\@
 }"
 )
 
+set(JSON_GCOV_FILES "[")
+
 # Read the GCOV files line by line and get the coverage data.
 foreach (GCOV_FILE ${GCOV_FILES})
+
+	get_filename_component(GCOV_FILE ${GCOV_FILE} NAME)
+	string(REGEX REPLACE "\\.gcov$" "" GCOV_FILE_WEXT ${GCOV_FILE})
 
 	# Loads the gcov file as a list of lines.
 	file(STRINGS ${GCOV_FILE} GCOV_LINES)
@@ -125,11 +145,14 @@ foreach (GCOV_FILE ${GCOV_FILES})
 			else()
 				set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}${HITCOUNT}, ")
 			endif()
+			# TODO: Look for LCOV_EXCL_LINE to get rid of false positives.
 
 			# Replace line ending literals (\n) in printf strings and such with
 			# escaped versions (\\n). Coveralls uses \n for line endings.
 			# Also escape " chars so we don't produce invalid JSON.
+			string(REPLACE "\\0" "\\\\0" SOURCE "${SOURCE}")
 			string(REPLACE "\\n" "\\\\n" SOURCE "${SOURCE}")
+			string(REPLACE "\t" "\\\\t" SOURCE "${SOURCE}")
 			string(REGEX REPLACE "\"" "\\\\\"" SOURCE "${SOURCE}")
 
 			# Concatenate all the sources into one long string that can
@@ -151,7 +174,18 @@ foreach (GCOV_FILE ${GCOV_FILES})
 	string(CONFIGURE ${SRC_FILE_TEMPLATE} FILE_JSON)
 	message("${FILE_JSON}")
 
+	set(JSON_GCOV_FILES "${JSON_GCOV_FILES}${FILE_JSON}, ")
 endforeach()
 
-message("${SRC_FILE_TEMPLATE}")
+# Get rid of trailing comma.
+string(REGEX REPLACE ",[ ]*$" "" JSON_GCOV_FILES ${JSON_GCOV_FILES})
+set(JSON_GCOV_FILES "${JSON_GCOV_FILES}]")
+
+# TODO: Also include files WITHOUT coverage data!
+
+# Generate the final complete JSON!
+string(CONFIGURE ${JSON_TEMPLATE} JSON)
+
+message("${JSON}")
+file(WRITE "coveralls.json" "${JSON}")
 
