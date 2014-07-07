@@ -23,8 +23,12 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 #
 # Make sure we have the needed arguments.
 #
+if (NOT COVERALLS_OUTPUT_FILE)
+	message(FATAL_ERROR "No coveralls output file specified. Please set COVERALLS_OUTPUT_FILE")
+endif()
+
 if (NOT COV_PATH)
-	message(FATAL_ERROR "Missing coverage directory path containing gcov files. Please set COV_PATH")
+	message(FATAL_ERROR "Missing coverage directory path where gcov files will be generated. Please set COV_PATH")
 endif()
 
 # TODO: Require these to be absolute path?
@@ -38,10 +42,41 @@ if (NOT GCOV_EXECUTABLE)
 	message(FATAL_ERROR "gcov not found! Aborting...")
 endif()
 
-find_program(CURL_EXECUTABLE curl)
+find_package(Git)
 
-if (NOT CURL_EXECUTABLE)
-	message(FATAL_ERROR "curl not found! Aborting")
+# TODO: Add these git things to the coveralls json.
+if (GIT_FOUND)
+	# Branch.
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		OUTPUT_VARIABLE GIT_BRANCH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+
+	macro (git_log_format FORMAT_CHARS VAR_NAME)
+		execute_process(
+			COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%${FORMAT_CHARS}
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+			OUTPUT_VARIABLE ${VAR_NAME}
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+	endmacro()
+
+	git_log_format(an GIT_AUTHOR_EMAIL)
+	git_log_format(ae GIT_AUTHOR_EMAIL)
+	git_log_format(cn GIT_COMMITTER_NAME)
+	git_log_format(ce GIT_COMMITTER_EMAIL)
+	git_log_format(B GIT_COMMIT_MESSAGE)
+
+	message("Git exe: ${GIT_EXECUTABLE}")
+	message("Git branch: ${GIT_BRANCH}")
+	message("Git author: ${GIT_AUTHOR_NAME}")
+	message("Git e-mail: ${GIT_AUTHOR_EMAIL}")
+	message("Git commiter name: ${GIT_COMMITTER_NAME}")
+	message("Git commiter e-mail: ${GIT_COMMITTER_EMAIL}")
+	message("Git commit message: ${GIT_COMMIT_MESSAGE}")
+
 endif()
 
 # Get the coverage data.
@@ -81,6 +116,7 @@ endforeach()
 
 message("Gcov files we want: ${GCOV_FILES}")
 
+# TODO: Enable setting these
 set(JSON_SERVICE_NAME "travs-ci")
 set(JSON_SERVICE_JOB_ID $ENV{TRAVIS_JOB_ID})
 
@@ -181,11 +217,14 @@ endforeach()
 string(REGEX REPLACE ",[ ]*$" "" JSON_GCOV_FILES ${JSON_GCOV_FILES})
 set(JSON_GCOV_FILES "${JSON_GCOV_FILES}]")
 
-# TODO: Also include files WITHOUT coverage data!
+# TODO: Also include files specified in COVERAGE_SRCS WITHOUT coverage data!
 
 # Generate the final complete JSON!
 string(CONFIGURE ${JSON_TEMPLATE} JSON)
 
-message("${JSON}")
-file(WRITE "coveralls.json" "${JSON}")
+#message("${JSON}")
+file(WRITE "${COVERALLS_OUTPUT_FILE}" "${JSON}")
+message("###########################################################################")
+message("Generated coveralls JSON containing coverage data: ${COVERALLS_OUTPUT_FILE}")
+message("###########################################################################")
 
