@@ -79,3 +79,45 @@ foreach (test_name ${TEST_SRCS_NO_EXT})
 		add_test(${test_name}_memchk ${VALGRIND_PROGRAM} --error-exitcode=5 --leak-check=full --suppressions=${PROJECT_SOURCE_DIR}/valgrind-supress.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CATCIERGE_TEST_DRIVER} ${test_name})
 	endif()
 endforeach()
+
+###################### Coveralls!
+# TODO: Move all this to it's own file.
+
+# Check if we're running on travis to add this target.
+if ($ENV{TRAVIS})
+	set(COVERAGE_SRCS ${REGRESS_SRC})
+	set(COVERALLS_FILE ${PROJECT_BINARY_DIR}/coveralls.json)
+
+	find_program(CURL_EXECUTABLE curl)
+
+	if (NOT CURL_EXECUTABLE)
+		message(FATAL_ERROR "curl not found! Aborting")
+	endif()
+
+	add_custom_target(coveralls
+
+		# Zero the coverage counters.
+		COMMAND ${CMAKE_COMMAND}
+				-P "${PROJECT_SOURCE_DIR}/cmake/CoverallsClear.cmake"
+
+		# Run regress tests.
+		COMMAND ${CMAKE_CTEST_COMMAND}
+
+		# Generate Gcov and translate it into coveralls JSON.
+		COMMAND ${CMAKE_COMMAND}
+				-DCOVERAGE_SRCS="${COVERAGE_SRCS}"
+				-DCOVERALLS_OUTPUT_FILE="${COVERALLS_FILE}"
+				-DCOV_PATH="${PROJECT_BINARY_DIR}"
+				-P "${PROJECT_SOURCE_DIR}/cmake/CoverallsGenerateGcov.cmake"
+
+		# Upload the JSON to coveralls.
+		COMMAND ${CURL_EXECUTABLE}
+				-F json_file=@${COVERALLS_FILE}
+				https://coveralls.io/api/v1/jobs
+
+		WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+		COMMENT "Generating and uploading coveralls output..."
+		)
+else()
+	message("Skipping coveralls upload, not running Travis")
+endif()
