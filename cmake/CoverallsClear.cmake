@@ -1,0 +1,3 @@
+
+file(REMOVE_RECURSE ${PROJECT_BINARY_DIR}/*.gcda)
+
