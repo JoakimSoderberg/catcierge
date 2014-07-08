@@ -117,7 +117,7 @@ endforeach()
 message("Gcov files we want: ${GCOV_FILES}")
 
 # TODO: Enable setting these
-set(JSON_SERVICE_NAME "travs-ci")
+set(JSON_SERVICE_NAME "travis-ci")
 set(JSON_SERVICE_JOB_ID $ENV{TRAVIS_JOB_ID})
 
 set(JSON_TEMPLATE
