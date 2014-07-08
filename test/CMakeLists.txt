@@ -84,7 +84,7 @@ endforeach()
 # TODO: Move all this to it's own file.
 
 # Check if we're running on travis to add this target.
-if ($ENV{TRAVIS})
+if ($ENV{TRAVIS} STREQUAL "true")
 	set(COVERAGE_SRCS ${REGRESS_SRC})
 	set(COVERALLS_FILE ${PROJECT_BINARY_DIR}/coveralls.json)
 
@@ -101,7 +101,7 @@ if ($ENV{TRAVIS})
 				-P "${PROJECT_SOURCE_DIR}/cmake/CoverallsClear.cmake"
 
 		# Run regress tests.
-		COMMAND ${CMAKE_CTEST_COMMAND}
+		COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
 
 		# Generate Gcov and translate it into coveralls JSON.
 		COMMAND ${CMAKE_COMMAND}

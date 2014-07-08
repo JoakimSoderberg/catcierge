@@ -86,7 +86,7 @@ file(GLOB_RECURSE GCDA_FILES "${COV_PATH}/*.gcda")
 # (The directories the .gcda files and .o files are found in)
 #set(OBJECT_DIRS "")
 foreach(GCDA ${GCDA_FILES})
-	get_filename_component(GCDA_DIR ${GCDA} DIRECTORY)
+	get_filename_component(GCDA_DIR ${GCDA} PATH)
 
 	execute_process(
 		COMMAND ${GCOV_EXECUTABLE} -o ${GCDA_DIR} ${GCDA}
