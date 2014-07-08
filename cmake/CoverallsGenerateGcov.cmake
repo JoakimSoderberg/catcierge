@@ -84,7 +84,7 @@ file(GLOB_RECURSE GCDA_FILES "${COV_PATH}/*.gcda")
 
 # Get a list of all the object directories needed by gcov
 # (The directories the .gcda files and .o files are found in)
-#set(OBJECT_DIRS "")
+# and run gcov on those.
 foreach(GCDA ${GCDA_FILES})
 	get_filename_component(GCDA_DIR ${GCDA} PATH)
 
@@ -97,6 +97,13 @@ endforeach()
 # TODO: Make these be absolute path
 file(GLOB ALL_GCOV_FILES ${COV_PATH}/*.gcov)
 
+# Get only the filenames to use for filtering.
+set(COVERAGE_SRCS_NAMES "")
+foreach (COVSRC ${COVERAGE_SRCS})
+	get_filename_component(COVSRC_NAME ${COVSRC} NAME)
+	list(APPEND COVERAGE_SRCS_NAMES "${COVSRC_NAME}")
+endforeach()
+
 # Filter out all but the gcov files we want.
 set(GCOV_FILES "")
 foreach (GCOV_FILE ${ALL_GCOV_FILES})
@@ -107,8 +114,9 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 	#message("gcov file wext: ${GCOV_FILE_WEXT}")
 
 	# Is this in the list of source files?
-	list(FIND COVERAGE_SRCS ${GCOV_FILE_WEXT} WAS_FOUND)
-	
+	# TODO: We want to match against relative path filenames from the source file root...
+	list(FIND COVERAGE_SRCS_NAMES ${GCOV_FILE_WEXT} WAS_FOUND)
+
 	if (NOT WAS_FOUND EQUAL -1)
 		list(APPEND GCOV_FILES ${GCOV_FILE})
 	endif() 
@@ -162,40 +170,44 @@ foreach (GCOV_FILE ${GCOV_FILES})
 			"\\1;\\2;\\3"
 			RES
 			"${GCOV_LINE}")
+		#message("Line: ${GCOV_LINE}")
 
-		list(GET RES 0 HITCOUNT)
-		list(GET RES 1 LINE)
-		list(GET RES 2 SOURCE)
+		list(LENGTH RES RES_COUNT)
+		if (RES_COUNT EQUAL 3)
+			list(GET RES 0 HITCOUNT)
+			list(GET RES 1 LINE)
+			list(GET RES 2 SOURCE)
 
-		string(STRIP ${HITCOUNT} HITCOUNT)
-		string(STRIP ${LINE} LINE)
+			string(STRIP ${HITCOUNT} HITCOUNT)
+			string(STRIP ${LINE} LINE)
 
-		# Lines with 0 line numbers are metadata and can be ignored.
-		if (NOT ${LINE} EQUAL 0)
-			
-			# Translate the hitcount into valid JSON values.
-			if (${HITCOUNT} STREQUAL "#####")
-				set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}0, ")
-			elseif (${HITCOUNT} STREQUAL "-")
-				set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}null, ")
-			else()
-				set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}${HITCOUNT}, ")
+			# Lines with 0 line numbers are metadata and can be ignored.
+			if (NOT ${LINE} EQUAL 0)
+				
+				# Translate the hitcount into valid JSON values.
+				if (${HITCOUNT} STREQUAL "#####")
+					set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}0, ")
+				elseif (${HITCOUNT} STREQUAL "-")
+					set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}null, ")
+				else()
+					set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}${HITCOUNT}, ")
+				endif()
+				# TODO: Look for LCOV_EXCL_LINE to get rid of false positives.
+
+				# Replace line ending literals (\n) in printf strings and such with
+				# escaped versions (\\n). Coveralls uses \n for line endings.
+				# Also escape " chars so we don't produce invalid JSON.
+				string(REPLACE "\\0" "\\\\0" SOURCE "${SOURCE}")
+				string(REPLACE "\\n" "\\\\n" SOURCE "${SOURCE}")
+				string(REPLACE "\t" "\\\\t" SOURCE "${SOURCE}")
+				string(REGEX REPLACE "\"" "\\\\\"" SOURCE "${SOURCE}")
+
+				# Concatenate all the sources into one long string that can
+				# be put in the JSON file.
+				# (Below is CMake 3.0.0 only. I guess it's faster....)
+				#string(CONCAT GCOV_FILE_SOURCE "${SOURCE}\\n") 
+				set(GCOV_FILE_SOURCE "${GCOV_FILE_SOURCE}${SOURCE}\\n")
 			endif()
-			# TODO: Look for LCOV_EXCL_LINE to get rid of false positives.
-
-			# Replace line ending literals (\n) in printf strings and such with
-			# escaped versions (\\n). Coveralls uses \n for line endings.
-			# Also escape " chars so we don't produce invalid JSON.
-			string(REPLACE "\\0" "\\\\0" SOURCE "${SOURCE}")
-			string(REPLACE "\\n" "\\\\n" SOURCE "${SOURCE}")
-			string(REPLACE "\t" "\\\\t" SOURCE "${SOURCE}")
-			string(REGEX REPLACE "\"" "\\\\\"" SOURCE "${SOURCE}")
-
-			# Concatenate all the sources into one long string that can
-			# be put in the JSON file.
-			# (Below is CMake 3.0.0 only. I guess it's faster....)
-			#string(CONCAT GCOV_FILE_SOURCE "${SOURCE}\\n") 
-			set(GCOV_FILE_SOURCE "${GCOV_FILE_SOURCE}${SOURCE}\\n")
 		endif()
 	endforeach()
 
