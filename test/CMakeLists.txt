@@ -92,7 +92,7 @@ if ($ENV{TRAVIS} STREQUAL "true")
 	# of sources, but rather just one long path. We remedy this
 	# by replacing ";" with "*" and then reversing that in the script.
 	# http://cmake.3232098.n2.nabble.com/Passing-a-CMake-list-quot-as-is-quot-to-a-custom-target-td6505681.html
-	set(COVERAGE_SRCS_TMP ${REGRESS_SRC})
+	set(COVERAGE_SRCS_TMP ${REGRESS_SRC} ${LIB_SRC})
 	set(COVERAGE_SRCS "")
 	foreach (COVERAGE_SRC ${COVERAGE_SRCS_TMP})
 		set(COVERAGE_SRCS "${COVERAGE_SRCS}*${COVERAGE_SRC}")
