@@ -31,10 +31,15 @@ if (NOT COV_PATH)
 	message(FATAL_ERROR "Missing coverage directory path where gcov files will be generated. Please set COV_PATH")
 endif()
 
-# TODO: Require these to be absolute path?
 if (NOT COVERAGE_SRCS)
 	message(FATAL_ERROR "Missing the list of source files that we should get the coverage data for COVERAGE_SRCS")
 endif()
+
+# Since it's not possible to pass a CMake list properly in the
+# "1;2;3" format to an external process, we have replaced the
+# ";" with "*", so reverse that here so we get it back into the
+# CMake list format.
+string(REGEX REPLACE "\\*" ";" COVERAGE_SRCS ${COVERAGE_SRCS})
 
 find_program(GCOV_EXECUTABLE gcov)
 
@@ -101,11 +106,13 @@ file(GLOB ALL_GCOV_FILES ${COV_PATH}/*.gcov)
 set(COVERAGE_SRCS_NAMES "")
 foreach (COVSRC ${COVERAGE_SRCS})
 	get_filename_component(COVSRC_NAME ${COVSRC} NAME)
+	message("${COVSRC} -> ${COVSRC_NAME}")
 	list(APPEND COVERAGE_SRCS_NAMES "${COVSRC_NAME}")
 endforeach()
 
 # Filter out all but the gcov files we want.
 set(GCOV_FILES "")
+message("Look in coverage sources: ${COVERAGE_SRCS_NAMES}")
 foreach (GCOV_FILE ${ALL_GCOV_FILES})
 
 	# Get rid of .gcov and path info.
@@ -118,8 +125,11 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 	list(FIND COVERAGE_SRCS_NAMES ${GCOV_FILE_WEXT} WAS_FOUND)
 
 	if (NOT WAS_FOUND EQUAL -1)
+		message("Found ${GCOV_FILE}")
 		list(APPEND GCOV_FILES ${GCOV_FILE})
-	endif() 
+	else()
+		message("Not found: ${GCOV_FILE}")
+	endif()
 endforeach()
 
 message("Gcov files we want: ${GCOV_FILES}")
@@ -197,10 +207,17 @@ foreach (GCOV_FILE ${GCOV_FILES})
 				# Replace line ending literals (\n) in printf strings and such with
 				# escaped versions (\\n). Coveralls uses \n for line endings.
 				# Also escape " chars so we don't produce invalid JSON.
-				string(REPLACE "\\0" "\\\\0" SOURCE "${SOURCE}")
-				string(REPLACE "\\n" "\\\\n" SOURCE "${SOURCE}")
-				string(REPLACE "\t" "\\\\t" SOURCE "${SOURCE}")
+				#string(REPLACE "\"" "\\\\\"" SOURCE "${SOURCE}")
+				string(REPLACE "\\" "\\\\" SOURCE "${SOURCE}")
 				string(REGEX REPLACE "\"" "\\\\\"" SOURCE "${SOURCE}")
+				string(REPLACE "\t" "\\\\t" SOURCE "${SOURCE}")
+				string(REPLACE "\r" "\\\\r" SOURCE "${SOURCE}")
+
+				# According to http://json.org/ these should be escaped as well.
+				# Don't know how to do that in CMake however...
+				#string(REPLACE "\b" "\\\\b" SOURCE "${SOURCE}")
+				#string(REPLACE "\f" "\\\\f" SOURCE "${SOURCE}")
+				#string(REGEX REPLACE "\u([a-fA-F0-9]{4})" "\\\\u\\1" SOURCE "${SOURCE}")
 
 				# Concatenate all the sources into one long string that can
 				# be put in the JSON file.
@@ -220,7 +237,7 @@ foreach (GCOV_FILE ${GCOV_FILES})
 
 	# Generate the final JSON for this file.
 	string(CONFIGURE ${SRC_FILE_TEMPLATE} FILE_JSON)
-	message("${FILE_JSON}")
+	#message("${FILE_JSON}")
 
 	set(JSON_GCOV_FILES "${JSON_GCOV_FILES}${FILE_JSON}, ")
 endforeach()

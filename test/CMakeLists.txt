@@ -85,7 +85,20 @@ endforeach()
 
 # Check if we're running on travis to add this target.
 if ($ENV{TRAVIS} STREQUAL "true")
-	set(COVERAGE_SRCS ${REGRESS_SRC})
+
+	# When passing a CMake list to an external process, the list
+	# will be converted from the format "1;2;3" to "1 2 3".
+	# This means the script we're calling won't see it as a list
+	# of sources, but rather just one long path. We remedy this
+	# by replacing ";" with "*" and then reversing that in the script.
+	# http://cmake.3232098.n2.nabble.com/Passing-a-CMake-list-quot-as-is-quot-to-a-custom-target-td6505681.html
+	set(COVERAGE_SRCS_TMP ${REGRESS_SRC})
+	set(COVERAGE_SRCS "")
+	foreach (COVERAGE_SRC ${COVERAGE_SRCS_TMP})
+		set(COVERAGE_SRCS "${COVERAGE_SRCS}*${COVERAGE_SRC}")
+	endforeach()
+
+	message("Coverage sources: ${COVERAGE_SRCS}")
 	set(COVERALLS_FILE ${PROJECT_BINARY_DIR}/coveralls.json)
 
 	find_program(CURL_EXECUTABLE curl)
@@ -105,7 +118,7 @@ if ($ENV{TRAVIS} STREQUAL "true")
 
 		# Generate Gcov and translate it into coveralls JSON.
 		COMMAND ${CMAKE_COMMAND}
-				-DCOVERAGE_SRCS="${COVERAGE_SRCS}"
+				-DCOVERAGE_SRCS="${COVERAGE_SRCS}" # TODO: This is passed like: "a b c", not "a;b;c"
 				-DCOVERALLS_OUTPUT_FILE="${COVERALLS_FILE}"
 				-DCOV_PATH="${PROJECT_BINARY_DIR}"
 				-P "${PROJECT_SOURCE_DIR}/cmake/CoverallsGenerateGcov.cmake"
