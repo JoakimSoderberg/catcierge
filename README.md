@@ -5,30 +5,34 @@ Catcierge
 =========
 ![Catcierge](https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/diy/small_logo.jpg)
 
-Catcierge is an image recognition for detecting "gifts" and
-neighbour cats for an automated cat door system. Designed for use with the
-Raspberry Pi including camera board. However, it also runs on Windows, Linux and OSX with a normal webcam.
+Catcierge is an image recognition and RFID detection system for a DIY cat door.
+It can be used to detect prey that the cat tries to bring in,
+or if a neighbour cat is trying to get in. The design is targeted for use with the
+Raspberry Pi including the camera board. However, it also runs on Windows, Linux and OSX with a normal webcam.
 
-There is also preliminary support for reading RFID tags inserted into the cats neck.
+There is also preliminary support for reading animal RFID tags commonly used for cats
+(the kind that veterinarians insert into their necks).
 
 Background
 ----------
 The Catcierge project came about to solve the problem of our cat having the
-nasty habit of delivering "gifts" to us through our cat door in the form 
+nasty habit of delivering "gifts" through our cat door in the form 
 of dead, or partly dead / fully alive rodents or birds.
 
 Instead of simply not allowing our cat to use the cat door like normal people
 I of course set out to find a high-tech solution to solve my perdicament.
 
 I found the [Flo Control project][flo_control] project and based the general idea
-on that setup.
+on that setup (detecting prey based on the cats head profile).
 
 The first implementation used a simple template matching technique, but after
 evaluating that for a while I realised a better solution was needed. 
 Instead I trained a Haar Cascade recognizer to find the cats head, and then
 used various other techniques to detect if it has prey in it's mouth or not.
 This technique has turned out to be very reliable and successful with
-hardly any false positives.
+hardly any false positives. The training data and results for the Haar cascade
+training can be found in a separate repository 
+[https://github.com/JoakimSoderberg/catcierge-samples](catcierge-samples)
 
 Hardware design details
 -----------------------
@@ -93,7 +97,7 @@ or download: [http://opencv.org/downloads.html](http://opencv.org/downloads.html
 $ git clone <url>
 $ cd catcierge
 $ mkdir build && cd build
-$ cmake -DRPI=0 ..
+$ cmake -DRPI=0 .. # Important, don't compile the Raspberry Pi specifics...
 $ cmake --build .
 ```
 
@@ -123,17 +127,24 @@ $ cmake --build .     # Either build from command line...
 $ start catcierge.sln # Or launch Visual Studio and build from there...
 ```
 
-Running
--------
-The main program is named [catcierge_grabber](catcierge_grabber.c) which 
+Running the main program
+------------------------
+The main program is named [catcierge_grabber2](catcierge_grabber2.c) which 
 performs all the logic of doing the image recognition, RFID detection and
 deciding if the door should be locked or not.
 
 For more help on all the settings:
 
 ```bash
-$ ./catcierge_grabber --help
+$ ./catcierge_grabber2 --help
 ```
+
+Test programs
+-------------
+While developing and testing I have developed a few small helper programs.
+There are both prototypes written in Python, as well as test programs that
+uses the C code from the real program. The Python and C versions of OpenCV
+behaves slightly differently in some cases, I am not sure why exactly.
 
 To test the image recognition there is a test program 
 [catcierge_tester](catcierge_tester.c) that allows you to specify an image
@@ -157,9 +168,13 @@ Likewise for the RFID matching:
 $ ./catcierge_rfid_tester
 ```
 
+### Prototypes
+
 To test different matching strategies there's a Python prototype as well
 in the aptly named "protoype/" directory. The prototype is named after my
-cat [higgs.py](prototype/higgs.py). 
+cat [higgs.py](prototype/higgs.py). This was the first prototype used to
+create the Template matcher technique. For the Haar cascade matcher the
+prototype can be found in the [catcierge-samples][catcierge_samples] repository.
 
 It has some more advanced options that allows you to create montage 
 pictures of the match result of multiple images. This was used to
@@ -190,3 +205,4 @@ $ python higgs.py --snout snouts/snout{1,2}.png --output <path/to/output> --nosh
 [emil_valkov]: http://www.robidouille.com/
 [rfid_cat]: http://www.priority1design.com.au/shopfront/index.php?main_page=product_info&cPath=1&products_id=23
 [rpi_userland]: https://github.com/raspberrypi/userland
+[catcierge_samples]: https://github.com/JoakimSoderberg/catcierge-samples
