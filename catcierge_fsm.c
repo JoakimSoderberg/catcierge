@@ -840,16 +840,17 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	else
 	{
 		// We now have enough images to decide lock status.
-		int success_count = 0;
 		int i;
 		grb->match_success = 0;
+		grb->match_success_count = 0;
 
+		// TODO: Change this to use the direction which most agree on.
 		// Get any successful direction.
 		// (It is very uncommon for 2 successful matches to give different
 		// direction, so we can be pretty sure this is correct).
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
-			success_count += grb->matches[i].success;
+			grb->match_success_count += !!grb->matches[i].success;
 
 			if (grb->matches[i].success)
 			{
@@ -867,13 +868,13 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		else
 		{
 			// Otherwise if enough matches (default 2) are ok.
-			grb->match_success = (success_count >= args->ok_matches_needed);
+			grb->match_success = (grb->match_success_count >= args->ok_matches_needed);
 		}
 
 		if (grb->match_success)
 		{
 			CATLOG("Everything OK! (%d out of %d matches succeeded)"
-					" Door kept open...\n", success_count, MATCH_MAX_COUNT);
+					" Door kept open...\n", grb->match_success_count, MATCH_MAX_COUNT);
 
 			// Make sure the door is open.
 			catcierge_do_unlock(grb);
@@ -890,16 +891,16 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		else
 		{
 			CATLOG("Lockout! %d out of %d matches failed.\n",
-					(MATCH_MAX_COUNT - success_count), MATCH_MAX_COUNT);
+					(MATCH_MAX_COUNT - grb->match_success_count), MATCH_MAX_COUNT);
 
 			catcierge_check_max_consecutive_lockouts(grb);
 			catcierge_state_transition_lockout(grb);
 		}
 
 		catcierge_execute(args->match_done_cmd, "%d %d %d", 
-			grb->match_success, 	// %0 = Match success.
-			success_count, 			// %1 = Successful match count.
-			MATCH_MAX_COUNT);		// %2 = Max matches.
+			grb->match_success, 		// %0 = Match success.
+			grb->match_success_count,	// %1 = Successful match count.
+			MATCH_MAX_COUNT);			// %2 = Max matches.
 
 		// Now we can save the images that we cached earlier 
 		// without slowing down the matching FPS.

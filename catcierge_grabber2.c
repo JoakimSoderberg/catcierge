@@ -37,14 +37,13 @@ static void sig_handler(int signo)
 		{
 			CATLOG("Received SIGUSR1, forcing unlock...\n");
 			catcierge_do_unlock(&grb);
-			// TODO: Fix state change here...
-			//state = STATE_WAITING;
+			catcierge_set_state(&grb, catcierge_state_waiting);
 			break;
 		}
 		case SIGUSR2:
 		{
 			CATLOG("Received SIGUSR2, forcing lockout...\n");
-			//start_locked_state();
+			catcierge_state_transition_lockout(&grb);
 			break;
 		}
 		#endif // _WIN32
@@ -66,7 +65,7 @@ void setup_sig_handlers()
 
 	if (signal(SIGUSR2, sig_handler) == SIG_ERR)
 	{
-		CATERR("Failed to set SIGUSR2 handler (used to force unlock)\n");
+		CATERR("Failed to set SIGUSR2 handler (used to force lockout)\n");
 	}
 	#endif // _WIN32
 }
