@@ -131,7 +131,7 @@ char *run_add_and_generate_tests()
 		{
 			if (catcierge_output_add_template(&o,
 				"hej %match_success%",
-				"outputpath is here %match_success% %time%"))
+				"[arne]outputpath is here %match_success% %time%"))
 			{
 				return "Failed to add template";
 			}
@@ -155,6 +155,26 @@ char *run_add_and_generate_tests()
 				return "Failed to add template";
 			}
 			mu_assert("Expected template count 3", o.template_count == 3);
+
+			if (catcierge_output_generate_templates(&o, &grb, grb.args.output_path))
+				return "Failed to generate templates";
+		}
+
+		catcierge_test_STATUS("Add a named template");
+		{
+			grb.matches[1].time = time(NULL);
+			strcpy(grb.matches[1].path, "thematchpath");
+
+			if (catcierge_output_add_template(&o,
+				"Some awesome %match2_path% template. "
+				"Advanced time format is here: %time:Week @W @H:@M%\n"
+				"And match time, %match2_time:@H:@M%",
+				"[arne]the path"))
+			{
+				return "Failed to add template";
+			}
+			mu_assert("Expected template count 4", o.template_count == 4);
+			mu_assert("Expected named template", !strcmp(o.templates[3].name, "arne"));
 
 			if (catcierge_output_generate_templates(&o, &grb, grb.args.output_path))
 				return "Failed to generate templates";

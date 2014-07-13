@@ -105,6 +105,8 @@ void catcierge_output_destroy(catcierge_output_t *ctx)
 			t->target_path = NULL;
 			if (t->tmpl) free(t->tmpl);
 			t->tmpl = NULL;
+			if (t->name) free(t->name);
+			t->name = NULL;
 		}
 
 		free(ctx->templates);
@@ -122,6 +124,8 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 	catcierge_output_template_t *t;
 	assert(ctx);
 
+	// Get only the filename.
+	// TODO: Add windows support here.
 	if ((path = strrchr(target_path, '/')))
 	{
 		target_path = path + 1;
@@ -141,24 +145,70 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 	}
 
 	t = &ctx->templates[ctx->template_count];
+	memset(t, 0, sizeof(*t));
+
+	// If the target template filename starts with
+	// [name]bla_bla_%stuff%.json
+	// The template will get the name inside the [].
+	// Otherwise, simply use the template index as the name.
+	// This is so that we can pass the path of the generated
+	// target path at run time to the catcierge_execute function
+	// and the external program can distinguish between multiple templates.
+	{
+		char name[128];
+		memset(name, 0, sizeof(name));
+
+		if (sscanf(target_path, "[%[^]]", name) == 1)
+		{
+			target_path += strlen(name);
+		}
+		else
+		{
+			snprintf(name, sizeof(name) - 1, "%d", (int)ctx->template_count);
+		}
+		
+		if (!(t->name = strdup(name)))
+		{
+			goto fail;
+		}
+	}
 
 	if (!(t->target_path = strdup(target_path)))
 	{
-		CATERR("Out of memory!\n");
-		return -1;
+		goto fail;
 	}
 
 	if (!(t->tmpl = strdup(template_str)))
 	{
-		free(t->target_path);
-		t->target_path = NULL;
-		CATERR("Out of memory!\n");
-		return -1;
+		goto fail;
 	}
 
 	ctx->template_count++;
 
 	return 0;
+
+fail:
+	CATERR("Out of memory!\n");
+
+	if (t->target_path)
+	{
+		free(t->target_path);
+		t->target_path = NULL;
+	}
+
+	if (t->name)
+	{
+		free(t->name);
+		t->name = NULL;
+	}
+
+	if (t->tmpl)
+	{
+		free(t->tmpl);
+		t->tmpl = NULL;
+	}
+
+	return -1;
 }
 
 static char *catcierge_replace_time_format_char(char *fmt)

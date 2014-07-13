@@ -31,6 +31,7 @@ typedef struct catcierge_output_template_s
 {
 	char *tmpl;
 	char *target_path;
+	char *name;
 } catcierge_output_template_t;
 
 typedef struct catcierge_output_s
