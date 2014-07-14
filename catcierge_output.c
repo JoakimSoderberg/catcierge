@@ -107,6 +107,8 @@ void catcierge_output_destroy(catcierge_output_t *ctx)
 			t->tmpl = NULL;
 			if (t->name) free(t->name);
 			t->name = NULL;
+			if (t->generated_path) free(t->generated_path);
+			t->generated_path = NULL;
 		}
 
 		free(ctx->templates);
@@ -272,9 +274,40 @@ static char *catcierge_get_time_var_format(char *var,
 	return buf;
 }
 
-static const char *catcierge_output_translate(catcierge_grb_t *grb,
+const char *catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var)
 {
+	if (!strncmp(var, "template_path", 13))
+	{
+		size_t i;
+		catcierge_output_t *o = &grb->output;
+		char *subvar = var + 13;
+
+		if (*subvar == ':')
+		{
+			subvar++;
+
+			for (i = 0; i < o->template_count; i++)
+			{
+				if (!strcmp(subvar, o->templates[i].name))
+				{
+					return o->templates[i].generated_path;
+				}
+			}
+		}
+		else
+		{
+			// If no template name is given, simply use the first one.
+			// (This will probably be the most common case).
+			if (o->template_count > 0)
+			{
+				return o->templates[0].generated_path;
+			}
+		}
+
+		return NULL;
+	}
+
 	// Current time.
 	if (!strncmp(var, "time", 4))
 	{
@@ -512,6 +545,24 @@ static char *catcierge_replace_whitespace(char *path, char *extra_chars)
 	return 0;
 }
 
+static void catcierge_output_free_generated_paths(catcierge_output_t *ctx)
+{
+	size_t i;
+	catcierge_output_template_t *t = NULL;
+	assert(ctx);
+
+	for (i = 0; i < ctx->template_count; i++)
+	{
+		t = &ctx->templates[i];
+
+		if (t->generated_path)
+		{
+			free(t->generated_path);
+			t->generated_path = NULL;
+		}
+	}
+}
+
 int catcierge_output_generate_templates(catcierge_output_t *ctx,
 	catcierge_grb_t *grb, const char *output_path)
 {
@@ -534,40 +585,53 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		output_path = ".";
 	}
 
+	catcierge_output_free_generated_paths(ctx);
+
 	for (i = 0; i < ctx->template_count; i++)
 	{
 		t = &ctx->templates[i];
 
-		printf("Templates %s\n", t->tmpl);
+		// First generate the target path.
+		{
+			if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
+			{
+				CATERR("Failed to generate output path for template \"%s\"\n", t->target_path);
+				free(output);
+				return -1;
+			}
 
-		// Generate the template.
+			// Replace whitespace with underscore.
+			catcierge_replace_whitespace(path, ":");
+
+			// TODO: Get the path char in a nicer way...
+			// Assemble the full output path.
+			snprintf(full_path, sizeof(full_path), "%s%s%s",
+				output_path,
+				#ifdef _WIN32
+				"\\",
+				#else
+				"/",
+				#endif
+				path);
+
+			// We make a copy so that we can use the generated
+			// path as a variable in the templates contents, or
+			// when passed to catcierge_execute. 
+			if (!(t->generated_path = strdup(full_path)))
+			{
+				CATERR("Out of memory!\n");
+				free(path);
+				return -1;
+			}
+		}
+
+		// And then generate the template contents.
 		if (!(output = catcierge_output_generate_ex(ctx, grb, t->tmpl)))
 		{
 			CATERR("Failed to generate output for template \"%s\"\n", t->target_path);
+			free(path);
 			return -1;
 		}
-
-		// And the target path.
-		if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
-		{
-			CATERR("Failed to generate output path for template \"%s\"\n", t->target_path);
-			free(output);
-			return -1;
-		}
-
-		// Replace whitespace with underscore.
-		catcierge_replace_whitespace(path, ":");
-
-		// TODO: Get the path char in a nicer way...
-		// Assemble the full output path.
-		snprintf(full_path, sizeof(full_path), "%s%s%s",
-			output_path,
-			#ifdef _WIN32
-			"\\",
-			#else
-			"/",
-			#endif
-			path);
 
 		if (!(f = fopen(full_path, "w")))
 		{
