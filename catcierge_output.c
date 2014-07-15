@@ -274,38 +274,44 @@ static char *catcierge_get_time_var_format(char *var,
 	return buf;
 }
 
+static char *catcierge_get_template_path(catcierge_grb_t *grb, const char *var)
+{
+	size_t i;
+	catcierge_output_t *o = &grb->output;
+	const char *subvar = var + strlen("template_path");
+
+	if (*subvar == ':')
+	{
+		subvar++;
+
+		// Find the template with the given name.
+		for (i = 0; i < o->template_count; i++)
+		{
+			if (!strcmp(subvar, o->templates[i].name))
+			{
+				return o->templates[i].generated_path;
+			}
+		}
+	}
+	else
+	{
+		// If no template name is given, simply use the first one.
+		// (This will probably be the most common case).
+		if (o->template_count > 0)
+		{
+			return o->templates[0].generated_path;
+		}
+	}
+
+	return NULL;
+}
+
 const char *catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var)
 {
 	if (!strncmp(var, "template_path", 13))
 	{
-		size_t i;
-		catcierge_output_t *o = &grb->output;
-		char *subvar = var + 13;
-
-		if (*subvar == ':')
-		{
-			subvar++;
-
-			for (i = 0; i < o->template_count; i++)
-			{
-				if (!strcmp(subvar, o->templates[i].name))
-				{
-					return o->templates[i].generated_path;
-				}
-			}
-		}
-		else
-		{
-			// If no template name is given, simply use the first one.
-			// (This will probably be the most common case).
-			if (o->template_count > 0)
-			{
-				return o->templates[0].generated_path;
-			}
-		}
-
-		return NULL;
+		return catcierge_get_template_path(grb, var);
 	}
 
 	// Current time.
