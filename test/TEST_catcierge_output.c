@@ -104,40 +104,40 @@ static char *run_generate_tests()
 
 char *run_add_and_generate_tests()
 {
-	catcierge_output_t o;
 	catcierge_grb_t grb;
+	catcierge_output_t *o = &grb.output;
 
 	catcierge_grabber_init(&grb);
 	{
 		grb.args.output_path = "template_tests";
 
-		if (catcierge_output_init(&o))
+		if (catcierge_output_init(o))
 			return "Failed to init output context";
 
 		catcierge_test_STATUS("Add one template");
 		{
-			if (catcierge_output_add_template(&o,
-				"%match_success%", "outputpath"))
+			if (catcierge_output_add_template(o,
+				"%match_success%", "firstoutputpath"))
 			{
 				return "Failed to add template";
 			}
-			mu_assert("Expected template count 1", o.template_count == 1);
+			mu_assert("Expected template count 1", o->template_count == 1);
 
-			if (catcierge_output_generate_templates(&o, &grb, grb.args.output_path))
+			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path))
 				return "Failed to generate templates";
 		}
 
 		catcierge_test_STATUS("Add another template");
 		{
-			if (catcierge_output_add_template(&o,
+			if (catcierge_output_add_template(o,
 				"hej %match_success%",
-				"[arne]outputpath is here %match_success% %time%"))
+				"outputpath is here %match_success% %time%"))
 			{
 				return "Failed to add template";
 			}
-			mu_assert("Expected template count 2", o.template_count == 2);
+			mu_assert("Expected template count 2", o->template_count == 2);
 
-			if (catcierge_output_generate_templates(&o, &grb, grb.args.output_path))
+			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path))
 				return "Failed to generate templates";
 		}
 
@@ -146,7 +146,7 @@ char *run_add_and_generate_tests()
 			grb.matches[1].time = time(NULL);
 			strcpy(grb.matches[1].path, "blafile");
 
-			if (catcierge_output_add_template(&o,
+			if (catcierge_output_add_template(o,
 				"Some awesome %match2_path% template. "
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
 				"And match time, %match2_time:@H:@M%",
@@ -154,33 +154,53 @@ char *run_add_and_generate_tests()
 			{
 				return "Failed to add template";
 			}
-			mu_assert("Expected template count 3", o.template_count == 3);
+			mu_assert("Expected template count 3", o->template_count == 3);
 
-			if (catcierge_output_generate_templates(&o, &grb, grb.args.output_path))
+			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path))
 				return "Failed to generate templates";
 		}
 
 		catcierge_test_STATUS("Add a named template");
 		{
+			char buf[1024];
+			const char *named_template_path = NULL;
+			const char *default_template_path = NULL;
 			grb.matches[1].time = time(NULL);
 			strcpy(grb.matches[1].path, "thematchpath");
 
-			if (catcierge_output_add_template(&o,
+			if (catcierge_output_add_template(o,
 				"Some awesome %match2_path% template. "
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
 				"And match time, %match2_time:@H:@M%",
-				"[arne]the path"))
+				"[arne]the path")) // Here the name is specified with [arne]
 			{
 				return "Failed to add template";
 			}
-			mu_assert("Expected template count 4", o.template_count == 4);
-			mu_assert("Expected named template", !strcmp(o.templates[3].name, "arne"));
+			mu_assert("Expected template count 4", o->template_count == 4);
+			mu_assert("Expected named template", !strcmp(o->templates[3].name, "arne"));
 
-			if (catcierge_output_generate_templates(&o, &grb, grb.args.output_path))
+			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path))
 				return "Failed to generate templates";
+
+			// Try getting the template_path for the arne template.
+			named_template_path = catcierge_output_translate(&grb, buf, sizeof(buf), "template_path:arne");
+			catcierge_test_STATUS("Got named template path for \"arne\": %s", named_template_path);
+			mu_assert("Got null named template path", named_template_path != NULL);
+			mu_assert("Unexpected named template path", !strcmp("template_tests/the_path", named_template_path));
+
+			// Also try a non-existing name.
+			named_template_path = catcierge_output_translate(&grb, buf, sizeof(buf), "template_path:bla");
+			catcierge_test_STATUS("Tried to get non-existing template path: %s", named_template_path);
+			mu_assert("Got non-null for non-existing named template path", named_template_path == NULL);
+
+			// This should simply get the path for the first template.
+			default_template_path = catcierge_output_translate(&grb, buf, sizeof(buf), "template_path");
+			catcierge_test_STATUS("Got default template path: %s", default_template_path);
+			mu_assert("Got null default template path", default_template_path != NULL);
+			mu_assert("Unexpected default template path", !strcmp("template_tests/firstoutputpath", default_template_path));
 		}
 
-		catcierge_output_destroy(&o);
+		catcierge_output_destroy(o);
 	}
 	catcierge_grabber_destroy(&grb);
 
