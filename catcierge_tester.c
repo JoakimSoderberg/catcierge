@@ -92,9 +92,14 @@ int main(int argc, char **argv)
 
 	if (argc < 4)
 	{
-		fprintf(stderr, "Usage: %s [--output [path]] [--debug] [--show]\n"
-						"          [--match_flipped <0|1>] [--threshold]\n"
-						"          [--preload] [--test_matchable]\n"
+		fprintf(stderr, "Usage: %s\n"
+						"          [--output [path]]\n"
+						"          [--debug]\n"
+						"          [--show]\n"
+						"          [--match_flipped <0|1>]\n"
+						"          [--threshold]\n"
+						"          [--preload]\n"
+						"          [--test_matchable]\n"
 						"          [--snout <snout images for template matching>]\n"
 						"          [--cascade <haar cascade xml>]\n"
 						"           --images <input images>\n"
@@ -173,8 +178,7 @@ int main(int argc, char **argv)
 			}
 			continue;
 		}
-
-		if (!strncmp(argv[i], "--", 2))
+		else if (!strncmp(argv[i], "--", 2))
 		{
 			int j = i + 1;
 			key = &argv[i][2];
@@ -197,6 +201,11 @@ int main(int argc, char **argv)
 				fprintf(stderr, "Failed to parse command line arguments for \"%s\"\n", key);
 				return ret;
 			}
+		}
+		else
+		{
+			fprintf(stderr, "Unknown command line argument \"%s\"\n", argv[i]);
+			return -1;
 		}
 	}
 
@@ -309,6 +318,7 @@ int main(int argc, char **argv)
 		{
 			match_success = 0;
 
+			printf("---------------------------------------------------\n");
 			printf("%s:\n", img_paths[i]);
 
 			if (preload)
