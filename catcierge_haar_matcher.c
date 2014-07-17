@@ -452,7 +452,7 @@ int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const
 {
 	if (!strcmp(key, "cascade"))
 	{
-		if (value_count == 1)
+		if (value_count >= 1)
 		{
 			args->cascade = values[0];
 		}
