@@ -798,6 +798,60 @@ void catcierge_state_transition_lockout(catcierge_grb_t *grb)
 	catcierge_do_lockout(grb);
 }
 
+static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
+{
+	int i;
+	match_direction_t direction = MATCH_DIR_UNKNOWN;
+	assert(grb);
+
+	if (grb->args.matcher_type == MATCHER_TEMPLATE)
+	{
+		// Get any successful direction.
+		// (It is very uncommon for 2 successful matches to give different
+		// direction with the template matcher, so we can be pretty sure
+		// this is correct).
+		for (i = 0; i < MATCH_MAX_COUNT; i++)
+		{
+			if (grb->matches[i].success)
+			{
+				direction = grb->matches[i].direction;
+			}
+		}
+	}
+	else
+	{
+		// Count the actual direction counts for the haar matcher.
+		int in_count = 0;
+		int out_count = 0;
+		int unknown_count = 0;
+
+		for (i = 0; i < MATCH_MAX_COUNT; i++)
+		{
+			switch (grb->matches[i].direction)
+			{
+				case MATCH_DIR_IN: in_count++; break;
+				case MATCH_DIR_OUT: out_count++; break;
+				case MATCH_DIR_UNKNOWN: unknown_count++; break;
+			}
+		}
+
+		if ((in_count > out_count) && (in_count > unknown_count))
+		{
+			direction = MATCH_DIR_IN;
+		}
+		else if (out_count > unknown_count)
+		{
+			direction = MATCH_DIR_OUT;
+		}
+		else
+		{
+			direction = MATCH_DIR_UNKNOWN;
+		}
+	}
+
+	return direction;
+}
+
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
 	int match_success;
@@ -844,19 +898,13 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		grb->match_success = 0;
 		grb->match_success_count = 0;
 
-		// TODO: Change this to use the direction which most agree on.
-		// Get any successful direction.
-		// (It is very uncommon for 2 successful matches to give different
-		// direction, so we can be pretty sure this is correct).
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
 			grb->match_success_count += !!grb->matches[i].success;
-
-			if (grb->matches[i].success)
-			{
-				direction = grb->matches[i].direction;
-			}
 		}
+
+		// Guess the direction.
+		direction = catcierge_guess_overall_direction(grb);
 
 		// When going out, if only 1 image is a succesful match
 		// we still count it as overall succesful so we don't get
