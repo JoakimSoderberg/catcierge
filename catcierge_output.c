@@ -162,7 +162,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 
 		if (sscanf(target_path, "[%[^]]", name) == 1)
 		{
-			target_path += strlen(name);
+			target_path += 1 + strlen(name) + 1; // Name + the []
 		}
 		else
 		{
