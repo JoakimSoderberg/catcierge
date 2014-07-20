@@ -65,7 +65,7 @@ typedef struct catcierge_args_s
 	double rfid_lock_time;
 	int lock_on_invalid_rfid;
 	char **rfid_allowed;
-	int rfid_allowed_count;
+	size_t rfid_allowed_count;
 	#endif // WITH_RFID
 
 	#ifdef RPI

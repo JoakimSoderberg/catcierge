@@ -347,3 +347,116 @@ int catcierge_is_frame_obstructed(IplImage *img, int debug)
 	return ((int)sum > 200);
 }
 
+const char *catcierge_skip_whitespace(const char *it)
+{
+	while ((*it == ' ') || (*it == '\t'))
+	{
+		it++;
+	}
+
+	return it;
+}
+
+void catcierge_free_list(char **list, size_t count)
+{
+	size_t i;
+
+	if (!list)
+		return;
+
+	for (i = 0; i < count; i++)
+	{
+		if (list[i])
+		{
+			free(list[i]);
+			list[i] = NULL;
+		}
+	}
+
+	free(list);
+}
+
+char **catcierge_parse_list(const char *input, size_t *list_count)
+{
+	int i;
+	const char *s = input;
+	char **list = NULL;
+	char *input_copy = NULL;
+	assert(list_count);
+	*list_count = 0;
+
+	if (!input || (strlen(input) == 0))
+	{
+		return NULL;
+	}
+
+	// TODO: Enable using different delimeter here...
+	while ((s = strchr(s, ',')))
+	{
+		(*list_count)++;
+		s++;
+	}
+
+	// 1,2,3 -> 3 values.
+	(*list_count)++;
+
+	if (!(list = (char **)calloc(*list_count, sizeof(char *))))
+	{
+		CATERR("Out of memory!\n");
+		return NULL;
+	}
+
+	// strtok changes its input.
+	if (!(input_copy = strdup(input)))
+	{
+		free(list);
+		*list_count = 0;
+		return NULL;
+	}
+
+	s = strtok(input_copy, ",");
+
+	for (i = 0; i < (*list_count); i++)
+	{
+		s = catcierge_skip_whitespace(s);
+
+		if (!(list[i] = strdup(s)))
+		{
+			CATERR("Out of memory!\n");
+			goto fail;
+		}
+
+		s = strtok(NULL, ",");
+
+		if (!s)
+			break;
+	}
+
+	free(input_copy);
+	return list;
+
+fail:
+	if (list)
+	{
+		for (i = 0; i < (*list_count); i++)
+		{
+			if (list[i])
+			{
+				free(list[i]);
+				list[i] = NULL;
+			}
+		}
+
+		free(list);
+	}
+
+	if (input_copy)
+	{
+		free(input_copy);
+	}
+
+	*list_count = 0;
+
+	return NULL;
+}
+

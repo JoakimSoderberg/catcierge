@@ -9,6 +9,7 @@
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"
 #endif // WITH_RFID
+#include "catcierge_util.h"
 
 #include "alini/alini.h"
 
@@ -18,65 +19,18 @@
 #ifdef WITH_RFID
 static int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char *allowed)
 {
-	int i;
-	const char *s = allowed;
-	char *allowed_cpy = NULL;
-	args->rfid_allowed_count = 1;
-
-	if (!allowed || (strlen(allowed) == 0))
+	if (!(args->rfid_allowed = catcierge_parse_list(allowed, &args->rfid_allowed_count)))
 	{
 		return -1;
 	}
-
-	while ((s = strchr(s, ',')))
-	{
-		args->rfid_allowed_count++;
-		s++;
-	}
-
-	if (!(args->rfid_allowed = (char **)calloc(args->rfid_allowed_count, sizeof(char *))))
-	{
-		CATERR("Out of memory\n");
-		return -1;
-	}
-
-	// strtok changes its input.
-	if (!(allowed_cpy = strdup(allowed)))
-	{
-		free(args->rfid_allowed);
-		args->rfid_allowed = NULL;
-		args->rfid_allowed_count = 0;
-		return -1;
-	}
-
-	s = strtok(allowed_cpy, ",");
-
-	for (i = 0; i < args->rfid_allowed_count; i++)
-	{
-		args->rfid_allowed[i] = strdup(s);
-		s = strtok(NULL, ",");
-
-		if (!s)
-			break;
-	}
-
-	free(allowed_cpy);
 
 	return 0;
 }
 
 void catcierge_free_rfid_allowed_list(catcierge_args_t *args)
 {
-	int i;
-
-	for (i = 0; i < args->rfid_allowed_count; i++)
-	{
-		free(args->rfid_allowed[i]);
-		args->rfid_allowed[i] = NULL;
-	}
-
-	free(args->rfid_allowed);
-	args->rfid_allowed = NULL;
+	catcierge_free_list(args->rfid_allowed, args->rfid_allowed_count);
+	args->rfid_allowed_count = 0;
 }
 #endif // WITH_RFID
 
