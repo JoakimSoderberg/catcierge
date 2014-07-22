@@ -172,6 +172,13 @@ foreach (GCOV_FILE ${GCOV_FILES})
 	set(GCOV_FILE_SOURCE "")
 
 	foreach (GCOV_LINE ${GCOV_LINES})
+
+		# TODO: we might want to split this up into 3 separate regexps instead.
+		# C code uses ; all over the place, but CMake uses that as a list delimiter as well
+		# this means that "RES" in the below code won't contain 3 list items at all times
+		# for each ; in a source code line, that counts as another element in the CMAke list.
+		# So simply doing list(GET RES 2 SOURCE) won't get the entire source line.
+
 		# Example of what we're parsing:
 		# Hitcount  |Line | Source
 		# "        8:   26:        if (!allowed || (strlen(allowed) == 0))"
