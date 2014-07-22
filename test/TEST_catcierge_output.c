@@ -123,7 +123,7 @@ char *run_add_and_generate_tests()
 			}
 			mu_assert("Expected template count 1", o->template_count == 1);
 
-			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path))
+			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path, "all"))
 				return "Failed to generate templates";
 		}
 
@@ -137,7 +137,7 @@ char *run_add_and_generate_tests()
 			}
 			mu_assert("Expected template count 2", o->template_count == 2);
 
-			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path))
+			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path, "all"))
 				return "Failed to generate templates";
 		}
 
@@ -156,7 +156,7 @@ char *run_add_and_generate_tests()
 			}
 			mu_assert("Expected template count 3", o->template_count == 3);
 
-			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path))
+			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path, "all"))
 				return "Failed to generate templates";
 		}
 
@@ -179,7 +179,7 @@ char *run_add_and_generate_tests()
 			mu_assert("Expected template count 4", o->template_count == 4);
 			mu_assert("Expected named template", !strcmp(o->templates[3].name, "arne"));
 
-			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path))
+			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path, "all"))
 				return "Failed to generate templates";
 
 			// Try getting the template_path for the arne template.
@@ -218,9 +218,33 @@ static char *run_load_templates_test()
 		FILE *f;
 		catcierge_output_template_t templs[] =
 		{
-			{ "Arne weise %time% %match0_path% julafton", "a_%time%" },
-			{ "the template contents\nis %time:@c%", "b_%time%" },
-			{ "", "c_%time%" }
+			{ 
+				"Arne weise %time% %match0_path% julafton", // Contents.
+				"a_%time%", // Path.
+			},
+			{
+				"the template contents\nis %time:@c%",
+				"b_%time%"
+			},
+			{
+				"",
+				"c_%time%"
+			},
+			{ 
+				"%! event arne, weise\n"
+				"Hello world\n",
+				"abc_%time%"
+			},
+			{ 
+				"%! event    arne   ,    weise   \n\n\n"
+				"Hello world\n",
+				"abc_%time%"
+			},
+			{
+				"%!bla\n"
+				"Some cool template",
+				"123_abc_%time%"
+			}
 		};
 		#define TEST_TEMPLATE_COUNT sizeof(templs) / sizeof(templs[0])
 		char *inputs[TEST_TEMPLATE_COUNT];
@@ -242,15 +266,46 @@ static char *run_load_templates_test()
 		if (catcierge_output_init(&o))
 			return "Failed to init output context";
 
-		if (catcierge_output_load_templates(&o, inputs, input_count))
+		// Try loading the first 3 test templates without settings.
+		if (catcierge_output_load_templates(&o, inputs, 3))
 		{
 			return "Failed to load templates";
 		}
 
-		mu_assert("Expected template count to be the same as test template count",
-			o.template_count == TEST_TEMPLATE_COUNT);
-		mu_assert("Expected template count to be the same as input count",
-			o.template_count == input_count);
+		mu_assert("Expected template count to be 3", o.template_count == 3);
+		catcierge_test_SUCCESS("Successfully loaded 3 templates without settings");
+
+		// Test loading a template with settings.
+		if (catcierge_output_load_template(&o, inputs[3]))
+		{
+			return "Failed to load template with settings";
+		}
+
+		mu_assert("Expected template count to be 4", o.template_count == 4);
+		mu_assert("Expected 2 event filters",
+			o.templates[3].settings.event_filter_count == 2);
+		catcierge_test_SUCCESS("Successfully loaded template with settings");
+
+		// Same template but with some extra whitespace.
+		if (catcierge_output_load_template(&o, inputs[4]))
+		{
+			return "Failed to load template with settings + whitespace";
+		}
+
+		mu_assert("Expected template count to be 5", o.template_count == 5);
+		mu_assert("Expected 2 event filters",
+			o.templates[4].settings.event_filter_count == 2);
+		catcierge_test_SUCCESS("Successfully loaded template with settings + whitespace");
+
+		// Invalid setting
+		if (!catcierge_output_load_template(&o, inputs[5]))
+		{
+			return "Successfully loaded template with invalid setting";
+		}
+
+		mu_assert("Expected template count to be 5", o.template_count == 5);
+		catcierge_test_SUCCESS("Failed to load template with invalid setting");
+
 
 		catcierge_output_destroy(&o);
 	}

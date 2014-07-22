@@ -27,12 +27,19 @@ typedef struct catcierge_output_var_s
 	char *description;
 } catcierge_output_var_t;
 
+typedef struct catcierge_output_settings_s
+{
+	char **event_filter;
+	size_t event_filter_count;
+} catcierge_output_settings_t;
+
 typedef struct catcierge_output_template_s
 {
 	char *tmpl;
 	char *target_path;		// Input target path.
 	char *generated_path;	// The last generated path.
 	char *name;
+	catcierge_output_settings_t settings;
 } catcierge_output_template_t;
 
 typedef struct catcierge_output_s

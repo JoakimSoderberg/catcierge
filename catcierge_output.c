@@ -89,6 +89,25 @@ int catcierge_output_init(catcierge_output_t *ctx)
 	return 0;
 }
 
+void catcierge_output_free_template(catcierge_output_template_t *t)
+{
+	if (!t)
+		return;
+
+	if (t->target_path) free(t->target_path);
+	t->target_path = NULL;
+	if (t->tmpl) free(t->tmpl);
+	t->tmpl = NULL;
+	if (t->name) free(t->name);
+	t->name = NULL;
+	if (t->generated_path) free(t->generated_path);
+	t->generated_path = NULL;
+
+	catcierge_free_list(t->settings.event_filter, t->settings.event_filter_count);
+	t->settings.event_filter = NULL;
+	t->settings.event_filter_count = 0;
+}
+
 void catcierge_output_destroy(catcierge_output_t *ctx)
 {
 	catcierge_output_template_t *t;
@@ -101,14 +120,7 @@ void catcierge_output_destroy(catcierge_output_t *ctx)
 		for (i = 0; i < ctx->template_count; i++)
 		{
 			t = &ctx->templates[i];
-			if (t->target_path) free(t->target_path);
-			t->target_path = NULL;
-			if (t->tmpl) free(t->tmpl);
-			t->tmpl = NULL;
-			if (t->name) free(t->name);
-			t->name = NULL;
-			if (t->generated_path) free(t->generated_path);
-			t->generated_path = NULL;
+			catcierge_output_free_template(t);
 		}
 
 		free(ctx->templates);
@@ -117,6 +129,70 @@ void catcierge_output_destroy(catcierge_output_t *ctx)
 
 	ctx->template_count = 0;
 	ctx->template_max_count = 0;
+}
+
+int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, const char *events)
+{
+	assert(settings);
+
+	if (!(settings->event_filter = catcierge_parse_list(events, &settings->event_filter_count)))
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+const char *catcierge_output_read_template_settings(catcierge_output_settings_t *settings,
+				const char *template_str)
+{
+	const char *s = NULL;
+	const char *it = template_str;
+	const char *row_start = it;
+	int i;
+	assert(template_str);
+
+	// Consume all the settings in the file.
+	while (*it)
+	{
+		if (*it == '\n')
+		{
+			it++;
+			it = catcierge_skip_whitespace(it);
+			row_start = it;
+		}
+
+		// Break as soon as we find a row without a setting.
+		if (strncmp(it, "%!", 2))
+		{
+			break;
+		}
+
+		it += 2;
+		it = catcierge_skip_whitespace(it);
+
+		if (!strncmp(it, "event", 5))
+		{
+			it += 5;
+			if (catcierge_output_read_event_setting(settings, it))
+			{
+				CATERR("Failed to parse event setting\n");
+				return NULL;
+			}
+		}
+		else
+		{
+			const char *unknown_end = strchr(it, '\n');
+			int line_len = unknown_end ? (int)(unknown_end - it) : strlen(it);
+			CATERR("Unknown template setting: \"%*s\"\n", line_len, it);
+			it += line_len;
+			return NULL;
+		}
+
+		it++;
+	}
+
+	return it;
 }
 
 int catcierge_output_add_template(catcierge_output_t *ctx,
@@ -171,44 +247,36 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		
 		if (!(t->name = strdup(name)))
 		{
+			CATERR("Out of memory!\n");
 			goto fail;
 		}
 	}
 
 	if (!(t->target_path = strdup(target_path)))
 	{
+		CATERR("Out of memory!\n");
+		goto fail;
+	}
+
+	if (!(template_str = catcierge_output_read_template_settings(&t->settings, template_str)))
+	{
 		goto fail;
 	}
 
 	if (!(t->tmpl = strdup(template_str)))
 	{
+		CATERR("Out of memory!\n");
 		goto fail;
 	}
 
 	ctx->template_count++;
 
+	CATLOG(" %s (%s)\n", t->name, t->target_path);
+
 	return 0;
 
 fail:
-	CATERR("Out of memory!\n");
-
-	if (t->target_path)
-	{
-		free(t->target_path);
-		t->target_path = NULL;
-	}
-
-	if (t->name)
-	{
-		free(t->name);
-		t->name = NULL;
-	}
-
-	if (t->tmpl)
-	{
-		free(t->tmpl);
-		t->tmpl = NULL;
-	}
+	catcierge_output_free_template(t);
 
 	return -1;
 }
@@ -569,8 +637,38 @@ static void catcierge_output_free_generated_paths(catcierge_output_t *ctx)
 	}
 }
 
+int catcierge_output_template_registered_to_event(catcierge_output_template_t *t, const char *event)
+{
+	size_t i;
+	assert(t);
+	assert(event);
+
+	if (t->settings.event_filter_count == 0)
+	{
+		return 1;
+	}
+
+	for (i = 0; i < t->settings.event_filter_count; i++)
+	{
+		if (!strcmp(t->settings.event_filter[i], "all")
+		 || !strcmp(t->settings.event_filter[i], "*"))
+		{
+			return 1;
+		}
+
+		if (!strcmp(t->settings.event_filter[i], event))
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+// TODO: Add an argument "event" here and only generate the templates
+// that have that event name set in their settings...
 int catcierge_output_generate_templates(catcierge_output_t *ctx,
-	catcierge_grb_t *grb, const char *output_path)
+	catcierge_grb_t *grb, const char *output_path, const char *event)
 {
 	catcierge_output_template_t *t = NULL;
 	char *output = NULL;
@@ -596,6 +694,12 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 	for (i = 0; i < ctx->template_count; i++)
 	{
 		t = &ctx->templates[i];
+
+		// Filter out any events that don't have the current "event" in their list.
+		if (!catcierge_output_template_registered_to_event(t, event))
+		{
+			continue;
+		}
 
 		// First generate the target path.
 		{
@@ -660,8 +764,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 	return 0;
 }
 
-int catcierge_output_load_templates(catcierge_output_t *ctx,
-		char **inputs, size_t input_count)
+int catcierge_output_load_template(catcierge_output_t *ctx, char *path)
 {
 	int ret = 0;
 	size_t i;
@@ -670,65 +773,55 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 	FILE *f = NULL;
 	struct stat stbuf;
 	char *contents = NULL;
+	char *settings_end = NULL;
+	assert(path);
+	assert(ctx);
 
-	if (input_count > 0)
+	if (!(f = fopen(path, "r")))
 	{
-		CATLOG("Loading output templates:\n");
+		CATERR("Failed to open input template file \"%s\"\n", path);
+		ret = -1; goto fail;
 	}
 
-	for (i = 0; i < input_count; i++)
+	// Get file size.
+	if (fseek(f, 0, SEEK_END))
 	{
-		if (!(f = fopen(inputs[i], "r")))
-		{
-			CATERR("Failed to open input template file \"%s\"\n", inputs[i]);
-			ret = -1; goto fail;
-		}
+		CATERR("Failed to seek in template file \"%s\"\n", path);
+		ret = -1; goto fail;
+	}
 
-		// Get file size.
-		if (fseek(f, 0, SEEK_END))
-		{
-			CATERR("Failed to seek in template file \"%s\"\n", inputs[i]);
-			ret = -1; goto fail;
-		}
+	if ((fsize = ftell(f)) == -1)
+	{
+		CATERR("Failed to get file size for template file \"%s\"\n", path);
+		ret = -1; goto fail;
+	}
 
-		if ((fsize = ftell(f)) == -1)
-		{
-			CATERR("Failed to get file size for template file \"%s\"\n", inputs[i]);
-			ret = -1; goto fail;
-		}
+	rewind(f);
 
-		rewind(f);
+	// Make sure we allocate enough to fit a NULL
+	// character at the end of the file contents.
+	if (!(contents = calloc(1, fsize + 1)))
+	{
+		CATERR("Out of memory!\n");
+		ret = -1; goto fail;
+	}
 
-		// Make sure we allocate enough to fit a NULL
-		// character at the end of the file contents.
-		if (!(contents = calloc(1, fsize + 1)))
-		{
-			CATERR("Out of memory!\n");
-			ret = -1; goto fail;
-		}
+	read_bytes = fread(contents, 1, fsize, f);
+	contents[read_bytes] = '\0';
 
-		read_bytes = fread(contents, 1, fsize, f);
-		contents[read_bytes] = '\0';
+	#ifndef _WIN32
+	if (read_bytes != fsize)
+	{
+		CATERR("Failed to read file contents of template file \"%s\". "
+				"Got %d expected %d\n", path, (int)read_bytes, (int)fsize);
+		ret = -1; goto fail;
+	}
+	#endif // !_WIN32
 
-		#ifndef _WIN32
-		if (read_bytes != fsize)
-		{
-			CATERR("Failed to read file contents of template file \"%s\". "
-					"Got %d expected %d\n", inputs[i], (int)read_bytes, (int)fsize);
-			ret = -1; goto fail;
-		}
-		#endif // !_WIN32
-
-		CATLOG("  %s - %d bytes\n", inputs[i], fsize);
-
-		if (catcierge_output_add_template(ctx, contents, inputs[i]))
-		{
-			CATERR("Failed to load template file \"%s\"\n", inputs[i]);
-			ret = -1; goto fail;
-		}
-
-		free(contents);
-		contents = NULL;
+	if (catcierge_output_add_template(ctx, contents, path))
+	{
+		CATERR("Failed to load template file \"%s\"\n", path);
+		ret = -1; goto fail;
 	}
 
 fail:
@@ -740,4 +833,33 @@ fail:
 
 	return ret;
 }
+
+int catcierge_output_load_templates(catcierge_output_t *ctx,
+		char **inputs, size_t input_count)
+{
+	int ret = 0;
+	size_t i;
+	size_t fsize;
+	size_t read_bytes;
+	FILE *f = NULL;
+	struct stat stbuf;
+	char *contents = NULL;
+	char *settings_end = NULL;
+
+	if (input_count > 0)
+	{
+		CATLOG("Loading output templates:\n");
+	}
+
+	for (i = 0; i < input_count; i++)
+	{
+		if (catcierge_output_load_template(ctx, inputs[i]))
+		{
+			return -1;
+		}
+	}
+
+	return ret;
+}
+
 
