@@ -143,23 +143,39 @@ int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, c
 	return 0;
 }
 
-const char *catcierge_output_read_template_settings(catcierge_output_settings_t *settings,
-				const char *template_str)
+const char *catcierge_output_read_template_settings(const char *name,
+	catcierge_output_settings_t *settings, const char *template_str)
 {
 	const char *s = NULL;
-	const char *it = template_str;
-	const char *row_start = it;
+	const char *it = NULL;
+	const char *row_start = NULL;
+	char *row_end = NULL;
+	char *tmp = NULL;
 	int i;
+	size_t bytes_read;
 	assert(template_str);
+
+	if (!(tmp = strdup(template_str)))
+	{
+		CATERR("Out of memory!\n");
+		return NULL;
+	}
+
+	it = tmp;
+	row_start = it;
+	row_end = strchr(it, '\n');
+	*row_end = '\0';
 
 	// Consume all the settings in the file.
 	while (*it)
 	{
-		if (*it == '\n')
+		if (it == row_end)
 		{
 			it++;
 			it = catcierge_skip_whitespace(it);
 			row_start = it;
+			row_end = strchr(it, '\n');
+			*row_end = '\0';
 		}
 
 		// Break as soon as we find a row without a setting.
@@ -174,9 +190,12 @@ const char *catcierge_output_read_template_settings(catcierge_output_settings_t 
 		if (!strncmp(it, "event", 5))
 		{
 			it += 5;
+			it = catcierge_skip_whitespace(it);
+
 			if (catcierge_output_read_event_setting(settings, it))
 			{
 				CATERR("Failed to parse event setting\n");
+				free(tmp);
 				return NULL;
 			}
 		}
@@ -186,13 +205,22 @@ const char *catcierge_output_read_template_settings(catcierge_output_settings_t 
 			int line_len = unknown_end ? (int)(unknown_end - it) : strlen(it);
 			CATERR("Unknown template setting: \"%*s\"\n", line_len, it);
 			it += line_len;
+			free(tmp);
 			return NULL;
 		}
 
 		it++;
 	}
 
-	return it;
+	bytes_read = it - tmp;
+	free(tmp);
+
+	if (settings->event_filter_count == 0)
+	{
+		CATERR("!!! Output template \"%s\" missing event filter, nothing will be generated !!!\n");
+	}
+
+	return template_str + bytes_read;
 }
 
 int catcierge_output_add_template(catcierge_output_t *ctx,
@@ -227,18 +255,27 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 
 	// If the target template filename starts with
 	// [name]bla_bla_%stuff%.json
-	// The template will get the name inside the [].
+	// The template will get the "name" inside the [].
 	// Otherwise, simply use the template index as the name.
 	// This is so that we can pass the path of the generated
 	// target path at run time to the catcierge_execute function
 	// and the external program can distinguish between multiple templates.
 	{
-		char name[128];
+		char name[4096];
 		memset(name, 0, sizeof(name));
 
 		if (sscanf(target_path, "[%[^]]", name) == 1)
 		{
-			target_path += 1 + strlen(name) + 1; // Name + the []
+			size_t name_len = strlen(name);
+
+			if (name_len >= sizeof(name))
+			{
+				CATERR("Template name \"%s\" is too long, max %d characters allowed\n",
+					name, sizeof(name));
+				goto fail;
+			}
+
+			target_path += 1 + name_len + 1; // Name + the []
 		}
 		else
 		{
@@ -258,7 +295,8 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		goto fail;
 	}
 
-	if (!(template_str = catcierge_output_read_template_settings(&t->settings, template_str)))
+	if (!(template_str = catcierge_output_read_template_settings(t->target_path,
+							&t->settings, template_str)))
 	{
 		goto fail;
 	}
@@ -643,11 +681,6 @@ int catcierge_output_template_registered_to_event(catcierge_output_template_t *t
 	assert(t);
 	assert(event);
 
-	if (t->settings.event_filter_count == 0)
-	{
-		return 1;
-	}
-
 	for (i = 0; i < t->settings.event_filter_count; i++)
 	{
 		if (!strcmp(t->settings.event_filter[i], "all")
@@ -665,8 +698,6 @@ int catcierge_output_template_registered_to_event(catcierge_output_template_t *t
 	return 0;
 }
 
-// TODO: Add an argument "event" here and only generate the templates
-// that have that event name set in their settings...
 int catcierge_output_generate_templates(catcierge_output_t *ctx,
 	catcierge_grb_t *grb, const char *output_path, const char *event)
 {

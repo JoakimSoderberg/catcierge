@@ -117,7 +117,9 @@ char *run_add_and_generate_tests()
 		catcierge_test_STATUS("Add one template");
 		{
 			if (catcierge_output_add_template(o,
-				"%match_success%", "firstoutputpath"))
+				"%!event all\n"
+				"%match_success%", 
+				"firstoutputpath"))
 			{
 				return "Failed to add template";
 			}
@@ -130,6 +132,7 @@ char *run_add_and_generate_tests()
 		catcierge_test_STATUS("Add another template");
 		{
 			if (catcierge_output_add_template(o,
+				"%!event all\n"
 				"hej %match_success%",
 				"outputpath is here %match_success% %time%"))
 			{
@@ -147,6 +150,7 @@ char *run_add_and_generate_tests()
 			strcpy(grb.matches[1].path, "blafile");
 
 			if (catcierge_output_add_template(o,
+				"%!event all\n"
 				"Some awesome %match2_path% template. "
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
 				"And match time, %match2_time:@H:@M%",
@@ -169,6 +173,7 @@ char *run_add_and_generate_tests()
 			strcpy(grb.matches[1].path, "thematchpath");
 
 			if (catcierge_output_add_template(o,
+				"%!event all\n"
 				"Some awesome %match2_path% template. "
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
 				"And match time, %match2_time:@H:@M%",
@@ -219,15 +224,17 @@ static char *run_load_templates_test()
 		catcierge_output_template_t templs[] =
 		{
 			{ 
+				"%! event all\n"
 				"Arne weise %time% %match0_path% julafton", // Contents.
 				"a_%time%", // Path.
 			},
 			{
+				"%! event *\n"
 				"the template contents\nis %time:@c%",
 				"b_%time%"
 			},
 			{
-				"",
+				"%! event all\n",
 				"c_%time%"
 			},
 			{ 
