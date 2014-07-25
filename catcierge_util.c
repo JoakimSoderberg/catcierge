@@ -119,6 +119,71 @@ void catcierge_reset_cursor_position()
 	#endif // !_WIN32
 }
 
+void catcierge_run(char *command)
+{
+	#ifndef _WIN32
+	{
+		char *argv[4] = {0};
+		pid_t pid;
+		argv[0] = "/bin/sh";
+		argv[1] = "-c";
+		argv[2] = command;
+		argv[3] = NULL;
+
+		// Fork a child process.
+		if ((pid = fork()) < 0)
+		{
+			CATERR("Forking child process failed: %d, %s\n", errno, strerror(errno));
+		}
+		else if (pid == 0)
+		{
+			// For the child process.
+
+			// Execute the command.
+			if (execvp(*argv, argv) < 0)
+			{
+				CATERR("Exec \"%s\" failed: %d, %s\n", command, errno, strerror(errno));
+				exit(1);
+			}
+		}
+		else
+		{
+			CATLOG("Called program %s\n", command);
+		}
+	}
+	#else // _WIN32
+	{
+		char tmp[4096];
+		STARTUPINFO si;
+		PROCESS_INFORMATION pi;
+		memset(&si, 0, sizeof(si));
+		si.dwXSize = sizeof(si);
+		memset(&pi, 0, sizeof(pi));
+
+		snprintf(tmp, sizeof(tmp) - 1, "c:\\Windows\\system32\\cmd.exe /c %s", command);
+
+		if (!CreateProcess(
+				NULL, 
+				tmp,			// Commandline
+				NULL,           // Process handle not inheritable
+				NULL,           // Thread handle not inheritable
+				FALSE,          // Set handle inheritance to FALSE
+				0,              // No creation flags
+				NULL,           // Use parent's environment block
+				NULL,           // Use parent's starting directory 
+				&si,            // Pointer to STARTUPINFO structure
+				&pi ))          // Pointer to PROCESS_INFORMATION structure
+		{
+			CATERR("Error %d, Failed to run command %s\n", GetLastError(), command);
+		}
+		else
+		{
+			CATLOG("Called program %s\n", command);
+		}
+	}
+	#endif // _WIN32
+}
+
 //
 // The string "command" contains a commandline that will be
 // executed. This can contain variable references (%0, %1, %2, ...) 
@@ -223,69 +288,7 @@ void catcierge_execute(char *command, char *fmt, ...)
 		command++;
 	}
 
-	//
-	// Run the command.
-	//
-	#ifndef _WIN32
-	{
-		char *argv[4] = {0};
-		pid_t pid;
-		argv[0] = "/bin/sh";
-		argv[1] = "-c";
-		argv[2] = buf;
-		argv[3] = NULL;
-
-		// Fork a child process.
-		if ((pid = fork()) < 0)
-		{
-			CATERR("Forking child process failed: %d, %s\n", errno, strerror(errno));
-		}
-		else if (pid == 0)
-		{
-			// For the child process.
-
-			// Execute the command.
-			if (execvp(*argv, argv) < 0)
-			{
-				CATERR("Exec \"%s\" failed: %d, %s\n", command, errno, strerror(errno));
-				exit(1);
-			}
-		}
-		else
-		{
-			CATLOG("Called program %s\n", buf);
-		}
-	}
-	#else // _WIN32
-	{
-		STARTUPINFO si;
-		PROCESS_INFORMATION pi;
-		memset(&si, 0, sizeof(si));
-		si.dwXSize = sizeof(si);
-		memset(&pi, 0, sizeof(pi));
-
-		snprintf(tmp, sizeof(tmp) - 1, "c:\\Windows\\system32\\cmd.exe /c %s", buf);
-
-		if (!CreateProcess(
-				NULL, 
-				tmp,			// Commandline
-				NULL,           // Process handle not inheritable
-				NULL,           // Thread handle not inheritable
-				FALSE,          // Set handle inheritance to FALSE
-				0,              // No creation flags
-				NULL,           // Use parent's environment block
-				NULL,           // Use parent's starting directory 
-				&si,            // Pointer to STARTUPINFO structure
-				&pi ))          // Pointer to PROCESS_INFORMATION structure
-		{
-			CATERR("Error %d, Failed to run command %s\n", GetLastError());
-		}
-		else
-		{
-			CATLOG("Called program %s\n", buf);
-		}
-	}
-	#endif // _WIN32
+	catcierge_run(buf);
 }
 
 int catcierge_is_frame_obstructed(IplImage *img, int debug)

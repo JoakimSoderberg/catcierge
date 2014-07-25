@@ -446,14 +446,24 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	if (!strncmp(var, "match", 5))
 	{
 		int idx = -1;
-		char *subvar = var + strlen("matchX_");
+		char *subvar = NULL;
 
-		if (sscanf(var, "match%d_", &idx) == EOF)
+		if (!strncmp(var, "matchcur", 8))
 		{
-			return NULL;
+			idx = grb->match_count;
+			subvar = var + strlen("matchcur_");
+		}
+		else
+		{
+			subvar = var + strlen("matchX_");
+
+			if (sscanf(var, "match%d_", &idx) == EOF)
+			{
+				return NULL;
+			}
 		}
 
-		if ((idx < 0) || (idx > MATCH_MAX_COUNT))
+		if ((idx < 0) || (idx >= MATCH_MAX_COUNT))
 		{
 			return NULL;
 		}
@@ -891,6 +901,28 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 	}
 
 	return ret;
+}
+
+void catcierge_output_execute(catcierge_grb_t *grb,
+		const char *event, const char *command)
+{
+	char *generated_cmd = NULL;
+
+	if (!command)
+		return;
+
+	catcierge_output_generate_templates(&grb->output,
+		grb, grb->args.output_path, event);
+
+	if (!(generated_cmd = catcierge_output_generate(&grb->output, grb, command)))
+	{
+		CATERR("Failed to execute command \"%s\"!\n", command);
+		return;
+	}
+
+	catcierge_run(generated_cmd);
+
+	free(generated_cmd);
 }
 
 

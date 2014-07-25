@@ -33,6 +33,7 @@
 #endif
 
 #include "catcierge_fsm.h"
+#include "catcierge_output.h"
 
 void catcierge_run_state(catcierge_grb_t *grb)
 {

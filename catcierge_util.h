@@ -52,5 +52,6 @@ int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct 
 const char *catcierge_skip_whitespace(const char *it);
 char **catcierge_parse_list(const char *input, size_t *list_count);
 void catcierge_free_list(char **list, size_t count);
+void catcierge_run(char *command);
 
 #endif // __CATCIERGE_UTIL_H__
