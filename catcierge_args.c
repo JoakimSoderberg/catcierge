@@ -19,7 +19,7 @@
 #ifdef WITH_RFID
 static int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char *allowed)
 {
-	if (!(args->rfid_allowed = catcierge_parse_list(allowed, &args->rfid_allowed_count)))
+	if (!(args->rfid_allowed = catcierge_parse_list(allowed, &args->rfid_allowed_count, 1)))
 	{
 		return -1;
 	}

@@ -379,7 +379,22 @@ void catcierge_free_list(char **list, size_t count)
 	free(list);
 }
 
-char **catcierge_parse_list(const char *input, size_t *list_count)
+void catcierge_end_trim_whitespace(char *s)
+{
+	size_t len = strlen(s);
+	char *end = s + len - 1;
+
+	if (len == 0)
+		return;
+
+	while ((end > s) && ((*end == ' ') || (*end == '\t')))
+	{
+		*end = '\0';
+		end--;
+	}
+}
+
+char **catcierge_parse_list(const char *input, size_t *list_count, int end_trim)
 {
 	int i;
 	const char *s = input;
@@ -427,6 +442,11 @@ char **catcierge_parse_list(const char *input, size_t *list_count)
 		{
 			CATERR("Out of memory!\n");
 			goto fail;
+		}
+
+		if (end_trim)
+		{
+			catcierge_end_trim_whitespace(list[i]);
 		}
 
 		s = strtok(NULL, ",");

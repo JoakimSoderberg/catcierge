@@ -135,7 +135,7 @@ int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, c
 {
 	assert(settings);
 
-	if (!(settings->event_filter = catcierge_parse_list(events, &settings->event_filter_count)))
+	if (!(settings->event_filter = catcierge_parse_list(events, &settings->event_filter_count, 1)))
 	{
 		return -1;
 	}
