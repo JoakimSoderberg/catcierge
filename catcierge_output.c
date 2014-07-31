@@ -147,8 +147,8 @@ const char *catcierge_output_read_template_settings(const char *name,
 	catcierge_output_settings_t *settings, const char *template_str)
 {
 	const char *s = NULL;
-	const char *it = NULL;
-	const char *row_start = NULL;
+	char *it = NULL;
+	char *row_start = NULL;
 	char *row_end = NULL;
 	char *tmp = NULL;
 	int i;
@@ -163,19 +163,32 @@ const char *catcierge_output_read_template_settings(const char *name,
 
 	it = tmp;
 	row_start = it;
-	row_end = strchr(it, '\n');
-	*row_end = '\0';
+	row_end = it;
 
 	// Consume all the settings in the file.
-	while (*it)
+	while (1)
 	{
 		if (it == row_end)
 		{
-			it++;
-			it = catcierge_skip_whitespace(it);
+			// On the first row_end and row_start
+			// will be the same. Otherwise we have
+			// reached the replaced \n, so advance
+			// past it.
+			if (it != row_start)
+				it++;
+
+			it = catcierge_skip_whitespace_alt(it);
 			row_start = it;
-			row_end = strchr(it, '\n');
-			*row_end = '\0';
+
+			if ((row_end = strchr(it, '\n')))
+			{
+				*row_end = '\0';
+			}
+			else
+			{
+				// TODO: Add test case for this.
+				row_end = it + strlen(it);
+			}
 		}
 
 		// Break as soon as we find a row without a setting.
@@ -185,12 +198,12 @@ const char *catcierge_output_read_template_settings(const char *name,
 		}
 
 		it += 2;
-		it = catcierge_skip_whitespace(it);
+		it = catcierge_skip_whitespace_alt(it);
 
 		if (!strncmp(it, "event", 5))
 		{
 			it += 5;
-			it = catcierge_skip_whitespace(it);
+			it = catcierge_skip_whitespace_alt(it);
 
 			if (catcierge_output_read_event_setting(settings, it))
 			{
@@ -198,6 +211,14 @@ const char *catcierge_output_read_template_settings(const char *name,
 				free(tmp);
 				return NULL;
 			}
+			continue;
+		}
+		else if (!strncmp(it, "nop", 3))
+		{
+			// So we can test the logic for 2 settings for now.
+			it += 3;
+			it = catcierge_skip_whitespace_alt(it);
+			continue;
 		}
 		else
 		{
@@ -217,7 +238,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 
 	if (settings->event_filter_count == 0)
 	{
-		CATERR("!!! Output template \"%s\" missing event filter, nothing will be generated !!!\n");
+		CATERR("!!! Output template \"%s\" missing event filter, nothing will be generated !!!\n", name);
 	}
 
 	return template_str + bytes_read;
@@ -461,9 +482,11 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 			{
 				return NULL;
 			}
+
+			idx--;
 		}
 
-		if ((idx < 0) || (idx >= MATCH_MAX_COUNT))
+		if ((idx < 0) || (idx >= grb->match_count))
 		{
 			return NULL;
 		}

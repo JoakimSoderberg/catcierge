@@ -360,6 +360,16 @@ const char *catcierge_skip_whitespace(const char *it)
 	return it;
 }
 
+char *catcierge_skip_whitespace_alt(char *it)
+{
+	while ((*it == ' ') || (*it == '\t'))
+	{
+		it++;
+	}
+
+	return it;
+}
+
 void catcierge_free_list(char **list, size_t count)
 {
 	size_t i;

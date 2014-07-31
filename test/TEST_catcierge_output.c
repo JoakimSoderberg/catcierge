@@ -63,9 +63,9 @@ static char *run_generate_tests()
 			{ "a b c %match_success%\nd e f", "a b c 33\nd e f" },
 			{ "%match_success%", "33" },
 			{ "abc%%def", "abc%def" },
-			{ "%match0_path%", "/some/path/omg1" },
-			{ "%match1_path%", "/some/path/omg2" },
-			{ "%match1_success%", "0" },
+			{ "%match1_path%", "/some/path/omg1" },
+			{ "%match2_path%", "/some/path/omg2" },
+			{ "%match2_success%", "0" },
 			{ "aaa %match3_direction% bbb", "aaa in bbb" },
 			{ "%match3_result%", "0.800000" },
 			{ "%state%", "Waiting" }
@@ -74,9 +74,10 @@ static char *run_generate_tests()
 		strcpy(grb.matches[0].path, "/some/path/omg1");
 		strcpy(grb.matches[1].path, "/some/path/omg2");
 		grb.matches[0].success = 4;
-		grb.matches[3].direction = MATCH_DIR_IN;
-		grb.matches[3].result = 0.8;
+		grb.matches[2].direction = MATCH_DIR_IN;
+		grb.matches[2].result = 0.8;
 		grb.match_success = 33;
+		grb.match_count = 3;
 		catcierge_set_state(&grb, catcierge_state_waiting);
 
 		for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
@@ -132,7 +133,7 @@ char *run_add_and_generate_tests()
 		catcierge_test_STATUS("Add another template");
 		{
 			if (catcierge_output_add_template(o,
-				"%!event all\n"
+				"%!event all   \n"
 				"hej %match_success%",
 				"outputpath is here %match_success% %time%"))
 			{
@@ -148,6 +149,7 @@ char *run_add_and_generate_tests()
 		{
 			grb.matches[1].time = time(NULL);
 			strcpy(grb.matches[1].path, "blafile");
+			grb.match_count = 3;
 
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
@@ -171,6 +173,7 @@ char *run_add_and_generate_tests()
 			const char *default_template_path = NULL;
 			grb.matches[1].time = time(NULL);
 			strcpy(grb.matches[1].path, "thematchpath");
+			grb.match_count = 2;
 
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
@@ -225,7 +228,7 @@ static char *run_load_templates_test()
 		{
 			{ 
 				"%! event all\n"
-				"Arne weise %time% %match0_path% julafton", // Contents.
+				"Arne weise %time% %match1_path% julafton", // Contents.
 				"a_%time%", // Path.
 			},
 			{
@@ -251,6 +254,18 @@ static char *run_load_templates_test()
 				"%!bla\n"
 				"Some cool template",
 				"123_abc_%time%"
+			},
+			{
+				"%!event tut   \n"
+				"%!    nop    \n"
+				"Some cool template",
+				"two_events_%time%"
+			},
+			{
+				"%!    nop    \n"
+				"%!event tut   \n"
+				"Some cool template",
+				"two_events_rev_%time%"
 			}
 		};
 		#define TEST_TEMPLATE_COUNT sizeof(templs) / sizeof(templs[0])
@@ -304,7 +319,7 @@ static char *run_load_templates_test()
 			o.templates[4].settings.event_filter_count == 2);
 		catcierge_test_SUCCESS("Successfully loaded template with settings + whitespace");
 
-		// Invalid setting
+		// Invalid setting.
 		if (!catcierge_output_load_template(&o, inputs[5]))
 		{
 			return "Successfully loaded template with invalid setting";
@@ -313,6 +328,26 @@ static char *run_load_templates_test()
 		mu_assert("Expected template count to be 5", o.template_count == 5);
 		catcierge_test_SUCCESS("Failed to load template with invalid setting");
 
+		// Two settings.
+		if (catcierge_output_load_template(&o, inputs[6]))
+		{
+			return "Failed to load event + nop settings";
+		}
+
+		mu_assert("Expected template count to be 6", o.template_count == 6);
+		catcierge_test_SUCCESS("Loaded two settings, event+nop");
+
+		// Two settings reversed.
+		if (catcierge_output_load_template(&o, inputs[7]))
+		{
+			return "Failed to load nop + event settings";
+		}
+
+		mu_assert("Expected template count to be 7", o.template_count == 7);
+		mu_assert("Expected 1 event filter count", o.templates[6].settings.event_filter_count == 1);
+		catcierge_test_STATUS("Event filter: \"%s\"\n", o.templates[6].settings.event_filter[0]);
+		mu_assert("Expected event list to contain \"tut\"", !strcmp(o.templates[6].settings.event_filter[0], "tut"));
+		catcierge_test_SUCCESS("Loaded two settings, nop+event");
 
 		catcierge_output_destroy(&o);
 	}
