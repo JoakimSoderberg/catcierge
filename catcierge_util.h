@@ -54,5 +54,6 @@ char *catcierge_skip_whitespace_alt(char *it);
 char **catcierge_parse_list(const char *input, size_t *list_count, int end_trim);
 void catcierge_free_list(char **list, size_t count);
 void catcierge_run(char *command);
+const char *catcierge_path_sep();
 
 #endif // __CATCIERGE_UTIL_H__

@@ -150,6 +150,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 	char *it = NULL;
 	char *row_start = NULL;
 	char *row_end = NULL;
+	char *end = NULL;
 	char *tmp = NULL;
 	int i;
 	size_t bytes_read;
@@ -164,9 +165,10 @@ const char *catcierge_output_read_template_settings(const char *name,
 	it = tmp;
 	row_start = it;
 	row_end = it;
+	end = it + strlen(it);
 
 	// Consume all the settings in the file.
-	while (1)
+	while (it < end)
 	{
 		if (it == row_end)
 		{
@@ -186,8 +188,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 			}
 			else
 			{
-				// TODO: Add test case for this.
-				row_end = it + strlen(it);
+				break;
 			}
 		}
 
@@ -252,8 +253,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 	assert(ctx);
 
 	// Get only the filename.
-	// TODO: Add windows support here.
-	if ((path = strrchr(target_path, '/')))
+	if ((path = strstr(target_path, catcierge_path_sep())))
 	{
 		target_path = path + 1;
 	}
@@ -464,6 +464,12 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
+	if (!strcmp(var, "match_count"))
+	{
+		snprintf(buf, bufsize - 1, "%d", grb->match_count);
+		return buf;
+	}
+
 	if (!strncmp(var, "match", 5))
 	{
 		int idx = -1;
@@ -471,7 +477,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		if (!strncmp(var, "matchcur", 8))
 		{
-			idx = grb->match_count;
+			idx = grb->match_count - 1;
 			subvar = var + strlen("matchcur_");
 		}
 		else
@@ -486,9 +492,14 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 			idx--;
 		}
 
-		if ((idx < 0) || (idx >= grb->match_count))
+		if ((idx < 0) || (idx >= MATCH_MAX_COUNT))
 		{
 			return NULL;
+		}
+
+		if (idx >= grb->match_count)
+		{
+			return "";
 		}
 
 		if (!strcmp(subvar, "path"))
@@ -777,16 +788,9 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			// Replace whitespace with underscore.
 			catcierge_replace_whitespace(path, ":");
 
-			// TODO: Get the path char in a nicer way...
 			// Assemble the full output path.
 			snprintf(full_path, sizeof(full_path), "%s%s%s",
-				output_path,
-				#ifdef _WIN32
-				"\\",
-				#else
-				"/",
-				#endif
-				path);
+				output_path, catcierge_path_sep(), path);
 
 			// We make a copy so that we can use the generated
 			// path as a variable in the templates contents, or

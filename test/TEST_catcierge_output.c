@@ -68,11 +68,21 @@ static char *run_generate_tests()
 			{ "%match2_success%", "0" },
 			{ "aaa %match3_direction% bbb", "aaa in bbb" },
 			{ "%match3_result%", "0.800000" },
-			{ "%state%", "Waiting" }
+			{ "%state%", "Waiting" },
+			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg3" },
+			{ "%match4_path%", "" }, // Match count is only 3, so this should be empty.
+			{ "%match_count%", "3" }
+		};
+
+		output_test_t fail_tests[] =
+		{
+			{ "%match5_path%", NULL },
+			{ "%matchX_path%", NULL }
 		};
 
 		strcpy(grb.matches[0].path, "/some/path/omg1");
 		strcpy(grb.matches[1].path, "/some/path/omg2");
+		strcpy(grb.matches[2].path, "/some/path/omg3");
 		grb.matches[0].success = 4;
 		grb.matches[2].direction = MATCH_DIR_IN;
 		grb.matches[2].result = 0.8;
@@ -93,6 +103,25 @@ static char *run_generate_tests()
 				tests[i].input, str, tests[i].expected);
 			mu_assert("Invalid template result", str && !strcmp(tests[i].expected, str));
 			catcierge_test_SUCCESS("\"%s\" == \"%s\"\n", str, tests[i].expected);
+			free(str);
+
+			catcierge_output_destroy(&o);
+		}
+
+		for (i = 0; i < sizeof(fail_tests) / sizeof(fail_tests[0]); i++)
+		{
+			if (catcierge_output_init(&o))
+			{
+				return "Failed to init output context";
+			}
+
+			str = catcierge_output_generate(&o, &grb, fail_tests[i].input);
+
+			catcierge_test_STATUS("\"%s\" -> \"%s\" Expecting: \"%s\"",
+				fail_tests[i].input, str, fail_tests[i].expected);
+			mu_assert("Invalid template result", !str);
+			catcierge_test_SUCCESS("\"%s\" == \"%s\"\n",
+				fail_tests[i].input, fail_tests[i].expected);
 			free(str);
 
 			catcierge_output_destroy(&o);

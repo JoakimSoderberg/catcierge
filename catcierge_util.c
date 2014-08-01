@@ -45,6 +45,15 @@ static void _catcierge_invalid_param_handler(const wchar_t *expression,
 }
 #endif // _WIN32
 
+const char *catcierge_path_sep()
+{
+	#ifdef _WIN32
+	return "\\";
+	#else
+	return "/";
+	#endif
+}
+
 int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct tm *tm)
 {
 	#if _WIN32
