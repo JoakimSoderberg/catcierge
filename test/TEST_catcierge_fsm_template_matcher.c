@@ -76,16 +76,24 @@ static char *run_lockout_tests(catcierge_grb_t *grb, int obstruct,
 				load_test_image_and_run(grb, 1, 2); // Obstruct.
 				mu_assert("Expected LOCKOUT state after obstruction",
 					(grb->state == catcierge_state_lockout));
-				
+
 				load_test_image_and_run(grb, 1, 5); // Clear frame.
 				mu_assert("Expected LOCKOUT state after clear frame",
 					(grb->state == catcierge_state_lockout));
 
-				sleep(args->lockout_time + 1);
+				sleep(1);
+
+				mu_assert("Expected LOCKOUT state after 1 second clear frame",
+					(grb->state == catcierge_state_lockout));
+
+				sleep(args->lockout_time);
 
 				load_test_image_and_run(grb, 1, 5); // Clear frame.
 				mu_assert("Expected WAITING state after clear frame and timeout",
 					(grb->state == catcierge_state_waiting));
+
+				catcierge_test_STATUS("Lockout timer value: %f seconds\n",
+					catcierge_timer_get(&grb->lockout_timer));
 			}
 			else if (obstruct == 2)
 			{
@@ -102,6 +110,8 @@ static char *run_lockout_tests(catcierge_grb_t *grb, int obstruct,
 				mu_assert("Expected LOCKOUT state after timeout and"
 					"continous obstruction",
 					(grb->state == catcierge_state_lockout));
+
+				catcierge_set_state(grb, catcierge_state_waiting);
 			}
 			else
 			{
@@ -139,6 +149,7 @@ static char *run_lockout_tests(catcierge_grb_t *grb, int obstruct,
 static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_method)
 {
 	char *e = NULL;
+	size_t i;
 	catcierge_grb_t grb;
 	catcierge_args_t *args = &grb.args;
 
@@ -160,28 +171,35 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
-	// Obstruct the frame to begin matching.
-	load_test_image_and_run(&grb, 1, 2);
-	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
-
-	// Pass 4 frames (first ok, the rest not...)
-	load_test_image_and_run(&grb, 1, 2);
-	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
-
-	load_test_image_and_run(&grb, 1, 3);
-	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
-
-	load_test_image_and_run(&grb, 1, 4);
-	mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
-
-	load_test_image_and_run(&grb, 1, 4);
-	mu_assert("Expected LOCKOUT state", (grb.state == catcierge_state_lockout));
-	catcierge_test_STATUS("Lockout state as expected");
-
-	// Test the lockout logic.
-	if ((e = run_lockout_tests(&grb, obstruct, lockout_method)))
+	//
+	// Run the same twice so we're sure the timers work
+	// several times properly.
+	//
+	for (i = 0; i < 2; i++)
 	{
-		return e;
+		// Obstruct the frame to begin matching.
+		load_test_image_and_run(&grb, 1, 2);
+		mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
+	
+		// Pass 4 frames (first ok, the rest not...)
+		load_test_image_and_run(&grb, 1, 2);
+		mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
+	
+		load_test_image_and_run(&grb, 1, 3);
+		mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
+	
+		load_test_image_and_run(&grb, 1, 4);
+		mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
+	
+		load_test_image_and_run(&grb, 1, 4);
+		mu_assert("Expected LOCKOUT state", (grb.state == catcierge_state_lockout));
+		catcierge_test_STATUS("Lockout state as expected");
+	
+		// Test the lockout logic.
+		if ((e = run_lockout_tests(&grb, obstruct, lockout_method)))
+		{
+			return e;
+		}
 	}
 
 	catcierge_template_matcher_destroy(&grb.matcher);
@@ -307,7 +325,7 @@ int TEST_catcierge_fsm_template_matcher(int argc, char **argv)
 			TIMER_ONLY_3
 		};
 
-		for (i = 0; i < 3; i++)
+		for (i = 0; i < sizeof(locks) / sizeof(locks[0]); i++)
 		{
 			CATCIERGE_RUN_TEST((e = run_failure_tests(obstruct, locks[i])),
 				"Run failure tests.",
@@ -316,6 +334,11 @@ int TEST_catcierge_fsm_template_matcher(int argc, char **argv)
 	}
 
 	run_camera_test();
+
+	if (ret)
+	{
+		catcierge_test_FAILURE("One of the tests failed!\n");
+	}
 
 	return ret;
 }
