@@ -453,7 +453,7 @@ static void catcierge_save_images(catcierge_grb_t * grb, match_direction_t direc
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
 		m = &grb->matches[i];
-		CATLOGFPS("Saving image %s\n", m->path);
+		CATLOG("Saving image %s\n", m->path);
 		cvSaveImage(m->path, m->img, 0);
 
 		catcierge_execute(args->save_img_cmd, "%f %d %s %d",
@@ -495,24 +495,34 @@ static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
 	// might be an error. Such as the backlight failing.
 	if (args->max_consecutive_lockout_count)
 	{
-		if (catcierge_timer_get(&grb->lockout_timer)
-			<= (args->lockout_time + args->consecutive_lockout_delay))
+		double lockout_timer_val = catcierge_timer_get(&grb->lockout_timer);
+
+		if ((lockout_timer_val
+			<= (args->lockout_time + args->consecutive_lockout_delay)))
 		{
 			grb->consecutive_lockout_count++;
-			CATLOGFPS("Consecutive lockout! %d out of %d before quiting\n",
+			CATLOG("Consecutive lockout! %d out of %d before quiting. "
+				   "(%0.2f sec <= %0.2f sec)\n",
 					grb->consecutive_lockout_count, 
-					args->max_consecutive_lockout_count);
+					args->max_consecutive_lockout_count,
+					lockout_timer_val,
+					(args->lockout_time + args->consecutive_lockout_delay));
 		}
 		else
 		{
 			grb->consecutive_lockout_count = 0;
-			CATLOGFPS("Consecutive match count reset\n");
+
+			CATLOG("Consecutive lockout count reset. "
+					"%0.2f seconds between lockouts "
+					"(consecutive lockout delay = %0.2f seconds)\n",
+					catcierge_timer_get(&grb->lockout_timer),
+					args->consecutive_lockout_delay);
 		}
 
 		// Exit the program, we assume we have an error.
 		if (grb->consecutive_lockout_count >= args->max_consecutive_lockout_count)
 		{
-			CATLOGFPS("Too many lockouts in a row (%d)! Assuming something is wrong... Aborting program!\n",
+			CATLOG("Too many lockouts in a row (%d)! Assuming something is wrong... Aborting program!\n",
 						grb->consecutive_lockout_count);
 			catcierge_do_unlock(grb);
 			// TODO: Add a special event the user can trigger an external program with here...
@@ -774,8 +784,6 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 		CATLOG("End of lockout! (timed out after %f seconds)\n",
 			catcierge_timer_get(&grb->lockout_timer));
 
-		// TODO: Move this timer reset to some better place?
-		catcierge_timer_reset(&grb->lockout_timer);
 		catcierge_do_unlock(grb);
 		catcierge_set_state(grb, catcierge_state_waiting);
 	}
@@ -792,6 +800,9 @@ void catcierge_state_transition_lockout(catcierge_grb_t *grb)
 	switch (args->lockout_method)
 	{
 		default: break;
+		case OBSTRUCT_THEN_TIMER_2:
+			catcierge_timer_reset(&grb->lockout_timer);
+			break;
 		case OBSTRUCT_OR_TIMER_1:
 		case TIMER_ONLY_3:
 			catcierge_timer_set(&grb->lockout_timer, args->lockout_time);
@@ -928,6 +939,12 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		{
 			CATLOG("Everything OK! (%d out of %d matches succeeded)"
 					" Door kept open...\n", grb->match_success_count, MATCH_MAX_COUNT);
+
+			if (grb->consecutive_lockout_count > 0)
+			{
+				grb->consecutive_lockout_count = 0;
+				CATLOG("Consecutive lockout count reset\n");
+			}
 
 			// Make sure the door is open.
 			catcierge_do_unlock(grb);
