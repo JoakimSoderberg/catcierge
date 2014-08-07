@@ -84,7 +84,7 @@ endforeach()
 # TODO: Move all this to it's own file.
 
 # Check if we're running on travis to add this target.
-if ($ENV{TRAVIS} STREQUAL "true")
+if ("$ENV{TRAVIS}" STREQUAL "true")
 
 	# When passing a CMake list to an external process, the list
 	# will be converted from the format "1;2;3" to "1 2 3".
