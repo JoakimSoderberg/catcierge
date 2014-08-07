@@ -223,8 +223,11 @@ char *run_add_and_generate_tests()
 			named_template_path = catcierge_output_translate(&grb, buf, sizeof(buf), "template_path:arne");
 			catcierge_test_STATUS("Got named template path for \"arne\": %s", named_template_path);
 			mu_assert("Got null named template path", named_template_path != NULL);
+			#ifdef _WIN32
+			mu_assert("Unexpected named template path", !strcmp("template_tests\\the_path", named_template_path));
+			#else
 			mu_assert("Unexpected named template path", !strcmp("template_tests/the_path", named_template_path));
-
+			#endif
 			// Also try a non-existing name.
 			named_template_path = catcierge_output_translate(&grb, buf, sizeof(buf), "template_path:bla");
 			catcierge_test_STATUS("Tried to get non-existing template path: %s", named_template_path);
@@ -234,7 +237,11 @@ char *run_add_and_generate_tests()
 			default_template_path = catcierge_output_translate(&grb, buf, sizeof(buf), "template_path");
 			catcierge_test_STATUS("Got default template path: %s", default_template_path);
 			mu_assert("Got null default template path", default_template_path != NULL);
+			#ifdef _WIN32
+			mu_assert("Unexpected default template path", !strcmp("template_tests\\firstoutputpath", default_template_path));
+			#else
 			mu_assert("Unexpected default template path", !strcmp("template_tests/firstoutputpath", default_template_path));
+			#endif
 		}
 
 		catcierge_output_destroy(o);
