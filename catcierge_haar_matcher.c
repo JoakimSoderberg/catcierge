@@ -170,7 +170,8 @@ size_t catcierge_haar_matcher_count_contours(catcierge_haar_matcher_t *ctx, CvSe
 }
 
 int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
-											IplImage *img, IplImage *inv_thr_img)
+											IplImage *img, IplImage *inv_thr_img,
+											match_result_t *result)
 {
 	//catcierge_haar_matcher_args_t *args = ctx->args;
 	IplImage *inv_adpthr_img = NULL;
@@ -221,7 +222,7 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 
 	if (ctx->debug)
 	{
-		cvDrawContours(img, contours, cvScalarAll(0), cvScalarAll(0), 1, 1, 8, cvPoint(0, 0));
+		cvDrawContours(img, contours, cvScalarAll(255), cvScalarAll(0), 1, 1, 8, cvPoint(0, 0));
 		cvShowImage("Haar Contours", img);
 	}
 
@@ -234,7 +235,8 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 }
 
 int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx,
-									IplImage *img, IplImage *thr_img)
+									IplImage *img, IplImage *thr_img,
+									match_result_t *result)
 {
 	catcierge_haar_matcher_args_t *args = ctx->args;
 	IplImage *thr_img2 = NULL;
@@ -302,8 +304,7 @@ void catcierge_haar_matcher_calculate_roi(catcierge_haar_matcher_t *ctx, CvRect 
 	if (roi->x < 0) roi->x = 0;
 }
 
-double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img,
-		CvRect *match_rects, size_t *rect_count, match_direction_t *direction)
+double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img, match_result_t *result)
 {
 	catcierge_haar_matcher_args_t *args = ctx->args;
 	double ret = 0.998;
@@ -333,9 +334,9 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 		img_gray = img;
 	}
 
-	if (direction)
+	if (result->direction)
 	{
-		*direction = MATCH_DIR_UNKNOWN;
+		result->direction = MATCH_DIR_UNKNOWN;
 	}
 
 	// Equalize histogram.
@@ -350,14 +351,14 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	}
 
 	if (cv2CascadeClassifier_detectMultiScale(ctx->cascade,
-			img_eq, match_rects, rect_count,
+			img_eq, result->match_rects, &result->rect_count,
 			1.1, 3, CV_HAAR_SCALE_IMAGE, &min_size, &max_size))
 	{
 		ret = -1.0;
 		goto fail;
 	}
 
-	if (ctx->debug) printf("Rect count: %d\n", (int)*rect_count);
+	if (ctx->debug) printf("Rect count: %d\n", (int)result->rect_count);
 
 	// Even if we don't find a face we count it as a success.
 	// Only when a prey is found we consider it a fail.
@@ -366,10 +367,10 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 	{
 		// Any return value above 0.0 is considered
 		// a success. Just so we can distinguish the types of successes.
-		ret = (*rect_count > 0) ? 0.999 : 0.0;
+		ret = (result->rect_count > 0) ? 0.999 : 0.0;
 	}
 
-	if ((*rect_count > 0))
+	if ((result->rect_count > 0))
 	{
 		int inverted; 
 		int flags;
@@ -379,7 +380,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 		// Only use the lower part of the region of interest
 		// and extend it some towards the "outside" for better result.
 		// (We only use the first haar cascade match).
-		roi = match_rects[0];
+		roi = result->match_rects[0];
 		catcierge_haar_matcher_calculate_roi(ctx, &roi);
 		cvSetImageROI(img_eq, roi);
 
@@ -402,21 +403,18 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx, IplImage *img
 		cvThreshold(img_eq, thr_img, 0, 255, flags);
 		if (ctx->debug) cvShowImage("Haar image binary", thr_img);
 
-		if (direction)
-		{
-			*direction = catcierge_haar_guess_direction(ctx, thr_img, inverted);
-			if (ctx->debug) printf("Direction: %s\n", catcierge_get_direction_str(*direction));
+		result->direction = catcierge_haar_guess_direction(ctx, thr_img, inverted);
+		if (ctx->debug) printf("Direction: %s\n", catcierge_get_direction_str(result->direction));
 
-			// Don't bother looking for prey when the cat is going outside.
-			if ((*direction) == MATCH_DIR_OUT)
-			{
-				if (ctx->debug) printf("Skipping prey detection!\n");
-				goto done;
-			}
+		// Don't bother looking for prey when the cat is going outside.
+		if ((result->direction) == MATCH_DIR_OUT)
+		{
+			if (ctx->debug) printf("Skipping prey detection!\n");
+			goto done;
 		}
 
 		// Note that thr_img will be modified.
-		if (find_prey(ctx, img_eq, thr_img))
+		if (find_prey(ctx, img_eq, thr_img, result))
 		{
 			if (ctx->debug) printf("Found prey!\n");
 			ret = 0.0; // Fail.

@@ -70,9 +70,7 @@ void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int
 
 void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx);
 
-double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const IplImage *img, 
-						CvRect *match_rects, size_t rect_count, 
-						match_direction_t *direction);
+double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const IplImage *img, match_result_t *result);
 
 int catcierge_template_matcher_is_frame_obstructed(catcierge_template_matcher_t *ctx, IplImage *img);
 

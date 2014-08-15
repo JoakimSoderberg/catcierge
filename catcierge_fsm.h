@@ -55,18 +55,6 @@ typedef struct rfid_match_s
 
 #define MATCH_MAX_COUNT 4 // The number of matches to perform before deciding the lock state.
 
-// The state of a single match.
-typedef struct match_state_s
-{
-	char path[1024];				// Path to where the image for this match should be saved.
-	IplImage *img;					// A cached image of the match frame.
-	double result;					// The match result. Normalized value between 0.0 and 1.0.
-	int success;					// Is the match a success (match result >= match threshold).
-	match_direction_t direction;	// The direction we think the cat went in.
-	time_t time;					// The time of match.
-	char time_str[1024];			// Time string of match (used in image filename).
-} match_state_t;
-
 struct catcierge_grb_s;
 typedef int (*catcierge_state_func_t)(struct catcierge_grb_s *);
 

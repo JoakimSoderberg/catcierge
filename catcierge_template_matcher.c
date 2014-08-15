@@ -35,7 +35,7 @@ static int _catcierge_prepare_img(catcierge_template_matcher_t *ctx, const IplIm
 {
 	const IplImage *img_gray = NULL;
 	IplImage *tmp = NULL;
-	IplImage *tmp2 = NULL;
+	//IplImage *tmp2 = NULL;
 	assert(ctx);
 	assert(ctx->kernel);
 	assert(src != dst);
@@ -235,11 +235,8 @@ void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx)
 	}
 }
 
-// TODO: Replace match_rects with a match_result struct that includes
-// match_rect and result value for each snout image.
-double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const IplImage *img,
-						CvRect *match_rects, size_t rect_count, 
-						match_direction_t *direction)
+double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
+						const IplImage *img, match_result_t *result)
 {
 	IplImage *img_cpy = NULL;
 	IplImage *img_prep = NULL;
@@ -277,10 +274,7 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const
 		return -1;
 	}
 
-	if (direction)
-	{
-		*direction = MATCH_DIR_UNKNOWN;
-	}
+	result->direction = MATCH_DIR_UNKNOWN;
 
 	// First check normal facing snouts.
 	for (i = 0; i < ctx->snout_count; i++)
@@ -301,9 +295,9 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const
 
 		match_sum += max_val;
 
-		if (i < rect_count) 
+		if (i < result->rect_count) 
 		{
-			match_rects[i] = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
+			result->match_rects[i] = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
 		}
 	}
 
@@ -311,7 +305,7 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const
 
 	if (match_avg >= ctx->match_threshold)
 	{
-		*direction = MATCH_DIR_IN;
+		result->direction = MATCH_DIR_IN;
 	}
 	else if (ctx->match_flipped && ctx->flipped_snouts)
 	{
@@ -326,18 +320,18 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const
 
 			match_sum += max_val;
 
-			if (i < rect_count) 
+			if (i < result->rect_count) 
 			{
-				match_rects[i] = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
+				result->match_rects[i] = cvRect(max_loc.x, max_loc.y, snout_size.width, snout_size.height);
 			}
 		}
 
 		match_avg = match_sum / ctx->snout_count;
 
 		// Only qualify as OUT if it was a good match.
-		if ((match_avg >= ctx->match_threshold) && direction)
+		if (match_avg >= ctx->match_threshold)
 		{
-			*direction = MATCH_DIR_OUT;
+			result->direction = MATCH_DIR_OUT;
 		}
 	}
 

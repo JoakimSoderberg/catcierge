@@ -23,6 +23,7 @@
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
 #include "catcierge_util.h"
+#include "catcierge_types.h"
 #ifdef _WIN32
 #include <process.h>
 #else
@@ -55,17 +56,14 @@ int main(int argc, char **argv)
 	int ret = 0;
 	catcierge_template_matcher_t ctx;
 	catcierge_haar_matcher_t hctx;
-	#define MAX_SNOUT_COUNT 24
 	char *img_paths[4096];
 	IplImage *imgs[4096];
 	size_t img_count = 0;
 	IplImage *img = NULL;
-	CvRect match_rects[MAX_SNOUT_COUNT];
 	CvSize img_size;
 	CvScalar match_color;
 	int match_success = 0;
 	double match_res = 0;
-	match_direction_t direction = MATCH_DIR_UNKNOWN;
 	int debug = 0;
 	int i;
 	int j;
@@ -77,7 +75,7 @@ int main(int argc, char **argv)
 	int preload = 0;
 	int test_matchable = 0;
 	const char *matcher = NULL;
-	size_t rect_count;
+	match_result_t result;
 
 	clock_t start;
 	clock_t end;
@@ -87,6 +85,7 @@ int main(int argc, char **argv)
 	char *values[4096];
 	size_t value_count = 0;
 	memset(&args, 0, sizeof(args));
+	memset(&result, 0, sizeof(result));
 
 	fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
 
@@ -253,7 +252,7 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		rect_count = args.snout_count;
+		result.rect_count = args.snout_count;
 	}
 	else
 	{
@@ -263,7 +262,7 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		rect_count = MAX_SNOUT_COUNT;
+		result.rect_count = MAX_MATCH_RECTS;
 	}
 
 	catcierge_template_matcher_set_debug(&ctx, debug);
@@ -340,7 +339,7 @@ int main(int argc, char **argv)
 
 			if (!strcmp(matcher, "template"))
 			{
-				if ((match_res = catcierge_template_matcher_match(&ctx, img, match_rects, rect_count, &direction)) < 0)
+				if ((match_res = catcierge_template_matcher_match(&ctx, img, &result)) < 0)
 				{
 					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
 					catcierge_template_matcher_destroy(&ctx);
@@ -349,7 +348,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				if ((match_res = catcierge_haar_matcher_match(&hctx, img, match_rects, &rect_count, &direction)) < 0)
+				if ((match_res = catcierge_haar_matcher_match(&hctx, img, &result)) < 0)
 				{
 					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
 					catcierge_haar_matcher_destroy(&hctx);
@@ -361,7 +360,7 @@ int main(int argc, char **argv)
 
 			if (match_success)
 			{
-				printf("  Match (%s)! %f\n", catcierge_get_direction_str(direction), match_res);
+				printf("  Match (%s)! %f\n", catcierge_get_direction_str(result.direction), match_res);
 				match_color = CV_RGB(0, 255, 0);
 				success_count++;
 			}
@@ -373,13 +372,13 @@ int main(int argc, char **argv)
 
 			if (show || save)
 			{
-				for (j = 0; j < (int)rect_count; j++)
+				for (j = 0; j < (int)result.rect_count; j++)
 				{
-					printf("x: %d\n", match_rects[j].x);
-					printf("y: %d\n", match_rects[j].y);
-					printf("w: %d\n", match_rects[j].width);
-					printf("h: %d\n", match_rects[j].height);
-					cvRectangleR(img, match_rects[j], match_color, 1, 8, 0);
+					printf("x: %d\n", result.match_rects[j].x);
+					printf("y: %d\n", result.match_rects[j].y);
+					printf("w: %d\n", result.match_rects[j].width);
+					printf("h: %d\n", result.match_rects[j].height);
+					cvRectangleR(img, result.match_rects[j], match_color, 1, 8, 0);
 				}
 
 				if (show)

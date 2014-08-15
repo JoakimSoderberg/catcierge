@@ -409,6 +409,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		// Draw a white rectangle over the best match.
 		if (args->highlight_match)
 		{
+			// TODO: Use the match_rects in the match_result_t struct instead.
 			for (i = 0; i < grb->match_rect_count; i++)
 			{
 				cvRectangleR(img, grb->match_rects[i],
@@ -634,7 +635,7 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 		#endif
 
 		// Always highlight when showing in GUI.
-		// TODO: Move this to the template matcher instead.
+		// TODO: Move the match rects to grb->matches[grb->match_count].match_rects instead.
 		for (i = 0; i < grb->match_rect_count; i++)
 		{
 			cvRectangleR(grb->img, grb->match_rects[i], match_color, 2, 8, 0);
@@ -645,7 +646,7 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 	}
 }
 
-double catcierge_do_match(catcierge_grb_t *grb, match_direction_t *direction)
+double catcierge_do_match(catcierge_grb_t *grb, match_result_t *result)
 {
 	double match_res = 0.0;
 	assert(grb);
@@ -653,9 +654,10 @@ double catcierge_do_match(catcierge_grb_t *grb, match_direction_t *direction)
 	if (grb->args.matcher_type == MATCHER_TEMPLATE)
 	{
 		grb->match_rect_count = grb->args.templ.snout_count;
+		result->rect_count = grb->args.templ.snout_count;
 
-		if ((match_res = catcierge_template_matcher_match(&grb->matcher, grb->img,
-			grb->match_rects, grb->match_rect_count, direction)) < 0.0)
+		if ((match_res = catcierge_template_matcher_match(&grb->matcher,
+							grb->img, result)) < 0.0)
 		{
 			CATERR("Template matcher: Error when matching frame!\n");
 		}
@@ -665,10 +667,11 @@ double catcierge_do_match(catcierge_grb_t *grb, match_direction_t *direction)
 		// Haar matcher.
 
 		// How many matches we have room for.
-		grb->match_rect_count = MAX_SNOUT_COUNT;
+		grb->match_rect_count = MAX_SNOUT_COUNT; // TODO: Get rid of this.
+		result->rect_count = MAX_MATCH_RECTS;
 
-		if ((match_res = catcierge_haar_matcher_match(&grb->haar,grb->img,
-			grb->match_rects, &grb->match_rect_count, direction)) < 0.0)
+		if ((match_res = catcierge_haar_matcher_match(&grb->haar,
+							grb->img, result)) < 0.0)
 		{
 			CATERR("Haar matcher: Error when matching frame!\n");
 		}
@@ -871,14 +874,15 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
 	int match_success;
-	match_direction_t direction = MATCH_DIR_UNKNOWN;
 	double match_res = 0.0;
 	catcierge_args_t *args;
+	match_result_t result;
 	assert(grb);
 	args = &grb->args;
+	memset(&result, 0, sizeof(match_result_t));
 
 	// We have something to match against.
-	if ((match_res = catcierge_do_match(grb, &direction)) < 0)
+	if ((match_res = catcierge_do_match(grb, &result)) < 0)
 	{
 		CATERRFPS("Error when matching frame!\n");
 		return -1;
@@ -896,7 +900,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 
 	// Save the match state, execute external processes and so on...
 	catcierge_process_match_result(grb, grb->img, match_success,
-		match_res, direction);
+		match_res, result.direction);
 
 	grb->match_count++;
 
@@ -911,6 +915,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	{
 		// We now have enough images to decide lock status.
 		int i;
+		match_direction_t direction;
 		grb->match_success = 0;
 		grb->match_success_count = 0;
 

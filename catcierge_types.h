@@ -20,6 +20,10 @@
 #ifndef __CATCIERGE_TYPES_H__
 #define __CATCIERGE_TYPES_H__
 
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/highgui/highgui_c.h>
+#include <time.h>
+
 #define MATCH_MAX_COUNT 4 // The number of matches to perform before deciding the lock state.
 
 typedef enum match_direction_e
@@ -35,7 +39,6 @@ typedef enum direction_e
 	DIR_RIGHT = 1
 } direction_t;
 
-
 typedef enum catcierge_matcher_type_e
 {
 	MATCHER_TEMPLATE,
@@ -48,5 +51,38 @@ typedef enum catcierge_lockout_method_s
 	OBSTRUCT_THEN_TIMER_2 = 2,
 	TIMER_ONLY_3 = 3
 } catcierge_lockout_method_t;
+
+#define MAX_STEPS 24
+#define MAX_MATCH_RECTS 4
+
+typedef struct match_step_s
+{
+	IplImage *img;
+	const char *description;
+} match_step_t;
+
+typedef struct match_result_s
+{
+	double value;
+	CvRect match_rects[MAX_MATCH_RECTS];
+	size_t rect_count;
+	match_direction_t direction;
+	match_step_t *steps[MAX_STEPS];	// Step by step images+description for the matching algorithm.
+	size_t step_img_count;			// The number of step images.
+} match_result_t;
+
+// The state of a single match.
+typedef struct match_state_s
+{
+	char path[1024];				// Path to where the image for this match should be saved.
+	IplImage *img;					// A cached image of the match frame.
+	match_step_t *steps[MAX_STEPS];	// Step by step images+description for the matching algorithm.
+	size_t step_img_count;			// The number of step images.
+	double result;					// The match result. Normalized value between 0.0 and 1.0.
+	int success;					// Is the match a success (match result >= match threshold).
+	match_direction_t direction;	// The direction we think the cat went in.
+	time_t time;					// The time of match.
+	char time_str[1024];			// Time string of match (used in image filename).
+} match_state_t;
 
 #endif // __CATCIERGE_TYPES_H__
