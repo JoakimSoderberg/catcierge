@@ -117,16 +117,21 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 
 	# Get rid of .gcov and path info.
 	get_filename_component(GCOV_FILE ${GCOV_FILE} NAME)
-	string(REGEX REPLACE "\\.gcov$" "" GCOV_FILE_WEXT ${GCOV_FILE})
-	#message("gcov file wext: ${GCOV_FILE_WEXT}")
+	string(REGEX REPLACE "\\.gcov$" "" GCOV_FILE_WITHOUT_EXT ${GCOV_FILE})
+	#message("gcov file wext: ${GCOV_FILE_WITHOUT_EXT}")
 
 	# Is this in the list of source files?
 	# TODO: We want to match against relative path filenames from the source file root...
-	list(FIND COVERAGE_SRCS_NAMES ${GCOV_FILE_WEXT} WAS_FOUND)
+	list(FIND COVERAGE_SRCS_NAMES ${GCOV_FILE_WITHOUT_EXT} WAS_FOUND)
 
 	if (NOT WAS_FOUND EQUAL -1)
 		message("Found ${GCOV_FILE}")
 		list(APPEND GCOV_FILES ${GCOV_FILE})
+
+		# We remove it from the list, so we don't bother searching for it again.
+		# Also files left in COVERAGE_SRCS_NAMES after this loop ends should
+		# have coverage data generated from them (no lines are covered).
+		list(REMOVE_ITEM COVERAGE_SRCS_NAMES ${GCOV_FILE_WITHOUT_EXT})
 	else()
 		message("Not found: ${GCOV_FILE}")
 	endif()
@@ -148,7 +153,7 @@ set(JSON_TEMPLATE
 
 set(SRC_FILE_TEMPLATE
 "{
-  \"name\": \"\@GCOV_FILE_WEXT\@\",
+  \"name\": \"\@GCOV_FILE_WITHOUT_EXT\@\",
   \"source\": \"\@GCOV_FILE_SOURCE\@\",
   \"coverage\": \@GCOV_FILE_COVERAGE\@
 }"
@@ -160,7 +165,7 @@ set(JSON_GCOV_FILES "[")
 foreach (GCOV_FILE ${GCOV_FILES})
 
 	get_filename_component(GCOV_FILE ${GCOV_FILE} NAME)
-	string(REGEX REPLACE "\\.gcov$" "" GCOV_FILE_WEXT ${GCOV_FILE})
+	string(REGEX REPLACE "\\.gcov$" "" GCOV_FILE_WITHOUT_EXT ${GCOV_FILE})
 
 	# Loads the gcov file as a list of lines.
 	file(STRINGS ${GCOV_FILE} GCOV_LINES)
@@ -177,7 +182,7 @@ foreach (GCOV_FILE ${GCOV_FILES})
 		# C code uses ; all over the place, but CMake uses that as a list delimiter as well
 		# this means that "RES" in the below code won't contain 3 list items at all times
 		# for each ; in a source code line, that counts as another element in the CMAke list.
-		# So simply doing list(GET RES 2 SOURCE) won't get the entire source line.
+		# So simply doing list(GET RES 2 SOURCE) won't get the entire source line.i
 
 		# Example of what we're parsing:
 		# Hitcount  |Line | Source
@@ -251,11 +256,38 @@ foreach (GCOV_FILE ${GCOV_FILES})
 	set(JSON_GCOV_FILES "${JSON_GCOV_FILES}${FILE_JSON}, ")
 endforeach()
 
+# Loop through all files we couldn't find any coverage for
+# as well, and generate JSON for those as well with 0% coverage.
+foreach(NOT_COVERED_SRC COVERAGE_SRCS_NAMES)
+
+	# Loads the source file as a list of lines.
+	file(STRINGS ${NOT_COVERED_SRC} SRC_LINES)
+
+	set(GCOV_FILE_COVERAGE "[")
+	set(GCOV_FILE_SOURCE "")
+
+	foreach (SOURCE ${SRC_LINES})
+		set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}0, ")
+
+		string(REPLACE "\\" "\\\\" SOURCE "${SOURCE}")
+		string(REGEX REPLACE "\"" "\\\\\"" SOURCE "${SOURCE}")
+		string(REPLACE "\t" "\\\\t" SOURCE "${SOURCE}")
+		string(REPLACE "\r" "\\\\r" SOURCE "${SOURCE}")
+		set(GCOV_FILE_SOURCE "${GCOV_FILE_SOURCE}${SOURCE}\\n")
+	endforeach()
+
+	# Remove trailing comma, and complete JSON array with ]
+	string(REGEX REPLACE ",[ ]*$" "" GCOV_FILE_COVERAGE ${GCOV_FILE_COVERAGE})
+	set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}]")
+
+	# Generate the final JSON for this file.
+	string(CONFIGURE ${SRC_FILE_TEMPLATE} FILE_JSON)
+	set(JSON_GCOV_FILES "${JSON_GCOV_FILES}${FILE_JSON}, ")
+endforeach()
+
 # Get rid of trailing comma.
 string(REGEX REPLACE ",[ ]*$" "" JSON_GCOV_FILES ${JSON_GCOV_FILES})
 set(JSON_GCOV_FILES "${JSON_GCOV_FILES}]")
-
-# TODO: Also include files specified in COVERAGE_SRCS WITHOUT coverage data!
 
 # Generate the final complete JSON!
 string(CONFIGURE ${JSON_TEMPLATE} JSON)
