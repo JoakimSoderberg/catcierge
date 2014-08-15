@@ -1,3 +1,14 @@
+# On ARM systems such as RPI, pixman does an invalid read.
+{
+    pixman_constructor
+    Memcheck:Addr1
+    fun:strncmp
+    fun:have_feature
+    fun:_pixman_arm_get_implementations
+    fun:_pixman_choose_implementation
+    fun:pixman_constructor
+}
+
 # zlib problems
 {
    # Fixed in zlib-1.2.4.  See http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=577135
@@ -11,7 +22,7 @@
 # Specifically when calling nss_parse_service_list mallocs
 # a static field that is never freed.
 {
-	nss_parse_service_list_bug
+    nss_parse_service_list_bug
     Memcheck:Leak
     fun:malloc
     fun:nss_parse_service_list

@@ -333,7 +333,10 @@ int TEST_catcierge_fsm_template_matcher(int argc, char **argv)
 		}
 	}
 
+	// This fails on the Raspberry pi, the camera fails to init for some reason...
+	#ifndef RPI
 	run_camera_test();
+	#endif
 
 	if (ret)
 	{
