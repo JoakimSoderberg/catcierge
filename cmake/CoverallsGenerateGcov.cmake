@@ -258,7 +258,7 @@ endforeach()
 
 # Loop through all files we couldn't find any coverage for
 # as well, and generate JSON for those as well with 0% coverage.
-foreach(NOT_COVERED_SRC COVERAGE_SRCS_NAMES)
+foreach(NOT_COVERED_SRC ${COVERAGE_SRCS_NAMES})
 
 	# Loads the source file as a list of lines.
 	file(STRINGS ${NOT_COVERED_SRC} SRC_LINES)
