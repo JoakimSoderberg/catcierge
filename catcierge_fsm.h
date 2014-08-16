@@ -78,8 +78,6 @@ typedef struct catcierge_grb_s
 	catcierge_haar_matcher_t haar;
 	int match_success;
 	int match_success_count;
-	CvRect match_rects[MAX_SNOUT_COUNT];
-	size_t match_rect_count;
 	int consecutive_lockout_count;
 
 	// Consecutive matches decides lockout status.

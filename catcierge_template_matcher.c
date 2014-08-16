@@ -100,6 +100,8 @@ int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, catcierge
 	if (args->snout_count == 0)
 		return -1;
 
+	ctx->args = args;
+
 	snout_paths = args->snout_paths;
 	snout_count = args->snout_count;
 	ctx->match_flipped = args->match_flipped;
@@ -236,13 +238,13 @@ void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx)
 }
 
 double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
-						const IplImage *img, match_result_t *result)
+						const IplImage *img, match_result_t *result, int save_steps)
 {
 	IplImage *img_cpy = NULL;
 	IplImage *img_prep = NULL;
 	CvPoint min_loc;
 	CvPoint max_loc;
-	CvSize img_size = cvGetSize(img);
+	CvSize img_size;
 	CvSize snout_size;
 	double min_val;
 	double max_val;
@@ -250,12 +252,17 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
 	double match_avg = 0.0;
 	size_t i;
 	assert(ctx);
+	assert(img);
+
+	img_size = cvGetSize(img);
+	result->result = -1.0;
+	result->rect_count = ctx->args->snout_count;
 
 	if ((img_size.width != ctx->width)
 	 || (img_size.height != ctx->height))
 	{
 		fprintf(stderr, "Match image must have size %dx%d\n", ctx->width, ctx->height);
-		return -1;
+		return result->result;
 	}
 
 	img_cpy = cvCreateImage(img_size, 8, 1);
@@ -263,7 +270,7 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
 	if (!(img_prep = cvCloneImage(img)))
 	{
 		fprintf(stderr, "Failed to clone match image\n");
-		return -1;
+		return result->result;
 	}
 
 	if (_catcierge_prepare_img(ctx, img_prep, img_cpy))
@@ -271,7 +278,7 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
 		fprintf(stderr, "Failed to prepare match image\n");
 		cvReleaseImage(&img_cpy);
 		cvReleaseImage(&img_prep);
-		return -1;
+		return result->result;
 	}
 
 	result->direction = MATCH_DIR_UNKNOWN;
@@ -338,7 +345,10 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
 	cvReleaseImage(&img_cpy);
 	cvReleaseImage(&img_prep);
 
-	return match_avg;
+	result->result = match_avg;
+	result->success = (result->result >= ctx->args->match_threshold);
+
+	return result->result;
 }
 
 void catcierge_template_matcher_usage()

@@ -508,16 +508,16 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		}
 		else if (!strcmp(subvar, "success"))
 		{
-			snprintf(buf, bufsize - 1, "%d", grb->matches[idx].success);
+			snprintf(buf, bufsize - 1, "%d", grb->matches[idx].result.success);
 			return buf;
 		}
 		else if (!strcmp(subvar, "direction"))
 		{
-			return catcierge_get_direction_str(grb->matches[idx].direction);
+			return catcierge_get_direction_str(grb->matches[idx].result.direction);
 		}
 		else if (!strcmp(subvar, "result"))
 		{
-			snprintf(buf, bufsize - 1, "%f", grb->matches[idx].result);
+			snprintf(buf, bufsize - 1, "%f", grb->matches[idx].result.result);
 			return buf; 
 		}
 		else if (!strncmp(subvar, "time", 4))

@@ -35,6 +35,7 @@ typedef struct catcierge_args_s
 	int match_time;
 	char *output_path;
 	int ok_matches_needed;
+	int save_steps;
 
 	const char *matcher;
 	catcierge_matcher_type_t matcher_type;

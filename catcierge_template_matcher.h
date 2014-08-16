@@ -31,6 +31,14 @@
 #define DEFAULT_MATCH_THRESH 0.8	// The threshold signifying a good match returned by catcierge_match.
 #define MAX_SNOUT_COUNT 24
 
+typedef struct catcierge_template_matcher_args_s
+{
+	const char *snout_paths[MAX_SNOUT_COUNT];
+	size_t snout_count;
+	double match_threshold;
+	int match_flipped;
+} catcierge_template_matcher_args_t;
+
 typedef struct catcierge_template_matcher_s
 {
 	CvMemStorage *storage;
@@ -49,15 +57,8 @@ typedef struct catcierge_template_matcher_s
 	int erode;
 
 	int debug;
+	catcierge_template_matcher_args_t *args;
 } catcierge_template_matcher_t;
-
-typedef struct catcierge_template_matcher_args_s
-{
-	const char *snout_paths[MAX_SNOUT_COUNT];
-	size_t snout_count;
-	double match_threshold;
-	int match_flipped;
-} catcierge_template_matcher_args_t;
 
 int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, 
 					catcierge_template_matcher_args_t *args);
@@ -70,7 +71,7 @@ void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int
 
 void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx);
 
-double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const IplImage *img, match_result_t *result);
+double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx, const IplImage *img, match_result_t *result, int save_steps);
 
 int catcierge_template_matcher_is_frame_obstructed(catcierge_template_matcher_t *ctx, IplImage *img);
 

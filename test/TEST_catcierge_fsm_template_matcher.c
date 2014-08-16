@@ -44,7 +44,7 @@ static char *run_lockout_tests(catcierge_grb_t *grb, int obstruct,
 				load_test_image_and_run(grb, 1, 2); // Obstruct.
 				mu_assert("Expected LOCKOUT state after obstruction",
 					(grb->state == catcierge_state_lockout));
-				
+
 				sleep(args->lockout_time + 1);
 				
 				//catcierge_run_state(grb);

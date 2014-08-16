@@ -83,9 +83,9 @@ static char *run_generate_tests()
 		strcpy(grb.matches[0].path, "/some/path/omg1");
 		strcpy(grb.matches[1].path, "/some/path/omg2");
 		strcpy(grb.matches[2].path, "/some/path/omg3");
-		grb.matches[0].success = 4;
-		grb.matches[2].direction = MATCH_DIR_IN;
-		grb.matches[2].result = 0.8;
+		grb.matches[0].result.success = 4;
+		grb.matches[2].result.direction = MATCH_DIR_IN;
+		grb.matches[2].result.result = 0.8;
 		grb.match_success = 33;
 		grb.match_count = 3;
 		catcierge_set_state(&grb, catcierge_state_waiting);

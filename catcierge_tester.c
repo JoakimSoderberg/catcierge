@@ -251,8 +251,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Failed to init template matcher\n");
 			return -1;
 		}
-
-		result.rect_count = args.snout_count;
 	}
 	else
 	{
@@ -261,8 +259,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Failed to init haar matcher.\n");
 			return -1;
 		}
-
-		result.rect_count = MAX_MATCH_RECTS;
 	}
 
 	catcierge_template_matcher_set_debug(&ctx, debug);
@@ -339,7 +335,7 @@ int main(int argc, char **argv)
 
 			if (!strcmp(matcher, "template"))
 			{
-				if ((match_res = catcierge_template_matcher_match(&ctx, img, &result)) < 0)
+				if ((match_res = catcierge_template_matcher_match(&ctx, img, &result, 0)) < 0)
 				{
 					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
 					catcierge_template_matcher_destroy(&ctx);
@@ -348,7 +344,8 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				if ((match_res = catcierge_haar_matcher_match(&hctx, img, &result)) < 0)
+				// TODO: Add suppor for --save_steps
+				if ((match_res = catcierge_haar_matcher_match(&hctx, img, &result, 0)) < 0)
 				{
 					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
 					catcierge_haar_matcher_destroy(&hctx);

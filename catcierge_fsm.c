@@ -239,23 +239,43 @@ void catcierge_do_unlock(catcierge_grb_t *grb)
 	}
 }
 
+static void catcierge_cleanup_match_steps(catcierge_grb_t *grb, match_state_t *match)
+{
+	int j;
+	match_step_t *step = NULL;
+	assert(grb);
+	assert(match);
+
+	for (j = 0; j < MAX_MATCH_RECTS; j++)
+	{
+		step = &match->result.steps[j];
+
+		if (step->img)
+		{
+			cvReleaseImage(&step->img);
+			step->img = NULL;
+		}
+
+		step->description = NULL;
+	}
+
+	match->result.step_img_count = 0;
+}
+
 static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 {
 	int i;
-	catcierge_args_t *args;
 	assert(grb);
-	args = &grb->args;
 
-	if (args->saveimg)
+	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
-		for (i = 0; i < MATCH_MAX_COUNT; i++)
+		if (grb->matches[i].img)
 		{
-			if (grb->matches[i].img)
-			{
-				cvReleaseImage(&grb->matches[i].img);
-				grb->matches[i].img = NULL;
-			}
+			cvReleaseImage(&grb->matches[i].img);
+			grb->matches[i].img = NULL;
 		}
+
+		catcierge_cleanup_match_steps(grb, &grb->matches[i]);
 	}
 }
 
@@ -377,27 +397,24 @@ IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 }
 
 static void catcierge_process_match_result(catcierge_grb_t *grb,
-				IplImage *img, int match_success,
-				double match_res, match_direction_t direction)
+				IplImage *img, match_state_t *m)
 {
 	size_t i;
-	catcierge_args_t *args;
-	match_state_t *m;
+	catcierge_args_t *args = NULL;
+	match_result_t *res = NULL;
 	assert(grb);
 	assert(img);
+	assert(m);
 	args = &grb->args;
 
-	log_printc(stdout, (match_success ? COLOR_GREEN : COLOR_RED),
-		"%f %sMatch %s\n",
-		match_res,
-		match_success ? "" : "No ",
-		catcierge_get_direction_str(direction));
+	res = &m->result;
 
-	// Save the current image match status.
-	m = &grb->matches[grb->match_count];
-	m->result = match_res;
-	m->success = match_success;
-	m->direction = direction;
+	log_printc(stdout, (res->success ? COLOR_GREEN : COLOR_RED),
+		"%f %sMatch %s\n",
+		res->result,
+		res->success ? "" : "No ",
+		catcierge_get_direction_str(res->direction));
+
 	m->img = NULL;
 	m->time = time(NULL);
 	get_time_str_fmt(m->time_str, sizeof(m->time_str), "%Y-%m-%d_%H_%M_%S");
@@ -409,10 +426,9 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		// Draw a white rectangle over the best match.
 		if (args->highlight_match)
 		{
-			// TODO: Use the match_rects in the match_result_t struct instead.
-			for (i = 0; i < grb->match_rect_count; i++)
+			for (i = 0; i < res->rect_count; i++)
 			{
-				cvRectangleR(img, grb->match_rects[i],
+				cvRectangleR(img, res->match_rects[i],
 						CV_RGB(255, 255, 255), 2, 8, 0);
 			}
 		}
@@ -421,7 +437,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 			sizeof(m->path),
 			"%s/match_%s_%s__%d.png",
 			args->output_path ? args->output_path : ".",
-			match_success ? "" : "fail",
+			res->success ? "" : "fail",
 			m->time_str,
 			grb->match_count);
 
@@ -430,22 +446,25 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 
 	// Log match to file.
 	log_print_csv(grb->log_file, "match, %s, %f, %f, %s, %s\n",
-		 match_success ? "success" : "failure",
-		 match_res, args->templ.match_threshold,
+		 res->success ? "success" : "failure",
+		 res->result, args->templ.match_threshold,
 		 args->saveimg ? m->path : "-",
-		 catcierge_get_direction_str(m->direction));
+		 catcierge_get_direction_str(res->direction));
 
 	// Runs the --match_cmd progam specified.
 	catcierge_execute(args->match_cmd, "%f %d %s %d",
-			match_res, 						// %0 = Match result.
-			match_success,					// %1 = 0/1 succes or failure.
+			res->result, 					// %0 = Match result.
+			res->success,					// %1 = 0/1 succes or failure.
 			args->saveimg ? m->path : "",	// %2 = Image path if saveimg is turned on.
-			m->direction);					// %3 = Direction, 0 = in, 1 = out.
+			res->direction);				// %3 = Direction, 0 = in, 1 = out.
+
+	//catcierge_output_execute(grb, "match", args->match_cmd);
 }
 
 static void catcierge_save_images(catcierge_grb_t * grb, match_direction_t direction)
 {
 	match_state_t *m;
+	match_result_t *res;
 	int i;
 	catcierge_args_t *args;
 	assert(grb);
@@ -454,14 +473,15 @@ static void catcierge_save_images(catcierge_grb_t * grb, match_direction_t direc
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
 		m = &grb->matches[i];
+		res = &m->result;
 		CATLOG("Saving image %s\n", m->path);
 		cvSaveImage(m->path, m->img, 0);
 
 		catcierge_execute(args->save_img_cmd, "%f %d %s %d",
-			m->result,		// %0 = Match result.
-			m->success, 	// %1 = Match success.
+			res->result,	// %0 = Match result.
+			res->success, 	// %1 = Match success.
 			m->path,		// %2 = Image path (of now saved image).
-			m->direction);	// %3 = Match direction.
+			res->direction);// %3 = Match direction.
 
 		cvReleaseImage(&m->img);
 		m->img = NULL;
@@ -469,20 +489,20 @@ static void catcierge_save_images(catcierge_grb_t * grb, match_direction_t direc
 
 	catcierge_execute(args->save_imgs_cmd,
 		"%d %s %s %s %s %f %f %f %f %d %d %d %d %d",
-		grb->match_success, 		// %0 = Match success.
-		grb->matches[0].path,		// %1 = Image 1 path (of now saved image).
-		grb->matches[1].path,		// %2 = Image 2 path (of now saved image).
-		grb->matches[2].path,		// %3 = Image 3 path (of now saved image).
-		grb->matches[3].path,		// %4 = Image 4 path (of now saved image).
-		grb->matches[0].result,		// %5 = Image 1 result.
-		grb->matches[1].result,		// %6 = Image 2 result.
-		grb->matches[2].result,		// %7 = Image 3 result.
-		grb->matches[3].result,		// %8 = Image 4 result.
-		grb->matches[0].direction,	// %9 =  Image 1 direction.
-		grb->matches[1].direction,	// %10 = Image 2 direction.
-		grb->matches[2].direction,	// %11 = Image 3 direction.
-		grb->matches[3].direction,	// %12 = Image 4 direction.
-		direction); 				// %13 = Total direction.
+		grb->match_success, 				// %0 = Match success.
+		grb->matches[0].path,				// %1 = Image 1 path (of now saved image).
+		grb->matches[1].path,				// %2 = Image 2 path (of now saved image).
+		grb->matches[2].path,				// %3 = Image 3 path (of now saved image).
+		grb->matches[3].path,				// %4 = Image 4 path (of now saved image).
+		grb->matches[0].result.result,		// %5 = Image 1 result.
+		grb->matches[1].result.result,		// %6 = Image 2 result.
+		grb->matches[2].result.result,		// %7 = Image 3 result.
+		grb->matches[3].result.result,		// %8 = Image 4 result.
+		grb->matches[0].result.direction,	// %9 =  Image 1 direction.
+		grb->matches[1].result.direction,	// %10 = Image 2 direction.
+		grb->matches[2].result.direction,	// %11 = Image 3 direction.
+		grb->matches[3].result.direction,	// %12 = Image 4 direction.
+		direction); 						// %13 = Total direction.
 }
 
 static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
@@ -616,6 +636,8 @@ static void catcierge_should_we_rfid_lockout(catcierge_grb_t *grb)
 static void catcierge_show_image(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args;
+	match_state_t *m;
+	match_result_t *res;
 	assert(grb);
 	args = &grb->args;
 
@@ -634,11 +656,14 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 		match_color = (grb->match_success) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
 		#endif
 
+		m = &grb->matches[grb->match_count];
+		res = &m->result;
+
 		// Always highlight when showing in GUI.
 		// TODO: Move the match rects to grb->matches[grb->match_count].match_rects instead.
-		for (i = 0; i < grb->match_rect_count; i++)
+		for (i = 0; i < res->rect_count; i++)
 		{
-			cvRectangleR(grb->img, grb->match_rects[i], match_color, 2, 8, 0);
+			cvRectangleR(grb->img, res->match_rects[i], match_color, 2, 8, 0);
 		}
 
 		cvShowImage("catcierge", grb->img);
@@ -649,15 +674,14 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 double catcierge_do_match(catcierge_grb_t *grb, match_result_t *result)
 {
 	double match_res = 0.0;
+	catcierge_args_t *args;
 	assert(grb);
+	args = &grb->args;
 
 	if (grb->args.matcher_type == MATCHER_TEMPLATE)
 	{
-		grb->match_rect_count = grb->args.templ.snout_count;
-		result->rect_count = grb->args.templ.snout_count;
-
 		if ((match_res = catcierge_template_matcher_match(&grb->matcher,
-							grb->img, result)) < 0.0)
+							grb->img, result, args->save_steps)) < 0.0)
 		{
 			CATERR("Template matcher: Error when matching frame!\n");
 		}
@@ -665,13 +689,8 @@ double catcierge_do_match(catcierge_grb_t *grb, match_result_t *result)
 	else
 	{
 		// Haar matcher.
-
-		// How many matches we have room for.
-		grb->match_rect_count = MAX_SNOUT_COUNT; // TODO: Get rid of this.
-		result->rect_count = MAX_MATCH_RECTS;
-
 		if ((match_res = catcierge_haar_matcher_match(&grb->haar,
-							grb->img, result)) < 0.0)
+							grb->img, result, args->save_steps)) < 0.0)
 		{
 			CATERR("Haar matcher: Error when matching frame!\n");
 		}
@@ -831,9 +850,9 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 		// this is correct).
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
-			if (grb->matches[i].success)
+			if (grb->matches[i].result.success)
 			{
-				direction = grb->matches[i].direction;
+				direction = grb->matches[i].result.direction;
 			}
 		}
 	}
@@ -846,7 +865,7 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
-			switch (grb->matches[i].direction)
+			switch (grb->matches[i].result.direction)
 			{
 				case MATCH_DIR_IN: in_count++; break;
 				case MATCH_DIR_OUT: out_count++; break;
@@ -873,34 +892,25 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
-	int match_success;
-	double match_res = 0.0;
 	catcierge_args_t *args;
-	match_result_t result;
+	match_state_t *match = NULL;
+	match_result_t *result;
 	assert(grb);
 	args = &grb->args;
-	memset(&result, 0, sizeof(match_result_t));
+
+	match = &grb->matches[grb->match_count];
+	result = &match->result;
+	memset(result, 0, sizeof(match_result_t));
 
 	// We have something to match against.
-	if ((match_res = catcierge_do_match(grb, &result)) < 0)
+	if (catcierge_do_match(grb, result) < 0)
 	{
 		CATERRFPS("Error when matching frame!\n");
 		return -1;
 	}
 
-	if (args->matcher_type == MATCHER_TEMPLATE)
-	{
-		match_success = (match_res >= args->templ.match_threshold);
-	}
-	else
-	{
-		// Haar cascade matcher.
-		match_success = (match_res > 0.0);
-	}
-
 	// Save the match state, execute external processes and so on...
-	catcierge_process_match_result(grb, grb->img, match_success,
-		match_res, result.direction);
+	catcierge_process_match_result(grb, grb->img, match);
 
 	grb->match_count++;
 
@@ -921,7 +931,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
-			grb->match_success_count += !!grb->matches[i].success;
+			grb->match_success_count += !!grb->matches[i].result.success;
 		}
 
 		// Guess the direction.

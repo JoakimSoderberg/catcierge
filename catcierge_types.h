@@ -53,21 +53,23 @@ typedef enum catcierge_lockout_method_s
 } catcierge_lockout_method_t;
 
 #define MAX_STEPS 24
-#define MAX_MATCH_RECTS 4
+#define MAX_MATCH_RECTS 24
 
 typedef struct match_step_s
 {
 	IplImage *img;
+	const char *name;
 	const char *description;
 } match_step_t;
 
 typedef struct match_result_s
 {
-	double value;
+	double result;
+	int success;
 	CvRect match_rects[MAX_MATCH_RECTS];
 	size_t rect_count;
 	match_direction_t direction;
-	match_step_t *steps[MAX_STEPS];	// Step by step images+description for the matching algorithm.
+	match_step_t steps[MAX_STEPS];	// Step by step images+description for the matching algorithm.
 	size_t step_img_count;			// The number of step images.
 } match_result_t;
 
@@ -76,13 +78,9 @@ typedef struct match_state_s
 {
 	char path[1024];				// Path to where the image for this match should be saved.
 	IplImage *img;					// A cached image of the match frame.
-	match_step_t *steps[MAX_STEPS];	// Step by step images+description for the matching algorithm.
-	size_t step_img_count;			// The number of step images.
-	double result;					// The match result. Normalized value between 0.0 and 1.0.
-	int success;					// Is the match a success (match result >= match threshold).
-	match_direction_t direction;	// The direction we think the cat went in.
 	time_t time;					// The time of match.
 	char time_str[1024];			// Time string of match (used in image filename).
+	match_result_t result;
 } match_state_t;
 
 #endif // __CATCIERGE_TYPES_H__

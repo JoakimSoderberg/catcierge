@@ -377,6 +377,13 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return 0;
 	}
 
+	if (!strcmp(key, "save_steps"))
+	{
+		args->save_steps = 1;
+		if (value_count == 1) args->save_steps = atoi(values[0]);
+		return 0;
+	}
+
 	if (!strcmp(key, "chuid"))
 	{
 		if (value_count == 1)
