@@ -259,7 +259,7 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 
 	// Invert back the result so the background is white again.
 	cvNot(dilate_combined, dilate_combined);
-	if (ctx->debug) cvShowImage("Haar inv combined", dilate_combined);
+	if (ctx->debug) cvShowImage("Combined binary image", dilate_combined);
 	catcierge_haar_matcher_save_step_image(ctx,
 		dilate_combined, result, "combined", "Combined binary image", save_steps);
 
@@ -271,10 +271,12 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 
 	if (ctx->debug || save_steps)
 	{
-		cvDrawContours(img, contours, cvScalarAll(255), cvScalarAll(0), 1, 1, 8, cvPoint(0, 0));
-		if (ctx->debug) cvShowImage("Haar Contours", img);
+		IplImage *img_contour = cvCloneImage(img);
+		cvDrawContours(img_contour, contours, cvScalarAll(255), cvScalarAll(0), 1, 1, 8, cvPoint(0, 0));
+		if (ctx->debug) cvShowImage("Background Contours", img_contour);
 		catcierge_haar_matcher_save_step_image(ctx,
-			img, result, "contours", "Background contours", save_steps);
+			img_contour, result, "contours", "Background contours", save_steps);
+		cvReleaseImage(&img_contour);
 	}
 
 	cvReleaseImage(&inv_adpthr_img);
