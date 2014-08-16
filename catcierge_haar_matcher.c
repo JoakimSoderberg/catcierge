@@ -369,12 +369,12 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 	assert(ctx);
 	assert(ctx->args);
 	assert(result);
-	assert(result->step_img_count == 0);
 
 	min_size.width = args->min_width;
 	min_size.height = args->min_height;
 	max_size.width = 0;
 	max_size.height = 0;
+	result->step_img_count = 0;
 
 	// Make gray scale if needed.
 	if (img->nChannels != 1)

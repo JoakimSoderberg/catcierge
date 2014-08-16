@@ -239,16 +239,16 @@ void catcierge_do_unlock(catcierge_grb_t *grb)
 	}
 }
 
-static void catcierge_cleanup_match_steps(catcierge_grb_t *grb, match_state_t *match)
+static void catcierge_cleanup_match_steps(catcierge_grb_t *grb, match_result_t *result)
 {
 	int j;
 	match_step_t *step = NULL;
 	assert(grb);
-	assert(match);
+	assert(result);
 
 	for (j = 0; j < MAX_MATCH_RECTS; j++)
 	{
-		step = &match->result.steps[j];
+		step = &result->steps[j];
 
 		if (step->img)
 		{
@@ -257,9 +257,11 @@ static void catcierge_cleanup_match_steps(catcierge_grb_t *grb, match_state_t *m
 		}
 
 		step->description = NULL;
+		step->name = NULL;
+		step->path[0] = '\0';
 	}
 
-	match->result.step_img_count = 0;
+	result->step_img_count = 0;
 }
 
 static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
@@ -275,7 +277,7 @@ static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 			grb->matches[i].img = NULL;
 		}
 
-		catcierge_cleanup_match_steps(grb, &grb->matches[i]);
+		catcierge_cleanup_match_steps(grb, &grb->matches[i].result);
 	}
 }
 
@@ -400,6 +402,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 				IplImage *img, match_state_t *m)
 {
 	size_t i;
+	size_t j;
 	catcierge_args_t *args = NULL;
 	match_result_t *res = NULL;
 	assert(grb);
@@ -423,6 +426,8 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	// (We don't write to disk yet, that will slow down the matcing).
 	if (args->saveimg)
 	{
+		char base_path[1024];
+
 		// Draw a white rectangle over the best match.
 		if (args->highlight_match)
 		{
@@ -433,15 +438,31 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 			}
 		}
 
-		snprintf(m->path,
-			sizeof(m->path),
-			"%s/match_%s_%s__%d.png",
+		snprintf(base_path,
+			sizeof(base_path) - 1,
+			"%s%smatch_%s_%s__%d",
 			args->output_path ? args->output_path : ".",
+			catcierge_path_sep(),
 			res->success ? "" : "fail",
 			m->time_str,
 			grb->match_count);
 
+		snprintf(m->path, sizeof(m->path) - 1, "%s.png", base_path);
+
 		m->img = cvCloneImage(img);
+
+		if (args->save_steps)
+		{
+			match_step_t *step;
+
+			for (j = 0; j < m->result.step_img_count; j++)
+			{
+				step = &m->result.steps[j];
+				snprintf(step->path, sizeof(step->path) - 1,
+					"%s_%02d_%s.png",
+					base_path, (int)j, step->name);
+			}
+		}
 	}
 
 	// Log match to file.
@@ -461,12 +482,15 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	//catcierge_output_execute(grb, "match", args->match_cmd);
 }
 
-static void catcierge_save_images(catcierge_grb_t * grb, match_direction_t direction)
+static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direction)
 {
 	match_state_t *m;
 	match_result_t *res;
 	int i;
+	int j;
+	char pathbuf[2048];
 	catcierge_args_t *args;
+	match_step_t *step = NULL;
 	assert(grb);
 	args = &grb->args;
 
@@ -476,6 +500,18 @@ static void catcierge_save_images(catcierge_grb_t * grb, match_direction_t direc
 		res = &m->result;
 		CATLOG("Saving image %s\n", m->path);
 		cvSaveImage(m->path, m->img, 0);
+
+		if (args->save_steps)
+		{
+			for (j = 0; j < m->result.step_img_count; j++)
+			{
+				step = &m->result.steps[j];
+				CATLOG("  %02d %-34s  %s\n", j, step->description, step->path);
+
+				if (step->img)
+					cvSaveImage(step->path, step->img, NULL);
+			}
+		}
 
 		catcierge_execute(args->save_img_cmd, "%f %d %s %d",
 			res->result,	// %0 = Match result.
@@ -677,6 +713,8 @@ double catcierge_do_match(catcierge_grb_t *grb, match_result_t *result)
 	catcierge_args_t *args;
 	assert(grb);
 	args = &grb->args;
+
+	catcierge_cleanup_match_steps(grb, result);
 
 	if (grb->args.matcher_type == MATCHER_TEMPLATE)
 	{

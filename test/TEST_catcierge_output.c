@@ -71,15 +71,23 @@ static char *run_generate_tests()
 			{ "%state%", "Waiting" },
 			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg3" },
 			{ "%match4_path%", "" }, // Match count is only 3, so this should be empty.
-			{ "%match_count%", "3" }
+			{ "%match_count%", "3" },
+			{ "%match1_step1_path%", "some/step/path" },
+			{ "%match1_step2_name%", "the_step_name" },
+			{ "%match2_step7_desc%", "Step description" },
+			{ "%match2_step7_active%", "0" }
 		};
 
 		output_test_t fail_tests[] =
 		{
 			{ "%match5_path%", NULL },
-			{ "%matchX_path%", NULL }
+			{ "%matchX_path%", NULL },
+			{ "%match1_step600_path%", NULL}
 		};
 
+		strcpy(grb.matches[0].result.steps[0].path, "some/step/path");
+		grb.matches[0].result.steps[1].name = "the_step_name";
+		grb.matches[1].result.steps[6].description = "Step description";
 		strcpy(grb.matches[0].path, "/some/path/omg1");
 		strcpy(grb.matches[1].path, "/some/path/omg2");
 		strcpy(grb.matches[2].path, "/some/path/omg3");

@@ -44,12 +44,18 @@ catcierge_output_var_t vars[] =
 	{ "state", "The current state machine state." },
 	{ "prev_state", "The previous state mahchine state."},
 	{ "match_success", "Match success status."},
+	{ "match_desc", "Match description."},
 	{ "match#_path", "Image path for match #." },
 	{ "match#_path", "Image path for match #." },
 	{ "match#_success", "Success status for match #." },
 	{ "match#_direction", "Direction for match #." },
 	{ "match#_result", "Result for match #." },
 	{ "match#_time", "Time of match #." },
+	{ "match#_step#_path", "Image path for match step # for match #."},
+	{ "match#_step#_name", "Short name for match step # for match #."},
+	{ "match#_step#_desc", "Description for match step # for match #."},
+	{ "match#_step#_active", "If this match step was used for match #."},
+	{ "match#_step_count", "The number of match steps for match #."},
 	{ "time", "The curent time when generating template." },
 	{
 		"time:<fmt>",
@@ -464,6 +470,12 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
+	if (!strncmp(var, "match_desc", 10))
+	{
+		// TODO: Return match description.
+		return "";
+	}
+
 	if (!strcmp(var, "match_count"))
 	{
 		snprintf(buf, bufsize - 1, "%d", grb->match_count);
@@ -473,6 +485,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	if (!strncmp(var, "match", 5))
 	{
 		int idx = -1;
+		match_state_t *m = NULL;
 		char *subvar = NULL;
 
 		if (!strncmp(var, "matchcur", 8))
@@ -489,13 +502,15 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 				return NULL;
 			}
 
-			idx--;
+			idx--; // Convert to 0-based index.
 		}
 
 		if ((idx < 0) || (idx >= MATCH_MAX_COUNT))
 		{
 			return NULL;
 		}
+
+		m = &grb->matches[idx];
 
 		if (idx >= grb->match_count)
 		{
@@ -504,26 +519,71 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		if (!strcmp(subvar, "path"))
 		{
-			return grb->matches[idx].path;
+			return m->path;
 		}
 		else if (!strcmp(subvar, "success"))
 		{
-			snprintf(buf, bufsize - 1, "%d", grb->matches[idx].result.success);
+			snprintf(buf, bufsize - 1, "%d", m->result.success);
 			return buf;
 		}
 		else if (!strcmp(subvar, "direction"))
 		{
-			return catcierge_get_direction_str(grb->matches[idx].result.direction);
+			return catcierge_get_direction_str(m->result.direction);
 		}
 		else if (!strcmp(subvar, "result"))
 		{
-			snprintf(buf, bufsize - 1, "%f", grb->matches[idx].result.result);
-			return buf; 
+			snprintf(buf, bufsize - 1, "%f", m->result.result);
+			return buf;
 		}
 		else if (!strncmp(subvar, "time", 4))
 		{
 			return catcierge_get_time_var_format(subvar, buf, bufsize,
-					"%Y-%m-%d %H:%M:%S", grb->matches[idx].time);
+					"%Y-%m-%d %H:%M:%S", m->time);
+		}
+		else if (!strcmp(subvar, "step_count"))
+		{
+			snprintf(buf, bufsize - 1, "%d", (int)m->result.step_img_count);
+			return buf;
+		}
+		else if (!strncmp(subvar, "step", 4))
+		{
+			// Match step images / descriptions.
+			int stepidx = -1;
+			match_step_t *step = NULL;
+
+			const char *stepvar = subvar + strlen("stepX_");
+
+			if (sscanf(subvar, "step%d_", &stepidx) == EOF)
+			{
+				return NULL;
+			}
+
+			stepidx--; // Convert to 0-based index.
+
+			if ((stepidx < 0) || (stepidx >= MAX_STEPS))
+			{
+				return NULL;
+			}
+
+			step = &m->result.steps[stepidx];
+
+			if (!strcmp(stepvar, "path"))
+			{
+				return step->path;
+			}
+			else if (!strcmp(stepvar, "name"))
+			{
+				return step->name;
+			}
+			else if (!strncmp(stepvar, "desc", 4))
+			{
+				return step->description;
+			}
+			else if (!strcmp(stepvar, "active"))
+			{
+				snprintf(buf, bufsize - 1, "%d", step->img != NULL);
+				return buf;
+			}
 		}
 	}
 

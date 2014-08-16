@@ -58,6 +58,7 @@ typedef enum catcierge_lockout_method_s
 typedef struct match_step_s
 {
 	IplImage *img;
+	char path[1024];
 	const char *name;
 	const char *description;
 } match_step_t;

@@ -345,7 +345,7 @@ int main(int argc, char **argv)
 			else
 			{
 				// TODO: Add suppor for --save_steps
-				if ((match_res = catcierge_haar_matcher_match(&hctx, img, &result, 0)) < 0)
+				if ((match_res = catcierge_haar_matcher_match(&hctx, img, &result, 1)) < 0)
 				{
 					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
 					catcierge_haar_matcher_destroy(&hctx);

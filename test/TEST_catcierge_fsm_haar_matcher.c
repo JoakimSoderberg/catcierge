@@ -77,6 +77,8 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	args->haar.prey_method = prey_method;
 	args->haar.prey_steps = 2;
 	args->haar.cascade = CATCIERGE_CASCADE;
+	//args->save_steps = 1;
+	//args->saveimg = 1;
 
 	if (catcierge_haar_matcher_init(&grb.haar, &args->haar))
 	{
@@ -114,6 +116,64 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	return NULL;
 }
 
+static char *run_save_steps_test()
+{
+	catcierge_grb_t grb;
+	catcierge_args_t *args = &grb.args;
+
+	catcierge_grabber_init(&grb);
+
+	args->matcher_type = MATCHER_HAAR;
+	args->ok_matches_needed = 3;
+
+	catcierge_haar_matcher_args_init(&args->haar);
+	args->haar.prey_method = PREY_METHOD_ADAPTIVE;
+	args->haar.prey_steps = 2;
+	args->haar.cascade = CATCIERGE_CASCADE;
+
+	args->save_steps = 1;
+	args->saveimg = 1;
+	args->output_path = "./test_save_steps";
+	catcierge_make_path(args->output_path);
+
+	if (catcierge_haar_matcher_init(&grb.haar, &args->haar))
+	{
+		return "Failed to init haar matcher";
+	}
+
+	catcierge_test_STATUS("Test save steps");
+
+	catcierge_set_state(&grb, catcierge_state_waiting);
+
+	// This is the initial image that obstructs the frame
+	// and triggers the matching.
+	load_test_image_and_run(&grb, 1, 1);
+
+	// Some normal images.
+	load_test_image_and_run(&grb, 1, 1);
+	catcierge_test_STATUS("Step image count: %d", grb.matches[0].result.step_img_count);
+	mu_assert("Expected 10 step images", grb.matches[0].result.step_img_count == 10);
+	
+	load_test_image_and_run(&grb, 1, 2);
+	catcierge_test_STATUS("Step image count: %d", grb.matches[1].result.step_img_count);
+	mu_assert("Expected 10 step images", grb.matches[1].result.step_img_count == 10);
+
+	load_test_image_and_run(&grb, 6, 2); // Going out.
+	catcierge_test_STATUS("Step image count: %d", grb.matches[2].result.step_img_count);
+	mu_assert("Expected 4 step images", grb.matches[2].result.step_img_count == 4);
+	mu_assert("Got NULL image for used step image", grb.matches[2].result.steps[2].img != NULL);
+	mu_assert("Got non-NULL image for unused step image", grb.matches[2].result.steps[4].img == NULL);
+
+	load_test_image_and_run(&grb, 1, 1);
+	catcierge_test_STATUS("Step image count: %d", grb.matches[3].result.step_img_count);
+	mu_assert("Expected 10 step images", grb.matches[3].result.step_img_count == 10);
+
+	catcierge_haar_matcher_destroy(&grb.haar);
+	catcierge_grabber_destroy(&grb);
+
+	return NULL;
+}
+
 int TEST_catcierge_fsm_haar_matcher(int argc, char **argv)
 {
 	char *e = NULL;
@@ -133,6 +193,10 @@ int TEST_catcierge_fsm_haar_matcher(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_failure_tests(PREY_METHOD_ADAPTIVE)),
 		"Run failure tests. Adaptive prey matching",
 		"Failure tests with Adaptive prey matching", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_save_steps_test()),
+		"Run save steps tests. Adaptive prey matching",
+		"Save steps tests", &ret);
 
 	return ret;
 }
