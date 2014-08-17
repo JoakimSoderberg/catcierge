@@ -3,16 +3,6 @@ env:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    #   via the "travis encrypt" command using the project repo's public key
    - secure: "cpvH7XEXlKaIfBpUA9N/rAbxWx0B5s41Nh+QVm7r6Iu4kGh/ktH9mkWGKuc3wqq5FFOBTAY72y9P/eB5joxzNaSDa5IJrnJ/m9NLTXowWbwh1CqEZl+1glWWOzTWbAzcwBzqMdcnOaubpRd8UNjQnb8jaI1DSQ+H5UJgbT8Vhcs="
-
-addons:
-  coverity_scan:
-    project:
-      name: "JoakimSoderberg/catcierge"
-      description: "Catcierge an interactive cat door prey detector"
-    notification_email: joakim.soderberg@gmail.com
-    build_command_prepend: "mkdir build && cd build && cmake -DCATCIERGE_WITH_MEMCHECK=OFF .."
-    build_command: "cmake --build ."
-    branch_pattern: coverity_scan
 env:
   - CAT_METHOD=memcheck
   - CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug" COVERALLS=yes
@@ -21,6 +11,7 @@ compiler:
   - gcc
   - clang
 matrix:
+  # Only run coverage on gcc.
   exclude:
     - compiler: clang
       env: CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug" COVERALLS=yes
@@ -30,5 +21,15 @@ install:
   - if [ x$CAT_METHOD == xcoverage ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
   - if [ x$CAT_METHOD == xmemcheck ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
 script:
-  - if [ x$CAT_METHOD == xcoverage ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && cmake --build . --target coveralls; fi
-  - if [ x$CAT_METHOD == xmemcheck ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && ctest --output-on-failure; fi
+  - if [ x$CAT_METHOD == xcoverage ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && cmake --build . --target coveralls; fi
+  - if [ x$CAT_METHOD == xmemcheck ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && ctest --output-on-failure; fi
+
+addons:
+  coverity_scan:
+    project:
+      name: "JoakimSoderberg/catcierge"
+      description: "Catcierge an interactive cat door prey detector"
+    notification_email: joakim.soderberg@gmail.com
+    build_command_prepend: "mkdir build && cd build && cmake -DCATCIERGE_WITH_MEMCHECK=OFF .."
+    build_command: "cd build && cmake --build ."
+    branch_pattern: coverity_scan
