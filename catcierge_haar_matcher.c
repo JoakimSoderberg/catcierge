@@ -179,6 +179,9 @@ void catcierge_haar_matcher_save_step_image(catcierge_haar_matcher_t *ctx,
 	CvRect roi;
 	assert(result->step_img_count < MAX_STEPS);
 
+	if (ctx->debug)
+		cvShowImage(description, img);
+
 	step = &result->steps[result->step_img_count];
 
 	if (step->img)
@@ -197,7 +200,7 @@ void catcierge_haar_matcher_save_step_image(catcierge_haar_matcher_t *ctx,
 	img_size.width = roi.width;
 	img_size.height = roi.height;
 
-	step->img = cvCreateImage(img_size, 8, 1);
+	step->img = cvCreateImage(img_size, 8, img->nChannels);
 	cvCopy(img, step->img, NULL);
 
 	step->name = name;
@@ -210,7 +213,6 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 											IplImage *img, IplImage *inv_thr_img,
 											match_result_t *result, int save_steps)
 {
-	//catcierge_haar_matcher_args_t *args = ctx->args;
 	IplImage *inv_adpthr_img = NULL;
 	IplImage *inv_combined = NULL;
 	IplImage *open_combined = NULL;
@@ -233,33 +235,28 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 	inv_adpthr_img = cvCreateImage(img_size, 8, 1);
 	cvAdaptiveThreshold(img, inv_adpthr_img, 255,
 		CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY_INV, 11, 5);
-	if (ctx->debug) cvShowImage("Inv adaptive thr", inv_adpthr_img);
 	catcierge_haar_matcher_save_step_image(ctx,
 		inv_adpthr_img, result, "adp_thresh", "Inverted adaptive threshold", save_steps);
 
 	// Now we can combine the two thresholded images into one.
 	inv_combined = cvCreateImage(img_size, 8, 1);
 	cvAdd(inv_thr_img, inv_adpthr_img, inv_combined, NULL);
-	if (ctx->debug) cvShowImage("Inv combined", inv_combined);
 	catcierge_haar_matcher_save_step_image(ctx,
 		inv_combined, result, "inv_combined", "Combined global and adaptive threshold", save_steps);
 
 	// Get rid of noise from the adaptive threshold.
 	open_combined = cvCreateImage(img_size, 8, 1);
 	cvMorphologyEx(inv_combined, open_combined, NULL, ctx->kernel2x2, CV_MOP_OPEN, 2);
-	if (ctx->debug) cvShowImage("Haar opened img", open_combined);
 	catcierge_haar_matcher_save_step_image(ctx,
 		open_combined, result, "opened", "Opened image", save_steps);
 
 	dilate_combined = cvCreateImage(img_size, 8, 1);
 	cvDilate(open_combined, dilate_combined, ctx->kernel3x3, 3);
-	if (ctx->debug) cvShowImage("Haar dilate combined", dilate_combined);
 	catcierge_haar_matcher_save_step_image(ctx,
 		dilate_combined, result, "dilated", "Dilated image", save_steps);
 
 	// Invert back the result so the background is white again.
 	cvNot(dilate_combined, dilate_combined);
-	if (ctx->debug) cvShowImage("Combined binary image", dilate_combined);
 	catcierge_haar_matcher_save_step_image(ctx,
 		dilate_combined, result, "combined", "Combined binary image", save_steps);
 
@@ -269,14 +266,30 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 	// If we get more than 1 contour we count it as a prey.
 	contour_count = catcierge_haar_matcher_count_contours(ctx, contours);
 
-	if (ctx->debug || save_steps)
+	if (save_steps)
 	{
 		IplImage *img_contour = cvCloneImage(img);
+		IplImage *img_final_color = NULL;
+		CvScalar color;
+
 		cvDrawContours(img_contour, contours, cvScalarAll(255), cvScalarAll(0), 1, 1, 8, cvPoint(0, 0));
-		if (ctx->debug) cvShowImage("Background Contours", img_contour);
 		catcierge_haar_matcher_save_step_image(ctx,
 			img_contour, result, "contours", "Background contours", save_steps);
+
+		// Draw a final color combined image with the Haar detection + contour.
+		cvResetImageROI(img_contour);
+
+		img_final_color =  cvCreateImage(cvGetSize(img_contour), 8, 3);
+
+		cvCvtColor(img_contour, img_final_color, CV_GRAY2BGR);
+		color = (contour_count > 1) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
+		cvRectangleR(img_final_color, result->match_rects[0], color, 2, 8, 0);
+
+		catcierge_haar_matcher_save_step_image(ctx,
+			img_final_color, result, "contours", "Final image", save_steps);
+
 		cvReleaseImage(&img_contour);
+		cvReleaseImage(&img_final_color);
 	}
 
 	cvReleaseImage(&inv_adpthr_img);

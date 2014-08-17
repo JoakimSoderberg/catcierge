@@ -152,11 +152,11 @@ static char *run_save_steps_test()
 	// Some normal images.
 	load_test_image_and_run(&grb, 1, 1);
 	catcierge_test_STATUS("Step image count: %d", grb.matches[0].result.step_img_count);
-	mu_assert("Expected 10 step images", grb.matches[0].result.step_img_count == 10);
+	mu_assert("Expected 10 step images", grb.matches[0].result.step_img_count == 11);
 	
 	load_test_image_and_run(&grb, 1, 2);
 	catcierge_test_STATUS("Step image count: %d", grb.matches[1].result.step_img_count);
-	mu_assert("Expected 10 step images", grb.matches[1].result.step_img_count == 10);
+	mu_assert("Expected 10 step images", grb.matches[1].result.step_img_count == 11);
 
 	load_test_image_and_run(&grb, 6, 2); // Going out.
 	catcierge_test_STATUS("Step image count: %d", grb.matches[2].result.step_img_count);
@@ -166,7 +166,7 @@ static char *run_save_steps_test()
 
 	load_test_image_and_run(&grb, 1, 1);
 	catcierge_test_STATUS("Step image count: %d", grb.matches[3].result.step_img_count);
-	mu_assert("Expected 10 step images", grb.matches[3].result.step_img_count == 10);
+	mu_assert("Expected 10 step images", grb.matches[3].result.step_img_count == 11);
 
 	catcierge_haar_matcher_destroy(&grb.haar);
 	catcierge_grabber_destroy(&grb);

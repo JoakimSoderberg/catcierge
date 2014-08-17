@@ -428,6 +428,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	{
 		char base_path[1024];
 
+		// TODO: Remove this we have step images now instead
 		// Draw a white rectangle over the best match.
 		if (args->highlight_match)
 		{
