@@ -31,5 +31,5 @@ addons:
       description: "Catcierge an interactive cat door prey detector"
     notification_email: joakim.soderberg@gmail.com
     build_command_prepend: "mkdir build && cd build && cmake -DRPI=OFF -DCATCIERGE_WITH_MEMCHECK=OFF .."
-    build_command: "cmake --build ./build"
+    build_command: "cmake --build ."
     branch_pattern: coverity_scan
