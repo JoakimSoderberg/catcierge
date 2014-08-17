@@ -1,9 +1,8 @@
 env:
   global:
-   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-   #   via the "travis encrypt" command using the project repo's public key
-   - secure: "Kza1lOgpHML3DiiKuRUji0xHXmDxsfMSxHgff/WR6+nOlubNpWUmf1OwWe4BBTX8GblKPXOlWFpzPtwA5l1NiT2rQ/s7ypsmCS16bGppV34VC77iJSAT6qrqao7Wb3iziRbtba5rVfiqHtEYJLw2q5psz9JcjI+G7On25jciM4M="
-env:
+    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+    #   via the "travis encrypt" command using the project repo's public key
+    - secure: "Kza1lOgpHML3DiiKuRUji0xHXmDxsfMSxHgff/WR6+nOlubNpWUmf1OwWe4BBTX8GblKPXOlWFpzPtwA5l1NiT2rQ/s7ypsmCS16bGppV34VC77iJSAT6qrqao7Wb3iziRbtba5rVfiqHtEYJLw2q5psz9JcjI+G7On25jciM4M="
   - CAT_METHOD=memcheck
   - CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug" COVERALLS=yes
 language: c
@@ -18,8 +17,8 @@ matrix:
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -y -qq libopencv-dev
-  - if [ x$CAT_METHOD == xcoverage ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
-  - if [ x$CAT_METHOD == xmemcheck ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
+  - if [ x$CAT_METHOD == xcoverage ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
+  - if [ x$CAT_METHOD == xmemcheck ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
 script:
   - if [ x$CAT_METHOD == xcoverage ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && cmake --build . --target coveralls; fi
   - if [ x$CAT_METHOD == xmemcheck ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && ctest --output-on-failure; fi
@@ -30,6 +29,6 @@ addons:
       name: "JoakimSoderberg/catcierge"
       description: "Catcierge an interactive cat door prey detector"
     notification_email: joakim.soderberg@gmail.com
-    build_command_prepend: "mkdir build && cd build && cmake -DCATCIERGE_WITH_MEMCHECK=OFF .."
+    build_command_prepend: "mkdir build && cd build && cmake -DRPI=OFF -DCATCIERGE_WITH_MEMCHECK=OFF .."
     build_command: "cd build && cmake --build ."
     branch_pattern: coverity_scan
