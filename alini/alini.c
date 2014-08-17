@@ -104,7 +104,7 @@ void *alini_parser_get_context(alini_parser_t *parser)
 int alini_parser_step(alini_parser_t *parser)
 {
 	char		line[1025];
-	char		*tmpline;
+	char		*tmpline = NULL;
 	unsigned	len;
 	unsigned	linenumber			= 0;
 	char		signisfound			= 0;
@@ -114,6 +114,7 @@ int alini_parser_step(alini_parser_t *parser)
 	unsigned	j;
 	char		*key				= NULL;
 	char		*value				= NULL;
+	int			ret					= 0;
 	
 	assert(parser);
 	
@@ -140,7 +141,12 @@ int alini_parser_step(alini_parser_t *parser)
 		
 		/* search '[...]' */
 		sectionhdrisfound = 0;
-		tmpline = stripws(line, strlen(line));
+		if (!(tmpline = stripws(line, strlen(line))))
+		{
+			fprintf(stderr, "alini: Out of memory\n");
+			ret = -1; goto fail;
+		}
+
 		len = strlen(tmpline);
 		if(len > 2)
 		{
@@ -150,16 +156,25 @@ int alini_parser_step(alini_parser_t *parser)
 				{
 					sectionhdrisfound = 1;
 					if(parser->activesection) free(parser->activesection);
-					parser->activesection = stripws(tmpline + 1, strlen(tmpline) - 2);
+					
+					if (!(parser->activesection = stripws(tmpline + 1, strlen(tmpline) - 2)))
+					{
+						fprintf(stderr, "alini: Out of memory\n");
+						ret = -1; goto fail;
+					}
 				}
 				else
 				{
 					fprintf(stderr, "alini: parse error at %s:%d: end token `]' not found", parser->path, linenumber);
-					return -1;
+					ret = -1; goto fail;
 				}
 			}
 		}
-		free(tmpline);
+		if (tmpline)
+		{
+			free(tmpline);
+			tmpline = NULL;
+		}
 		
 		if(!sectionhdrisfound)
 		{
@@ -178,21 +193,43 @@ int alini_parser_step(alini_parser_t *parser)
 			}
 			
 			/* trim key and value */
-			key = stripws(line, i - 1);
-			value = stripws(line + i, strlen(line) - i - 1);
+			if (!(key = stripws(line, i - 1)))
+			{
+				fprintf(stderr, "alini: Out of memory\n");
+				ret = -1; goto fail;
+			}
+
+			if (!(value = stripws(line + i, strlen(line) - i - 1)))
+			{
+				fprintf(stderr, "alini: Out of memory\n");
+				ret = -1; goto fail;
+			}
 			
 			/* call callback */
 			parser->foundkvpair_callback(parser, parser->activesection, key, value);
 			
 			/* cleanup */
-			free(key);
-			free(value);
-			
+			if (key)
+			{
+				free(key);
+				key = NULL;
+			}
+
+			if (value)
+			{
+				free(value);
+				value = NULL;
+			}
 			break;
 		}
 	}
+
+fail:
+	if (key) free(key);
+	if (value) free(value);
+	if (tmpline) free(tmpline);
 	
-	return 0;
+	return ret;
 }
 
 /* parse entire file */

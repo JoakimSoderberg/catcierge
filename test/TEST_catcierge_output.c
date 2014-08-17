@@ -127,7 +127,7 @@ static char *run_generate_tests()
 
 			catcierge_test_STATUS("\"%s\" -> \"%s\" Expecting: \"%s\"",
 				fail_tests[i].input, str, fail_tests[i].expected);
-			mu_assert("Invalid template result", !str);
+			mu_assert("Invalid template result", str == NULL);
 			catcierge_test_SUCCESS("\"%s\" == \"%s\"\n",
 				fail_tests[i].input, fail_tests[i].expected);
 			free(str);

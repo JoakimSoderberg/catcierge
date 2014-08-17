@@ -23,6 +23,7 @@
 
 char *run_pseudo_console_tests()
 {
+	char *return_message = NULL;
 	int master;
 	int slave;
 	char *slave_name = NULL;
@@ -32,28 +33,35 @@ char *run_pseudo_console_tests()
 	ret = openpty(&master, &slave, NULL, NULL, NULL);
 	mu_assert("Failed to create pseudo terminal", ret == 0);
 
-	slave_name = strdup(ttyname(slave));
-	mu_assert("Failed to get slave name", slave_name);
+	if (!(slave_name = strdup(ttyname(slave))))
+	{
+		return "Failed to get slave name";
+	}
+
 	catcierge_test_STATUS("Slave tty: %s\n", slave_name);
 
 	{
 		const char buf[] = "RAT\r\n";
 		char result[128];
 		ssize_t bytes_read;
-		ssize_t bytes = write(master, buf, sizeof(buf));
+		ssize_t bytes = write(master, buf, sizeof(buf) - 1);
+		mu_assertf("Error on write", (bytes > 0));
 		catcierge_test_STATUS("Wrote \"%s\" (%d bytes) to master\n", buf, bytes);
 
-		bytes_read = read(slave, result, sizeof(result));
+		bytes_read = read(slave, result, sizeof(result) - 1);
+		mu_assertf("Error on read", (bytes_read > 0));
 		result[bytes_read] = '\0';
+
 		catcierge_test_STATUS("Read \"%s\" (%d bytes) from slave\n", result, bytes_read);
-		mu_assert("Failed to read correct number of bytes from slave", bytes_read == 4);
+		mu_assertf("Failed to read correct number of bytes from slave", bytes_read == 4);
 	}
 
-	close(master);
-	close(slave);
-	free(slave_name);
+cleanup:
+	if (master) close(master);
+	if (slave) close(slave);
+	if (slave_name) free(slave_name);
 
-	return NULL;
+	return return_message;
 }
 
 static void rfid_read_cb(catcierge_rfid_t *rfid,
@@ -66,10 +74,10 @@ static char *read_rfid_master(catcierge_rfid_context_t *ctx,
 		int master, char *expected_msg, char *expected)
 {
 	char buf[4096];
-	ssize_t bytes_read = read(master, buf, sizeof(buf));
+	ssize_t bytes_read = read(master, buf, sizeof(buf) - 1);
 	catcierge_test_STATUS("RFID <- Slave:\n\"%s\"", buf);
 
-	mu_assert(expected_msg, !strncmp(expected, buf, bytes_read));
+	mu_assert(expected_msg, (bytes_read > 0) && !strncmp(expected, buf, bytes_read));
 
 	return NULL;
 }
@@ -172,10 +180,11 @@ char *run_rfid_tests()
 
 char *run_double_tests()
 {
-	int in_master;
-	int in_slave;
-	int out_master;
-	int out_slave;
+	char *return_message = NULL;
+	int in_master = 0;
+	int in_slave = 0;
+	int out_master = 0;
+	int out_slave = 0;
 	char *in_slave_name = NULL;
 	char *out_slave_name = NULL;
 	int ret;
@@ -185,20 +194,20 @@ char *run_double_tests()
 	// Create inner pseudo terminal.
 	{
 		ret = openpty(&in_master, &in_slave, NULL, NULL, NULL);
-		mu_assert("Failed to create inner pseudo terminal", ret == 0);
+		mu_assertf("Failed to create inner pseudo terminal", ret == 0);
 	
 		in_slave_name = strdup(ttyname(in_slave));
-		mu_assert("Failed to get inner slave name", in_slave_name);
+		mu_assertf("Failed to get inner slave name", in_slave_name);
 		catcierge_test_STATUS("Inner slave tty: %s\n", in_slave_name);
 	}
 
 	// Create outer pseudo terminal.
 	{
 		ret = openpty(&out_master, &out_slave, NULL, NULL, NULL);
-		mu_assert("Failed to create outer pseudo terminal", ret == 0);
+		mu_assertf("Failed to create outer pseudo terminal", ret == 0);
 
 		out_slave_name = strdup(ttyname(out_slave));
-		mu_assert("Failed to get outer slave name", out_slave_name);
+		mu_assertf("Failed to get outer slave name", out_slave_name);
 		catcierge_test_STATUS("Outer slave tty: %s\n", out_slave_name);
 	}
 
@@ -226,15 +235,16 @@ char *run_double_tests()
 		catcierge_rfid_ctx_destroy(&ctx);	
 	}
 
-	close(in_master);
-	close(out_master);
-	close(in_slave);
-	close(out_slave);
+cleanup:
+	if (in_master) close(in_master);
+	if (out_master) close(out_master);
+	if (in_slave) close(in_slave);
+	if (out_slave) close(out_slave);
 
-	free(out_slave_name);
-	free(in_slave_name);
+	if (out_slave_name) free(out_slave_name);
+	if (in_slave_name) free(in_slave_name);
 
-	return NULL;	
+	return return_message;	
 }
 
 #endif // !_WIN32

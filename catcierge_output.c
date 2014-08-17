@@ -236,8 +236,6 @@ const char *catcierge_output_read_template_settings(const char *name,
 			free(tmp);
 			return NULL;
 		}
-
-		it++;
 	}
 
 	bytes_read = it - tmp;
@@ -841,7 +839,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
 			{
 				CATERR("Failed to generate output path for template \"%s\"\n", t->target_path);
-				free(output);
+				if (output) free(output);
 				return -1;
 			}
 
@@ -885,8 +883,8 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			fclose(f);
 		}
 
-		free(output);
-		free(path);
+		if (output) free(output);
+		if (path) free(path);
 	}
 
 	return 0;
@@ -959,6 +957,11 @@ fail:
 		contents = NULL;
 	}
 
+	if (f)
+	{
+		fclose(f);
+	}
+
 	return ret;
 }
 
@@ -998,8 +1001,12 @@ void catcierge_output_execute(catcierge_grb_t *grb,
 	if (!command)
 		return;
 
-	catcierge_output_generate_templates(&grb->output,
-		grb, grb->args.output_path, event);
+	if (catcierge_output_generate_templates(&grb->output,
+		grb, grb->args.output_path, event))
+	{
+		CATERR("Failed to generate templates on execute!\n");
+		return;
+	}
 
 	if (!(generated_cmd = catcierge_output_generate(&grb->output, grb, command)))
 	{

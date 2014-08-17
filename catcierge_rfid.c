@@ -49,7 +49,7 @@ const char *catcierge_rfid_error_str(int errorcode)
 int catcierge_rfid_init(const char *name, catcierge_rfid_t *rfid, 
 			const char *serial_path, catcierge_rfid_read_f read_cb, void *user)
 {
-	strcpy(rfid->name, name);
+	strncpy(rfid->name, name, sizeof(rfid->name) - 1);
 	rfid->serial_path = serial_path;
 	rfid->fd = -1;
 	rfid->cb = read_cb;
@@ -84,7 +84,7 @@ static int catcierge_rfid_read(catcierge_rfid_t *rfid)
 	const char *error_msg = NULL;
 
 	if ((rfid->bytes_read = read(rfid->fd, rfid->buf, 
-								sizeof(rfid->buf))) < 0)
+								sizeof(rfid->buf) - 1)) < 0)
 	{
 		if ((errno != EWOULDBLOCK) && (errno != EAGAIN))
 		{
@@ -261,7 +261,13 @@ int catcierge_rfid_open(catcierge_rfid_t *rfid)
 	CATLOG("%s RFID Reader: Opened serial port %s on fd %d\n", 
 			rfid->name, rfid->serial_path, rfid->fd);
 
-	fcntl(rfid->fd, F_SETFL, 0);
+	if (fcntl(rfid->fd, F_SETFL, 0) < 0)
+	{
+		close(rfid->fd);
+		CATERR("%s RFID Reader: fcntl error %d while trying to open file descriptor, %s",
+				rfid->name, errno, strerror(errno));
+		return -1;
+	}
 
 	memset(&options, 0, sizeof(options));
 

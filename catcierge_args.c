@@ -704,6 +704,10 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
 			if ((ret = catcierge_parse_setting(args, key, values, value_count)) < 0)
 			{
 				fprintf(stderr, "Failed to parse command line arguments for \"%s\"m\n", key);
+
+				if (values)
+					free(values);
+
 				return ret;
 			}
 		}
