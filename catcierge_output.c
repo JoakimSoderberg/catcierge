@@ -210,6 +210,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 
 		if (!strncmp(it, "event", 5))
 		{
+			const char *line_end;
 			it += 5;
 			it = catcierge_skip_whitespace_alt(it);
 
@@ -219,6 +220,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 				free(tmp);
 				return NULL;
 			}
+			it = row_end;
 			continue;
 		}
 		else if (!strncmp(it, "nop", 3))
@@ -523,7 +525,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		{
 			return catcierge_get_direction_str(m->result.direction);
 		}
-		else if (!strcmp(subvar, "description"))
+		else if (!strncmp(subvar, "desc", 4))
 		{
 			return m->result.description;
 		}
