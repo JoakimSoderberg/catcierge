@@ -171,6 +171,8 @@ char *run_parse_args_tests()
 
 	PARSE_SINGLE_SETTING("save", args.saveimg, 1);
 
+	PARSE_SINGLE_SETTING("new_execute", args.new_execute, 1);
+
 	PARSE_SINGLE_SETTING("highlight", args.highlight_match, 1);
 
 	PARSE_SINGLE_SETTING("save", args.saveimg, 1);

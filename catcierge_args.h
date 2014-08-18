@@ -43,6 +43,7 @@ typedef struct catcierge_args_s
 	catcierge_haar_matcher_args_t haar;
 
 	char *log_path;
+	int new_execute;
 	char *match_cmd;
 	char *save_img_cmd;
 	char *save_imgs_cmd;

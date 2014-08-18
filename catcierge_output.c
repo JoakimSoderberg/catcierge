@@ -49,6 +49,7 @@ catcierge_output_var_t vars[] =
 	{ "match#_path", "Image path for match #." },
 	{ "match#_success", "Success status for match #." },
 	{ "match#_direction", "Direction for match #." },
+	{ "match#_description", "Description of match #." },
 	{ "match#_result", "Result for match #." },
 	{ "match#_time", "Time of match #." },
 	{ "match#_step#_path", "Image path for match step # for match #."},
@@ -257,7 +258,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 	assert(ctx);
 
 	// Get only the filename.
-	if ((path = strstr(target_path, catcierge_path_sep())))
+	if ((path = strrchr(target_path, catcierge_path_sep()[0])))
 	{
 		target_path = path + 1;
 	}
@@ -468,12 +469,6 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
-	if (!strncmp(var, "match_desc", 10))
-	{
-		// TODO: Return match description.
-		return "";
-	}
-
 	if (!strcmp(var, "match_count"))
 	{
 		snprintf(buf, bufsize - 1, "%d", grb->match_count);
@@ -493,7 +488,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		}
 		else
 		{
-			subvar = var + strlen("matchX_");
+			subvar = var + strlen("match#_");
 
 			if (sscanf(var, "match%d_", &idx) == EOF)
 			{
@@ -528,6 +523,10 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		{
 			return catcierge_get_direction_str(m->result.direction);
 		}
+		else if (!strcmp(subvar, "description"))
+		{
+			return m->result.description;
+		}
 		else if (!strcmp(subvar, "result"))
 		{
 			snprintf(buf, bufsize - 1, "%f", m->result.result);
@@ -549,17 +548,23 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 			int stepidx = -1;
 			match_step_t *step = NULL;
 
-			const char *stepvar = subvar + strlen("stepX_");
+			const char *stepvar = subvar + strlen("step#_");
 
 			if (sscanf(subvar, "step%d_", &stepidx) == EOF)
 			{
+				CATERR("Failed to parse step#_\n");
 				return NULL;
 			}
+
+			// "step##_" instead of just "step#_"
+			if (stepidx >= 10)
+				stepvar++;
 
 			stepidx--; // Convert to 0-based index.
 
 			if ((stepidx < 0) || (stepidx >= MAX_STEPS))
 			{
+				CATERR("Step index out of range %d\n", stepidx);
 				return NULL;
 			}
 
@@ -567,15 +572,15 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 			if (!strcmp(stepvar, "path"))
 			{
-				return step->path;
+				return step->path ? step->path : "";
 			}
 			else if (!strcmp(stepvar, "name"))
 			{
-				return step->name;
+				return step->name ? step->name : "";
 			}
 			else if (!strncmp(stepvar, "desc", 4))
 			{
-				return step->description;
+				return step->description ? step->description : "";
 			}
 			else if (!strcmp(stepvar, "active"))
 			{
@@ -643,7 +648,7 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 			s = it;
 
 			// Look for the ending %
-			while (*it && (*it != '%'))
+			while (*it && (*it != '%') && (*it != '\n'))
 			{
 				it++;
 			}
@@ -651,7 +656,9 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 			// Either we found it or the end of string.
 			if (*it != '%')
 			{
-				CATERR("Variable not terminated in output template line %d\n", (int)linenum);
+				*it = '\0';
+				CATERR("Variable \"%s\" not terminated in output template line %d\n",
+					s, (int)linenum);
 				free(output);
 				output = NULL;
 				goto fail;

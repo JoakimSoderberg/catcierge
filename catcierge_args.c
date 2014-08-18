@@ -10,6 +10,7 @@
 #include "catcierge_rfid.h"
 #endif // WITH_RFID
 #include "catcierge_util.h"
+#include "catcierge_output.h"
 
 #include "alini/alini.h"
 
@@ -127,6 +128,13 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 	{
 		args->saveimg = 1;
 		if (value_count == 1) args->saveimg = atoi(values[0]);
+		return 0;
+	}
+
+	if (!strcmp(key, "new_execute"))
+	{
+		args->new_execute = 1;
+		if (value_count == 1) args->new_execute = atoi(values[0]);
 		return 0;
 	}
 
@@ -488,6 +496,7 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 {
 	fprintf(stderr, "Usage: %s [options]\n\n", prog);
 	fprintf(stderr, "General settings:\n");
+	fprintf(stderr, "-----------------\n");
 	fprintf(stderr, " --lockout_method <1|2|3>\n");
 	fprintf(stderr, "                        Defines the method used to decide when to unlock:\n");
 	fprintf(stderr, "                        [1: Wait for clear frame or that the timer has timed out.]\n");
@@ -505,9 +514,12 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %d seconds.\n", DEFAULT_MATCH_WAIT);
 	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
 	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
+	fprintf(stderr, " --save_steps           Save each step of the matching algorithm.\n");
+	fprintf(stderr, "                        (--save must also be turned on)\n");
 	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
 	fprintf(stderr, " --nocolor              Turn off all color output.\n");
 	fprintf(stderr, " --noanim               Turn off any animation.\n");
+	fprintf(stderr, " --input <path>         Path to one or more template files generated on certain events.\n");
 	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
 	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
 	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg\n");
@@ -524,12 +536,19 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "                        Template matcher is simpler, but doesn't require a trained cascade\n");
 	fprintf(stderr, "                        this is useful while gathering enough data to train the cascade.\n");
 	fprintf(stderr, "Haar cascade matcher:\n");
+	fprintf(stderr, "---------------------\n");
 	catcierge_haar_matcher_usage();
 	fprintf(stderr, "Template matcher:\n");
+	fprintf(stderr, "-----------------\n");
+	fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
+	fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
+	fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n");
+	fprintf(stderr, "\n");
 	catcierge_template_matcher_usage();
 	#ifdef WITH_RFID
 	fprintf(stderr, "\n");
 	fprintf(stderr, "RFID:\n");
+	fprintf(stderr, "-----\n");
 	fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
 	fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
 	fprintf(stderr, " --rfid_lock            Lock if no RFID tag present or invalid RFID tag. Default OFF.\n");
@@ -539,9 +558,18 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, " --rfid_allowed <list>  A comma separated list of allowed RFID tags. Example: %s\n", EXAMPLE_RFID_STR);
 	#endif // WITH_RFID
 	fprintf(stderr, "\n");
-	fprintf(stderr, "Commands:\n");
-	fprintf(stderr, "(Note that %%0, %%1, ... will be replaced in the input, see --cmdhelp for details)\n");
 	#define EPRINT_CMD_HELP(fmt, ...) if (args->show_cmd_help) fprintf(stderr, fmt, ##__VA_ARGS__);
+	fprintf(stderr, "Commands (new):\n");
+	fprintf(stderr, "---------------\n");
+	fprintf(stderr, "This is enabled using --new_execute. %%0, %%1... are deprecated, instead variable names are used.\n");
+	fprintf(stderr, "For example: %%state%%, %%match_success%% and so on.\n");
+	fprintf(stderr, "See --cmdhelp for a list of variables. Otherwise this uses the same\n");
+	fprintf(stderr, "command line arguments as the old commands section below.\n");
+	if (args->show_cmd_help) catcierge_output_print_usage();
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Commands (old):\n");
+	fprintf(stderr, "---------------\n");
+	fprintf(stderr, "(Note that %%0, %%1, ... will be replaced in the input, see --cmdhelp for details)\n");
 	EPRINT_CMD_HELP("\n");
 	EPRINT_CMD_HELP("   General: %%cwd will output the current working directory for this program.\n");
 	EPRINT_CMD_HELP("            Any paths returned are relative to this.\n");
@@ -608,10 +636,6 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "                        Note that all these settings must be prepended\n");
 	fprintf(stderr, "                        with \"rpi-\"\n");
 	#endif
-	fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
-	fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
-	fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n");
-	fprintf(stderr, "\n");
 	#ifndef _WIN32
 	fprintf(stderr, "Signals:\n");
 	fprintf(stderr, "The program can receive signals that can be sent using the kill command.\n");

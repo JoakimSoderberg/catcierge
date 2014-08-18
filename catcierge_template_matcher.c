@@ -257,6 +257,7 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
 	img_size = cvGetSize(img);
 	result->result = -1.0;
 	result->rect_count = ctx->args->snout_count;
+	result->description[0] = '\0';
 
 	if ((img_size.width != ctx->width)
 	 || (img_size.height != ctx->height))
@@ -347,6 +348,19 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
 
 	result->result = match_avg;
 	result->success = (result->result >= ctx->args->match_threshold);
+
+	if (result->success)
+	{
+		snprintf(result->description, sizeof(result->description) - 1,
+				"No prey detected (%0.1f >= %0.1f)",
+				result->result, ctx->args->match_threshold);
+	}
+	else
+	{
+		snprintf(result->description, sizeof(result->description) - 1,
+				"Prey detected (%0.1f < %0.1f)",
+				result->result, ctx->args->match_threshold);
+	}
 
 	return result->result;
 }

@@ -381,6 +381,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 	IplImage *thr_img = NULL;
 	CvSize max_size;
 	CvSize min_size;
+	int cat_head_found = 0;
 	assert(ctx);
 	assert(ctx->args);
 	assert(result);
@@ -390,6 +391,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 	max_size.width = 0;
 	max_size.height = 0;
 	result->step_img_count = 0;
+	result->description[0] = '\0';
 
 	// Make gray scale if needed.
 	if (img->nChannels != 1)
@@ -434,6 +436,8 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 
 	if (ctx->debug) printf("Rect count: %d\n", (int)result->rect_count);
 
+	cat_head_found = (result->rect_count > 0);
+
 	// Even if we don't find a face we count it as a success.
 	// Only when a prey is found we consider it a fail.
 	// Unless args->no_match_is_fail is set.
@@ -441,10 +445,10 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 	{
 		// Any return value above 0.0 is considered
 		// a success. Just so we can distinguish the types of successes.
-		ret = (result->rect_count > 0) ? 0.999 : 0.0;
+		ret = cat_head_found ? 0.999 : 0.0;
 	}
 
-	if ((result->rect_count > 0))
+	if (cat_head_found)
 	{
 		int inverted; 
 		int flags;
@@ -501,6 +505,8 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 		if ((result->direction) == MATCH_DIR_OUT)
 		{
 			if (ctx->debug) printf("Skipping prey detection!\n");
+			snprintf(result->description, sizeof(result->description) - 1,
+				"Skipped prey detection when going out");
 			goto done;
 		}
 
@@ -509,12 +515,23 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 		{
 			if (ctx->debug) printf("Found prey!\n");
 			ret = 0.0; // Fail.
+
+			snprintf(result->description, sizeof(result->description) - 1,
+				"Prey detected");
 		}
 		else
 		{
 			ret = 1.0; // Success.
+			snprintf(result->description, sizeof(result->description) - 1,
+				"No prey detected");
 		}
 	}
+	else
+	{
+		snprintf(result->description, sizeof(result->description) - 1,
+			"No cat head detected");
+	}
+
 done:
 fail:
 	cvResetImageROI(img);

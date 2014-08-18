@@ -66,6 +66,7 @@ static char *run_generate_tests()
 			{ "%match1_path%", "/some/path/omg1" },
 			{ "%match2_path%", "/some/path/omg2" },
 			{ "%match2_success%", "0" },
+			{ "%match2_description%", "prey found" },
 			{ "aaa %match3_direction% bbb", "aaa in bbb" },
 			{ "%match3_result%", "0.800000" },
 			{ "%state%", "Waiting" },
@@ -88,6 +89,7 @@ static char *run_generate_tests()
 		strcpy(grb.matches[0].result.steps[0].path, "some/step/path");
 		grb.matches[0].result.steps[1].name = "the_step_name";
 		grb.matches[1].result.steps[6].description = "Step description";
+		strcpy(grb.matches[1].result.description, "prey found");
 		strcpy(grb.matches[0].path, "/some/path/omg1");
 		strcpy(grb.matches[1].path, "/some/path/omg2");
 		strcpy(grb.matches[2].path, "/some/path/omg3");
@@ -424,6 +426,8 @@ int TEST_catcierge_output(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_load_templates_test()),
 		"Run load templates tests.",
 		"Load templates tests", &ret);
+
+	// TODO: Add a test for template paths in other directory.
 
 	if (ret)
 	{

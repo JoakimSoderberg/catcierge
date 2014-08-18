@@ -67,6 +67,7 @@ typedef struct match_result_s
 {
 	double result;
 	int success;
+	char description[2048];
 	CvRect match_rects[MAX_MATCH_RECTS];
 	size_t rect_count;
 	match_direction_t direction;

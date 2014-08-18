@@ -139,15 +139,23 @@ static void rfid_set_direction(catcierge_grb_t *grb, rfid_match_t *current, rfid
 	//log_print_csv(log_file, "rfid, %s, %s\n", 
 	//		current->data, (current->is_allowed > 0)? "allowed" : "rejected");
 
-	catcierge_execute(args->rfid_detect_cmd, 
-		"%s %s %d %d %s %d %s",
-		rfid->name, 				// %0 = RFID reader name.
-		rfid->serial_path,			// %1 = RFID path.
-		current->is_allowed, 		// %2 = Is allowed.
-		current->incomplete, 		// %3 = Is data incomplete.
-		current->data,				// %4 = Tag data.
-		other->triggered,			// %5 = Other reader triggered.
-		catcierge_get_direction_str(grb->rfid_direction)); // %6 = Direction.
+	if (args->new_execute)
+	{
+		// TODO: Do we have all RFID vars for this?
+		catcierge_output_execute(grb, "rfid_detect", args->rfid_detect_cmd);
+	}
+	else
+	{
+		catcierge_execute(args->rfid_detect_cmd, 
+			"%s %s %d %d %s %d %s",
+			rfid->name, 				// %0 = RFID reader name.
+			rfid->serial_path,			// %1 = RFID path.
+			current->is_allowed, 		// %2 = Is allowed.
+			current->incomplete, 		// %3 = Is data incomplete.
+			current->data,				// %4 = Tag data.
+			other->triggered,			// %5 = Other reader triggered.
+			catcierge_get_direction_str(grb->rfid_direction)); // %6 = Direction.
+	}
 }
 
 static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user)
@@ -209,7 +217,14 @@ void catcierge_do_lockout(catcierge_grb_t *grb)
 
 	if (args->do_lockout_cmd)
 	{
-		catcierge_execute(args->do_lockout_cmd, "");
+		if (args->new_execute)
+		{
+			catcierge_output_execute(grb, "do_lockout", args->do_lockout_cmd);
+		}
+		else
+		{
+			catcierge_execute(args->do_lockout_cmd, "");
+		}
 	}
 	else
 	{
@@ -228,7 +243,14 @@ void catcierge_do_unlock(catcierge_grb_t *grb)
 
 	if (args->do_unlock_cmd)
 	{
-		catcierge_execute(args->do_unlock_cmd, "");
+		if (args->new_execute)
+		{
+			catcierge_output_execute(grb, "do_unlock", args->do_unlock_cmd);
+		}
+		else
+		{
+			catcierge_execute(args->do_unlock_cmd, "");
+		}
 	}
 	else
 	{
@@ -421,23 +443,13 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 	m->img = NULL;
 	m->time = time(NULL);
 	get_time_str_fmt(m->time_str, sizeof(m->time_str), "%Y-%m-%d_%H_%M_%S");
+	m->path[0] = '\0';
 
 	// Save match image.
 	// (We don't write to disk yet, that will slow down the matcing).
 	if (args->saveimg)
 	{
 		char base_path[1024];
-
-		// TODO: Remove this we have step images now instead
-		// Draw a white rectangle over the best match.
-		if (args->highlight_match)
-		{
-			for (i = 0; i < res->rect_count; i++)
-			{
-				cvRectangleR(img, res->match_rects[i],
-						CV_RGB(255, 255, 255), 2, 8, 0);
-			}
-		}
 
 		snprintf(base_path,
 			sizeof(base_path) - 1,
@@ -473,14 +485,19 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		 args->saveimg ? m->path : "-",
 		 catcierge_get_direction_str(res->direction));
 
-	// Runs the --match_cmd progam specified.
-	catcierge_execute(args->match_cmd, "%f %d %s %d",
-			res->result, 					// %0 = Match result.
-			res->success,					// %1 = 0/1 succes or failure.
-			args->saveimg ? m->path : "",	// %2 = Image path if saveimg is turned on.
-			res->direction);				// %3 = Direction, 0 = in, 1 = out.
-
-	//catcierge_output_execute(grb, "match", args->match_cmd);
+	// Runs the --match_cmd program specified.
+	if (args->new_execute)
+	{
+		catcierge_output_execute(grb, "match", args->match_cmd);
+	}
+	else
+	{
+		catcierge_execute(args->match_cmd, "%f %d %s %d",
+				res->result, 					// %0 = Match result.
+				res->success,					// %1 = 0/1 succes or failure.
+				args->saveimg ? m->path : "",	// %2 = Image path if saveimg is turned on.
+				res->direction);				// %3 = Direction, 0 = in, 1 = out.
+	}
 }
 
 static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direction)
@@ -514,32 +531,46 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 			}
 		}
 
-		catcierge_execute(args->save_img_cmd, "%f %d %s %d",
-			res->result,	// %0 = Match result.
-			res->success, 	// %1 = Match success.
-			m->path,		// %2 = Image path (of now saved image).
-			res->direction);// %3 = Match direction.
+		if (args->new_execute)
+		{
+			catcierge_output_execute(grb, "save_img", args->save_img_cmd);
+		}
+		else
+		{
+			catcierge_execute(args->save_img_cmd, "%f %d %s %d",
+				res->result,	// %0 = Match result.
+				res->success, 	// %1 = Match success.
+				m->path,		// %2 = Image path (of now saved image).
+				res->direction);// %3 = Match direction.
+		}
 
 		cvReleaseImage(&m->img);
 		m->img = NULL;
 	}
 
-	catcierge_execute(args->save_imgs_cmd,
-		"%d %s %s %s %s %f %f %f %f %d %d %d %d %d",
-		grb->match_success, 				// %0 = Match success.
-		grb->matches[0].path,				// %1 = Image 1 path (of now saved image).
-		grb->matches[1].path,				// %2 = Image 2 path (of now saved image).
-		grb->matches[2].path,				// %3 = Image 3 path (of now saved image).
-		grb->matches[3].path,				// %4 = Image 4 path (of now saved image).
-		grb->matches[0].result.result,		// %5 = Image 1 result.
-		grb->matches[1].result.result,		// %6 = Image 2 result.
-		grb->matches[2].result.result,		// %7 = Image 3 result.
-		grb->matches[3].result.result,		// %8 = Image 4 result.
-		grb->matches[0].result.direction,	// %9 =  Image 1 direction.
-		grb->matches[1].result.direction,	// %10 = Image 2 direction.
-		grb->matches[2].result.direction,	// %11 = Image 3 direction.
-		grb->matches[3].result.direction,	// %12 = Image 4 direction.
-		direction); 						// %13 = Total direction.
+	if (args->new_execute)
+	{
+		catcierge_output_execute(grb, "save_imgs", args->save_imgs_cmd);
+	}
+	else
+	{
+		catcierge_execute(args->save_imgs_cmd,
+			"%d %s %s %s %s %f %f %f %f %d %d %d %d %d",
+			grb->match_success, 				// %0 = Match success.
+			grb->matches[0].path,				// %1 = Image 1 path (of now saved image).
+			grb->matches[1].path,				// %2 = Image 2 path (of now saved image).
+			grb->matches[2].path,				// %3 = Image 3 path (of now saved image).
+			grb->matches[3].path,				// %4 = Image 4 path (of now saved image).
+			grb->matches[0].result.result,		// %5 = Image 1 result.
+			grb->matches[1].result.result,		// %6 = Image 2 result.
+			grb->matches[2].result.result,		// %7 = Image 3 result.
+			grb->matches[3].result.result,		// %8 = Image 4 result.
+			grb->matches[0].result.direction,	// %9 =  Image 1 direction.
+			grb->matches[1].result.direction,	// %10 = Image 2 direction.
+			grb->matches[2].result.direction,	// %11 = Image 3 direction.
+			grb->matches[3].result.direction,	// %12 = Image 4 direction.
+			direction); 						// %13 = Total direction.
+	}
 }
 
 static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
@@ -647,22 +678,30 @@ static void catcierge_should_we_rfid_lockout(catcierge_grb_t *grb)
 			if (args->rfid_inner_path) CATLOG("  %s RFID: %s\n", grb->rfid_in.name, grb->rfid_in_match.triggered ? grb->rfid_in_match.data : "No tag data");
 			if (args->rfid_outer_path) CATLOG("  %s RFID: %s\n", grb->rfid_out.name, grb->rfid_out_match.triggered ? grb->rfid_out_match.data : "No tag data");
 
-			// %0 = Match success.
-			// %1 = RFID inner in use.
-			// %2 = RFID outer in use.
-			// %3 = RFID inner success.
-			// %4 = RFID outer success.
-			// %5 = RFID inner data.
-			// %6 = RFID outer data.
-			catcierge_execute(args->rfid_match_cmd, 
-				"%d %d %d %d %s %s", 
-				!do_rfid_lockout,
-				(args->rfid_inner_path != NULL),
-				(args->rfid_outer_path != NULL),
-				grb->rfid_in_match.is_allowed,
-				grb->rfid_out_match.is_allowed,
-				grb->rfid_in_match.data,
-				grb->rfid_out_match.data);
+			if (args->new_execute)
+			{
+				// TODO: Do we have all RFID vars for this?
+				catcierge_output_execute(grb, "rfid_match", args->rfid_match_cmd);
+			}
+			else
+			{
+				// %0 = Match success.
+				// %1 = RFID inner in use.
+				// %2 = RFID outer in use.
+				// %3 = RFID inner success.
+				// %4 = RFID outer success.
+				// %5 = RFID inner data.
+				// %6 = RFID outer data.
+				catcierge_execute(args->rfid_match_cmd, 
+					"%d %d %d %d %s %s", 
+					!do_rfid_lockout,
+					(args->rfid_inner_path != NULL),
+					(args->rfid_outer_path != NULL),
+					grb->rfid_in_match.is_allowed,
+					grb->rfid_out_match.is_allowed,
+					grb->rfid_in_match.data,
+					grb->rfid_out_match.data);
+			}
 
 			grb->checked_rfid_lock = 1;
 		}
@@ -1021,10 +1060,17 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 			catcierge_state_transition_lockout(grb);
 		}
 
-		catcierge_execute(args->match_done_cmd, "%d %d %d", 
-			grb->match_success, 		// %0 = Match success.
-			grb->match_success_count,	// %1 = Successful match count.
-			MATCH_MAX_COUNT);			// %2 = Max matches.
+		if (args->new_execute)
+		{
+			catcierge_output_execute(grb, "match_done", args->match_done_cmd);
+		}
+		else
+		{
+			catcierge_execute(args->match_done_cmd, "%d %d %d", 
+				grb->match_success, 		// %0 = Match success.
+				grb->match_success_count,	// %1 = Successful match count.
+				MATCH_MAX_COUNT);			// %2 = Max matches.
+		}
 
 		// Now we can save the images that we cached earlier 
 		// without slowing down the matching FPS.
