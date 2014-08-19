@@ -30,6 +30,7 @@
 #else
 #include <unistd.h>
 #endif
+#include "catcierge_util.h"
 
 static int _catcierge_prepare_img(catcierge_template_matcher_t *ctx, const IplImage *src, IplImage *dst)
 {
