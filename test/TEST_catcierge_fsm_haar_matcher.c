@@ -150,11 +150,11 @@ static char *run_save_steps_test()
 	load_test_image_and_run(&grb, 1, 1);
 
 	// Some normal images.
-	load_test_image_and_run(&grb, 1, 1);
+	load_test_image_and_run(&grb, 10, 1);
 	catcierge_test_STATUS("Step image count: %d", grb.matches[0].result.step_img_count);
 	mu_assert("Expected 10 step images", grb.matches[0].result.step_img_count == 11);
 	
-	load_test_image_and_run(&grb, 1, 2);
+	load_test_image_and_run(&grb, 10, 2);
 	catcierge_test_STATUS("Step image count: %d", grb.matches[1].result.step_img_count);
 	mu_assert("Expected 10 step images", grb.matches[1].result.step_img_count == 11);
 
@@ -164,7 +164,7 @@ static char *run_save_steps_test()
 	mu_assert("Got NULL image for used step image", grb.matches[2].result.steps[2].img != NULL);
 	mu_assert("Got non-NULL image for unused step image", grb.matches[2].result.steps[4].img == NULL);
 
-	load_test_image_and_run(&grb, 1, 1);
+	load_test_image_and_run(&grb, 10, 1);
 	catcierge_test_STATUS("Step image count: %d", grb.matches[3].result.step_img_count);
 	mu_assert("Expected 10 step images", grb.matches[3].result.step_img_count == 11);
 

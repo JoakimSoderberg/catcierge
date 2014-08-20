@@ -892,8 +892,17 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			fclose(f);
 		}
 
-		if (output) free(output);
-		if (path) free(path);
+		if (output)
+		{
+			free(output);
+			output = NULL;
+		}
+
+		if (path)
+		{
+			free(path);
+			path = NULL;
+		}
 	}
 
 	return 0;

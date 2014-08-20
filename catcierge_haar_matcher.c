@@ -282,11 +282,11 @@ int catcierge_haar_matcher_find_prey_adaptive(catcierge_haar_matcher_t *ctx,
 		img_final_color =  cvCreateImage(cvGetSize(img_contour), 8, 3);
 
 		cvCvtColor(img_contour, img_final_color, CV_GRAY2BGR);
-		color = (contour_count > 1) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
+		color = (contour_count > 1) ? CV_RGB(255, 0, 0) : CV_RGB(0, 255, 0);
 		cvRectangleR(img_final_color, result->match_rects[0], color, 2, 8, 0);
 
 		catcierge_haar_matcher_save_step_image(ctx,
-			img_final_color, result, "contours", "Final image", save_steps);
+			img_final_color, result, "final", "Final image", save_steps);
 
 		cvReleaseImage(&img_contour);
 		cvReleaseImage(&img_final_color);
