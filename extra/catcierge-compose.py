@@ -7,6 +7,9 @@ from wand.drawing import Drawing
 from wand.color import Color
 
 kernel_size = 20
+font = Font(path="fonts/source-code-pro/SourceCodePro-Medium.otf", size=64)
+font_title = Font(path="fonts/alex-brush/AlexBrush-Regular.ttf", size=64)
+font_math = Font(path="fonts/Asana-Math/Asana-Math.otf", size=64)
 
 def draw_kernel(w=3, h=3):
 	k = Image(width=w * kernel_size + 2, height=h * kernel_size + 2)
@@ -23,8 +26,51 @@ def draw_kernel(w=3, h=3):
 
 	return k
 
+def create_row(imgs, offsets, gap, fixed_width=0, caption=None, caption_offset=(0,0)):
+	row_width = 0
+	i = 0
+	row_height = 0
+
+	for img in imgs:
+		if isinstance(img, Image):
+			row_width += img.width + gap
+			row_height = max(img.height, row_height)
+		else:
+			print i
+			row_width += offsets[i][0] + gap
+		i += 1
+
+	if fixed_width:
+		row_width = fixed_width
+
+	row = Image(width=row_width, height=row_height)
+
+	i = 0
+	x = 0
+
+	for img in imgs:
+		if isinstance(img, Image):
+			row.composite(img, left=x + offsets[i], top=(row_height - img.height) / 2)
+			x += img.width + offsets[i] + gap
+		else:
+			print i
+			(offset_x, offset_y, width, font) = offsets[i]
+			row.caption(img, left=x + offset_x, top=offset_y, width=250, height=250, font=font)
+			x += width + gap
+		i += 1
+
+	if caption:
+		caption_font = Font(path="fonts/source-code-pro/SourceCodePro-Medium.otf", size=14)
+		row_w_caption = Image(width=row_width, height=row_height+20)
+		row_w_caption.caption(caption, left=caption_offset[0], top=caption_offset[1],
+								width=1450, height=50, font=caption_font)
+		row_w_caption.composite(row, left=0, top=20)
+		return row_w_caption
+	else:
+		return row
+
 def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5):
-	img = Image(width=800, height=1324)
+	img = Image(width=800, height=1124, background=Color("#8A968E"))
 
 	imgs = []
 
@@ -33,10 +79,6 @@ def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5):
 		imgs.append(Image(filename=img_path))
 
 	mpos = lambda w: (img.width - w) / 2
-
-	font = Font(path="fonts/source-code-pro/SourceCodePro-Medium.otf", size=64)
-	font_title = Font(path="fonts/alex-brush/AlexBrush-Regular.ttf", size=64)
-	font_math = Font(path="fonts/Asana-Math/Asana-Math.otf", size=64)
 	
 	kernel3x3 = draw_kernel(w=3, h=3)
 	kernel2x2 = draw_kernel(w=2, h=2)
@@ -52,112 +94,60 @@ def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5):
 	img.composite(imgs[0], left=mpos(imgs[0].width), top=height) 
 	height += imgs[0].height + gap
 	
-	# Head detected.
-	head_row_width = imgs[1].width + horizontal_gap + imgs[2].width
-	head_row_height = imgs[1].height
-	head_row = Image(width=head_row_width, height=head_row_height)
-	
-	head_row.composite(imgs[1], left=0, top=0)
-	#height += imgs[1].height + gap
-
-	# Cropped roi.
-	head_row.composite(imgs[2], left=imgs[1].width + horizontal_gap, top=(imgs[1].height - imgs[2].height) / 2)
-
+	# Detected head + cropped region of interest.
+	head_row = create_row(imgs[1:3], [0, 0], horizontal_gap, caption="Detected head  Cropped ROI")
 	img.composite(head_row, left=mpos(head_row.width), top=height)
-	height += head_row_height + gap
+	height += head_row.height + gap
 
-	#
-	# Threshold images.
-	#
-	thr_row_height = imgs[3].height
-	thr_row_width = img.width # imgs[3].width + imgs[4].width + imgs[5].width + (2 + 8 + 2 + 8 + 8) * horizontal_gap
-	thr_row = Image(width=thr_row_width, height=thr_row_height)
-	
-	# Global threshold.
-	x = x_start
-	thr_row.composite(imgs[3], left=x, top=0)
-	x += imgs[3].width + 5 * horizontal_gap
-
-	thr_row.caption("+", left=x, top=-15, width=150, height=100, font=font)
-	x += 10 * horizontal_gap
-	
-	# Adaptive threshold.
-	thr_row.composite(imgs[4], left=x, top=0)
-	x += imgs[4].width + 4 * horizontal_gap
-
-	thr_row.caption("=", left=x, top=-15, width=150, height=100, font=font)
-	x += 9 * horizontal_gap + 2
-	
-	# Threshold Combined.
-	thr_row.composite(imgs[5], left=x, top=0)
+	# Combine the threshold images.
+	thr_row = create_row([imgs[3], "+", imgs[4], "=", imgs[5]],
+						[x_start,
+						(4 * horizontal_gap, -15, 14 * horizontal_gap, font),
+						0,
+						(2 * horizontal_gap, -15, 8 * horizontal_gap, font),
+						2 * horizontal_gap],
+						horizontal_gap, fixed_width=img.width,
+						caption="Global Threshold           Adaptive Threshold       Combined Threshold",
+						caption_offset=(140, 0))
 	img.composite(thr_row, left=mpos(thr_row.width), top=height)
-	height += imgs[5].height + gap
+	height += thr_row.height + gap
 
-	#
-	# Opened.
-	#
-	open_row_width = img.width #imgs[5].width + kernel2x2.width + imgs[6].width + (4 + 8 + 4 + 10) * horizontal_gap
-	open_row_height = imgs[5].height
-	open_row = Image(width=open_row_width, height=open_row_height)
-
-	# Threshold combined.
-	x = x_start
-	open_row.composite(imgs[5], left=x, top=0)
-	x += imgs[5].width + 6 * horizontal_gap
-
-	open_row.caption(u"∘", left=x, top=0, width=100, height=100, font=font_math)
-	x += 18 * horizontal_gap
-
-	# 2x2 kernel
-	open_row.composite(kernel2x2, left=x, top=(open_row.height - kernel2x2.height) / 2)
-	x += kernel2x2.width + 14 * horizontal_gap
-
-	open_row.caption("=", left=x, top=-15, width=150, height=100, font=font)
-	x += 10 * horizontal_gap
-
-	# The opened image.
-	open_row.composite(imgs[6], left=x, top=0)
+	# Open the combined threshold.
+	open_row = create_row([imgs[5], u"∘", kernel2x2, "=", imgs[6]],
+						[x_start,
+						(5 * horizontal_gap, -5, 14 * horizontal_gap, font_math),
+						0,
+						(21 * horizontal_gap, -15, 10 * horizontal_gap, font),
+						19 * horizontal_gap + 3],
+						horizontal_gap, fixed_width=img.width,
+						caption="Combined Threshold         2x2 Kernel               Opened Image",
+						caption_offset=(140, 0))
 	img.composite(open_row, left=mpos(open_row.width), top=height)
-	height += imgs[6].height + gap
+	height += open_row.height + gap
 
-	#
-	# Dilated.
-	#
-	dilated_row_width = img.width #imgs[6].width + kernel2x2.width + imgs[7].width + (4 + 12 + 10 + 8) * horizontal_gap
-	dilated_row_height = imgs[6].height
-	dilated_row = Image(width=dilated_row_width, height=dilated_row_height)
-
-	# Threshold combined.
-	x = x_start
-	dilated_row.composite(imgs[6], left=x, top=0)
-	x += imgs[6].width + 4 * horizontal_gap
-
-	dilated_row.caption(u"⊕", left=x, top=0, width=50, height=100, font=font_math)
-	x += 18 * horizontal_gap
-
-	# 3x3 kernel
-	dilated_row.composite(kernel3x3, left=x, top=(dilated_row.height - kernel3x3.height) / 2)
-	x += kernel3x3.width + 12 * horizontal_gap
-
-	dilated_row.caption("=", left=x, top=-15, width=150, height=100, font=font)
-	x += 10 * horizontal_gap
-
-	# The dilated image.
-	dilated_row.composite(imgs[7], left=x, top=0)
+	# Dilate opened and combined threshold with a kernel3x3.
+	dilated_row = create_row([imgs[6], u"⊕", kernel3x3, "=", imgs[7]],
+						[x_start,
+						(3 * horizontal_gap, -5, 14 * horizontal_gap, font_math),
+						0,
+						(17 * horizontal_gap, -15, 10 * horizontal_gap, font),
+						15 * horizontal_gap + 3],
+						horizontal_gap, fixed_width=img.width,
+						caption="Opened Image               3x3 Kernel               Dilated Image",
+						caption_offset=(140, 0))
 	img.composite(dilated_row, left=mpos(dilated_row.width), top=height)
-	height += imgs[7].height + gap
+	height += dilated_row.height + gap
 
-	# Inverted.
-	img.composite(imgs[8], left=mpos(imgs[8].width), top=height)
-	height += imgs[8].height + gap
-
-	# Contours.
-	img.composite(imgs[9], left=mpos(imgs[9].width), top=height)
-	height += imgs[9].height + gap
+	# Inverted image and contour.
+	contour_row = create_row(imgs[8:10], [0, 0], horizontal_gap, caption="  Re-Inverted         Contours")
+	img.composite(contour_row, left=mpos(contour_row.width), top=height)
+	height += contour_row.height + 2 * gap
 
 	# Final.
 	img.composite(imgs[10], left=mpos(imgs[10].width), top=height)
 	height += imgs[10].height + gap
+
+	
 
 	img.save(filename="tut.png")
 
@@ -167,8 +157,11 @@ def main():
 	parser.add_argument("--images", metavar="IMAGES", nargs="+",
 					help="The Catcierge match images to use if no json file is specified.")
 
+	# Add support for inputting a json with the paths and stuff.
 	parser.add_argument("--json", metavar="JSON", nargs=1,
 					help="")
+
+	parser.add_argument
 
 	args = parser.parse_args()
 
