@@ -79,6 +79,7 @@ static char *run_generate_tests()
 			{ "%match1_step2_name%", "the_step_name" },
 			{ "%match2_step7_desc%", "Step description" },
 			{ "%match2_step7_active%", "0" },
+			{ "%match2_step_count%", "8" },
 			{ "%git_hash%", CATCIERGE_GIT_HASH },
 			{ "%git_hash_short%", CATCIERGE_GIT_HASH_SHORT },
 			{ "%git_tainted%", _XSTR(CATCIERGE_GIT_TAINTED) },
@@ -99,7 +100,8 @@ static char *run_generate_tests()
 		{
 			{ "%match5_path%", NULL },
 			{ "%matchX_path%", NULL },
-			{ "%match1_step600_path%", NULL}
+			{ "%match1_step600_path%", NULL},
+			{ "%match1_stepKK_path%", NULL}
 		};
 
 		grb.args.matcher = "haar";
@@ -112,6 +114,7 @@ static char *run_generate_tests()
 		strcpy(grb.matches[0].result.steps[0].path, "some/step/path");
 		grb.matches[0].result.steps[1].name = "the_step_name";
 		grb.matches[1].result.steps[6].description = "Step description";
+		grb.matches[1].result.step_img_count = 8;
 		strcpy(grb.matches[1].result.description, "prey found");
 		strcpy(grb.matches[0].path, "/some/path/omg1");
 		strcpy(grb.matches[1].path, "/some/path/omg2");
@@ -122,6 +125,8 @@ static char *run_generate_tests()
 		grb.match_success = 33;
 		grb.match_count = 3;
 		catcierge_set_state(&grb, catcierge_state_waiting);
+
+		catcierge_test_STATUS("Run success tests");
 
 		for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
 		{
@@ -140,6 +145,8 @@ static char *run_generate_tests()
 
 			catcierge_output_destroy(&o);
 		}
+
+		catcierge_test_STATUS("Run failure tests");
 
 		for (i = 0; i < sizeof(fail_tests) / sizeof(fail_tests[0]); i++)
 		{
