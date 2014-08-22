@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
+import sys
 from wand.image import Image
 from wand.font import Font
 from wand.drawing import Drawing
@@ -11,7 +12,7 @@ font = Font(path="fonts/source-code-pro/SourceCodePro-Medium.otf", size=64)
 font_title = Font(path="fonts/alex-brush/AlexBrush-Regular.ttf", size=64)
 font_math = Font(path="fonts/Asana-Math/Asana-Math.otf", size=64)
 
-def draw_kernel(w=3, h=3):
+def create_kernel(w=3, h=3):
 	k = Image(width=w * kernel_size + 2, height=h * kernel_size + 2)
 	
 	draw = Drawing()
@@ -69,7 +70,7 @@ def create_row(imgs, offsets, gap, fixed_width=0, caption=None, caption_offset=(
 	else:
 		return row
 
-def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5):
+def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5, output=None):
 	img = Image(width=800, height=1124, background=Color("#8A968E"))
 
 	imgs = []
@@ -80,9 +81,9 @@ def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5):
 
 	mpos = lambda w: (img.width - w) / 2
 	
-	kernel3x3 = draw_kernel(w=3, h=3)
-	kernel2x2 = draw_kernel(w=2, h=2)
-	kernel5x1 = draw_kernel(w=5, h=1)
+	kernel3x3 = create_kernel(w=3, h=3)
+	kernel2x2 = create_kernel(w=2, h=2)
+	kernel5x1 = create_kernel(w=5, h=1)
 
 	x_start = 140
 
@@ -98,6 +99,8 @@ def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5):
 	head_row = create_row(imgs[1:3], [0, 0], horizontal_gap, caption="Detected head  Cropped ROI")
 	img.composite(head_row, left=mpos(head_row.width), top=height)
 	height += head_row.height + gap
+
+	# TODO: simplify the code below by making the symbols into images before they're used to create the rows.
 
 	# Combine the threshold images.
 	thr_row = create_row([imgs[3], "+", imgs[4], "=", imgs[5]],
@@ -148,8 +151,8 @@ def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5):
 	height += imgs[10].height + gap
 
 	
-
-	img.save(filename="tut.png")
+	if output:
+		img.save(filename=output)
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -159,19 +162,24 @@ def main():
 
 	# Add support for inputting a json with the paths and stuff.
 	parser.add_argument("--json", metavar="JSON", nargs=1,
-					help="")
+					help="JSON containing image paths and descriptions.")
 
-	parser.add_argument
+	parser.add_argument("--output", metavar="OUTPUT",
+					help="The output file that the resulting image should be written to.")
 
 	args = parser.parse_args()
+
+	if not args.output:
+		print("You must specify an output file using --output")
+		return -1
 
 	image_count = len(args.images)
 
 	if (image_count == 2):
 		return
 	elif (image_count == 11):
-		compose_adaptive_prey(img_paths=args.images, gap=5)
+		compose_adaptive_prey(img_paths=args.images, gap=5, output=args.output)
 	else:
 		print("Invalid number of images %d, expected 2 or 11" % image_count)
 
-if __name__ == '__main__': main()
+if __name__ == '__main__': sys.exit(main())
