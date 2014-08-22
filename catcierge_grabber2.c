@@ -75,8 +75,14 @@ int main(int argc, char **argv)
 	catcierge_args_t *args;
 	args = &grb.args;
 
-	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR
-					" (C) Joakim Soderberg 2013-2014\n\n");
+	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR " (" CATCIERGE_GIT_HASH_SHORT "");
+
+	if (CATCIERGE_GIT_TAINTED)
+	{
+		fprintf(stderr, "-tainted");
+	}
+
+	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2014\n\n");
 
 	if (catcierge_grabber_init(&grb))
 	{

@@ -1,6 +1,10 @@
 %!event save_imgs
 {
 	"time": "%time%",
+	"git_hash": "%git_hash%",
+	"git_hash_short": "%git_hash_short%",
+	"git_tainted": %git_tainted%,
+	"version": "%version%",
 	"state": "%state%",
 	"prev_state": "%prev_state%",
 	"match_success": %match_success%,

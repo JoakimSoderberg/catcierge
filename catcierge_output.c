@@ -65,7 +65,11 @@ catcierge_output_var_t vars[] =
 		#ifdef _WIN32
 		" Note that Windows only supports a subset of formatting characters."
 		#endif // _WIN32
-	}
+	},
+	{ "git_hash", "The git commit hash for this build of catcierge."},
+	{ "git_hash_short", "The short version of the git commit hash."},
+	{ "git_tainted", "Was the git working tree changed when building."},
+	{ "version", "The catcierge version." },
 };
 
 void catcierge_output_print_usage()
@@ -463,6 +467,27 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	if (!strcmp(var, "prev_state"))
 	{
 		return catcierge_get_state_string(grb->prev_state);
+	}
+
+	if (!strcmp(var, "git_commit") || !strcmp(var, "git_hash"))
+	{
+		return CATCIERGE_GIT_HASH;
+	}
+
+	if (!strcmp(var, "git_commit_short") || !strcmp(var, "git_hash_short"))
+	{
+		return CATCIERGE_GIT_HASH_SHORT;
+	}
+
+	if (!strcmp(var, "git_tainted"))
+	{
+		snprintf(buf, bufsize - 1, "%d", CATCIERGE_GIT_TAINTED);
+		return buf;
+	}
+
+	if (!strcmp(var, "version"))
+	{
+		return CATCIERGE_VERSION_STR;
 	}
 
 	if (!strcmp(var, "match_success"))

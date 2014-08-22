@@ -57,6 +57,8 @@ static char *run_generate_tests()
 
 	catcierge_grabber_init(&grb);
 	{
+		#define _XSTR(s) _STR(s)
+		#define _STR(s) #s
 		output_test_t tests[] =
 		{
 			{ "%match_success%", "33" },
@@ -76,8 +78,15 @@ static char *run_generate_tests()
 			{ "%match1_step1_path%", "some/step/path" },
 			{ "%match1_step2_name%", "the_step_name" },
 			{ "%match2_step7_desc%", "Step description" },
-			{ "%match2_step7_active%", "0" }
+			{ "%match2_step7_active%", "0" },
+			{ "%git_hash%", CATCIERGE_GIT_HASH },
+			{ "%git_hash_short%", CATCIERGE_GIT_HASH_SHORT },
+			{ "%git_tainted%", _XSTR(CATCIERGE_GIT_TAINTED) },
+			{ "%version%", CATCIERGE_VERSION_STR }
 		};
+
+		#undef _XSTR
+		#undef _STR
 
 		output_test_t fail_tests[] =
 		{

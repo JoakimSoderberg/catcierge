@@ -41,6 +41,50 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
+find_package(Git)
+
+if (GIT_FOUND)
+	macro (git_log_format FORMAT_CHARS VAR_NAME)
+		execute_process(
+			COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%${FORMAT_CHARS}
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+			OUTPUT_VARIABLE ${VAR_NAME}
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+	endmacro()
+
+	git_log_format(h GIT_HASH_SHORT)
+	git_log_format(H GIT_HASH)
+	git_log_format(an GIT_AUTHOR_EMAIL)
+	git_log_format(ae GIT_AUTHOR_EMAIL)
+	git_log_format(cn GIT_COMMITTER_NAME)
+	git_log_format(ce GIT_COMMITTER_EMAIL)
+	git_log_format(B GIT_COMMIT_MESSAGE)
+
+	# Branch.
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		OUTPUT_VARIABLE GIT_BRANCH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+
+	# Check the git status is something has changed
+	# compared to the current git commit hash.
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} status -s -uno --porcelain
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		OUTPUT_VARIABLE GIT_STATUS_OUTPUT
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	string(LENGTH GIT_STATUS_OUTPUT GIT_STATUS)
+	if (${GIT_STATUS} GREATER 0)
+		set(GIT_STATUS 1)
+	else()
+		set(GIT_STATUS 0)
+	endif()
+endif()
+
 if (CATCIERGE_COVERAGE)
 	if(NOT CMAKE_COMPILER_IS_GNUCXX)
 		if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -315,6 +359,10 @@ if (RPI)
 message(" If compiling on another platform than raspberry pi, make sure ")
 message(" you add -DRPI=OFF to the command line !!!")
 message("-----------------------------------------------------------------")
+endif()
+
+if (GIT_STATUS)
+	message(WARNING "\nWarning build made from uncommited changes!\n${GIT_STATUS_OUTPUT}")
 endif()
 
 
