@@ -82,7 +82,14 @@ static char *run_generate_tests()
 			{ "%git_hash%", CATCIERGE_GIT_HASH },
 			{ "%git_hash_short%", CATCIERGE_GIT_HASH_SHORT },
 			{ "%git_tainted%", _XSTR(CATCIERGE_GIT_TAINTED) },
-			{ "%version%", CATCIERGE_VERSION_STR }
+			{ "%version%", CATCIERGE_VERSION_STR },
+			{ "%matcher%", "haar" },
+			{ "%matchtime%", "13" },
+			{ "%lockout_method%", "2" },
+			{ "%lockout_time%", "23" },
+			{ "%lockout_error%", "20" },
+			{ "%lockout_error_delay%", "2.44" },
+			{ "%ok_matches_needed%", "4" }
 		};
 
 		#undef _XSTR
@@ -95,6 +102,13 @@ static char *run_generate_tests()
 			{ "%match1_step600_path%", NULL}
 		};
 
+		grb.args.matcher = "haar";
+		grb.args.match_time = 13;
+		grb.args.lockout_method = 2;
+		grb.args.lockout_time = 23;
+		grb.args.ok_matches_needed = 4;
+		grb.args.max_consecutive_lockout_count = 20;
+		grb.args.consecutive_lockout_delay = 2.44;
 		strcpy(grb.matches[0].result.steps[0].path, "some/step/path");
 		grb.matches[0].result.steps[1].name = "the_step_name";
 		grb.matches[1].result.steps[6].description = "Step description";

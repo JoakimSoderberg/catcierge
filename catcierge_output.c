@@ -43,6 +43,13 @@ catcierge_output_var_t vars[] =
 {
 	{ "state", "The current state machine state." },
 	{ "prev_state", "The previous state mahchine state."},
+	{ "matcher", "The matching algorithm used."},
+	{ "matchtime", "Value of --matchtime."},
+	{ "ok_matches_needed", "Value of --ok_matches_needed" },
+	{ "lockout_method", "Value of --lockout_method." },
+	{ "lockout_time", "Value of --lockout_time." },
+	{ "lockout_error", "Value of --lockout_error." },
+	{ "lockout_error_delay", "Value of --lockout_error_delay."},
 	{ "match_success", "Match success status."},
 	{ "match_desc", "Match description."},
 	{ "match#_path", "Image path for match #." },
@@ -488,6 +495,47 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	if (!strcmp(var, "version"))
 	{
 		return CATCIERGE_VERSION_STR;
+	}
+
+	if (!strcmp(var, "matcher"))
+	{
+		return grb->args.matcher;
+	}
+
+	if (!strcmp(var, "ok_matches_needed"))
+	{
+		snprintf(buf, bufsize - 1, "%d", grb->args.ok_matches_needed);
+		return buf;
+	}
+
+	if (!strcmp(var, "matchtime"))
+	{
+		snprintf(buf, bufsize - 1, "%d", grb->args.match_time);
+		return buf;
+	}
+
+	if (!strcmp(var, "lockout_method"))
+	{
+		snprintf(buf, bufsize - 1, "%d", (int)grb->args.lockout_method);
+		return buf;
+	}
+
+	if (!strcmp(var, "lockout_error"))
+	{
+		snprintf(buf, bufsize - 1, "%d", grb->args.max_consecutive_lockout_count);
+		return buf;
+	}
+
+	if (!strcmp(var, "lockout_error_delay"))
+	{
+		snprintf(buf, bufsize - 1, "%0.2f", grb->args.consecutive_lockout_delay);
+		return buf;
+	}
+
+	if (!strcmp(var, "lockout_time"))
+	{
+		snprintf(buf, bufsize - 1, "%d", grb->args.lockout_time);
+		return buf;
 	}
 
 	if (!strcmp(var, "match_success"))
