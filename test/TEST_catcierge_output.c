@@ -202,7 +202,7 @@ char *run_add_and_generate_tests()
 		catcierge_test_STATUS("Add another template");
 		{
 			if (catcierge_output_add_template(o,
-				"%!event all   \n"
+				"%!event *   \n"
 				"hej %match_success%",
 				"outputpath is here %match_success% %time%"))
 			{

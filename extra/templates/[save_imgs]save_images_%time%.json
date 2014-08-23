@@ -7,6 +7,16 @@
 	"version": "%version%",
 	"state": "%state%",
 	"prev_state": "%prev_state%",
+	"settings":
+	{
+		"matcher": "%matcher%",
+		"matchtime": %matchtime%,
+		"ok_matches_needed": %ok_matches_needed%,
+		"lockout_method": %lockout_method%,
+		"lockout_time": %lockout_time%,
+		"lockout_error": %lockout_error%,
+		"lockout_error_delay": %lockout_error_delay%,
+	},
 	"match_success": %match_success%,
 	"match_count": %match_count%,
 	"matches": [
@@ -16,6 +26,7 @@
 		"result": %match1_result%,
 		"time": "%match1_time%",
 		"description": "%match1_desc%",
+		"directon": "%match1_direction",
 		"step_count": %match1_step_count%,
 		"steps": [
 		{
@@ -91,6 +102,7 @@
 		"result": %match2_result%,
 		"time": "%match2_time%",
 		"description": "%match2_desc%",
+		"directon": "%match2_direction",
 		"step_count": %match2_step_count%,
 		"steps": [
 		{
@@ -165,7 +177,8 @@
 		"success": %match3_success%,
 		"result": %match3_result%,
 		"time": "%match3_time%",
-		"description": "%match4_desc%",
+		"description": "%match3_desc%",
+		"directon": "%match3_direction",
 		"step_count": %match3_step_count%,
 		"steps": [
 		{
@@ -241,6 +254,7 @@
 		"result": %match4_result%,
 		"time": "%match4_time%",
 		"description": "%match4_desc%",
+		"directon": "%match4_direction",
 		"step_count": %match4_step_count%,
 		"steps": [
 		{

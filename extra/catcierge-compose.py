@@ -6,6 +6,7 @@ from wand.image import Image
 from wand.font import Font
 from wand.drawing import Drawing
 from wand.color import Color
+import json
 
 kernel_size = 20
 font = Font(path="fonts/source-code-pro/SourceCodePro-Medium.otf", size=64)
@@ -37,7 +38,6 @@ def create_row(imgs, offsets, gap, fixed_width=0, caption=None, caption_offset=(
 			row_width += img.width + gap
 			row_height = max(img.height, row_height)
 		else:
-			print i
 			row_width += offsets[i][0] + gap
 		i += 1
 
@@ -54,7 +54,6 @@ def create_row(imgs, offsets, gap, fixed_width=0, caption=None, caption_offset=(
 			row.composite(img, left=x + offsets[i], top=(row_height - img.height) / 2)
 			x += img.width + offsets[i] + gap
 		else:
-			print i
 			(offset_x, offset_y, width, font) = offsets[i]
 			row.caption(img, left=x + offset_x, top=offset_y, width=250, height=250, font=font)
 			x += width + gap
@@ -70,40 +69,76 @@ def create_row(imgs, offsets, gap, fixed_width=0, caption=None, caption_offset=(
 	else:
 		return row
 
-def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5, output=None):
-	img = Image(width=800, height=1124, background=Color("#8A968E"))
+
+
+def compose_adaptive_prey(img_paths=None, match_json=None, gap=5, horizontal_gap=5, output=None,  description=None):
+	img = Image(width=600, height=1124, background=Color("#8A968E"))
 
 	imgs = []
+	assert (img_paths and (len(img_paths) > 0)) or match_json, \
+		"Missing either a list of input image paths or a match json"
+
+	if not img_paths or len(img_paths) == 0:
+		step_count = match_json["step_count"]
+
+		for step in match_json["steps"][:step_count]:
+			print("Step: %s" % step["name"])
+			img_paths.append(step["path"])
+
+	# TODO: Allow any matcher type and number of images...	
+	assert len(img_paths) == 1 or len(img_paths) == 11, \
+		"Invalid number of images %d, expected 2 or 11" % image_count
 
 	for img_path in img_paths:
 		print img_path
 		imgs.append(Image(filename=img_path))
 
+	if len(img_paths) == 1:
+		return imgs[0]
+
+	orgimg = imgs[0]	# Original image.
+	detected = imgs[1]	# Detected cat head roi. 
+	croproi = imgs[2]	# Cropped/extended roi.
+	globalthr = imgs[3]	# Global threshold (inverted).
+	adpthr = imgs[4]	# Adaptive threshold (inverted).
+	combthr = imgs[5]	# Combined threshold.
+	opened = imgs[6]	# Opened image.
+	dilated = imgs[7]	# Dilated image.
+	combined = imgs[8]	# Combined image (re-inverted).
+	contours = imgs[9]	# Contours of white areas.
+	final = imgs[10]	# Final image.
+
 	mpos = lambda w: (img.width - w) / 2
 	
+	# TODO: Enable creating these based on input instead.
 	kernel3x3 = create_kernel(w=3, h=3)
 	kernel2x2 = create_kernel(w=2, h=2)
 	kernel5x1 = create_kernel(w=5, h=1)
 
-	x_start = 140
+	x_start = 20
 
 	img.caption("Catcierge", left=(img.width - 250) / 2, top=5, width=250, height=100, font=font_title)
+
+	if description:
+		desc_font = Font(path="fonts/source-code-pro/SourceCodePro-Medium.otf", size=24)
+		text_width = (desc_font.size) * int(len(description) * 0.7)
+		img.caption(description, left=(img.width - text_width) / 2, top=80, width=text_width, height=100, font=desc_font)
 
 	height = 120
 
 	# Original.
-	img.composite(imgs[0], left=mpos(imgs[0].width), top=height) 
-	height += imgs[0].height + gap
+	img.composite(orgimg, left=mpos(orgimg.width), top=height) 
+	height += orgimg.height + gap
 	
 	# Detected head + cropped region of interest.
-	head_row = create_row(imgs[1:3], [0, 0], horizontal_gap, caption="Detected head  Cropped ROI")
+	head_row = create_row([detected, croproi], [0, 0], horizontal_gap, caption="Detected head  Cropped ROI")
 	img.composite(head_row, left=mpos(head_row.width), top=height)
 	height += head_row.height + gap
 
 	# TODO: simplify the code below by making the symbols into images before they're used to create the rows.
 
 	# Combine the threshold images.
-	thr_row = create_row([imgs[3], "+", imgs[4], "=", imgs[5]],
+	thr_row = create_row([globalthr, "+", adpthr, "=", combthr],
 						[x_start,
 						(4 * horizontal_gap, -15, 14 * horizontal_gap, font),
 						0,
@@ -111,12 +146,12 @@ def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5, output=None):
 						2 * horizontal_gap],
 						horizontal_gap, fixed_width=img.width,
 						caption="Global Threshold           Adaptive Threshold       Combined Threshold",
-						caption_offset=(140, 0))
+						caption_offset=(x_start, 0))
 	img.composite(thr_row, left=mpos(thr_row.width), top=height)
 	height += thr_row.height + gap
 
 	# Open the combined threshold.
-	open_row = create_row([imgs[5], u"∘", kernel2x2, "=", imgs[6]],
+	open_row = create_row([combthr, u"∘", kernel2x2, "=", opened],
 						[x_start,
 						(5 * horizontal_gap, -5, 14 * horizontal_gap, font_math),
 						0,
@@ -124,12 +159,12 @@ def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5, output=None):
 						19 * horizontal_gap + 3],
 						horizontal_gap, fixed_width=img.width,
 						caption="Combined Threshold         2x2 Kernel               Opened Image",
-						caption_offset=(140, 0))
+						caption_offset=(x_start, 0))
 	img.composite(open_row, left=mpos(open_row.width), top=height)
 	height += open_row.height + gap
 
 	# Dilate opened and combined threshold with a kernel3x3.
-	dilated_row = create_row([imgs[6], u"⊕", kernel3x3, "=", imgs[7]],
+	dilated_row = create_row([opened, u"⊕", kernel3x3, "=", dilated],
 						[x_start,
 						(3 * horizontal_gap, -5, 14 * horizontal_gap, font_math),
 						0,
@@ -137,20 +172,20 @@ def compose_adaptive_prey(img_paths, gap=5, horizontal_gap=5, output=None):
 						15 * horizontal_gap + 3],
 						horizontal_gap, fixed_width=img.width,
 						caption="Opened Image               3x3 Kernel               Dilated Image",
-						caption_offset=(140, 0))
+						caption_offset=(x_start, 0))
 	img.composite(dilated_row, left=mpos(dilated_row.width), top=height)
 	height += dilated_row.height + gap
 
 	# Inverted image and contour.
-	contour_row = create_row(imgs[8:10], [0, 0], horizontal_gap, caption="  Re-Inverted         Contours")
+	contour_row = create_row([combined, contours], [0, 0], horizontal_gap, caption="  Re-Inverted         Contours")
 	img.composite(contour_row, left=mpos(contour_row.width), top=height)
 	height += contour_row.height + 2 * gap
 
 	# Final.
-	img.composite(imgs[10], left=mpos(imgs[10].width), top=height)
-	height += imgs[10].height + gap
+	img.composite(final, left=mpos(final.width), top=height)
+	height += final.height + gap
 
-	
+	# TODO: Move this
 	if output:
 		img.save(filename=output)
 
@@ -175,11 +210,9 @@ def main():
 
 	image_count = len(args.images)
 
-	if (image_count == 2):
-		return
-	elif (image_count == 11):
-		compose_adaptive_prey(img_paths=args.images, gap=5, output=args.output)
-	else:
-		print("Invalid number of images %d, expected 2 or 11" % image_count)
+	try:
+		compose_adaptive_prey(img_paths=args.images, gap=5, output=args.output, description="Hej det blev en bra grej")
+	except Exception as ex:
+		print("Failed to compose images: %s" % ex.message)
 
 if __name__ == '__main__': sys.exit(main())
