@@ -23,7 +23,7 @@ char *run_test1()
 	catcierge_args_init(&args);
 
 	// Parse command line arguments.
-	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1));
+	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1, NULL, NULL));
 
 	mu_assert("Expected show to be set", args.show);
 	catcierge_test_STATUS("Snout count %lu", args.templ.snout_count);
@@ -58,7 +58,7 @@ char *run_test2()
 	catcierge_args_init(&args);
 
 	// Parse command line arguments.
-	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1));
+	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1, NULL, NULL));
 	
 	#ifdef WITH_RFID
 	mu_assert("Expected RFID allowed to be 3", args.rfid_allowed_count == 3);

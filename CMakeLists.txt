@@ -278,10 +278,26 @@ add_library(catcierge ${LIB_SRC})
 target_link_libraries(catcierge ${LIBS})
 
 # Test program for the catcierge matcher.
-set(PROG_SRC catcierge_tester.c catcierge_util.c catcierge_log.c)
-add_executable(catcierge_tester ${PROG_SRC})
+set(TESTER_SRC
+	catcierge_tester.c
+	catcierge_util.c
+	catcierge_log.c)
+add_executable(catcierge_tester ${TESTER_SRC})
 add_dependencies(catcierge_tester catcierge)
 target_link_libraries(catcierge_tester catcierge)
+
+# Finite state machine test program.
+set(FSM_TESTER_SRC
+	catcierge_fsm_tester.c
+	catcierge_args.c
+	catcierge_log.c
+	catcierge_util.c
+	catcierge_timer.c
+	catcierge_fsm.c
+	catcierge_output.c)
+add_executable(catcierge_fsm_tester ${FSM_TESTER_SRC})
+add_dependencies(catcierge_fsm_tester catcierge)
+target_link_libraries(catcierge_fsm_tester catcierge)
 
 # Test program for the catcierge rfid readers.
 if (WITH_RFID)

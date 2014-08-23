@@ -660,7 +660,7 @@ static void catcierge_show_cam_help()
 }
 #endif // RPI
 
-int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
+int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv, catcierge_parse_args_cb cb, void *user)
 {
 	int ret = 0;
 	int i;
@@ -727,7 +727,15 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv)
 
 			if ((ret = catcierge_parse_setting(args, key, values, value_count)) < 0)
 			{
-				fprintf(stderr, "Failed to parse command line arguments for \"%s\"m\n", key);
+				if (cb)
+				{
+					if (!cb(args, key, values, value_count, user))
+					{
+						continue;
+					}
+				}
+
+				fprintf(stderr, "Failed to parse command line arguments for \"%s\"\n", key);
 
 				if (values)
 					free(values);

@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		if (catcierge_parse_cmdargs(args, argc, argv))
+		if (catcierge_parse_cmdargs(args, argc, argv, NULL, NULL))
 		{
 			catcierge_show_usage(args, argv[0]);
 			return -1;

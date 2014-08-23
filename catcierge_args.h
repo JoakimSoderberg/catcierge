@@ -75,8 +75,10 @@ typedef struct catcierge_args_s
 	#endif // RPI
 } catcierge_args_t;
 
+typedef int (*catcierge_parse_args_cb)(catcierge_args_t *, char *key, char **values, size_t value_count, void *user);
+
 int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv);
-int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv);
+int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv, catcierge_parse_args_cb f, void *user);
 void catcierge_show_usage(catcierge_args_t *args, const char *prog);
 void catcierge_print_settings(catcierge_args_t *args);
 int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count);
