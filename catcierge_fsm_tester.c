@@ -6,6 +6,7 @@
 #include "catcierge_types.h"
 #include "catcierge_config.h"
 #include "catcierge_args.h"
+#include "catcierge_output.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
@@ -84,6 +85,19 @@ int main(int argc, char **argv)
 		ret = -1; goto fail;
 	}
 
+	if (catcierge_output_init(&grb.output))
+	{
+		fprintf(stderr, "Failed to init output template system\n");
+		exit(-1);
+	}
+
+	if (catcierge_output_load_templates(&grb.output,
+			args->inputs, args->input_count))
+	{
+		fprintf(stderr, "Failed to load output templates\n");
+		exit(-1);
+	}
+
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
 	// Load the first image and obstruct the frame.
@@ -112,6 +126,7 @@ int main(int argc, char **argv)
 
 fail:
 	catcierge_haar_matcher_destroy(&grb.haar);
+	catcierge_output_destroy(&grb.output);
 	catcierge_grabber_destroy(&grb);
 
 	return ret;
