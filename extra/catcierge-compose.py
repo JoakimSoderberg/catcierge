@@ -8,10 +8,8 @@ from wand.drawing import Drawing
 from wand.color import Color
 import json
 
+font_path="./fonts"
 kernel_size = 20
-font = Font(path="fonts/source-code-pro/SourceCodePro-Medium.otf", size=64)
-font_title = Font(path="fonts/alex-brush/AlexBrush-Regular.ttf", size=64)
-font_math = Font(path="fonts/Asana-Math/Asana-Math.otf", size=64)
 
 def create_kernel(w=3, h=3):
 	k = Image(width=w * kernel_size + 2, height=h * kernel_size + 2)
@@ -60,7 +58,7 @@ def create_row(imgs, offsets, gap, fixed_width=0, caption=None, caption_offset=(
 		i += 1
 
 	if caption:
-		caption_font = Font(path="fonts/source-code-pro/SourceCodePro-Medium.otf", size=14)
+		caption_font = Font(path="%s/source-code-pro/SourceCodePro-Medium.otf" % font_path, size=14)
 		row_w_caption = Image(width=row_width, height=row_height+20)
 		row_w_caption.caption(caption, left=caption_offset[0], top=caption_offset[1],
 								width=1450, height=50, font=caption_font)
@@ -71,8 +69,16 @@ def create_row(imgs, offsets, gap, fixed_width=0, caption=None, caption_offset=(
 
 
 
-def compose_adaptive_prey(img_paths=None, match_json=None, gap=5, horizontal_gap=5, output=None,  description=None):
+def compose_adaptive_prey(img_paths=None, match_json=None, gap=5, horizontal_gap=5, description=None, caption="Catcierge"):
+
 	img = Image(width=600, height=1124, background=Color("#8A968E"))
+
+	print("Font path: %s" % font_path)
+
+	font = Font(path="%s/source-code-pro/SourceCodePro-Medium.otf" % font_path, size=64)
+	font_title = Font(path="%s/alex-brush/AlexBrush-Regular.ttf" % font_path, size=64)
+	font_math = Font(path="%s/Asana-Math/Asana-Math.otf" % font_path, size=64)
+
 
 	imgs = []
 	assert (img_paths and (len(img_paths) > 0)) or match_json, \
@@ -87,14 +93,18 @@ def compose_adaptive_prey(img_paths=None, match_json=None, gap=5, horizontal_gap
 
 	# TODO: Allow any matcher type and number of images...	
 	assert len(img_paths) == 1 or len(img_paths) == 11, \
-		"Invalid number of images %d, expected 2 or 11" % image_count
+		"Invalid number of images %d, expected 2 or 11" % len(img_paths)
 
 	for img_path in img_paths:
 		print img_path
 		imgs.append(Image(filename=img_path))
 
+	mpos = lambda w: (img.width - w) / 2
+
 	if len(img_paths) == 1:
-		return imgs[0]
+		img.caption(caption, left=(img.width - 250) / 2, top=5, width=250, height=100, font=font_title)
+		img.composite(imgs[0], left=mpos(imgs[0].width), top=120)
+		return img
 
 	orgimg = imgs[0]	# Original image.
 	detected = imgs[1]	# Detected cat head roi. 
@@ -107,8 +117,6 @@ def compose_adaptive_prey(img_paths=None, match_json=None, gap=5, horizontal_gap
 	combined = imgs[8]	# Combined image (re-inverted).
 	contours = imgs[9]	# Contours of white areas.
 	final = imgs[10]	# Final image.
-
-	mpos = lambda w: (img.width - w) / 2
 	
 	# TODO: Enable creating these based on input instead.
 	kernel3x3 = create_kernel(w=3, h=3)
@@ -117,10 +125,10 @@ def compose_adaptive_prey(img_paths=None, match_json=None, gap=5, horizontal_gap
 
 	x_start = 20
 
-	img.caption("Catcierge", left=(img.width - 250) / 2, top=5, width=250, height=100, font=font_title)
+	img.caption(caption, left=(img.width - 250) / 2, top=5, width=250, height=100, font=font_title)
 
 	if description:
-		desc_font = Font(path="fonts/source-code-pro/SourceCodePro-Medium.otf", size=24)
+		desc_font = Font(path="%s/source-code-pro/SourceCodePro-Medium.otf" % font_path, size=24)
 		text_width = (desc_font.size) * int(len(description) * 0.7)
 		img.caption(description, left=(img.width - text_width) / 2, top=80, width=text_width, height=100, font=desc_font)
 
@@ -185,9 +193,43 @@ def compose_adaptive_prey(img_paths=None, match_json=None, gap=5, horizontal_gap
 	img.composite(final, left=mpos(final.width), top=height)
 	height += final.height + gap
 
-	# TODO: Move this
-	if output:
-		img.save(filename=output)
+	return img
+
+def create_matches(catcierge_json, output_file):
+
+	match_count = catcierge_json["match_count"]
+	match_imgs = []
+	total_width = 0
+	total_height = 0
+	i = 1
+
+	for match in catcierge_json["matches"][:match_count]:
+
+		step_count = match["step_count"]
+		img_paths = []
+
+		for step in match["steps"][:step_count]:
+			img_paths.append(step["path"])
+
+		img = compose_adaptive_prey(img_paths=img_paths,
+				gap=5,
+				description=match["description"],
+				caption="Match %d" % i)
+
+		total_width += img.width
+		total_height = max(total_height, img.height)
+		match_imgs.append(img)
+		i += 1
+
+	fimg = Image(width=total_width, height=total_height)
+
+	x = 0
+	for img in match_imgs:
+		fimg.composite(img, left=x, top=0)
+		x += img.width
+
+	return fimg
+
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -196,23 +238,37 @@ def main():
 					help="The Catcierge match images to use if no json file is specified.")
 
 	# Add support for inputting a json with the paths and stuff.
-	parser.add_argument("--json", metavar="JSON", nargs=1,
+	parser.add_argument("--json", metavar="JSON",
 					help="JSON containing image paths and descriptions.")
 
 	parser.add_argument("--output", metavar="OUTPUT",
 					help="The output file that the resulting image should be written to.")
 
+	parser.add_argument("--fonts", metavar="FONT_DIRECTORY",
+					help="Path to where the fonts can be found.")
+
 	args = parser.parse_args()
+
+	if args.fonts:
+		global font_path
+		font_path = args.fonts
 
 	if not args.output:
 		print("You must specify an output file using --output")
 		return -1
 
-	image_count = len(args.images)
+	if args.images:
+		image_count = len(args.images)
 
-	try:
-		compose_adaptive_prey(img_paths=args.images, gap=5, output=args.output, description="Hej det blev en bra grej")
-	except Exception as ex:
-		print("Failed to compose images: %s" % ex.message)
+		try:
+			img = compose_adaptive_prey(img_paths=args.images, gap=5, description="Hej det blev en bra grej")
+			img.save(filename=args.output)
+		except Exception as ex:
+			print("Failed to compose images: %s" % ex.message)
+	elif args.json:
+		catcierge_json = json.loads(open(args.json).read())
+		img = create_matches(catcierge_json, args.output)
+		img.save(filename=args.output)
+
 
 if __name__ == '__main__': sys.exit(main())
