@@ -295,6 +295,9 @@ set(FSM_TESTER_SRC
 	catcierge_timer.c
 	catcierge_fsm.c
 	catcierge_output.c)
+if (WIN32)
+	list(APPEND FSM_TESTER_SRC win32/gettimeofday.c)
+endif()
 add_executable(catcierge_fsm_tester ${FSM_TESTER_SRC})
 add_dependencies(catcierge_fsm_tester catcierge)
 target_link_libraries(catcierge_fsm_tester catcierge)
