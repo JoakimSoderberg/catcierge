@@ -82,6 +82,7 @@ typedef struct match_state_s
 	IplImage *img;					// A cached image of the match frame.
 	time_t time;					// The time of match.
 	char time_str[1024];			// Time string of match (used in image filename).
+	struct timeval tv;
 	match_result_t result;
 } match_state_t;
 

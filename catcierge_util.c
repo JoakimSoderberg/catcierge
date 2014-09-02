@@ -54,8 +54,11 @@ const char *catcierge_path_sep()
 	#endif
 }
 
-int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct tm *tm)
+int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct tm *tm, struct timeval *tv)
 {
+	int ret = -1;
+	char *tmp_fmt = NULL;
+
 	#if _WIN32
 	// As described in the documentation for strftime on windows:
 	//   http://msdn.microsoft.com/fr-fr/library/fe06s4ak(v=vs.80).aspx
@@ -76,7 +79,74 @@ int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct 
 
 	#endif // _WIN32
 
-	return strftime(dst, dst_len, fmt, tm);	
+	// Add millisecond formatting (uses %f as python).
+	if (tv)
+	{
+		size_t i;
+		size_t j;
+		int val_len;
+		size_t len = strlen(fmt) + 1;
+		size_t tmp_len = 2 * len;
+		int millisec = tv->tv_usec / 1000;
+
+		if (!(tmp_fmt = malloc(sizeof(char) * tmp_len)))
+		{
+			return -1;
+		}
+
+		i = 0;
+		j = 0;
+		while (i < len)
+		{
+			if (!strncmp(&fmt[i], "%f", 2))
+			{
+				while (1)
+				{
+					val_len = snprintf(&tmp_fmt[j], tmp_len - j - 1, "%ld", (long int)millisec);
+
+					if ((val_len < 0))
+					{
+						goto fail;
+					}
+					else if (val_len >= tmp_len)
+					{
+						// Truncated expand the buffer.
+						tmp_len *= 2;
+
+						if (!(tmp_fmt = realloc(tmp_fmt, tmp_len)))
+						{
+							goto fail;
+						}
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				j += val_len; // Skip the expanded value.
+				i += 2; // Skip the %f
+			}
+			else
+			{
+				tmp_fmt[j++] = fmt[i++];
+			}
+		}
+
+		tmp_fmt[j] = '\0';
+
+		fmt = tmp_fmt;
+	}
+
+	ret = strftime(dst, dst_len, fmt, tm);
+
+fail:
+	if (tmp_fmt)
+	{
+		free(tmp_fmt);
+	}
+
+	return ret;
 }
 
 int catcierge_make_path(const char *path)

@@ -31,17 +31,14 @@
 
 int catcierge_nocolor = 0;
 
-char *get_time_str_fmt(char *time_str, size_t len, const char *fmt)
+char *get_time_str_fmt(time_t t, struct timeval *tv, char *time_str, size_t len, const char *fmt)
 {
 	struct tm *tm;
-	time_t t;
-
-	t = time(NULL);
 	tm = localtime(&t);
 
 	#if 0
-	// TODO: Fix this!
-	if (catcierge_strftime(time_str, len, fmt, tm))
+	// TODO: Fix this (circular include)!
+	if (catcierge_strftime(time_str, len, fmt, tm, tv))
 	{
 		return NULL;
 	}
@@ -53,7 +50,10 @@ char *get_time_str_fmt(char *time_str, size_t len, const char *fmt)
 
 char *get_time_str(char *time_str, size_t len)
 {
-	return get_time_str_fmt(time_str, len, "%Y-%m-%d %H:%M:%S");
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+
+	return get_time_str_fmt(time(NULL), &tv, time_str, len, "%Y-%m-%d %H:%M:%S");
 }
 
 void log_vprintf(FILE *target, enum catcierge_color_e print_color, const char *fmt, va_list args)

@@ -374,7 +374,7 @@ static char *catcierge_replace_time_format_char(char *fmt)
 }
 
 static char *catcierge_get_time_var_format(char *var,
-	char *buf, size_t bufsize, const char *default_fmt, time_t t)
+	char *buf, size_t bufsize, const char *default_fmt, time_t t, struct timeval *tv)
 {
 	int ret;
 	char *fmt = NULL;
@@ -403,7 +403,7 @@ static char *catcierge_get_time_var_format(char *var,
 		}
 	}
 
-	ret = catcierge_strftime(buf, bufsize - 1, fmt, localtime(&t));
+	ret = catcierge_strftime(buf, bufsize - 1, fmt, localtime(&t), tv);
 
 	if (!ret)
 	{
@@ -462,8 +462,10 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	// Current time.
 	if (!strncmp(var, "time", 4))
 	{
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
 		return catcierge_get_time_var_format(var, buf, bufsize,
-			"%Y-%m-%d %H:%M:%S", time(NULL));
+			"%Y-%m-%d %H:%M:%S", time(NULL), &tv);
 	}
 
 	if (!strcmp(var, "state"))
@@ -610,7 +612,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		else if (!strncmp(subvar, "time", 4))
 		{
 			return catcierge_get_time_var_format(subvar, buf, bufsize,
-					"%Y-%m-%d %H:%M:%S", m->time);
+					"%Y-%m-%d %H:%M:%S", m->time, &m->tv);
 		}
 		else if (!strcmp(subvar, "step_count"))
 		{

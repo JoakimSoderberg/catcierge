@@ -442,7 +442,8 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 
 	m->img = NULL;
 	m->time = time(NULL);
-	get_time_str_fmt(m->time_str, sizeof(m->time_str), "%Y-%m-%d_%H_%M_%S");
+	gettimeofday(&m->tv, NULL);
+	get_time_str_fmt(m->time, &m->tv, m->time_str, sizeof(m->time_str), "%Y-%m-%d_%H_%M_%S");
 	m->path[0] = '\0';
 
 	// Save match image.
