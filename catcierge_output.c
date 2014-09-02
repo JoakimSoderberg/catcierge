@@ -170,7 +170,6 @@ const char *catcierge_output_read_template_settings(const char *name,
 	char *row_end = NULL;
 	char *end = NULL;
 	char *tmp = NULL;
-	int i;
 	size_t bytes_read;
 	assert(template_str);
 
@@ -221,7 +220,6 @@ const char *catcierge_output_read_template_settings(const char *name,
 
 		if (!strncmp(it, "event", 5))
 		{
-			const char *line_end;
 			it += 5;
 			it = catcierge_skip_whitespace_alt(it);
 
@@ -986,11 +984,9 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 int catcierge_output_load_template(catcierge_output_t *ctx, char *path)
 {
 	int ret = 0;
-	size_t i;
 	size_t fsize;
 	size_t read_bytes;
 	FILE *f = NULL;
-	struct stat stbuf;
 	char *contents = NULL;
 	char *settings_end = NULL;
 	assert(path);
@@ -1063,12 +1059,6 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 {
 	int ret = 0;
 	size_t i;
-	size_t fsize;
-	size_t read_bytes;
-	FILE *f = NULL;
-	struct stat stbuf;
-	char *contents = NULL;
-	char *settings_end = NULL;
 
 	if (input_count > 0)
 	{

@@ -108,7 +108,7 @@ int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct 
 					{
 						goto fail;
 					}
-					else if (val_len >= tmp_len)
+					else if ((size_t)val_len >= tmp_len)
 					{
 						// Truncated expand the buffer.
 						tmp_len *= 2;
@@ -485,7 +485,7 @@ void catcierge_end_trim_whitespace(char *s)
 
 char **catcierge_parse_list(const char *input, size_t *list_count, int end_trim)
 {
-	int i;
+	size_t i;
 	const char *s = input;
 	char **list = NULL;
 	char *input_copy = NULL;

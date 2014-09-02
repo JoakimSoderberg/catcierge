@@ -32,7 +32,7 @@ static IplImage *load_image(const char *path)
 int parse_args_callback(catcierge_args_t *args,
 		char *key, char **values, size_t value_count, void *user)
 {
-	int i;
+	size_t i;
 	fsm_tester_ctx_t *ctx = (fsm_tester_ctx_t *)user;
 	printf("Callback!\n");
 
@@ -58,7 +58,7 @@ int parse_args_callback(catcierge_args_t *args,
 
 int main(int argc, char **argv)
 {
-	int i;
+	size_t i;
 	int ret = 0;
 	fsm_tester_ctx_t ctx;
 	catcierge_grb_t grb;

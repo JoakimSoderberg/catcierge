@@ -423,7 +423,6 @@ IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 static void catcierge_process_match_result(catcierge_grb_t *grb,
 				IplImage *img, match_state_t *m)
 {
-	size_t i;
 	size_t j;
 	catcierge_args_t *args = NULL;
 	match_result_t *res = NULL;
@@ -506,8 +505,7 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 	match_state_t *m;
 	match_result_t *res;
 	int i;
-	int j;
-	char pathbuf[2048];
+	size_t j;
 	catcierge_args_t *args;
 	match_step_t *step = NULL;
 	assert(grb);
@@ -525,7 +523,7 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 			for (j = 0; j < m->result.step_img_count; j++)
 			{
 				step = &m->result.steps[j];
-				CATLOG("  %02d %-34s  %s\n", j, step->description, step->path);
+				CATLOG("  %02d %-34s  %s\n", (int)j, step->description, step->path);
 
 				if (step->img)
 					cvSaveImage(step->path, step->img, NULL);

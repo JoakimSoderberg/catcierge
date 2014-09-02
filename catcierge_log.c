@@ -18,8 +18,9 @@
 //
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef WIN32
+#ifdef _WIN32
 #include <Windows.h>
+#include "win32/gettimeofday.h" 
 #else
 #include <sys/time.h>
 #include <unistd.h>

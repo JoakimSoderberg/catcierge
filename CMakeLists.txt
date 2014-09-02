@@ -282,6 +282,9 @@ set(TESTER_SRC
 	catcierge_tester.c
 	catcierge_util.c
 	catcierge_log.c)
+if (WIN32)
+	list(APPEND TESTER_SRC win32/gettimeofday.c)
+endif()
 add_executable(catcierge_tester ${TESTER_SRC})
 add_dependencies(catcierge_tester catcierge)
 target_link_libraries(catcierge_tester catcierge)
