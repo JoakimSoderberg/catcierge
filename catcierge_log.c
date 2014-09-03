@@ -34,8 +34,8 @@ int catcierge_nocolor = 0;
 
 char *get_time_str_fmt(time_t t, struct timeval *tv, char *time_str, size_t len, const char *fmt)
 {
-	struct tm *tm;
-	tm = localtime(&t);
+	struct tm tm;
+	localtime_r(&t, &tm);
 
 	#if 0
 	// TODO: Fix this (circular include)!
@@ -44,7 +44,7 @@ char *get_time_str_fmt(time_t t, struct timeval *tv, char *time_str, size_t len,
 		return NULL;
 	}
 	#endif
-	strftime(time_str, len, fmt, tm);
+	strftime(time_str, len, fmt, &tm);
 
 	return time_str;
 }

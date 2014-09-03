@@ -15,13 +15,13 @@ static char *run_tests()
 	int ret;
 	char buf[1024];
 	struct timeval tv;
-	struct tm *tm;
+	struct tm tm;
 	time_t t;
 	int milliseconds;
 
 	t = 1409661310;
 	catcierge_test_STATUS("t = %ld\n", (long int)t);
-	tm = localtime(&t);
+	gmtime_r(&t, &tm);
 	
 	tv.tv_sec = 1409661310;
 	tv.tv_usec = 451893;
@@ -31,23 +31,23 @@ static char *run_tests()
 		(long int)tv.tv_sec, (long int)tv.tv_usec);
 
 	// Simple test, only milliseconds (not part of normal strftime).
-	ret = catcierge_strftime(buf, sizeof(buf), "%f", tm, &tv);
+	ret = catcierge_strftime(buf, sizeof(buf), "%f", &tm, &tv);
 	mu_assert("Formatting failed with known input", ret >= 0);
 
 	catcierge_test_STATUS("Got: \"%s\" Expected: \"%d\"", buf, milliseconds);
 	mu_assert("Unexpected millisecond string", atoi(buf) == milliseconds);
 
 	// Combination test, normal date + milliseconds.
-	ret = catcierge_strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S.%f", tm, &tv);
+	ret = catcierge_strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S.%f", &tm, &tv);
 	mu_assert("Formatting failed with known input", ret >= 0);
 
-	catcierge_test_STATUS("Got: \"%s\" Expected: \"%s\"", buf, "2014-09-02 14:35:10.451");
-	mu_assert("Unexpected millisecond string", !strcmp(buf, "2014-09-02 14:35:10.451"));
+	catcierge_test_STATUS("Got: \"%s\" Expected: \"%s\"", buf, "2014-09-02 12:35:10.451");
+	mu_assert("Unexpected millisecond string", !strcmp(buf, "2014-09-02 12:35:10.451"));
 
 	// Trigger a reallocation because the initial format buffer is too small.
 	tv.tv_usec = 1215752191;
 	milliseconds = tv.tv_usec / 1000;
-	ret = catcierge_strftime(buf, sizeof(buf), "%f", tm, &tv);
+	ret = catcierge_strftime(buf, sizeof(buf), "%f", &tm, &tv);
 	mu_assert("Formatting failed with known input", ret >= 0);
 
 	catcierge_test_STATUS("Got: \"%s\" Expected: \"%d\"", buf, milliseconds);

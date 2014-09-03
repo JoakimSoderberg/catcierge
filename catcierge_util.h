@@ -20,8 +20,12 @@
 #define __CATCIERGE_UTIL_H__
 
 #include "catcierge_types.h"
+
+// TODO: Move anything in catcierge_util requireing opencv stuff into a separate file
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
+
+#include <time.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -37,10 +41,11 @@
 #define vsnprintf _vsnprintf 
 #define strcasecmp _stricmp 
 #define strncasecmp _strnicmp 
+#define gmtime_r(t, tm) gmtime_s(tm, t)
+#define localtime_r(t, tm) localtime_s(tm, t)
 
 #include "win32/gettimeofday.h"
 #endif // _WIN32
-#include <time.h>
 
 void catcierge_execute(char *command, char *fmt, ...);
 void catcierge_reset_cursor_position();
