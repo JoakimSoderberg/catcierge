@@ -89,13 +89,25 @@ int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct 
 			{
 				while (1)
 				{
-					val_len = snprintf(&tmp_fmt[j], tmp_len - j - 1, "%ld", (long int)millisec);
+					size_t count = tmp_len - j;
+					val_len = snprintf(&tmp_fmt[j], count - 1, "%ld", (long int)millisec);
 
+					// On Windows snprintf_s returns -1 when the buffer was too small.
+					// Since we cast this -1 to an unsigned int (size_t) below, it will
+					// go through the normal realloc.
+					// The unix implementation instead does the following:
+					// "If the output was truncated due to this limit then the return
+					//  value is the number of characters (excluding the terminating null byte)
+					//  which would have been written to the final string if enough space had
+					//  been available."
+					#ifndef _WIN32
 					if ((val_len < 0))
 					{
 						goto fail;
 					}
-					else if ((size_t)val_len >= tmp_len)
+					else
+					#endif
+					if ((size_t)val_len >= count)
 					{
 						// Truncated expand the buffer.
 						tmp_len *= 2;
