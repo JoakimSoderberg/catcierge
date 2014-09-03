@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "catcierge_util.h"
+#include "catcierge_strftime.h"
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -32,19 +33,6 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
-#if _WIN32
-#include <crtdbg.h>  // For _CrtSetReportMode
-
-static void _catcierge_invalid_param_handler(const wchar_t *expression,
-	const wchar_t* function,
-	const wchar_t* file,
-	unsigned int line,
-	uintptr_t pReserved)
-{
-	// Do nothing!
-}
-#endif // _WIN32
-
 const char *catcierge_path_sep()
 {
 	#ifdef _WIN32
@@ -52,101 +40,6 @@ const char *catcierge_path_sep()
 	#else
 	return "/";
 	#endif
-}
-
-int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct tm *tm, struct timeval *tv)
-{
-	int ret = -1;
-	char *tmp_fmt = NULL;
-
-	#if _WIN32
-	// As described in the documentation for strftime on windows:
-	//   http://msdn.microsoft.com/fr-fr/library/fe06s4ak(v=vs.80).aspx
-	//
-	// If the formatting is invalid, the "security-enhanced CRT functions" are made to
-	// do some extra parameter validation which can raise an exception and abort the program:
-	// http://msdn.microsoft.com/fr-fr/library/ksazx244(v=vs.80).aspx
-	//
-	// We don't want this obviously and need to disable this:
-	// http://msdn.microsoft.com/en-us/library/a9yf33zb.aspx
-	//
-
-	// Define our own paramter validation handler that does nothing.
-	_set_invalid_parameter_handler(_catcierge_invalid_param_handler);
-
-	// Disable the message box for assertions.
-	_CrtSetReportMode(_CRT_ASSERT, 0);
-
-	#endif // _WIN32
-
-	// Add millisecond formatting (uses %f as python).
-	if (tv)
-	{
-		size_t i;
-		size_t j;
-		int val_len;
-		size_t len = strlen(fmt) + 1;
-		size_t tmp_len = 2 * len;
-		int millisec = tv->tv_usec / 1000;
-
-		if (!(tmp_fmt = malloc(sizeof(char) * tmp_len)))
-		{
-			return -1;
-		}
-
-		i = 0;
-		j = 0;
-		while (i < len)
-		{
-			if (!strncmp(&fmt[i], "%f", 2))
-			{
-				while (1)
-				{
-					val_len = snprintf(&tmp_fmt[j], tmp_len - j - 1, "%ld", (long int)millisec);
-
-					if ((val_len < 0))
-					{
-						goto fail;
-					}
-					else if ((size_t)val_len >= tmp_len)
-					{
-						// Truncated expand the buffer.
-						tmp_len *= 2;
-
-						if (!(tmp_fmt = realloc(tmp_fmt, tmp_len)))
-						{
-							goto fail;
-						}
-					}
-					else
-					{
-						break;
-					}
-				}
-
-				j += val_len; // Skip the expanded value.
-				i += 2; // Skip the %f
-			}
-			else
-			{
-				tmp_fmt[j++] = fmt[i++];
-			}
-		}
-
-		tmp_fmt[j] = '\0';
-
-		fmt = tmp_fmt;
-	}
-
-	ret = strftime(dst, dst_len, fmt, tm);
-
-fail:
-	if (tmp_fmt)
-	{
-		free(tmp_fmt);
-	}
-
-	return ret;
 }
 
 int catcierge_make_path(const char *path)

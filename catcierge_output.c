@@ -38,6 +38,7 @@
 #include "catcierge_output.h"
 #include "catcierge_output_types.h"
 #include "catcierge_fsm.h"
+#include "catcierge_strftime.h"
 
 catcierge_output_var_t vars[] =
 {

@@ -261,7 +261,7 @@ def main():
 		image_count = len(args.images)
 
 		try:
-			img = compose_adaptive_prey(img_paths=args.images, gap=5, description="Hej det blev en bra grej")
+			img = compose_adaptive_prey(img_paths=args.images, gap=5)
 			img.save(filename=args.output)
 		except Exception as ex:
 			print("Failed to compose images: %s" % ex.message)

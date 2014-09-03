@@ -26,26 +26,7 @@
 #include <opencv2/highgui/highgui_c.h>
 
 #include <time.h>
-
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <WinSock2.h>
-#include <direct.h>
-#define _WINSOCKAPI_
-#include <Windows.h>
-
-#define PATH_MAX MAX_PATH
-#define getcwd _getcwd
-#define snprintf _snprintf
-#define sleep(x) Sleep((DWORD)((x)*1000))
-#define vsnprintf _vsnprintf 
-#define strcasecmp _stricmp 
-#define strncasecmp _strnicmp 
-#define gmtime_r(t, tm) gmtime_s(tm, t)
-#define localtime_r(t, tm) localtime_s(tm, t)
-
-#include "win32/gettimeofday.h"
-#endif // _WIN32
+#include "catcierge_platform.h"
 
 void catcierge_execute(char *command, char *fmt, ...);
 void catcierge_reset_cursor_position();
@@ -55,7 +36,6 @@ int catcierge_make_path(const char *path);
 const char *catcierge_get_direction_str(match_direction_t dir);
 int catcierge_is_frame_obstructed(IplImage *img, int debug);
 
-int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct tm *tm, struct timeval *tv);
 const char *catcierge_skip_whitespace(const char *it);
 char *catcierge_skip_whitespace_alt(char *it);
 char **catcierge_parse_list(const char *input, size_t *list_count, int end_trim);

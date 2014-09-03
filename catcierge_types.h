@@ -24,10 +24,7 @@
 #include <opencv2/highgui/highgui_c.h>
 #include <time.h>
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <WinSock2.h>
-#endif
+#include "catcierge_platform.h"
 
 #define MATCH_MAX_COUNT 4 // The number of matches to perform before deciding the lock state.
 

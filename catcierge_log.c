@@ -18,10 +18,7 @@
 //
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef _WIN32
-#include <Windows.h>
-#include "win32/gettimeofday.h" 
-#else
+#ifndef _WIN32
 #include <sys/time.h>
 #include <unistd.h>
 #endif
@@ -29,6 +26,8 @@
 #include <stdarg.h>
 #include <time.h>
 #include "catcierge_log.h"
+#include "catcierge_platform.h"
+#include "catcierge_strftime.h"
 
 int catcierge_nocolor = 0;
 
@@ -37,14 +36,10 @@ char *get_time_str_fmt(time_t t, struct timeval *tv, char *time_str, size_t len,
 	struct tm tm;
 	localtime_r(&t, &tm);
 
-	#if 0
-	// TODO: Fix this (circular include)!
-	if (catcierge_strftime(time_str, len, fmt, tm, tv))
+	if (catcierge_strftime(time_str, len, fmt, &tm, tv))
 	{
 		return NULL;
 	}
-	#endif
-	strftime(time_str, len, fmt, &tm);
 
 	return time_str;
 }

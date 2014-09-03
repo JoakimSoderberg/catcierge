@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "catcierge_util.h"
+#include "catcierge_strftime.h"
 #include "minunit.h"
 #include "catcierge_test_helpers.h"
 #ifdef _WIN32

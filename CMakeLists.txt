@@ -279,6 +279,7 @@ target_link_libraries(catcierge ${LIBS})
 
 # Test program for the catcierge matcher.
 set(TESTER_SRC
+	catcierge_strftime.c
 	catcierge_tester.c
 	catcierge_util.c
 	catcierge_log.c)
@@ -291,6 +292,7 @@ target_link_libraries(catcierge_tester catcierge)
 
 # Finite state machine test program.
 set(FSM_TESTER_SRC
+	catcierge_strftime.c
 	catcierge_fsm_tester.c
 	catcierge_args.c
 	catcierge_log.c
@@ -307,7 +309,8 @@ target_link_libraries(catcierge_fsm_tester catcierge)
 
 # Test program for the catcierge rfid readers.
 if (WITH_RFID)
-	set(RFID_SRC 
+	set(RFID_SRC
+		catcierge_strftime.c
 		catcierge_rfid_tester.c 
 		catcierge_rfid.c
 		catcierge_log.c)
@@ -315,7 +318,8 @@ if (WITH_RFID)
 endif()
 
 # Capture program for the catcierge.
-set(GRABBER2_SRC 
+set(GRABBER2_SRC
+		catcierge_strftime.c
 		catcierge_grabber2.c 
 		catcierge_args.c
 		catcierge_log.c
@@ -343,6 +347,7 @@ endif()
 
 ################################## Tests ##################################
 set(REGRESS_SRC
+	${PROJECT_SOURCE_DIR}/catcierge_strftime.c
 	${PROJECT_SOURCE_DIR}/catcierge_args.c
 	${PROJECT_SOURCE_DIR}/catcierge_fsm.c
 	${PROJECT_SOURCE_DIR}/catcierge_log.c
