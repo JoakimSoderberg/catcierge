@@ -49,7 +49,7 @@ char *get_time_str(char *time_str, size_t len)
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 
-	return get_time_str_fmt(time(NULL), &tv, time_str, len, "%Y-%m-%d %H:%M:%S");
+	return get_time_str_fmt(time(NULL), &tv, time_str, len, "%Y-%m-%d %H:%M:%S.%f");
 }
 
 void log_vprintf(FILE *target, enum catcierge_color_e print_color, const char *fmt, va_list args)
@@ -141,7 +141,7 @@ void log_printc(FILE *fd, enum catcierge_color_e print_color, const char *fmt, .
 	if ((fd == stdout) || (fd == stderr))
 	{
 		log_printf(fd, COLOR_NORMAL, "[");
-		log_printf(fd, COLOR_BRIGHT, "%s", time_str);
+		log_printf(fd, COLOR_BRIGHT, "%-23s", time_str);
 		log_printf(fd, COLOR_NORMAL, "]  ");
 
 		va_start(ap, fmt);
