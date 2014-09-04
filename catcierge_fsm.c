@@ -484,20 +484,6 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 		 res->result, args->templ.match_threshold,
 		 args->saveimg ? m->path : "-",
 		 catcierge_get_direction_str(res->direction));
-
-	// Runs the --match_cmd program specified.
-	if (args->new_execute)
-	{
-		catcierge_output_execute(grb, "match", args->match_cmd);
-	}
-	else
-	{
-		catcierge_execute(args->match_cmd, "%f %d %s %d",
-				res->result, 					// %0 = Match result.
-				res->success,					// %1 = 0/1 succes or failure.
-				args->saveimg ? m->path : "",	// %2 = Image path if saveimg is turned on.
-				res->direction);				// %3 = Direction, 0 = in, 1 = out.
-	}
 }
 
 static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direction)
@@ -990,6 +976,20 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	catcierge_process_match_result(grb, grb->img, match);
 
 	grb->match_count++;
+
+	// Runs the --match_cmd program specified.
+	if (args->new_execute)
+	{
+		catcierge_output_execute(grb, "match", args->match_cmd);
+	}
+	else
+	{
+		catcierge_execute(args->match_cmd, "%f %d %s %d",
+				result->result, 					// %0 = Match result.
+				result->success,					// %1 = 0/1 succes or failure.
+				args->saveimg ? match->path : "",	// %2 = Image path if saveimg is turned on.
+				result->direction);					// %3 = Direction, 0 = in, 1 = out.
+	}
 
 	catcierge_show_image(grb);
 
