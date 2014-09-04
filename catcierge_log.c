@@ -141,7 +141,7 @@ void log_printc(FILE *fd, enum catcierge_color_e print_color, const char *fmt, .
 	if ((fd == stdout) || (fd == stderr))
 	{
 		log_printf(fd, COLOR_NORMAL, "[");
-		log_printf(fd, COLOR_BRIGHT, "%-23s", time_str);
+		log_printf(fd, COLOR_BRIGHT, "%s", time_str);
 		log_printf(fd, COLOR_NORMAL, "]  ");
 
 		va_start(ap, fmt);

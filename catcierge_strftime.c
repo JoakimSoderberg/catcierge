@@ -74,7 +74,6 @@ int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct 
 		int val_len;
 		size_t len = strlen(fmt) + 1;
 		size_t tmp_len = 2 * len;
-		int millisec = tv->tv_usec / 1000;
 
 		if (!(tmp_fmt = malloc(sizeof(char) * tmp_len)))
 		{
@@ -90,7 +89,7 @@ int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct 
 				while (1)
 				{
 					size_t count = tmp_len - j;
-					val_len = snprintf(&tmp_fmt[j], count - 1, "%ld", (long int)millisec);
+					val_len = snprintf(&tmp_fmt[j], count - 1, "%06ld", (long int)tv->tv_usec);
 
 					// On Windows snprintf_s returns -1 when the buffer was too small.
 					// Since we cast this -1 to an unsigned int (size_t) below, it will
