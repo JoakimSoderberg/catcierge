@@ -131,7 +131,7 @@ check_include_files(pty.h CATCIERGE_HAVE_PTY_H)
 check_include_files(util.h CATCIERGE_HAVE_UTIL_H)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/catcierge_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/sha1)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -299,10 +299,13 @@ set(FSM_TESTER_SRC
 	catcierge_util.c
 	catcierge_timer.c
 	catcierge_fsm.c
-	catcierge_output.c)
+	catcierge_output.c
+	sha1/sha1.c)
+
 if (WIN32)
 	list(APPEND FSM_TESTER_SRC win32/gettimeofday.c)
 endif()
+
 add_executable(catcierge_fsm_tester ${FSM_TESTER_SRC})
 add_dependencies(catcierge_fsm_tester catcierge)
 target_link_libraries(catcierge_fsm_tester catcierge)
@@ -326,7 +329,8 @@ set(GRABBER2_SRC
 		catcierge_util.c
 		catcierge_timer.c
 		catcierge_fsm.c
-		catcierge_output.c)
+		catcierge_output.c
+		sha1/sha1.c)
 
 if (RPI)
 	list(APPEND GRABBER2_SRC catcierge_gpio.c)
@@ -353,7 +357,8 @@ set(REGRESS_SRC
 	${PROJECT_SOURCE_DIR}/catcierge_log.c
 	${PROJECT_SOURCE_DIR}/catcierge_timer.c
 	${PROJECT_SOURCE_DIR}/catcierge_util.c
-	${PROJECT_SOURCE_DIR}/catcierge_output.c)
+	${PROJECT_SOURCE_DIR}/catcierge_output.c
+	${PROJECT_SOURCE_DIR}/sha1/sha1.c)
 
 if (WITH_RFID)
 	list(APPEND REGRESS_SRC ${PROJECT_SOURCE_DIR}/catcierge_rfid.c)

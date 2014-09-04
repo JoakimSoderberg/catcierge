@@ -22,6 +22,8 @@ static char *run_tests()
 
 	t = 1409661310;
 	catcierge_test_STATUS("t = %ld\n", (long int)t);
+
+	// Get UTC time instead of localtime so the unit test is reliable in all timezones.
 	gmtime_r(&t, &tm);
 	
 	tv.tv_sec = 1409661310;

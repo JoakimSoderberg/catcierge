@@ -25,6 +25,7 @@
 #include <time.h>
 
 #include "catcierge_platform.h"
+#include "sha1.h"
 
 #define MATCH_MAX_COUNT 4 // The number of matches to perform before deciding the lock state.
 
@@ -86,6 +87,7 @@ typedef struct match_state_s
 	char time_str[1024];			// Time string of match (used in image filename).
 	struct timeval tv;
 	match_result_t result;
+	SHA1Context sha;
 } match_state_t;
 
 #endif // __CATCIERGE_TYPES_H__

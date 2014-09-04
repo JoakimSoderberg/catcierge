@@ -283,8 +283,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		if (!(ctx->templates = realloc(ctx->templates,
 			ctx->template_max_count * sizeof(catcierge_output_template_t))))
 		{
-			CATERR("Out of memory!\n");
-			return -1;
+			CATERR("Out of memory!\n"); return -1;
 		}
 	}
 
@@ -322,15 +321,13 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		
 		if (!(t->name = strdup(name)))
 		{
-			CATERR("Out of memory!\n");
-			goto fail;
+			goto out_of_memory;
 		}
 	}
 
 	if (!(t->target_path = strdup(target_path)))
 	{
-		CATERR("Out of memory!\n");
-		goto fail;
+		goto out_of_memory;
 	}
 
 	if (!(template_str = catcierge_output_read_template_settings(t->target_path,
@@ -341,8 +338,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 
 	if (!(t->tmpl = strdup(template_str)))
 	{
-		CATERR("Out of memory!\n");
-		goto fail;
+		goto out_of_memory;
 	}
 
 	ctx->template_count++;
@@ -351,6 +347,8 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 
 	return 0;
 
+out_of_memory:
+	CATERR("Out of memory\n");
 fail:
 	catcierge_output_free_template(t);
 
@@ -387,8 +385,7 @@ static char *catcierge_get_time_var_format(char *var,
 
 		if (!(fmt = strdup(var_fmt)))
 		{
-			CATERR("Out of memory!\n");
-			return NULL;
+			CATERR("Out of memory!\n"); return NULL;
 		}
 
 		catcierge_replace_time_format_char(fmt);
@@ -397,8 +394,7 @@ static char *catcierge_get_time_var_format(char *var,
 	{
 		if (!(fmt = strdup(default_fmt)))
 		{
-			CATERR("Out of memory!\n");
-			return NULL;
+			CATERR("Out of memory!\n"); return NULL;
 		}
 	}
 
@@ -464,7 +460,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
 		return catcierge_get_time_var_format(var, buf, bufsize,
-			"%Y-%m-%d %H:%M:%S", time(NULL), &tv);
+			"%Y-%m-%d %H:%M:%S.%f", time(NULL), &tv);
 	}
 
 	if (!strcmp(var, "state"))
@@ -590,6 +586,16 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		{
 			return m->path;
 		}
+		else if (!strcmp(subvar, "id"))
+		{
+			snprintf(buf, bufsize - 1, "%x%x%x%x%x",
+				m->sha.Message_Digest[0],
+				m->sha.Message_Digest[1],
+				m->sha.Message_Digest[2],
+				m->sha.Message_Digest[3],
+				m->sha.Message_Digest[4]);
+			return buf;
+		}
 		else if (!strcmp(subvar, "success"))
 		{
 			snprintf(buf, bufsize - 1, "%d", m->result.success);
@@ -611,7 +617,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		else if (!strncmp(subvar, "time", 4))
 		{
 			return catcierge_get_time_var_format(subvar, buf, bufsize,
-					"%Y-%m-%d %H:%M:%S", m->time, &m->tv);
+					"%Y-%m-%d %H:%M:%S.%f", m->time, &m->tv);
 		}
 		else if (!strcmp(subvar, "step_count"))
 		{
@@ -755,8 +761,7 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 
 					if (!(output = realloc(output, out_len)))
 					{
-						CATERR("Out of memory\n");
-						goto fail;
+						CATERR("Out of memory\n"); goto fail;
 					}
 				}
 

@@ -80,6 +80,7 @@ static char *run_generate_tests()
 			{ "%match2_step7_desc%", "Step description" },
 			{ "%match2_step7_active%", "0" },
 			{ "%match2_step_count%", "8" },
+			{ "%match2_id%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f"},
 			{ "%git_hash%", CATCIERGE_GIT_HASH },
 			{ "%git_hash_short%", CATCIERGE_GIT_HASH_SHORT },
 			{ "%git_tainted%", _XSTR(CATCIERGE_GIT_TAINTED) },
@@ -119,9 +120,15 @@ static char *run_generate_tests()
 		strcpy(grb.matches[0].path, "/some/path/omg1");
 		strcpy(grb.matches[1].path, "/some/path/omg2");
 		strcpy(grb.matches[2].path, "/some/path/omg3");
+		strcpy(grb.matches[3].path, "/some/path/omg4");
 		grb.matches[0].result.success = 4;
 		grb.matches[2].result.direction = MATCH_DIR_IN;
 		grb.matches[2].result.result = 0.8;
+		grb.matches[1].sha.Message_Digest[0] = 0x34AA973C;
+		grb.matches[1].sha.Message_Digest[1] = 0xD4C4DAA4;
+		grb.matches[1].sha.Message_Digest[2] = 0xF61EEB2B;
+		grb.matches[1].sha.Message_Digest[3] = 0xDBAD2731;
+		grb.matches[1].sha.Message_Digest[4] = 0x6534016F;
 		grb.match_success = 33;
 		grb.match_count = 3;
 		catcierge_set_state(&grb, catcierge_state_waiting);

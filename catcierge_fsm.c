@@ -420,6 +420,25 @@ IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 	#endif	
 }
 
+static int catcierge_calculate_match_id(IplImage *img, match_state_t *m)
+{
+	assert(img);
+	assert(m);
+
+	// Get a unique match id by calculating SHA1 hash of the image data
+	// as well as timestamp.
+	SHA1Reset(&m->sha);
+	SHA1Input(&m->sha, (const unsigned char *)img->imageData, img->imageSize);
+	SHA1Input(&m->sha, (const unsigned char *)m->time_str, strlen(m->time_str));
+
+	if (!SHA1Result(&m->sha))
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
 static void catcierge_process_match_result(catcierge_grb_t *grb,
 				IplImage *img, match_state_t *m)
 {
@@ -433,20 +452,34 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 
 	res = &m->result;
 
-	log_printc(stdout, (res->success ? COLOR_GREEN : COLOR_RED),
-		"%f %sMatch %s\n",
-		res->result,
-		res->success ? "" : "No ",
-		catcierge_get_direction_str(res->direction));
-
+	// Get time of match and format.
 	m->img = NULL;
 	m->time = time(NULL);
 	gettimeofday(&m->tv, NULL);
-	get_time_str_fmt(m->time, &m->tv, m->time_str, sizeof(m->time_str), "%Y-%m-%d_%H_%M_%S");
+	get_time_str_fmt(m->time, &m->tv, m->time_str,
+		sizeof(m->time_str), "%Y-%m-%d_%H_%M_%S.%f");
+
+	// Calculate match id from time + image data.
+	if (catcierge_calculate_match_id(img, m))
+	{
+		CATERR("Failed to calculate match id!\n");
+	}
+
+	log_printc(stdout, (res->success ? COLOR_GREEN : COLOR_RED),
+		"%sMatch %s - %s (%x%x%x%x%x)\n",
+		res->success ? "" : "No ",
+		catcierge_get_direction_str(res->direction),
+		res->description,
+		m->sha.Message_Digest[0],
+		m->sha.Message_Digest[1],
+		m->sha.Message_Digest[2],
+		m->sha.Message_Digest[3],
+		m->sha.Message_Digest[4]);
+
 	m->path[0] = '\0';
 
 	// Save match image.
-	// (We don't write to disk yet, that will slow down the matcing).
+	// (We don't write to disk yet, that will slow down the matching).
 	if (args->saveimg)
 	{
 		char base_path[1024];

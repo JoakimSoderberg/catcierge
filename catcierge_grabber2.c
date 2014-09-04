@@ -115,6 +115,7 @@ int main(int argc, char **argv)
 
 		if (args->output_path)
 		{
+			CATLOG("Creating output directory: \"%s\"\n", args->output_path);
 			catcierge_make_path(args->output_path);
 		}
 		else
