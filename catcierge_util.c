@@ -242,8 +242,15 @@ void catcierge_execute(char *command, char *fmt, ...)
 					// Otherwise we expect a digit that refers to
 					// the given variables in "extras".
 					// %0, %1 .. and so on.
-					cur_opt = atoi(command);
-					while (*command && isdigit(*command)) command++;
+					cur_opt = -1;
+
+					if (sscanf(command, "%d", &cur_opt) == 0)
+					{
+						command--; // Reclaim the %
+						CATERR("Invalid variable \"%.10s...\". "
+								"Did you mean to use --new_execute?\n", command);
+						return;
+					}
 
 					if ((cur_opt >= 0) && (cur_opt < count))
 					{
