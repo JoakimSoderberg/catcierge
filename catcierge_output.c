@@ -43,7 +43,7 @@
 catcierge_output_var_t vars[] =
 {
 	{ "state", "The current state machine state." },
-	{ "prev_state", "The previous state mahchine state."},
+	{ "prev_state", "The previous state machine state."},
 	{ "matcher", "The matching algorithm used."},
 	{ "matchtime", "Value of --matchtime."},
 	{ "ok_matches_needed", "Value of --ok_matches_needed" },
@@ -53,7 +53,7 @@ catcierge_output_var_t vars[] =
 	{ "lockout_error_delay", "Value of --lockout_error_delay."},
 	{ "match_success", "Match success status."},
 	{ "match_desc", "Match description."},
-	{ "match#_path", "Image path for match #." },
+	{ "match#_id", "Unique ID for match #." },
 	{ "match#_path", "Image path for match #." },
 	{ "match#_success", "Success status for match #." },
 	{ "match#_direction", "Direction for match #." },
@@ -65,7 +65,7 @@ catcierge_output_var_t vars[] =
 	{ "match#_step#_desc", "Description for match step # for match #."},
 	{ "match#_step#_active", "If this match step was used for match #."},
 	{ "match#_step_count", "The number of match steps for match #."},
-	{ "time", "The curent time when generating template." },
+	{ "time", "The current time when generating template." },
 	{
 		"time:<fmt>",
 		"The time using the given format string"
