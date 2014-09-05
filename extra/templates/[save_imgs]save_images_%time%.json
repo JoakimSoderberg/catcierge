@@ -21,6 +21,7 @@
 	"match_count": %match_count%,
 	"matches": [
 	{
+		"id": "%match1_id%",
 		"path": "%match1_path%",
 		"success": %match1_success%,
 		"result": %match1_result%,
@@ -97,6 +98,7 @@
 		}]
 	},
 	{
+		"id": "%match2_id%",
 		"path": "%match2_path%",
 		"success": %match2_success%,
 		"result": %match2_result%,
@@ -173,6 +175,7 @@
 		}]
 	},
 	{
+		"id": "%match3_id%",
 		"path": "%match3_path%",
 		"success": %match3_success%,
 		"result": %match3_result%,
@@ -249,6 +252,7 @@
 		}]
 	},
 	{
+		"id": "%match4_id%",
 		"path": "%match4_path%",
 		"success": %match4_success%,
 		"result": %match4_result%,
