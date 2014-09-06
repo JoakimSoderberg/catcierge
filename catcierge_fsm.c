@@ -732,6 +732,8 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 	catcierge_args_t *args;
 	match_state_t *m;
 	match_result_t *res;
+	IplImage *img;
+	IplImage *tmp_img = NULL;
 	assert(grb);
 	args = &grb->args;
 
@@ -741,27 +743,43 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 	// Show the video feed.
 	if (args->show)
 	{
-		size_t i;
-		CvScalar match_color;
+		img = grb->img;
 
-		#ifdef RPI
-		match_color = CV_RGB(255, 255, 255); // Grayscale so don't bother with color.
-		#else
-		match_color = (grb->match_success) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
-		#endif
-
-		m = &grb->matches[grb->match_count];
-		res = &m->result;
-
-		// Always highlight when showing in GUI.
-		// TODO: Move the match rects to grb->matches[grb->match_count].match_rects instead.
-		for (i = 0; i < res->rect_count; i++)
+		// Only try to show the match rectangles when we're in match mode.
+		if ((grb->match_count > 0) && (grb->match_count <= MATCH_MAX_COUNT))
 		{
-			cvRectangleR(grb->img, res->match_rects[i], match_color, 2, 8, 0);
+			size_t i;
+			CvScalar match_color;
+
+			// We don't want to mess with the original image when
+			// drawing the match rects since that might interfer with the match.
+			tmp_img = cvCloneImage(grb->img);
+
+			m = &grb->matches[grb->match_count - 1];
+			res = &m->result;
+
+			#ifdef RPI
+			match_color = CV_RGB(255, 255, 255); // Grayscale so don't bother with color.
+			#else
+			match_color = (res->success) ? CV_RGB(0, 255, 0) : CV_RGB(255, 0, 0);
+			#endif
+
+			// Always highlight when showing in GUI.
+			for (i = 0; i < res->rect_count; i++)
+			{
+				cvRectangleR(tmp_img, res->match_rects[i], match_color, 2, 8, 0);
+			}
+
+			img = tmp_img;
 		}
 
-		cvShowImage("catcierge", grb->img);
+		cvShowImage("catcierge", img);
 		cvWaitKey(10);
+
+		if (tmp_img)
+		{
+			cvReleaseImage(&tmp_img);
+		}
 	}
 }
 
