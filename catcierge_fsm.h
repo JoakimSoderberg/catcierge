@@ -115,7 +115,9 @@ IplImage *catcierge_get_frame(catcierge_grb_t *grb);
 void catcierge_run_state(catcierge_grb_t *grb);
 void catcierge_print_spinner(catcierge_grb_t *grb);
 void catcierge_destroy_camera(catcierge_grb_t *grb);
+#ifdef RPI
 int catcierge_setup_gpio(catcierge_grb_t *grb);
+#endif
 int catcierge_grabber_init(catcierge_grb_t *grb);
 void catcierge_grabber_destroy(catcierge_grb_t *grb);
 void catcierge_setup_camera(catcierge_grb_t *grb);

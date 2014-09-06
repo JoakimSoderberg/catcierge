@@ -359,11 +359,11 @@ int catcierge_drop_root_privileges(const char *user)
 	return 0;
 }
 
+#ifdef RPI
 int catcierge_setup_gpio(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args = &grb->args;
 	int ret = 0;
-	#ifdef RPI
 
 	// Set export for pins.
 	if (gpio_export(DOOR_PIN) || gpio_set_direction(DOOR_PIN, OUT))
@@ -404,10 +404,10 @@ fail:
 			CATLOG("###############################################\n");
 		}
 	}
-	#endif // RPI
 
 	return ret;
 }
+#endif // RPI
 
 IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 {
