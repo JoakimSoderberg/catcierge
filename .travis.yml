@@ -15,6 +15,10 @@ matrix:
   exclude:
     - compiler: clang
       env: CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug" COVERALLS=yes
+before_install:
+  # Enable running GUI tests to run with a dummy X-server.
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -y -qq libopencv-dev

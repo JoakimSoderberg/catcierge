@@ -77,6 +77,7 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	args->haar.prey_method = prey_method;
 	args->haar.prey_steps = 2;
 	args->haar.cascade = CATCIERGE_CASCADE;
+	args->show = 1;
 	//args->save_steps = 1;
 	//args->saveimg = 1;
 
@@ -197,6 +198,11 @@ int TEST_catcierge_fsm_haar_matcher(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_save_steps_test()),
 		"Run save steps tests. Adaptive prey matching",
 		"Save steps tests", &ret);
+
+	if (ret)
+	{
+		catcierge_test_FAILURE("One or more tests failed");
+	}
 
 	return ret;
 }

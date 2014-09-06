@@ -119,7 +119,7 @@ void catcierge_run(char *command)
 		}
 		else
 		{
-			CATLOG("Called program %s\n", command);
+			CATLOG("Called program \"%s\"\n", command);
 		}
 	}
 	#else // _WIN32
@@ -149,7 +149,7 @@ void catcierge_run(char *command)
 		}
 		else
 		{
-			CATLOG("Called program %s\n", command);
+			CATLOG("Called program \"%s\"\n", command);
 		}
 	}
 	#endif // _WIN32
