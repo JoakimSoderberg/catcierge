@@ -684,7 +684,7 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 	char *output = NULL;
 	char *tmp = NULL;
 	size_t orig_len = strlen(template_str);
-	size_t out_len = 2 * orig_len;
+	size_t out_len = 2 * orig_len + 1;
 	size_t len;
 	size_t linenum;
 	assert(ctx);
@@ -755,7 +755,7 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 				size_t reslen = strlen(res);
 
 				// Make sure we have enough room.
-				while ((len + reslen) >= out_len)
+				while ((len + reslen + 1) >= out_len)
 				{
 					out_len *= 2;
 
