@@ -39,5 +39,7 @@
 #define CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
 #endif
 
+#cmakedefine CATCIERGE_GUI_TESTS 1
+
 #endif // __CATCIERGE_CONFIG_H__
 

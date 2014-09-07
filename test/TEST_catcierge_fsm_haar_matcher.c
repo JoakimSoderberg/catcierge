@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "catcierge_config.h"
 #include "catcierge_fsm.h"
 #include "minunit.h"
 #include "catcierge_test_config.h"
@@ -77,7 +78,10 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	args->haar.prey_method = prey_method;
 	args->haar.prey_steps = 2;
 	args->haar.cascade = CATCIERGE_CASCADE;
+
+	#ifdef CATCIERGE_GUI_TESTS
 	args->show = 1;
+	#endif
 	//args->save_steps = 1;
 	//args->saveimg = 1;
 

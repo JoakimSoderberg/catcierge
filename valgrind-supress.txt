@@ -29,19 +29,137 @@
     fun:nss_parse_service_list
 }
 
-#
+# strdup malloc error. Don't know where this comes from.
 {
-   strdup_wtf
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:strdup
-   obj:/bin/dash
-   obj:/bin/dash
-   obj:/bin/dash
-   obj:/bin/dash
-   obj:/bin/dash
-   obj:/bin/dash
-   obj:/bin/dash
-   fun:(below main)
+    strdup_wtf
+    Memcheck:Leak
+    fun:malloc
+    fun:strdup
+    obj:/bin/dash
+    obj:/bin/dash
+    obj:/bin/dash
+    obj:/bin/dash
+    obj:/bin/dash
+    obj:/bin/dash
+    obj:/bin/dash
+    fun:(below main)
 }
+
+# Using a dummy x-server gives errors on Travis.
+{
+    dummy_x1
+    Memcheck:Leak
+    fun:memalign
+    fun:posix_memalign
+    #fun:g_slice_alloc
+}
+
+{
+    dummy_x2
+    Memcheck:Leak
+    fun:malloc
+    fun:gtk_parse_args
+    fun:gtk_init_check
+    fun:gtk_init
+}
+
+{
+    dummy_x3
+    Memcheck:Leak
+    fun:malloc
+    fun:g_malloc
+    fun:gdk_region_intersect
+    fun:gdk_window_process_all_updates
+    fun:g_main_context_dispatch
+    fun:g_main_context_iteration
+    fun:gtk_main_iteration_do
+}
+
+{
+    dummy_x4
+    Memcheck:Leak
+    fun:malloc
+    fun:XCreateGC
+    #fun:g_cache_insert
+    #fun:gtk_gc_get
+    #fun:g_signal_emit_valist
+    #fun:g_signal_emit
+    #fun:gtk_style_attach
+}
+
+{
+    dummy_x5
+    Memcheck:Leak
+    fun:malloc
+    fun:g_malloc
+    fun:g_strdup
+    #fun:g_param_spec_string
+}
+
+{
+    dummy_x6
+    Memcheck:Leak
+    fun:malloc
+    fun:g_malloc
+    fun:g_pattern_spec_new
+    fun:gtk_rc_reparse_all_for_settings
+    fun:gtk_settings_get_for_screen
+    fun:g_type_create_instance
+    fun:g_object_newv
+}
+
+{
+    dummy_x7
+    Memcheck:Leak
+    fun:malloc
+    fun:g_malloc
+    fun:g_strjoinv
+}
+
+{
+    dummy_x8
+    Memcheck:Leak
+    fun:malloc
+    fun:realloc
+    fun:g_realloc
+}
+
+{
+    dummy_x9
+    Memcheck:Leak
+    fun:malloc
+    fun:g_malloc
+}
+
+{
+    dummy_x10
+    Memcheck:Leak
+    fun:calloc
+    fun:g_malloc0
+}
+
+{
+    dummy_x11
+    Memcheck:Leak
+    fun:calloc
+    fun:XShmCreateImage
+}
+
+{
+    dummy_x12
+    Memcheck:Leak
+    fun:malloc
+    #fun:cv::fastMalloc
+    fun:cvCreateMatHeader
+    #obj:/usr/lib/libopencv_highgui.so.2.3.1
+}
+
+{
+    dummy_x13
+    Memcheck:Leak
+    fun:realloc
+    fun:g_realloc
+}
+
+
+

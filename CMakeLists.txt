@@ -36,6 +36,12 @@ if (UNIX)
 	set(RPI_USERLAND "${PROJECT_SOURCE_DIR}/rpi_userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
 endif()
 
+option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
+
+if (CATCIERGE_GUI_TESTS)
+	add_definitions(-DCATCIERGE_GUI_TESTS)
+endif()
+
 # Set some nicer output dirs.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
