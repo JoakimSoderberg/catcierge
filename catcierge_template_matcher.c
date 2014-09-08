@@ -143,8 +143,8 @@ int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, catcierge
 
 	if (!ctx->snouts || !ctx->flipped_snouts || !ctx->matchres)
 	{
-		fprintf(stderr, "Out of memory!\n");
-		exit(1);
+		fprintf(stderr, "Template matcher: Out of memory!\n");
+		return -1;
 	}
 
 	for (i = 0; i < snout_count; i++)
