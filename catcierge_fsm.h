@@ -39,7 +39,8 @@ typedef struct rfid_match_s
 {
 	int triggered;			// Have this rfid matcher been triggered?
 	char data[128];			// The data in the match.
-	int incomplete;			// Is the data incomplete?
+	size_t data_len;		// Length of the current data.
+	int complete;			// Is the data complete?
 	const char *time_str;	// Time of match.
 	int is_allowed;			// Is the RFID in the allowed list?
 } rfid_match_t;
@@ -120,6 +121,9 @@ int catcierge_setup_gpio(catcierge_grb_t *grb);
 #endif
 int catcierge_grabber_init(catcierge_grb_t *grb);
 void catcierge_grabber_destroy(catcierge_grb_t *grb);
+#ifdef WITH_RFID
+void catcierge_init_rfid_readers(catcierge_grb_t *grb);
+#endif
 void catcierge_setup_camera(catcierge_grb_t *grb);
 void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state);
 void catcierge_run_state(catcierge_grb_t *grb);

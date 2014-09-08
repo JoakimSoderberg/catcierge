@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include "catcierge_rfid.h"
 
-void rfid_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user)
+void rfid_read_cb(catcierge_rfid_t *rfid, int complete, const char *data, size_t data_len, void *user)
 {
 	printf("%s Reply: %s\n", rfid->name, data);
 }

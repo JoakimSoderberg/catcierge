@@ -65,9 +65,9 @@ cleanup:
 }
 
 static void rfid_read_cb(catcierge_rfid_t *rfid,
-				int incomplete, const char *data, void *user)
+				int incomplete, const char *data, size_t data_len, void *user)
 {
-	catcierge_test_STATUS("Slave received: %s\n", data);
+	catcierge_test_STATUS("Slave received (%u bytes): %s\n", data_len, data);
 }
 
 static char *read_rfid_master(catcierge_rfid_context_t *ctx,

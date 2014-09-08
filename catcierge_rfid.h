@@ -36,7 +36,7 @@
 
 typedef struct catcierge_rfid_s catcierge_rfid_t;
 
-typedef void (*catcierge_rfid_read_f)(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user);
+typedef void (*catcierge_rfid_read_f)(catcierge_rfid_t *rfid, int complete, const char *data, size_t data_len, void *user);
 
 typedef enum catcierge_rfid_state_e
 {

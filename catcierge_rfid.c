@@ -98,6 +98,10 @@ static int catcierge_rfid_read(catcierge_rfid_t *rfid)
 		return -1;
 	}
 
+	// Get rid of any trailing CRLF.
+	if (rfid->buf[rfid->bytes_read - 1] == '\n') rfid->bytes_read--;
+	if (rfid->buf[rfid->bytes_read - 1] == '\r') rfid->bytes_read--;
+
 	rfid->buf[rfid->bytes_read] = '\0';
 	CATLOG("%s RFID Reader: %ld bytes: %s\n", rfid->name, rfid->bytes_read, rfid->buf);
 
@@ -128,8 +132,8 @@ static int catcierge_rfid_read(catcierge_rfid_t *rfid)
 	{
 		if (!is_error)
 		{
-			int incomplete = (rfid->bytes_read < 17);
-			rfid->cb(rfid, incomplete, rfid->buf, rfid->user);
+			int complete = (rfid->bytes_read >= 15);
+			rfid->cb(rfid, complete, rfid->buf, rfid->bytes_read, rfid->user);
 		}
 		else
 		{

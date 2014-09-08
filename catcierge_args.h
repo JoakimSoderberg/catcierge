@@ -87,6 +87,7 @@ int catcierge_args_init(catcierge_args_t *args);
 void catcierge_args_destroy(catcierge_args_t *args);
 
 #ifdef WITH_RFID
+int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char *allowed);
 void catcierge_free_rfid_allowed_list(catcierge_args_t *args);
 #endif
 

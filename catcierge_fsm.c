@@ -77,11 +77,6 @@ void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 }
 
 #ifdef WITH_RFID
-static void rfid_reset(rfid_match_t *m)
-{
-	memset(m, 0, sizeof(rfid_match_t));
-}
-
 static int match_allowed_rfid(catcierge_grb_t *grb, const char *rfid_tag)
 {
 	int i;
@@ -102,38 +97,49 @@ static int match_allowed_rfid(catcierge_grb_t *grb, const char *rfid_tag)
 
 static void rfid_set_direction(catcierge_grb_t *grb, rfid_match_t *current, rfid_match_t *other, 
 						match_direction_t dir, const char *dir_str, catcierge_rfid_t *rfid, 
-						int incomplete, const char *data)
+						int complete, const char *data, size_t data_len)
 {
 	catcierge_args_t *args;
 	assert(grb);
 	args = &grb->args;
 
-	CATLOGFPS("%s RFID: %s%s\n", rfid->name, data, incomplete ? " (incomplete)": "");
+	CATLOG("%s RFID: %s%s\n", rfid->name, data, !complete ? " (incomplete)": "");
+
+	CATLOG("   Old data %s (%d bytes) New data %s (%d bytes)\n",
+		other->complete ? "COMPLETE" : "INCOMPLETE",
+		(int)other->data_len,
+		complete ? "COMPLETE" : "INCOMPLETE",
+		(int)data_len);
 
 	// Update the match if we get a complete tag.
-	if (current->incomplete &&  (strlen(data) > strlen(current->data)))
+	if (complete && (data_len > other->data_len))
 	{
-		strcpy(current->data, data);
-		current->incomplete = incomplete;
+		strncpy(current->data, data, sizeof(current->data));
+		current->data_len = data_len;
+		current->complete = complete;
 	}
 
 	// If we have already triggered this reader
 	// then don't set the direction again.
 	// (Since this could screw things up).
 	if (current->triggered)
+	{
+		CATLOG("Already triggered!\n");
 		return;
+	}
 
 	// The other reader triggered first so we know the direction.
 	// TODO: It could be wise to time this out after a while...
 	if (other->triggered)
 	{
 		grb->rfid_direction = dir;
-		CATLOGFPS("%s RFID: Direction %s\n", rfid->name, dir_str);
+		CATLOG("%s RFID: Direction %s\n", rfid->name, dir_str);
 	}
 
 	current->triggered = 1;
-	current->incomplete = incomplete;
-	strcpy(current->data, data);
+	current->complete = complete;
+	strncpy(current->data, data, sizeof(current->data));
+	current->data_len = data_len;
 	current->is_allowed = match_allowed_rfid(grb, current->data);
 
 	//log_print_csv(log_file, "rfid, %s, %s\n", 
@@ -151,14 +157,14 @@ static void rfid_set_direction(catcierge_grb_t *grb, rfid_match_t *current, rfid
 			rfid->name, 				// %0 = RFID reader name.
 			rfid->serial_path,			// %1 = RFID path.
 			current->is_allowed, 		// %2 = Is allowed.
-			current->incomplete, 		// %3 = Is data incomplete.
+			!current->complete, 		// %3 = Is data incomplete.
 			current->data,				// %4 = Tag data.
 			other->triggered,			// %5 = Other reader triggered.
 			catcierge_get_direction_str(grb->rfid_direction)); // %6 = Direction.
 	}
 }
 
-static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user)
+static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int complete, const char *data, size_t data_len, void *user)
 {
 	catcierge_grb_t *grb = user;
 
@@ -166,17 +172,17 @@ static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int incomplete, const cha
 	// match on to the code that decides which direction the cat
 	// is going.
 	rfid_set_direction(grb, &grb->rfid_in_match, &grb->rfid_out_match,
-			MATCH_DIR_IN, "IN", rfid, incomplete, data);
+			MATCH_DIR_IN, "IN", rfid, complete, data, data_len);
 }
 
-static void rfid_outer_read_cb(catcierge_rfid_t *rfid, int incomplete, const char *data, void *user)
+static void rfid_outer_read_cb(catcierge_rfid_t *rfid, int complete, const char *data, size_t data_len, void *user)
 {
 	catcierge_grb_t *grb = user;
 	rfid_set_direction(grb, &grb->rfid_out_match, &grb->rfid_in_match,
-			MATCH_DIR_OUT, "OUT", rfid, incomplete, data);
+			MATCH_DIR_OUT, "OUT", rfid, complete, data, data_len);
 }
 
-static void catcierge_init_rfid_readers(catcierge_grb_t *grb)
+void catcierge_init_rfid_readers(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args;
 	assert(grb);
@@ -187,6 +193,7 @@ static void catcierge_init_rfid_readers(catcierge_grb_t *grb)
 
 	if (args->rfid_inner_path)
 	{
+		memset(&grb->rfid_in_match, 0, sizeof(grb->rfid_in_match));
 		catcierge_rfid_init("Inner", &grb->rfid_in, args->rfid_inner_path, rfid_inner_read_cb, grb);
 		catcierge_rfid_ctx_set_inner(&grb->rfid_ctx, &grb->rfid_in);
 		catcierge_rfid_open(&grb->rfid_in);
@@ -194,6 +201,7 @@ static void catcierge_init_rfid_readers(catcierge_grb_t *grb)
 
 	if (args->rfid_outer_path)
 	{
+		memset(&grb->rfid_out_match, 0, sizeof(grb->rfid_out_match));
 		catcierge_rfid_init("Outer", &grb->rfid_out, args->rfid_outer_path, rfid_outer_read_cb, grb);
 		catcierge_rfid_ctx_set_outer(&grb->rfid_ctx, &grb->rfid_out);
 		catcierge_rfid_open(&grb->rfid_out);
@@ -658,6 +666,12 @@ static void catcierge_should_we_rfid_lockout(catcierge_grb_t *grb)
 		if (catcierge_timer_get(&grb->rematch_timer) >= args->rfid_lock_time)
 		{
 			int do_rfid_lockout = 0;
+
+			if (!grb->rfid_out_match.triggered && !grb->rfid_in_match.triggered)
+			{
+				CATERR("Unknown RFID direction!\n");
+				grb->rfid_direction = MATCH_DIR_UNKNOWN;
+			}
 
 			if (args->rfid_inner_path && args->rfid_outer_path)
 			{
