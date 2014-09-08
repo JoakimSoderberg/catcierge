@@ -181,6 +181,10 @@ int main(int argc, char **argv)
 
 	CATLOG("Initialized output templates\n");
 
+	#ifdef WITH_RFID
+	catcierge_init_rfid_readers(&grb);
+	#endif
+
 	catcierge_setup_camera(&grb);
 	CATLOG("Starting detection!\n");
 	grb.running = 1;
