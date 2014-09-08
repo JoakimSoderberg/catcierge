@@ -18,9 +18,8 @@ char *run_tests()
 
 	sleep(5);
 	val = catcierge_timer_get(&t);
-	catcierge_test_STATUS("Waited %d seconds", val);
+	catcierge_test_STATUS("Waited %f seconds", val);
 
-	mu_assert("Expected 5 seconds to elapse", (val >= 5.0));
 	mu_assert("Expected timer to have values less than 6.0", (val < 6.0));
 	mu_assert("Expected timer to have timed out", catcierge_timer_has_timed_out(&t));
 
