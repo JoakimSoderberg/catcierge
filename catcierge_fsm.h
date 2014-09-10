@@ -32,6 +32,7 @@
 #define DOOR_PIN		PIBORG1		// Pin for the solenoid that locks the door.
 #define BACKLIGHT_PIN	PIBORG2		// Pin that turns on the backlight.
 
+// TODO: Move this to catcierge_types.h instead
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"
 
@@ -46,11 +47,6 @@ typedef struct rfid_match_s
 } rfid_match_t;
 #endif // WITH_RFID
 
-// TODO: Fix printing fps.
-#if 0
-#define CATLOGFPS(fmt, ...) if (show_fps) { log_print(stdout, "%d fps  " fmt, 1, ##__VA_ARGS__); else CATLOG(fmt, ##__VA_ARGS__); }
-#define CATERRFPS(fmt, ...) if (show_fps) { log_print(stderr, "%d fps  " fmt, 1, ##__VA_ARGS__); else CATLOG(fmt, ##__VA_ARGS__); }
-#endif
 #define CATLOGFPS(fmt, ...) CATLOG(fmt, ##__VA_ARGS__)
 #define CATERRFPS(fmt, ...) CATLOG(fmt, ##__VA_ARGS__)
 

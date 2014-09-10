@@ -66,6 +66,7 @@ typedef struct match_step_s
 	const char *description;
 } match_step_t;
 
+// TODO: Maybe merge this with match_state_t.
 typedef struct match_result_s
 {
 	double result;
@@ -89,5 +90,7 @@ typedef struct match_state_s
 	match_result_t result;
 	SHA1Context sha;
 } match_state_t;
+
+// TODO: Add a match_group_t struct here.
 
 #endif // __CATCIERGE_TYPES_H__

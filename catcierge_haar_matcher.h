@@ -24,6 +24,11 @@
 #include "catcierge_haar_wrapper.h"
 #include "catcierge_types.h"
 
+#define HAAR_FAIL 0.0
+#define HAAR_SUCCESS 1.0
+#define HAAR_SUCCESS_NO_HEAD 2.0 // Used to be 0.998 
+#define HAAR_SUCCESS_NO_HEAD_IS_FAIL 3.0 // 0.999
+
 typedef enum catcierge_haar_prey_method_e
 {
 	PREY_METHOD_ADAPTIVE,

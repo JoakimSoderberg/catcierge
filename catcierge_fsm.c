@@ -1026,6 +1026,8 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	assert(grb);
 	args = &grb->args;
 
+	// TODO: Start a matchgroup timer here if grb->match_count == 0
+
 	match = &grb->matches[grb->match_count];
 	result = &match->result;
 	memset(result, 0, sizeof(match_result_t));
@@ -1037,7 +1039,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		return -1;
 	}
 
-	// Save the match state, execute external processes and so on...
+	// TODO: Redo this function to add the match to the match group struct.
 	catcierge_process_match_result(grb, grb->img, match);
 
 	grb->match_count++;
@@ -1067,6 +1069,9 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	{
 		// We now have enough images to decide lock status.
 		int i;
+
+		// TODO: grb->match_success and this direction to a "match group struct" instead.
+		// This means this can be refactored into a function as well.
 		match_direction_t direction;
 		grb->match_success = 0;
 		grb->match_success_count = 0;
@@ -1090,6 +1095,12 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		{
 			// Otherwise if enough matches (default 2) are ok.
 			grb->match_success = (grb->match_success_count >= args->ok_matches_needed);
+
+			// TODO: Let the matcher veto if the match group was successful:
+			// For instance call catcierge_haar_matcher_decide.
+			// If for instance the haar matcher finds no cat face in any image
+			// perform a lockout anyway.
+			// Make this a command line option to enable.
 		}
 
 		if (grb->match_success)
@@ -1123,6 +1134,8 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 			catcierge_check_max_consecutive_lockouts(grb);
 			catcierge_state_transition_lockout(grb);
 		}
+
+		// TODO: End matchgroup timer here and create a unique ID for it.
 
 		if (args->new_execute)
 		{

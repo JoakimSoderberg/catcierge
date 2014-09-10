@@ -365,6 +365,7 @@ void catcierge_haar_matcher_calculate_roi(catcierge_haar_matcher_t *ctx, CvRect 
 
 	// Extend the rect a bit towards the outside.
 	// This way for big mice and such we still get some white on each side of it.
+	// TODO: Make this a commandline argument.
 	roi->width += 30;
 	roi->x = roi->x + ((ctx->args->in_direction == DIR_RIGHT) ? -30 : 30);
 	if (roi->x < 0) roi->x = 0;
@@ -374,7 +375,7 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 		IplImage *img, match_result_t *result, int save_steps)
 {
 	catcierge_haar_matcher_args_t *args = ctx->args;
-	double ret = 0.998;
+	double ret = HAAR_SUCCESS_NO_HEAD;
 	IplImage *img_eq = NULL;
 	IplImage *img_gray = NULL;
 	IplImage *tmp = NULL;
@@ -445,7 +446,8 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 	{
 		// Any return value above 0.0 is considered
 		// a success. Just so we can distinguish the types of successes.
-		ret = cat_head_found ? 0.999 : 0.0;
+		ret = cat_head_found ?
+			HAAR_SUCCESS_NO_HEAD_IS_FAIL : HAAR_FAIL;
 	}
 
 	if (cat_head_found)
@@ -514,14 +516,15 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 		if (find_prey(ctx, img_eq, thr_img, result, save_steps))
 		{
 			if (ctx->debug) printf("Found prey!\n");
-			ret = 0.0; // Fail.
+			ret = HAAR_FAIL;
 
 			snprintf(result->description, sizeof(result->description) - 1,
 				"Prey detected");
 		}
 		else
 		{
-			ret = 1.0; // Success.
+
+			ret = HAAR_SUCCESS;
 			snprintf(result->description, sizeof(result->description) - 1,
 				"No prey detected");
 		}
@@ -529,7 +532,8 @@ double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
 	else
 	{
 		snprintf(result->description, sizeof(result->description) - 1,
-			"No cat head detected");
+			"%sNo cat head detected",
+			(ret == HAAR_SUCCESS_NO_HEAD_IS_FAIL) ? "Fail ": "");
 	}
 
 done:
@@ -555,6 +559,38 @@ fail:
 	result->success = (result->result > 0.0);
 
 	return ret;
+}
+
+// TODO: Change this method to take a match_group_t instead.
+int catcierge_haar_matcher_decide(catcierge_haar_matcher_t *ctx,
+		int match_success,
+		match_result_t *results, size_t result_len,
+		char *description, size_t desc_len)
+{
+	size_t i;
+	size_t no_head_count = 0;
+	assert(description);
+	assert(results);
+	assert(ctx);
+
+	// If no cat is found at all, consider that a FAIL.
+	for (i = 0; i < result_len; i++)
+	{
+		if (results[i].result == HAAR_SUCCESS_NO_HEAD)
+		{
+			no_head_count++;
+		}
+	}
+
+	if (no_head_count == result_len)
+	{
+		snprintf(description, desc_len, "No head found in any image");
+		return 0;
+	}
+
+	snprintf(description, desc_len, "Successful match");
+
+	return match_success;
 }
 
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const char *key, char **values, size_t value_count)
