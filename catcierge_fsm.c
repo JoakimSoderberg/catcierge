@@ -1019,14 +1019,100 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 	return direction;
 }
 
-int catcierge_decide_lock_status(catcierge_grb_t *grb)
+void catcierge_decide_lock_status(catcierge_grb_t *grb)
 {
 	match_group_t *mg = &grb->match_group;
+	catcierge_args_t *args = &grb->args;
 	assert(grb);
 
 	// TODO: Move the lock deciding code in catcierge_state_matching here.
+	// We now have enough images to decide lock status.
+	int i;
 
-	return 0;
+	// TODO: grb->match_success and this direction to a "match group struct" instead.
+	// This means this can be refactored into a function as well.
+	mg->success = 0;
+	mg->success_count = 0;
+
+	for (i = 0; i < MATCH_MAX_COUNT; i++)
+	{
+		mg->success_count += !!mg->matches[i].result.success;
+	}
+
+	// Guess the direction.
+	mg->direction = catcierge_guess_overall_direction(grb);
+
+	// When going out, if only 1 image is a succesful match
+	// we still count it as overall succesful so we don't get
+	// so many false negatives.
+	if (mg->direction == MATCH_DIR_OUT)
+	{
+		mg->success = 1;
+	}
+	else
+	{
+		// Otherwise if enough matches (default 2) are ok.
+		mg->success = (mg->success_count >= args->ok_matches_needed);
+
+		// TODO: Let the matcher veto if the match group was successful:
+		// For instance call catcierge_haar_matcher_decide.
+		// If for instance the haar matcher finds no cat face in any image
+		// perform a lockout anyway.
+		// Make this a command line option to enable.
+	}
+
+	if (mg->success)
+	{
+		CATLOG("Everything OK! (%d out of %d matches succeeded)"
+				" Door kept open...\n", mg->success_count, MATCH_MAX_COUNT);
+
+		if (grb->consecutive_lockout_count > 0)
+		{
+			grb->consecutive_lockout_count = 0;
+			CATLOG("Consecutive lockout count reset\n");
+		}
+
+		// Make sure the door is open.
+		catcierge_do_unlock(grb);
+
+		#ifdef WITH_RFID
+		// We only want to check for RFID lock once
+		// during each match timeout period.
+		grb->checked_rfid_lock = 0;
+		#endif
+
+		catcierge_timer_reset(&grb->rematch_timer);
+		catcierge_set_state(grb, catcierge_state_keepopen);
+	}
+	else
+	{
+		CATLOG("Lockout! %d out of %d matches failed.\n",
+				(MATCH_MAX_COUNT - mg->success_count), MATCH_MAX_COUNT);
+
+		catcierge_check_max_consecutive_lockouts(grb);
+		catcierge_state_transition_lockout(grb);
+	}
+
+	// TODO: End matchgroup timer here and create a unique ID for it.
+
+	if (args->new_execute)
+	{
+		catcierge_output_execute(grb, "match_done", args->match_done_cmd);
+	}
+	else
+	{
+		catcierge_execute(args->match_done_cmd, "%d %d %d", 
+			mg->success, 		// %0 = Match success.
+			mg->success_count,	// %1 = Successful match count.
+			MATCH_MAX_COUNT);	// %2 = Max matches.
+	}
+
+	// Now we can save the images that we cached earlier 
+	// without slowing down the matching FPS.
+	if (args->saveimg)
+	{
+		catcierge_save_images(grb, mg->direction);
+	}
 }
 
 int catcierge_state_matching(catcierge_grb_t *grb)
@@ -1078,94 +1164,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	}
 	else
 	{
-		// We now have enough images to decide lock status.
-		int i;
-
-		// TODO: grb->match_success and this direction to a "match group struct" instead.
-		// This means this can be refactored into a function as well.
-		match_direction_t direction;
-		grb->match_group.success = 0;
-		grb->match_group.success_count = 0;
-
-		for (i = 0; i < MATCH_MAX_COUNT; i++)
-		{
-			grb->match_group.success_count += !!grb->match_group.matches[i].result.success;
-		}
-
-		// Guess the direction.
-		direction = catcierge_guess_overall_direction(grb);
-
-		// When going out, if only 1 image is a succesful match
-		// we still count it as overall succesful so we don't get
-		// so many false negatives.
-		if (direction == MATCH_DIR_OUT)
-		{
-			grb->match_group.success = 1;
-		}
-		else
-		{
-			// Otherwise if enough matches (default 2) are ok.
-			grb->match_group.success = (grb->match_group.success_count >= args->ok_matches_needed);
-
-			// TODO: Let the matcher veto if the match group was successful:
-			// For instance call catcierge_haar_matcher_decide.
-			// If for instance the haar matcher finds no cat face in any image
-			// perform a lockout anyway.
-			// Make this a command line option to enable.
-		}
-
-		if (grb->match_group.success)
-		{
-			CATLOG("Everything OK! (%d out of %d matches succeeded)"
-					" Door kept open...\n", grb->match_group.success_count, MATCH_MAX_COUNT);
-
-			if (grb->consecutive_lockout_count > 0)
-			{
-				grb->consecutive_lockout_count = 0;
-				CATLOG("Consecutive lockout count reset\n");
-			}
-
-			// Make sure the door is open.
-			catcierge_do_unlock(grb);
-
-			#ifdef WITH_RFID
-			// We only want to check for RFID lock once
-			// during each match timeout period.
-			grb->checked_rfid_lock = 0;
-			#endif
-
-			catcierge_timer_reset(&grb->rematch_timer);
-			catcierge_set_state(grb, catcierge_state_keepopen);
-		}
-		else
-		{
-			CATLOG("Lockout! %d out of %d matches failed.\n",
-					(MATCH_MAX_COUNT - grb->match_group.success_count), MATCH_MAX_COUNT);
-
-			catcierge_check_max_consecutive_lockouts(grb);
-			catcierge_state_transition_lockout(grb);
-		}
-
-		// TODO: End matchgroup timer here and create a unique ID for it.
-
-		if (args->new_execute)
-		{
-			catcierge_output_execute(grb, "match_done", args->match_done_cmd);
-		}
-		else
-		{
-			catcierge_execute(args->match_done_cmd, "%d %d %d", 
-				grb->match_group.success, 		// %0 = Match success.
-				grb->match_group.success_count,	// %1 = Successful match count.
-				MATCH_MAX_COUNT);				// %2 = Max matches.
-		}
-
-		// Now we can save the images that we cached earlier 
-		// without slowing down the matching FPS.
-		if (args->saveimg)
-		{
-			catcierge_save_images(grb, direction);
-		}
+		catcierge_decide_lock_status(grb);
 	}
 
 	return 0;
