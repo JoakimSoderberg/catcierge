@@ -537,13 +537,13 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strcmp(var, "match_success"))
 	{
-		snprintf(buf, bufsize - 1, "%d", grb->match_success);
+		snprintf(buf, bufsize - 1, "%d", grb->match_group.success);
 		return buf;
 	}
 
 	if (!strcmp(var, "match_count"))
 	{
-		snprintf(buf, bufsize - 1, "%d", grb->match_count);
+		snprintf(buf, bufsize - 1, "%d", (int)grb->match_group.match_count);
 		return buf;
 	}
 
@@ -555,7 +555,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		if (!strncmp(var, "matchcur", 8))
 		{
-			idx = grb->match_count - 1;
+			idx = grb->match_group.match_count - 1;
 			subvar = var + strlen("matchcur_");
 		}
 		else
@@ -575,9 +575,9 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 			return NULL;
 		}
 
-		m = &grb->matches[idx];
+		m = &grb->match_group.matches[idx];
 
-		if (idx >= grb->match_count)
+		if (idx >= grb->match_group.match_count)
 		{
 			return "";
 		}

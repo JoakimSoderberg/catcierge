@@ -301,13 +301,13 @@ static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
-		if (grb->matches[i].img)
+		if (grb->match_group.matches[i].img)
 		{
-			cvReleaseImage(&grb->matches[i].img);
-			grb->matches[i].img = NULL;
+			cvReleaseImage(&grb->match_group.matches[i].img);
+			grb->match_group.matches[i].img = NULL;
 		}
 
-		catcierge_cleanup_match_steps(grb, &grb->matches[i].result);
+		catcierge_cleanup_match_steps(grb, &grb->match_group.matches[i].result);
 	}
 }
 
@@ -499,7 +499,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb,
 			catcierge_path_sep(),
 			res->success ? "" : "fail",
 			m->time_str,
-			grb->match_count);
+			(int)grb->match_group.match_count);
 
 		snprintf(m->path, sizeof(m->path) - 1, "%s.png", base_path);
 
@@ -540,7 +540,7 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
-		m = &grb->matches[i];
+		m = &grb->match_group.matches[i];
 		res = &m->result;
 		CATLOG("Saving image %s\n", m->path);
 		cvSaveImage(m->path, m->img, 0);
@@ -582,20 +582,20 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 	{
 		catcierge_execute(args->save_imgs_cmd,
 			"%d %s %s %s %s %f %f %f %f %d %d %d %d %d",
-			grb->match_success, 				// %0 = Match success.
-			grb->matches[0].path,				// %1 = Image 1 path (of now saved image).
-			grb->matches[1].path,				// %2 = Image 2 path (of now saved image).
-			grb->matches[2].path,				// %3 = Image 3 path (of now saved image).
-			grb->matches[3].path,				// %4 = Image 4 path (of now saved image).
-			grb->matches[0].result.result,		// %5 = Image 1 result.
-			grb->matches[1].result.result,		// %6 = Image 2 result.
-			grb->matches[2].result.result,		// %7 = Image 3 result.
-			grb->matches[3].result.result,		// %8 = Image 4 result.
-			grb->matches[0].result.direction,	// %9 =  Image 1 direction.
-			grb->matches[1].result.direction,	// %10 = Image 2 direction.
-			grb->matches[2].result.direction,	// %11 = Image 3 direction.
-			grb->matches[3].result.direction,	// %12 = Image 4 direction.
-			direction); 						// %13 = Total direction.
+			grb->match_group.success, 						// %0 = Match success.
+			grb->match_group.matches[0].path,				// %1 = Image 1 path (of now saved image).
+			grb->match_group.matches[1].path,				// %2 = Image 2 path (of now saved image).
+			grb->match_group.matches[2].path,				// %3 = Image 3 path (of now saved image).
+			grb->match_group.matches[3].path,				// %4 = Image 4 path (of now saved image).
+			grb->match_group.matches[0].result.result,		// %5 = Image 1 result.
+			grb->match_group.matches[1].result.result,		// %6 = Image 2 result.
+			grb->match_group.matches[2].result.result,		// %7 = Image 3 result.
+			grb->match_group.matches[3].result.result,		// %8 = Image 4 result.
+			grb->match_group.matches[0].result.direction,	// %9 =  Image 1 direction.
+			grb->match_group.matches[1].result.direction,	// %10 = Image 2 direction.
+			grb->match_group.matches[2].result.direction,	// %11 = Image 3 direction.
+			grb->match_group.matches[3].result.direction,	// %12 = Image 4 direction.
+			direction); 									// %13 = Total direction.
 	}
 }
 
@@ -760,7 +760,8 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 		img = grb->img;
 
 		// Only try to show the match rectangles when we're in match mode.
-		if ((grb->match_count > 0) && (grb->match_count <= MATCH_MAX_COUNT))
+		if ((grb->match_group.match_count > 0)
+			&& (grb->match_group.match_count <= MATCH_MAX_COUNT))
 		{
 			size_t i;
 			CvScalar match_color;
@@ -769,7 +770,7 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 			// drawing the match rects since that might interfer with the match.
 			tmp_img = cvCloneImage(grb->img);
 
-			m = &grb->matches[grb->match_count - 1];
+			m = &grb->match_group.matches[grb->match_group.match_count - 1];
 			res = &m->result;
 
 			#ifdef RPI
@@ -978,9 +979,9 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 		// this is correct).
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
-			if (grb->matches[i].result.success)
+			if (grb->match_group.matches[i].result.success)
 			{
-				direction = grb->matches[i].result.direction;
+				direction = grb->match_group.matches[i].result.direction;
 			}
 		}
 	}
@@ -993,7 +994,7 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
-			switch (grb->matches[i].result.direction)
+			switch (grb->match_group.matches[i].result.direction)
 			{
 				case MATCH_DIR_IN: in_count++; break;
 				case MATCH_DIR_OUT: out_count++; break;
@@ -1018,6 +1019,16 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 	return direction;
 }
 
+int catcierge_decide_lock_status(catcierge_grb_t *grb)
+{
+	match_group_t *mg = &grb->match_group;
+	assert(grb);
+
+	// TODO: Move the lock deciding code in catcierge_state_matching here.
+
+	return 0;
+}
+
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args;
@@ -1028,7 +1039,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 
 	// TODO: Start a matchgroup timer here if grb->match_count == 0
 
-	match = &grb->matches[grb->match_count];
+	match = &grb->match_group.matches[grb->match_group.match_count];
 	result = &match->result;
 	memset(result, 0, sizeof(match_result_t));
 
@@ -1042,7 +1053,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	// TODO: Redo this function to add the match to the match group struct.
 	catcierge_process_match_result(grb, grb->img, match);
 
-	grb->match_count++;
+	grb->match_group.match_count++;
 
 	// Runs the --match_cmd program specified.
 	if (args->new_execute)
@@ -1060,7 +1071,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 
 	catcierge_show_image(grb);
 
-	if (grb->match_count < MATCH_MAX_COUNT)
+	if (grb->match_group.match_count < MATCH_MAX_COUNT)
 	{
 		// Continue until we have enough matches for a decision.
 		return 0;
@@ -1073,12 +1084,12 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		// TODO: grb->match_success and this direction to a "match group struct" instead.
 		// This means this can be refactored into a function as well.
 		match_direction_t direction;
-		grb->match_success = 0;
-		grb->match_success_count = 0;
+		grb->match_group.success = 0;
+		grb->match_group.success_count = 0;
 
 		for (i = 0; i < MATCH_MAX_COUNT; i++)
 		{
-			grb->match_success_count += !!grb->matches[i].result.success;
+			grb->match_group.success_count += !!grb->match_group.matches[i].result.success;
 		}
 
 		// Guess the direction.
@@ -1089,12 +1100,12 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		// so many false negatives.
 		if (direction == MATCH_DIR_OUT)
 		{
-			grb->match_success = 1;
+			grb->match_group.success = 1;
 		}
 		else
 		{
 			// Otherwise if enough matches (default 2) are ok.
-			grb->match_success = (grb->match_success_count >= args->ok_matches_needed);
+			grb->match_group.success = (grb->match_group.success_count >= args->ok_matches_needed);
 
 			// TODO: Let the matcher veto if the match group was successful:
 			// For instance call catcierge_haar_matcher_decide.
@@ -1103,10 +1114,10 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 			// Make this a command line option to enable.
 		}
 
-		if (grb->match_success)
+		if (grb->match_group.success)
 		{
 			CATLOG("Everything OK! (%d out of %d matches succeeded)"
-					" Door kept open...\n", grb->match_success_count, MATCH_MAX_COUNT);
+					" Door kept open...\n", grb->match_group.success_count, MATCH_MAX_COUNT);
 
 			if (grb->consecutive_lockout_count > 0)
 			{
@@ -1129,7 +1140,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		else
 		{
 			CATLOG("Lockout! %d out of %d matches failed.\n",
-					(MATCH_MAX_COUNT - grb->match_success_count), MATCH_MAX_COUNT);
+					(MATCH_MAX_COUNT - grb->match_group.success_count), MATCH_MAX_COUNT);
 
 			catcierge_check_max_consecutive_lockouts(grb);
 			catcierge_state_transition_lockout(grb);
@@ -1144,9 +1155,9 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		else
 		{
 			catcierge_execute(args->match_done_cmd, "%d %d %d", 
-				grb->match_success, 		// %0 = Match success.
-				grb->match_success_count,	// %1 = Successful match count.
-				MATCH_MAX_COUNT);			// %2 = Max matches.
+				grb->match_group.success, 		// %0 = Match success.
+				grb->match_group.success_count,	// %1 = Successful match count.
+				MATCH_MAX_COUNT);				// %2 = Max matches.
 		}
 
 		// Now we can save the images that we cached earlier 
@@ -1178,7 +1189,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 	if (frame_obstructed)
 	{
 		CATLOG("Something in frame! Start matching...\n");
-		grb->match_count = 0;
+		grb->match_group.match_count = 0;
 		catcierge_set_state(grb, catcierge_state_matching);
 	}
 

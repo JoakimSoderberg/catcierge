@@ -156,22 +156,22 @@ static char *run_save_steps_test()
 
 	// Some normal images.
 	load_test_image_and_run(&grb, 10, 1);
-	catcierge_test_STATUS("Step image count: %d", grb.matches[0].result.step_img_count);
-	mu_assert("Expected 10 step images", grb.matches[0].result.step_img_count == 11);
+	catcierge_test_STATUS("Step image count: %d", grb.match_group.matches[0].result.step_img_count);
+	mu_assert("Expected 10 step images", grb.match_group.matches[0].result.step_img_count == 11);
 	
 	load_test_image_and_run(&grb, 10, 2);
-	catcierge_test_STATUS("Step image count: %d", grb.matches[1].result.step_img_count);
-	mu_assert("Expected 10 step images", grb.matches[1].result.step_img_count == 11);
+	catcierge_test_STATUS("Step image count: %d", grb.match_group.matches[1].result.step_img_count);
+	mu_assert("Expected 10 step images", grb.match_group.matches[1].result.step_img_count == 11);
 
 	load_test_image_and_run(&grb, 6, 2); // Going out.
-	catcierge_test_STATUS("Step image count: %d", grb.matches[2].result.step_img_count);
-	mu_assert("Expected 4 step images", grb.matches[2].result.step_img_count == 4);
-	mu_assert("Got NULL image for used step image", grb.matches[2].result.steps[2].img != NULL);
-	mu_assert("Got non-NULL image for unused step image", grb.matches[2].result.steps[4].img == NULL);
+	catcierge_test_STATUS("Step image count: %d", grb.match_group.matches[2].result.step_img_count);
+	mu_assert("Expected 4 step images", grb.match_group.matches[2].result.step_img_count == 4);
+	mu_assert("Got NULL image for used step image", grb.match_group.matches[2].result.steps[2].img != NULL);
+	mu_assert("Got non-NULL image for unused step image", grb.match_group.matches[2].result.steps[4].img == NULL);
 
 	load_test_image_and_run(&grb, 10, 1);
-	catcierge_test_STATUS("Step image count: %d", grb.matches[3].result.step_img_count);
-	mu_assert("Expected 10 step images", grb.matches[3].result.step_img_count == 11);
+	catcierge_test_STATUS("Step image count: %d", grb.match_group.matches[3].result.step_img_count);
+	mu_assert("Expected 10 step images", grb.match_group.matches[3].result.step_img_count == 11);
 
 	catcierge_haar_matcher_destroy(&grb.haar);
 	catcierge_grabber_destroy(&grb);

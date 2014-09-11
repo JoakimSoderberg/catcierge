@@ -112,25 +112,25 @@ static char *run_generate_tests()
 		grb.args.ok_matches_needed = 4;
 		grb.args.max_consecutive_lockout_count = 20;
 		grb.args.consecutive_lockout_delay = 2.44;
-		strcpy(grb.matches[0].result.steps[0].path, "some/step/path");
-		grb.matches[0].result.steps[1].name = "the_step_name";
-		grb.matches[1].result.steps[6].description = "Step description";
-		grb.matches[1].result.step_img_count = 8;
-		strcpy(grb.matches[1].result.description, "prey found");
-		strcpy(grb.matches[0].path, "/some/path/omg1");
-		strcpy(grb.matches[1].path, "/some/path/omg2");
-		strcpy(grb.matches[2].path, "/some/path/omg3");
-		strcpy(grb.matches[3].path, "/some/path/omg4");
-		grb.matches[0].result.success = 4;
-		grb.matches[2].result.direction = MATCH_DIR_IN;
-		grb.matches[2].result.result = 0.8;
-		grb.matches[1].sha.Message_Digest[0] = 0x34AA973C;
-		grb.matches[1].sha.Message_Digest[1] = 0xD4C4DAA4;
-		grb.matches[1].sha.Message_Digest[2] = 0xF61EEB2B;
-		grb.matches[1].sha.Message_Digest[3] = 0xDBAD2731;
-		grb.matches[1].sha.Message_Digest[4] = 0x6534016F;
-		grb.match_success = 33;
-		grb.match_count = 3;
+		strcpy(grb.match_group.matches[0].result.steps[0].path, "some/step/path");
+		grb.match_group.matches[0].result.steps[1].name = "the_step_name";
+		grb.match_group.matches[1].result.steps[6].description = "Step description";
+		grb.match_group.matches[1].result.step_img_count = 8;
+		strcpy(grb.match_group.matches[1].result.description, "prey found");
+		strcpy(grb.match_group.matches[0].path, "/some/path/omg1");
+		strcpy(grb.match_group.matches[1].path, "/some/path/omg2");
+		strcpy(grb.match_group.matches[2].path, "/some/path/omg3");
+		strcpy(grb.match_group.matches[3].path, "/some/path/omg4");
+		grb.match_group.matches[0].result.success = 4;
+		grb.match_group.matches[2].result.direction = MATCH_DIR_IN;
+		grb.match_group.matches[2].result.result = 0.8;
+		grb.match_group.matches[1].sha.Message_Digest[0] = 0x34AA973C;
+		grb.match_group.matches[1].sha.Message_Digest[1] = 0xD4C4DAA4;
+		grb.match_group.matches[1].sha.Message_Digest[2] = 0xF61EEB2B;
+		grb.match_group.matches[1].sha.Message_Digest[3] = 0xDBAD2731;
+		grb.match_group.matches[1].sha.Message_Digest[4] = 0x6534016F;
+		grb.match_group.success = 33;
+		grb.match_group.match_count = 3;
 		catcierge_set_state(&grb, catcierge_state_waiting);
 
 		catcierge_test_STATUS("Run success tests");
@@ -223,9 +223,9 @@ char *run_add_and_generate_tests()
 
 		catcierge_test_STATUS("Add a third template");
 		{
-			grb.matches[1].time = time(NULL);
-			strcpy(grb.matches[1].path, "blafile");
-			grb.match_count = 3;
+			grb.match_group.matches[1].time = time(NULL);
+			strcpy(grb.match_group.matches[1].path, "blafile");
+			grb.match_group.match_count = 3;
 
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
@@ -247,9 +247,9 @@ char *run_add_and_generate_tests()
 			char buf[1024];
 			const char *named_template_path = NULL;
 			const char *default_template_path = NULL;
-			grb.matches[1].time = time(NULL);
-			strcpy(grb.matches[1].path, "thematchpath");
-			grb.match_count = 2;
+			grb.match_group.matches[1].time = time(NULL);
+			strcpy(grb.match_group.matches[1].path, "thematchpath");
+			grb.match_group.match_count = 2;
 
 			if (catcierge_output_add_template(o,
 				"%!event all\n"

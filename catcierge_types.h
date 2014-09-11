@@ -67,6 +67,7 @@ typedef struct match_step_s
 } match_step_t;
 
 // TODO: Maybe merge this with match_state_t.
+// This struct is passed to the matcher algorithm.
 typedef struct match_result_s
 {
 	double result;
@@ -84,13 +85,25 @@ typedef struct match_state_s
 {
 	char path[1024];				// Path to where the image for this match should be saved.
 	IplImage *img;					// A cached image of the match frame.
-	time_t time;					// The time of match.
+	time_t time; // TODO: Get rid of this and use tv.tv_sec instead, same value!
 	char time_str[1024];			// Time string of match (used in image filename).
 	struct timeval tv;
-	match_result_t result;
-	SHA1Context sha;
+	match_result_t result;			// Updated by the matcher algorithm.
+	SHA1Context sha;				// Used to generate match ID.
 } match_state_t;
 
 // TODO: Add a match_group_t struct here.
+typedef struct match_group_s
+{
+	SHA1Context sha;				// Used to generate match group ID.
+	match_state_t matches[MATCH_MAX_COUNT];
+	size_t match_count;				// The current match count, will go up to MATCH_MAX_COUNT.
+	int success;
+	int success_count;
+	char description[512];
+	match_direction_t direction;
+	struct timeval start_time;
+	struct timeval end_time;
+} match_group_t;
 
 #endif // __CATCIERGE_TYPES_H__

@@ -70,16 +70,14 @@ typedef struct catcierge_grb_s
 	CvCapture *capture;
 	#endif
 
-	IplImage *img;
+	IplImage *img; // The current camera frame.
 	catcierge_template_matcher_t matcher;
 	catcierge_haar_matcher_t haar;
-	int match_success;
-	int match_success_count;
 	int consecutive_lockout_count;
 
 	// Consecutive matches decides lockout status.
-	int match_count;						// The current match count, will go up to MATCH_MAX_COUNT.
-	match_state_t matches[MATCH_MAX_COUNT]; // Image cache of matches.
+	match_group_t match_group;
+
 	catcierge_timer_t rematch_timer;
 	catcierge_timer_t lockout_timer;
 	catcierge_timer_t frame_timer;

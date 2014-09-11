@@ -24,7 +24,7 @@ static char *run_tests()
 	// Load images so we can test the cleanup.
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
 	{
-		grb.matches[i].img = catcierge_get_frame(&grb);
+		grb.match_group.matches[i].img = catcierge_get_frame(&grb);
 	}
 
 	catcierge_test_STATUS("Test spinner with waiting state");
