@@ -447,17 +447,18 @@ static int catcierge_calculate_match_id(IplImage *img, match_state_t *m)
 	return 0;
 }
 
-static void catcierge_process_match_result(catcierge_grb_t *grb,
-				IplImage *img, match_state_t *m)
+static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 {
 	size_t j;
 	catcierge_args_t *args = NULL;
 	match_result_t *res = NULL;
+ 	match_state_t *m = NULL;
 	assert(grb);
 	assert(img);
-	assert(m);
+	assert(grb->match_group.match_count <= MATCH_MAX_COUNT);
 	args = &grb->args;
 
+	m = &grb->match_group.matches[grb->match_group.match_count];
 	res = &m->result;
 
 	// Get time of match and format.
@@ -798,14 +799,20 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 	}
 }
 
-double catcierge_do_match(catcierge_grb_t *grb, match_result_t *result)
+double catcierge_do_match(catcierge_grb_t *grb)
 {
 	double match_res = 0.0;
 	catcierge_args_t *args;
+	match_group_t *mg = &grb->match_group;
+	match_result_t *result;
+	match_state_t *match;
 	assert(grb);
 	args = &grb->args;
 
+	match = &mg->matches[mg->match_count];
+	result = &match->result;
 	catcierge_cleanup_match_steps(grb, result);
+	memset(result, 0, sizeof(match_result_t));
 
 	// TODO: Add a common type for these functions.
 	if (grb->args.matcher_type == MATCHER_TEMPLATE)
@@ -1114,25 +1121,18 @@ void catcierge_state_transition_lockout(catcierge_grb_t *grb)
 int catcierge_state_matching(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args;
-	match_state_t *match = NULL;
 	match_group_t *mg = &grb->match_group;
-	match_result_t *result;
 	assert(grb);
 	args = &grb->args;
 
-	match = &mg->matches[mg->match_count];
-	result = &match->result;
-	memset(result, 0, sizeof(match_result_t));
-
 	// We have something to match against.
-	if (catcierge_do_match(grb, result) < 0)
+	if (catcierge_do_match(grb) < 0)
 	{
 		CATERRFPS("Error when matching frame!\n");
 		return -1;
 	}
 
-	// TODO: Redo this function to add the match to the match group struct.
-	catcierge_process_match_result(grb, grb->img, match);
+	catcierge_process_match_result(grb, grb->img);
 	grb->match_group.match_count++;
 
 	// Runs the --match_cmd program specified.
@@ -1142,6 +1142,8 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	}
 	else
 	{
+		match_state_t *match = &mg->matches[mg->match_count];
+		match_result_t *result = &match->result;
 		catcierge_execute(args->match_cmd, "%f %d %s %d",
 				result->result, 					// %0 = Match result.
 				result->success,					// %1 = 0/1 succes or failure.
