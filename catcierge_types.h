@@ -92,7 +92,6 @@ typedef struct match_state_s
 	SHA1Context sha;				// Used to generate match ID.
 } match_state_t;
 
-// TODO: Add a match_group_t struct here.
 typedef struct match_group_s
 {
 	SHA1Context sha;				// Used to generate match group ID.
