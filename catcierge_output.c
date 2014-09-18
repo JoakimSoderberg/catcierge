@@ -577,7 +577,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		m = &grb->match_group.matches[idx];
 
-		if (idx >= grb->match_group.match_count)
+		if ((size_t)idx >= grb->match_group.match_count)
 		{
 			return "";
 		}
