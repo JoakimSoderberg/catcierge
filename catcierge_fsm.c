@@ -583,7 +583,6 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 			}
 		}
 
-		// TODO: Get rid of this.
 		if (args->new_execute)
 		{
 			catcierge_output_execute(grb, "save_img", args->save_img_cmd);
@@ -601,10 +600,9 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 		m->img = NULL;
 	}
 
-	// TODO: Replace this with "match_group_done"
 	if (args->new_execute)
 	{
-		catcierge_output_execute(grb, "save_imgs", args->save_imgs_cmd);
+		catcierge_output_execute(grb, "match_group_done", args->save_imgs_cmd);
 	}
 	else
 	{
@@ -986,7 +984,9 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 		catcierge_state_transition_lockout(grb);
 	}
 
-	gettimeofday(&mg->end_time, NULL);
+	gettimeofday(&mg->end_tv, NULL);
+	mg->end_time = time(NULL);
+
 	caticerge_calculate_matchgroup_id(mg);
 
 	if (args->new_execute)
@@ -1215,8 +1215,13 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 		CATLOG("Something in frame! Start matching...\n");
 
 		grb->match_group.match_count = 0;
-		gettimeofday(&mg->start_time, NULL);
-		memset(&mg->end_time, 0, sizeof(mg->end_time));
+
+		gettimeofday(&mg->start_tv, NULL);
+		mg->start_time = time(NULL);
+		
+		memset(&mg->end_tv, 0, sizeof(mg->end_tv));
+		mg->end_time = 0;
+		
 		mg->description[0] = '\0';
 
 		catcierge_set_state(grb, catcierge_state_matching);

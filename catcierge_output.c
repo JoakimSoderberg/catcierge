@@ -548,6 +548,19 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
+	if (!strcmp(var, "match_group_start_time"))
+	{
+		var += strlen("match_group_start_");
+		return catcierge_get_time_var_format(var, buf, bufsize,
+					"%Y-%m-%d %H:%M:%S.%f", mg->start_time, &mg->start_tv);
+	}
+
+	if (!strcmp(var, "match_group_end_time"))
+	{
+		var += strlen("match_group_end_");
+		return catcierge_get_time_var_format(var, buf, bufsize,
+					"%Y-%m-%d %H:%M:%S.%f", mg->end_time, &mg->end_tv);
+	}
 	if (!strcmp(var, "match_success"))
 	{
 		snprintf(buf, bufsize - 1, "%d", grb->match_group.success);

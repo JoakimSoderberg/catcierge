@@ -85,9 +85,11 @@ typedef struct match_state_s
 {
 	char path[1024];				// Path to where the image for this match should be saved.
 	IplImage *img;					// A cached image of the match frame.
-	time_t time; // TODO: Get rid of this and use tv.tv_sec instead, same value!
-	char time_str[1024];			// Time string of match (used in image filename).
 	struct timeval tv;
+	time_t time;					// We need this on Windows. 
+									// Since tv_sec in struct timeval is a long (32-bit) and time_t
+									// might be a 64-bit integer.
+	char time_str[1024];			// Time string of match (used in image filename).
 	match_result_t result;			// Updated by the matcher algorithm.
 	SHA1Context sha;				// Used to generate match ID.
 } match_state_t;
@@ -101,8 +103,10 @@ typedef struct match_group_s
 	int success_count;
 	char description[512];
 	match_direction_t direction;
-	struct timeval start_time;
-	struct timeval end_time;
+	struct timeval start_tv;
+	time_t start_time;
+	struct timeval end_tv;
+	time_t end_time;
 } match_group_t;
 
 #endif // __CATCIERGE_TYPES_H__

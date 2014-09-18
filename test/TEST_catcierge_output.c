@@ -230,6 +230,14 @@ char *run_add_and_generate_tests()
 		catcierge_test_STATUS("Add a third template");
 		{
 			grb.match_group.matches[1].time = time(NULL);
+			gettimeofday(&grb.match_group.matches[1].tv, NULL);
+
+			grb.match_group.start_time = time(NULL);
+			gettimeofday(&grb.match_group.start_tv, NULL);
+
+			grb.match_group.end_time = time(NULL);
+			gettimeofday(&grb.match_group.end_tv, NULL);
+
 			strcpy(grb.match_group.matches[1].path, "blafile");
 			grb.match_group.match_count = 3;
 
@@ -237,7 +245,8 @@ char *run_add_and_generate_tests()
 				"%!event all\n"
 				"Some awesome %match2_path% template. "
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
-				"And match time, %match2_time:@H:@M%",
+				"And match time, %match2_time:@H:@M%\n"
+				"%match_group_start_time% - %match_group_end_time%",
 				"the path"))
 			{
 				return "Failed to add template";
