@@ -488,8 +488,9 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 
 	// Get time of match and format.
 	m->img = NULL;
+	m->time = time(NULL); // TODO: Get rid of this and use tv.tv_sec instead, same thing.
 	gettimeofday(&m->tv, NULL);
-	get_time_str_fmt(&m->tv, m->time_str,
+	get_time_str_fmt(m->time, &m->tv, m->time_str,
 		sizeof(m->time_str), "%Y-%m-%d_%H_%M_%S.%f");
 
 	// Calculate match id from time + image data.

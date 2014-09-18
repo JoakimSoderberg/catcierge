@@ -229,7 +229,7 @@ char *run_add_and_generate_tests()
 
 		catcierge_test_STATUS("Add a third template");
 		{
-			gettimeofday(&grb.match_group.matches[1].tv, NULL);
+			grb.match_group.matches[1].time = time(NULL);
 			strcpy(grb.match_group.matches[1].path, "blafile");
 			grb.match_group.match_count = 3;
 
@@ -253,7 +253,7 @@ char *run_add_and_generate_tests()
 			char buf[1024];
 			const char *named_template_path = NULL;
 			const char *default_template_path = NULL;
-			gettimeofday(&grb.match_group.matches[1].tv, NULL);
+			grb.match_group.matches[1].time = time(NULL);
 			strcpy(grb.match_group.matches[1].path, "thematchpath");
 			grb.match_group.match_count = 2;
 
