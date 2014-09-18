@@ -449,6 +449,8 @@ static char *catcierge_get_template_path(catcierge_grb_t *grb, const char *var)
 const char *catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var)
 {
+	match_group_t *mg = &grb->match_group;
+
 	if (!strncmp(var, "template_path", 13))
 	{
 		return catcierge_get_template_path(grb, var);
@@ -532,6 +534,17 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	if (!strcmp(var, "lockout_time"))
 	{
 		snprintf(buf, bufsize - 1, "%d", grb->args.lockout_time);
+		return buf;
+	}
+
+	if (!strcmp(var, "match_group_id"))
+	{
+		snprintf(buf, bufsize - 1, "%x%x%x%x%x",
+				mg->sha.Message_Digest[0],
+				mg->sha.Message_Digest[1],
+				mg->sha.Message_Digest[2],
+				mg->sha.Message_Digest[3],
+				mg->sha.Message_Digest[4]);
 		return buf;
 	}
 

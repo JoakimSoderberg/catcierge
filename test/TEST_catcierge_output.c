@@ -75,12 +75,13 @@ static char *run_generate_tests()
 			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg3" },
 			{ "%match4_path%", "" }, // Match count is only 3, so this should be empty.
 			{ "%match_count%", "3" },
+			{ "%match_group_id%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
 			{ "%match1_step1_path%", "some/step/path" },
 			{ "%match1_step2_name%", "the_step_name" },
 			{ "%match2_step7_desc%", "Step description" },
 			{ "%match2_step7_active%", "0" },
 			{ "%match2_step_count%", "8" },
-			{ "%match2_id%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f"},
+			{ "%match2_id%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
 			{ "%git_hash%", CATCIERGE_GIT_HASH },
 			{ "%git_hash_short%", CATCIERGE_GIT_HASH_SHORT },
 			{ "%git_tainted%", _XSTR(CATCIERGE_GIT_TAINTED) },
@@ -131,6 +132,11 @@ static char *run_generate_tests()
 		grb.match_group.matches[1].sha.Message_Digest[4] = 0x6534016F;
 		grb.match_group.success = 33;
 		grb.match_group.match_count = 3;
+		grb.match_group.sha.Message_Digest[0] = 0x34AA973C;
+		grb.match_group.sha.Message_Digest[1] = 0xD4C4DAA4;
+		grb.match_group.sha.Message_Digest[2] = 0xF61EEB2B;
+		grb.match_group.sha.Message_Digest[3] = 0xDBAD2731;
+		grb.match_group.sha.Message_Digest[4] = 0x6534016F;
 		catcierge_set_state(&grb, catcierge_state_waiting);
 
 		catcierge_test_STATUS("Run success tests");
