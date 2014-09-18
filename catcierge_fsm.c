@@ -447,6 +447,32 @@ static int catcierge_calculate_match_id(IplImage *img, match_state_t *m)
 	return 0;
 }
 
+static int caticerge_calculate_matchgroup_id(match_group_t *mg)
+{
+	size_t i;
+	size_t j;
+	match_state_t *m;
+	assert(mg);
+
+	SHA1Reset(&mg->sha);
+
+	for (i = 0; i < mg->match_count; i++)
+	{
+		m = &mg->matches[i];
+
+		SHA1Input(&mg->sha,
+				(const unsigned char *)&m->sha.Message_Digest,
+				5 * sizeof(m->sha.Message_Digest[0]));
+	}
+
+	if (!SHA1Result(&mg->sha))
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
 static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 {
 	size_t j;
@@ -558,6 +584,7 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 			}
 		}
 
+		// TODO: Get rid of this.
 		if (args->new_execute)
 		{
 			catcierge_output_execute(grb, "save_img", args->save_img_cmd);
@@ -575,6 +602,7 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 		m->img = NULL;
 	}
 
+	// TODO: Replace this with "match_group_done"
 	if (args->new_execute)
 	{
 		catcierge_output_execute(grb, "save_imgs", args->save_imgs_cmd);
@@ -960,6 +988,7 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 	}
 
 	gettimeofday(&mg->end_time, NULL);
+	caticerge_calculate_matchgroup_id(mg);
 
 	if (args->new_execute)
 	{
