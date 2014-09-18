@@ -31,10 +31,10 @@
 
 int catcierge_nocolor = 0;
 
-char *get_time_str_fmt(time_t t, struct timeval *tv, char *time_str, size_t len, const char *fmt)
+char *get_time_str_fmt(struct timeval *tv, char *time_str, size_t len, const char *fmt)
 {
 	struct tm tm;
-	localtime_r(&t, &tm);
+	localtime_r(&tv->tv_sec, &tm);
 
 	if (catcierge_strftime(time_str, len, fmt, &tm, tv))
 	{
@@ -49,7 +49,7 @@ char *get_time_str(char *time_str, size_t len)
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 
-	return get_time_str_fmt(time(NULL), &tv, time_str, len, "%Y-%m-%d %H:%M:%S.%f");
+	return get_time_str_fmt(&tv, time_str, len, "%Y-%m-%d %H:%M:%S.%f");
 }
 
 void log_vprintf(FILE *target, enum catcierge_color_e print_color, const char *fmt, va_list args)

@@ -85,7 +85,6 @@ typedef struct match_state_s
 {
 	char path[1024];				// Path to where the image for this match should be saved.
 	IplImage *img;					// A cached image of the match frame.
-	time_t time; // TODO: Get rid of this and use tv.tv_sec instead, same value!
 	char time_str[1024];			// Time string of match (used in image filename).
 	struct timeval tv;
 	match_result_t result;			// Updated by the matcher algorithm.

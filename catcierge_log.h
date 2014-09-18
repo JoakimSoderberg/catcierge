@@ -26,7 +26,7 @@
 
 extern int catcierge_nocolor;
 
-char *get_time_str_fmt(time_t t, struct timeval *tv, char *time_str, size_t len, const char *fmt);
+char *get_time_str_fmt(struct timeval *tv, char *time_str, size_t len, const char *fmt);
 char *get_time_str(char *time_str, size_t len);
 void log_printc(FILE *fd, enum catcierge_color_e print_color, const char *fmt, ...);
 void log_print_csv(FILE *fd, const char *fmt, ...);
