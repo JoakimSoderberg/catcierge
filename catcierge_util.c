@@ -471,3 +471,44 @@ fail:
 	return NULL;
 }
 
+char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
+{
+	#ifdef _WIN32
+	int ret = 0;
+
+	if (!(GetFullPathName(path, buflen, buf, NULL)))
+	{
+		return NULL;
+	}
+
+	return buf;
+
+	#else
+
+	char *real_path = NULL;
+	assert(buf);
+	buflen--; // To fit '\0'
+
+	if (!path || (buflen <= 0))
+		return NULL;
+
+	if (!(real_path = realpath(path, NULL)))
+	{
+		return NULL;
+	}
+
+	if (strlen(real_path) > buflen)
+	{
+		free(real_path);
+		return NULL;
+	}
+
+	strncpy(buf, real_path, buflen);
+	buf[buflen] = '\0';
+	free(real_path);
+
+	return buf;
+	#endif // _WIN32
+}
+
+
