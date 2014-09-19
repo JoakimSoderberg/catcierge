@@ -55,6 +55,7 @@ catcierge_output_var_t vars[] =
 	{ "match_desc", "Match description."},
 	{ "match#_id", "Unique ID for match #." },
 	{ "match#_path", "Image path for match #." },
+	{ "match#_abs_path", "Absolute image path for match #." },
 	{ "match#_success", "Success status for match #." },
 	{ "match#_direction", "Direction for match #." },
 	{ "match#_description", "Description of match #." },
@@ -78,6 +79,9 @@ catcierge_output_var_t vars[] =
 	{ "git_hash_short", "The short version of the git commit hash."},
 	{ "git_tainted", "Was the git working tree changed when building."},
 	{ "version", "The catcierge version." },
+	{ "cwd", "Current working directory." },
+	{ "output_path", "The output path." },
+	{ "abs_output_path", "Absolute output path." },
 };
 
 void catcierge_output_print_usage()
@@ -491,14 +495,53 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
+	if (!strcmp(var, "git_tainted"))
+	{
+		snprintf(buf, bufsize - 1, "%d", CATCIERGE_GIT_TAINTED);
+		return buf;
+	}
+
 	if (!strcmp(var, "version"))
 	{
 		return CATCIERGE_VERSION_STR;
 	}
 
+	if (!strcmp(var, "cwd"))
+	{
+		if (!getcwd(buf, bufsize - 1))
+		{
+			CATERR("Failed to get cwd\n");
+			return NULL;
+		}
+
+		return buf;
+	}
+
+	if (!strcmp(var, "output_path"))
+	{
+		return grb->args.output_path;
+	}
+
+	if (!strcmp(var, "abs_output_path"))
+	{
+		if (!catcierge_get_abs_path(grb->args.output_path, buf, bufsize))
+		{
+			// If we fail simply return the relative path
+			// (The directory might not exist on the file system).
+			return grb->args.output_path;
+		}
+
+		return buf;
+	}
+
 	if (!strcmp(var, "matcher"))
 	{
 		return grb->args.matcher;
+	}
+
+	if (grb->args.matcher && !strncmp(var, grb->args.matcher, strlen(grb->args.matcher)))
+	{
+		// TODO: Pass the output generation to the matcher so it can return its settings.
 	}
 
 	if (!strcmp(var, "ok_matches_needed"))
@@ -611,6 +654,19 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		if (!strcmp(subvar, "path"))
 		{
 			return m->path;
+		}
+		else if (!strcmp(subvar, "abs_path"))
+		{
+			if (!catcierge_get_abs_path(m->path, buf, bufsize))
+			{
+				return m->path;
+			}
+
+			return buf;
+		}
+		else if (!strcmp(subvar, "filename"))
+		{
+			return m->filename;
 		}
 		else if (!strcmp(subvar, "id"))
 		{

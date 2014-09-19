@@ -511,6 +511,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 		m->sha.Message_Digest[4]);
 
 	m->path[0] = '\0';
+	m->filename[0] = '\0';
 
 	// Save match image.
 	// (We don't write to disk yet, that will slow down the matching).
@@ -518,18 +519,22 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 	{
 		char base_path[1024];
 
+		// TODO: Enable setting this via template variables instead.
 		snprintf(base_path,
 			sizeof(base_path) - 1,
-			"%s%smatch_%s_%s__%d",
-			args->output_path ? args->output_path : ".",
-			catcierge_path_sep(),
+			"match_%s_%s__%d",
 			res->success ? "" : "fail",
 			m->time_str,
 			(int)grb->match_group.match_count);
 
-		snprintf(m->path, sizeof(m->path) - 1, "%s.png", base_path);
+		snprintf(m->filename, sizeof(m->filename) - 1, "%s.png", base_path);
+		snprintf(m->path, sizeof(m->path) - 1, "%s%s%s",
+			args->output_path ? args->output_path : ".",
+			catcierge_path_sep(),
+			m->filename);
 
 		m->img = cvCloneImage(img);
+		// TODO: Add option to save the image right away also.
 
 		if (args->save_steps)
 		{

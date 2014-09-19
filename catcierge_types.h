@@ -83,7 +83,8 @@ typedef struct match_result_s
 // The state of a single match.
 typedef struct match_state_s
 {
-	char path[1024];				// Path to where the image for this match should be saved.
+	char path[4096];				// Path to where the image for this match should be saved.
+	char filename[1024];			// Name of the file only.
 	IplImage *img;					// A cached image of the match frame.
 	struct timeval tv;
 	time_t time;					// We need this on Windows. 

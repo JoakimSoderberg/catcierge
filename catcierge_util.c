@@ -269,6 +269,7 @@ void catcierge_execute(char *command, char *fmt, ...)
 	catcierge_run(buf);
 }
 
+// TODO: Move this to a "matcher common" file instead.
 int catcierge_is_frame_obstructed(IplImage *img, int debug)
 {
 	CvSize size;

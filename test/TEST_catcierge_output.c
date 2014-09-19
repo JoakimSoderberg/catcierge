@@ -238,16 +238,22 @@ char *run_add_and_generate_tests()
 			grb.match_group.end_time = time(NULL);
 			gettimeofday(&grb.match_group.end_tv, NULL);
 
-			strcpy(grb.match_group.matches[1].path, "blafile");
+			strcpy(grb.match_group.matches[1].filename, "blafile.png");
+			strcpy(grb.match_group.matches[1].path, "tut/blafile.png");
 			grb.match_group.match_count = 3;
 
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
-				"Some awesome %match2_path% template. "
+				"Some awesome \"%match2_path%\" template.\n"
+				"Absolute awesome %match2_abs_path%\n"
+				"Absolute awesome %match2_filename%\n"
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
 				"And match time, %match2_time:@H:@M%\n"
-				"%match_group_start_time% - %match_group_end_time%",
-				"the path"))
+				"%match_group_start_time% - %match_group_end_time%\n"
+				"CWD:%cwd%\n"
+				"Output path: %output_path%\n"
+				"Abs output path: %abs_output_path%\n",
+				"the path2"))
 			{
 				return "Failed to add template";
 			}
