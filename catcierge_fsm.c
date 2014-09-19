@@ -1170,7 +1170,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	}
 	else
 	{
-		match_state_t *match = &mg->matches[mg->match_count];
+		match_state_t *match = &mg->matches[mg->match_count - 1];
 		match_result_t *result = &match->result;
 		catcierge_execute(args->match_cmd, "%f %d %s %d",
 				result->result, 					// %0 = Match result.

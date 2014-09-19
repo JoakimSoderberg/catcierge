@@ -474,7 +474,7 @@ fail:
 char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
 {
 	#ifdef _WIN32
-	int ret = 0;
+	DWORD ret = 0;
 	buf[0] = '\0';
 
 	if (!path || (buflen <= 0))
