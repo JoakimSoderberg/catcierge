@@ -475,11 +475,18 @@ char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
 {
 	#ifdef _WIN32
 	int ret = 0;
+	buf[0] = '\0';
 
-	if (!(GetFullPathName(path, buflen, buf, NULL)))
+	if (!path || (buflen <= 0))
+		return NULL;
+
+	if (!(ret = GetFullPathName(path, buflen, buf, NULL)))
 	{
 		return NULL;
 	}
+
+	if (ret >= buflen)
+		return NULL;
 
 	return buf;
 
