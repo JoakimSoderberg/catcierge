@@ -20,7 +20,7 @@
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "catcierge_common_matcher.h"
+#include "catcierge_matcher.h"
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
 #include "catcierge_util.h"

@@ -16,8 +16,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
-#ifndef __CATCIERGE_COMMON_MATCHER_H__
-#define __CATCIERGE_COMMON_MATCHER_H__
+#ifndef __CATCIERGE_MATCHER_H__
+#define __CATCIERGE_MATCHER_H__
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
@@ -30,7 +30,7 @@ typedef double (*catcierge_match_func_t)(void *ctx,
 typedef int (*catcierge_decide_func_t)(void *ctx, match_group_t *mg);
 
 // TODO: Totally abstract the matchers into this file. External code should just have to ask for a matcher type. How to solve for the args parsing?
-typedef struct catcierge_common_matcher_s
+typedef struct catcierge_matcher_s
 {
 	catcierge_matcher_type_t type;
 	catcierge_match_func_t match;

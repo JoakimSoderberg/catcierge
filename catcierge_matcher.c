@@ -22,7 +22,7 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
-#include "catcierge_common_matcher.h"
+#include "catcierge_matcher.h"
 
 int catcierge_is_frame_obstructed(IplImage *img, int debug)
 {

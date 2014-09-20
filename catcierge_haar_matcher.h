@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include "catcierge_haar_wrapper.h"
 #include "catcierge_types.h"
-#include "catcierge_common_matcher.h"
+#include "catcierge_matcher.h"
 
 #define HAAR_FAIL 0.0
 #define HAAR_SUCCESS 1.0
