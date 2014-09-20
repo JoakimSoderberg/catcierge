@@ -47,12 +47,18 @@ catcierge_output_var_t vars[] =
 	{ "matcher", "The matching algorithm used."},
 	{ "matchtime", "Value of --matchtime."},
 	{ "ok_matches_needed", "Value of --ok_matches_needed" },
+	{ "no_final_decision", "Value of --no_final_decision" },
 	{ "lockout_method", "Value of --lockout_method." },
 	{ "lockout_time", "Value of --lockout_time." },
 	{ "lockout_error", "Value of --lockout_error." },
 	{ "lockout_error_delay", "Value of --lockout_error_delay."},
-	{ "match_success", "Match success status."},
-	{ "match_desc", "Match description."},
+	{ "match_group_success", "Match group success status."},
+	{ "match_group_success_count", "Match group success count."},
+	{ "match_group_final_decision", "Did the match group veto the final decision?"},
+	{ "match_group_desc", "Match group description."},
+	{ "match_group_direction", "The match group direction (based on all match directions)."},
+	{ "match_group_count", "Match group count o matches so far."},
+	{ "match_group_max_count", "Match group max number of matches that will be made."},
 	{ "match#_id", "Unique ID for match #." },
 	{ "match#_path", "Image path for match #." },
 	{ "match#_abs_path", "Absolute image path for match #." },
@@ -81,7 +87,7 @@ catcierge_output_var_t vars[] =
 	{ "version", "The catcierge version." },
 	{ "cwd", "Current working directory." },
 	{ "output_path", "The output path." },
-	{ "abs_output_path", "Absolute output path." },
+	{ "abs_output_path", "Absolute output path ." },
 };
 
 void catcierge_output_print_usage()
@@ -550,6 +556,12 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
+	if (!strcmp(var, "no_final_decision"))
+	{
+		snprintf(buf, bufsize - 1, "%d", grb->args.no_final_decision);
+		return buf;
+	}
+
 	if (!strcmp(var, "matchtime"))
 	{
 		snprintf(buf, bufsize - 1, "%d", grb->args.match_time);
@@ -604,15 +616,47 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return catcierge_get_time_var_format(var, buf, bufsize,
 					"%Y-%m-%d %H:%M:%S.%f", mg->end_time, &mg->end_tv);
 	}
-	if (!strcmp(var, "match_success"))
+
+	if (!strcmp(var, "match_group_success")
+	 || !strcmp(var, "match_success"))
 	{
 		snprintf(buf, bufsize - 1, "%d", grb->match_group.success);
 		return buf;
 	}
 
-	if (!strcmp(var, "match_count"))
+	if (!strcmp(var, "match_group_success_count"))
+	{
+		snprintf(buf, bufsize - 1, "%d", grb->match_group.success_count);
+		return buf;
+	}
+
+	if (!strcmp(var, "match_group_final_decision"))
+	{
+		snprintf(buf, bufsize - 1, "%d", grb->match_group.final_decision);
+		return buf;
+	}
+
+	if (!strcmp(var, "match_group_direction"))
+	{
+		return catcierge_get_direction_str(grb->match_group.direction);
+	}
+
+	if (!strcmp(var, "match_group_description")
+	 || !strcmp(var, "match_group_desc"))
+	{
+		return grb->match_group.description;
+	}
+
+	if (!strcmp(var, "match_group_count")
+	 || !strcmp(var, "match_count"))
 	{
 		snprintf(buf, bufsize - 1, "%d", (int)grb->match_group.match_count);
+		return buf;
+	}
+
+	if (!strcmp(var, "match_group_max_count"))
+	{
+		snprintf(buf, bufsize - 1, "%d", MATCH_MAX_COUNT);
 		return buf;
 	}
 

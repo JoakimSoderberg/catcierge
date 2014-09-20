@@ -586,7 +586,8 @@ int catcierge_haar_matcher_decide(void *ctx, match_group_t *mg)
 		snprintf(mg->description, sizeof(mg->description),
 			"%s", "No head found in any image");
 
-		mg->success = 0;
+		mg->final_decision = 1;
+		return 0;
 	}
 
 	return mg->success;

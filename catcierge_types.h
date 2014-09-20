@@ -102,6 +102,7 @@ typedef struct match_group_s
 	size_t match_count;				// The current match count, will go up to MATCH_MAX_COUNT.
 	int success;
 	int success_count;
+	int final_decision;				// Was the match decision overriden by the matcher?
 	char description[512];
 	match_direction_t direction;
 	struct timeval start_tv;

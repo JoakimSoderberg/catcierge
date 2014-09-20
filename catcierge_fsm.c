@@ -949,8 +949,16 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 		mg->success = (mg->success_count >= args->ok_matches_needed);
 
 		// Let the matcher veto if the match group was successful.
-		// TODO: Make this a command line option to enable.
-		grb->common_matcher.decide(catcierge_get_matcher_context(grb), mg);
+		if (!args->no_final_decision)
+		{
+			assert(mg->final_decision == 0);
+			mg->success = grb->common_matcher.decide(catcierge_get_matcher_context(grb), mg);
+
+			if (mg->final_decision)
+			{
+				CATLOG("Match group vetoed match success: %s\n", mg->description);
+			}
+		}
 	}
 
 	if (mg->success)

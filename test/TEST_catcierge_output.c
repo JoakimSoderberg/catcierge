@@ -75,7 +75,13 @@ static char *run_generate_tests()
 			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg3" },
 			{ "%match4_path%", "" }, // Match count is only 3, so this should be empty.
 			{ "%match_count%", "3" },
+			{ "%match_group_count%", "3" },
+			{ "%match_group_final_decision%", "1" },
+			{ "%match_group_success_count%", "3" },
+			{ "%match_group_max_count%", _XSTR(MATCH_MAX_COUNT) },
 			{ "%match_group_id%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
+			{ "%match_group_desc%", "hej" },
+			{ "%match_group_description%", "hej" },
 			{ "%match1_step1_path%", "some/step/path" },
 			{ "%match1_step2_name%", "the_step_name" },
 			{ "%match2_step7_desc%", "Step description" },
@@ -114,9 +120,12 @@ static char *run_generate_tests()
 		grb.args.max_consecutive_lockout_count = 20;
 		grb.args.consecutive_lockout_delay = 2.44;
 		strcpy(grb.match_group.matches[0].result.steps[0].path, "some/step/path");
+		grb.match_group.success_count = 3;
+		grb.match_group.final_decision = 1;
 		grb.match_group.matches[0].result.steps[1].name = "the_step_name";
 		grb.match_group.matches[1].result.steps[6].description = "Step description";
 		grb.match_group.matches[1].result.step_img_count = 8;
+		strcpy(grb.match_group.description, "hej");
 		strcpy(grb.match_group.matches[1].result.description, "prey found");
 		strcpy(grb.match_group.matches[0].path, "/some/path/omg1");
 		strcpy(grb.match_group.matches[1].path, "/some/path/omg2");

@@ -191,6 +191,13 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return 0;
 	}
 
+	if (!strcmp(key, "no_final_decision"))
+	{
+		args->no_final_decision = 1;
+		if (value_count == 1) args->no_final_decision = atoi(values[0]);
+		return 0;
+	}
+
 	if (!strcmp(key, "output"))
 	{
 		if (value_count == 1)
@@ -535,6 +542,10 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "                        accurate if a well trained cascade exists for your cat.\n");
 	fprintf(stderr, "                        Template matcher is simpler, but doesn't require a trained cascade\n");
 	fprintf(stderr, "                        this is useful while gathering enough data to train the cascade.\n");
+	fprintf(stderr, " --no_final_decision    Normally after all matches in a match group has been made\n");
+	fprintf(stderr, "                        the matcher algorithm gets to do a final decision based on\n");
+	fprintf(stderr, "                        the entire group of matches which overrides the \"--ok_matches_needed\"\n");
+	fprintf(stderr, "                        setting. This flag turns this behavior off.\n");
 	fprintf(stderr, "Haar cascade matcher:\n");
 	fprintf(stderr, "---------------------\n");
 	catcierge_haar_matcher_usage();

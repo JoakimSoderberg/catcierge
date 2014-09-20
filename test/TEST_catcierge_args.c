@@ -153,8 +153,9 @@ char *run_parse_args_tests()
 		(ret == 0) && (args.ok_matches_needed == 2));
 	PARSE_SETTING("ok_matches_needed 20", "Expected too big value",
 		(ret == -1));
-	PARSE_SETTING("ok_matches_needed", "Expected template matcher",
+	PARSE_SETTING("ok_matches_needed", "Expected value for input",
 		(ret == -1));
+	PARSE_SINGLE_SETTING("no_final_decision", args.no_final_decision, 1);
 
 	PARSE_SETTING("lockout_method 1", "Expected valid parse OBSTRUCT_OR_TIMER_1",
 		(ret == 0) && (args.lockout_method == OBSTRUCT_OR_TIMER_1));
