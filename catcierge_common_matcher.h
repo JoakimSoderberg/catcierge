@@ -32,10 +32,20 @@ typedef int (*catcierge_decide_func_t)(void *ctx, match_group_t *mg);
 // TODO: Totally abstract the matchers into this file. External code should just have to ask for a matcher type. How to solve for the args parsing?
 typedef struct catcierge_common_matcher_s
 {
+	catcierge_matcher_type_t type;
 	catcierge_match_func_t match;
 	catcierge_decide_func_t decide;
-} catcierge_common_matcher_t;
+} catcierge_matcher_t;
+
+typedef struct catcierge_matcher_args_s
+{
+	catcierge_matcher_type_t type;
+} catcierge_matcher_args_t;
 
 int catcierge_is_frame_obstructed(IplImage *img, int debug);
+
+int catcierge_matcher_init(catcierge_matcher_t *ctx, catcierge_matcher_args_t *args);
+void catcierge_matcher_destroy(catcierge_matcher_t *ctx);
+
 
 #endif // __CATCIERGE_COMMON_MATCHER_H__

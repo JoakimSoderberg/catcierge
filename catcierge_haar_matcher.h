@@ -67,7 +67,7 @@ typedef struct catcierge_haar_matcher_s
 typedef int (*find_prey_f)(catcierge_haar_matcher_t *ctx,
 		IplImage *img, IplImage *inv_thr_img, match_result_t *result, int save_steps);
 
-int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_common_matcher_t *common, catcierge_haar_matcher_args_t *args);
+int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_matcher_t *common, catcierge_haar_matcher_args_t *args);
 void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx);
 double catcierge_haar_matcher_match(void *ctx, IplImage *img, match_result_t *result, int save_steps);
 int catcierge_haar_matcher_decide(void *ctx, match_group_t *mg);

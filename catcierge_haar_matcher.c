@@ -8,7 +8,7 @@
 #include <opencv2/core/core_c.h>
 
 int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx,
-	catcierge_common_matcher_t *common, catcierge_haar_matcher_args_t *args)
+	catcierge_matcher_t *common, catcierge_haar_matcher_args_t *args)
 {
 	assert(args);
 	assert(ctx);

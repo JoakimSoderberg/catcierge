@@ -55,7 +55,7 @@ static int parse_arg(catcierge_template_matcher_args_t *args,
 int main(int argc, char **argv)
 {
 	int ret = 0;
-	catcierge_common_matcher_t common;
+	catcierge_matcher_t common;
 	catcierge_template_matcher_t ctx;
 	catcierge_haar_matcher_t hctx;
 	char *img_paths[4096];

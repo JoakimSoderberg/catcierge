@@ -72,7 +72,7 @@ typedef struct catcierge_grb_s
 
 	IplImage *img; // The current camera frame.
 
-	catcierge_common_matcher_t common_matcher;
+	catcierge_matcher_t common_matcher;
 	catcierge_template_matcher_t matcher;
 	catcierge_haar_matcher_t haar;
 	

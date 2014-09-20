@@ -87,7 +87,7 @@ void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int
 }
 
 int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx,
-	catcierge_common_matcher_t *common, catcierge_template_matcher_args_t *args)
+	catcierge_matcher_t *common, catcierge_template_matcher_args_t *args)
 {
 	int i;
 	CvSize snout_size;

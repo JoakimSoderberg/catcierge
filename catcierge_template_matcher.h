@@ -62,7 +62,7 @@ typedef struct catcierge_template_matcher_s
 } catcierge_template_matcher_t;
 
 int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx,
-	catcierge_common_matcher_t *common, catcierge_template_matcher_args_t *args);
+	catcierge_matcher_t *common, catcierge_template_matcher_args_t *args);
 
 void catcierge_template_matcher_set_match_flipped(catcierge_template_matcher_t *ctx, int match_flipped);
 void catcierge_template_matcher_set_match_threshold(catcierge_template_matcher_t *ctx, double match_threshold);
