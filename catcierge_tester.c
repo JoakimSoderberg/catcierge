@@ -55,9 +55,7 @@ static int parse_arg(catcierge_template_matcher_args_t *args,
 int main(int argc, char **argv)
 {
 	int ret = 0;
-	catcierge_matcher_t common;
-	catcierge_template_matcher_t ctx;
-	catcierge_haar_matcher_t hctx;
+	catcierge_matcher_t *matcher = NULL;
 	char *img_paths[4096];
 	IplImage *imgs[4096];
 	size_t img_count = 0;
@@ -76,7 +74,7 @@ int main(int argc, char **argv)
 	int success_count = 0;
 	int preload = 0;
 	int test_matchable = 0;
-	const char *matcher = NULL;
+	const char *matcher_str = NULL;
 	match_result_t result;
 
 	clock_t start;
@@ -168,11 +166,11 @@ int main(int argc, char **argv)
 				if (strncmp(argv[i+1], "--", 2))
 				{
 					i++;
-					matcher = argv[i];
+					matcher_str = argv[i];
 
-					if (strcmp(matcher, "template") && strcmp(matcher, "haar"))
+					if (strcmp(matcher_str, "template") && strcmp(matcher_str, "haar"))
 					{
-						fprintf(stderr, "Invalid matcher type \"%s\"\n", matcher);
+						fprintf(stderr, "Invalid matcher type \"%s\"\n", matcher_str);
 						return -1;
 					}
 				}
@@ -210,19 +208,19 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (!matcher)
+	if (!matcher_str)
 	{
 		fprintf(stderr, "You must specify a matcher type\n");
 		return -1;
 	}
 
-	if (!strcmp(matcher, "template") && (args.snout_count == 0))
+	if (!strcmp(matcher_str, "template") && (args.snout_count == 0))
 	{
 		fprintf(stderr, "No snout image specified\n");
 		return -1;
 	}
 
-	if (!strcmp(matcher, "haar") && !hargs.cascade)
+	if (!strcmp(matcher_str, "haar") && !hargs.cascade)
 	{
 		fprintf(stderr, "No haar cascade specified\n");
 		return -1;
@@ -246,25 +244,19 @@ int main(int argc, char **argv)
 		system(cmd);
 	}
 
-	if (!strcmp(matcher, "template"))
+	args.super.type = MATCHER_TEMPLATE;
+	hargs.super.type = MATCHER_HAAR;
+
+	if (catcierge_matcher_init(&matcher,
+		(!strcmp(matcher_str, "template")
+		? (catcierge_matcher_args_t *)&args
+		: (catcierge_matcher_args_t *)&hargs)))
 	{
-		if (catcierge_template_matcher_init(&ctx, &common, &args))
-		{
-			fprintf(stderr, "Failed to init template matcher\n");
+		fprintf(stderr, "Failed to init %s matcher.\n", matcher_str);
 			return -1;
-		}
-	}
-	else
-	{
-		if (catcierge_haar_matcher_init(&hctx, &common, &hargs))
-		{
-			fprintf(stderr, "Failed to init haar matcher.\n");
-			return -1;
-		}
 	}
 
-	catcierge_template_matcher_set_debug(&ctx, debug);
-	catcierge_haar_matcher_set_debug(&hctx, debug);
+	matcher->debug = debug;
 	//catcierge_set_binary_thresholds(&ctx, 90, 200);
 
 	// If we should preload the images or not
@@ -335,24 +327,12 @@ int main(int argc, char **argv)
 
 			printf("  Image size: %dx%d\n", img_size.width, img_size.height);
 
-			if (!strcmp(matcher, "template"))
+
+			if ((match_res = matcher->match(matcher, img, &result, 0)) < 0)
 			{
-				if ((match_res = catcierge_template_matcher_match(&ctx, img, &result, 0)) < 0)
-				{
-					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
-					catcierge_template_matcher_destroy(&ctx);
-					return -1;
-				}
-			}
-			else
-			{
-				// TODO: Add suppor for --save_steps
-				if ((match_res = catcierge_haar_matcher_match(&hctx, img, &result, 1)) < 0)
-				{
-					fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
-					catcierge_haar_matcher_destroy(&hctx);
-					return -1;
-				}
+				fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
+				catcierge_matcher_destroy(&matcher);
+				return -1;
 			}
 
 			match_success = (match_res >= match_threshold);
@@ -430,14 +410,7 @@ int main(int argc, char **argv)
 	}
 
 fail:
-	if (!strcmp(matcher, "template"))
-	{
-		catcierge_template_matcher_destroy(&ctx);
-	}
-	else
-	{
-		catcierge_haar_matcher_destroy(&hctx);
-	}
+	catcierge_matcher_destroy(&matcher);
 	cvDestroyAllWindows();
 
 	return ret;

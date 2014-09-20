@@ -23,6 +23,57 @@
 #include <opencv2/highgui/highgui_c.h>
 
 #include "catcierge_matcher.h"
+#include "catcierge_template_matcher.h"
+#include "catcierge_haar_matcher.h"
+#include "catcierge_log.h"
+
+int catcierge_matcher_init(catcierge_matcher_t **ctx, catcierge_matcher_args_t *args)
+{
+	*ctx = NULL;
+
+	if (args->type == MATCHER_TEMPLATE)
+	{
+		if (catcierge_template_matcher_init(ctx, args))
+		{
+			CATERR("Failed to init template matcher!\n");
+			return -1;
+		}
+	}
+	else if (args->type == MATCHER_HAAR)
+	{
+		if (catcierge_haar_matcher_init(ctx, args))
+		{
+			CATERR("Failed to init haar matcher!\n");
+			return -1;
+		}
+	}
+	else
+	{
+		CATERR("Failed to init matcher. Invalid matcher type given\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+void catcierge_matcher_destroy(catcierge_matcher_t **ctx)
+{
+	if (*ctx)
+	{
+		catcierge_matcher_t *c = *ctx;
+
+		if (c->type == MATCHER_TEMPLATE)
+		{
+			catcierge_template_matcher_destroy(ctx);
+		}
+		else if (c->type == MATCHER_HAAR)
+		{
+			catcierge_haar_matcher_destroy(ctx);
+		}
+	}
+
+	*ctx = NULL;
+}
 
 int catcierge_is_frame_obstructed(IplImage *img, int debug)
 {

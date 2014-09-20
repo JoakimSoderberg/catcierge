@@ -5,6 +5,7 @@
 #include "catcierge_log.h"
 #include "catcierge_fsm.h"
 #include "catcierge_output.h"
+#include "catcierge_matcher.h"
 
 catcierge_grb_t grb;
 
@@ -147,22 +148,10 @@ int main(int argc, char **argv)
 	assert((args->matcher_type == MATCHER_TEMPLATE)
 		|| (args->matcher_type == MATCHER_HAAR));
 
-	// TODO: Unify this into one function instead somehow.
-	if (args->matcher_type == MATCHER_TEMPLATE)
+	if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))
 	{
-		if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
-		{
-			CATERR("Failed to init template matcher!\n");
-			return -1;
-		}
-	}
-	else
-	{
-		if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
-		{
-			CATERR("Failed to init haar matcher!\n");
-			return -1;
-		}
+		CATERR("Failed to %s init matcher\n", grb.args.matcher);
+		return -1;
 	}
 
 	CATLOG("Initialized catcierge image recognition\n");
@@ -215,14 +204,7 @@ int main(int argc, char **argv)
 		catcierge_print_spinner(&grb);
 	} while (grb.running);
 
-	if (args->matcher_type == MATCHER_TEMPLATE)
-	{
-		catcierge_template_matcher_destroy(&grb.matcher);
-	}
-	else
-	{
-		catcierge_haar_matcher_destroy(&grb.haar);
-	}
+	catcierge_matcher_destroy(&grb.matcher);
 
 	catcierge_output_destroy(&grb.output);
 	catcierge_destroy_camera(&grb);

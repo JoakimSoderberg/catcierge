@@ -819,6 +819,20 @@ int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
 	return 0;
 }
 
+catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
+{
+	if (args->matcher_type == MATCHER_TEMPLATE)
+	{
+		return (catcierge_matcher_args_t *)&args->templ;
+	}
+	else if (args->matcher_type == MATCHER_HAAR)
+	{
+		return (catcierge_matcher_args_t *)&args->haar;
+	}
+
+	return NULL;
+}
+
 void catcierge_print_settings(catcierge_args_t *args)
 {
 	#ifdef WITH_RFID

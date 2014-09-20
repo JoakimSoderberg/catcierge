@@ -7,12 +7,23 @@
 #include "catcierge_log.h"
 #include <opencv2/core/core_c.h>
 
-int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx,
-	catcierge_matcher_t *common, catcierge_haar_matcher_args_t *args)
+int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
+		catcierge_matcher_args_t *oargs)
 {
+	catcierge_haar_matcher_t *ctx = NULL;
+	catcierge_haar_matcher_args_t *args = (catcierge_haar_matcher_args_t *)oargs;
 	assert(args);
-	assert(ctx);
-	assert(common);
+	assert(octx);
+
+	if (!(*octx = calloc(1, sizeof(catcierge_haar_matcher_t))))
+	{
+		CATERR("Out of memory!\n");
+		return -1;
+	}
+
+	ctx = (catcierge_haar_matcher_t *)*octx;
+
+	ctx->super.type = MATCHER_HAAR;
 
 	if (!args->cascade)
 	{
@@ -53,16 +64,18 @@ int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx,
 	}
 
 	ctx->args = args;
-	ctx->debug = args->debug;
-	common->match = catcierge_haar_matcher_match;
-	common->decide = catcierge_haar_matcher_decide;
+	ctx->super.debug = args->debug;
+	ctx->super.match = catcierge_haar_matcher_match;
+	ctx->super.decide = catcierge_haar_matcher_decide;
 
 	return 0;
 }
 
-void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
+void catcierge_haar_matcher_destroy(catcierge_matcher_t **octx)
 {
+	catcierge_haar_matcher_t *ctx = (catcierge_haar_matcher_t *)*octx;
 	assert(ctx);
+
 	if (ctx->cascade)
 	{
 		cv2CascadeClassifier_destroy(ctx->cascade);
@@ -94,6 +107,9 @@ void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx)
 		cvReleaseMemStorage(&ctx->storage);
 		ctx->storage = NULL;
 	}
+
+	free(ctx);
+	*octx = NULL;
 }
 
 match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, IplImage *thr_img, int inverted)
@@ -116,7 +132,7 @@ match_direction_t catcierge_haar_guess_direction(catcierge_haar_matcher_t *ctx, 
 
 	if (abs(left_sum - right_sum) > 25)
 	{
-		if (ctx->debug) printf("Left: %d, Right: %d\n", left_sum, right_sum);
+		if (ctx->super.debug) printf("Left: %d, Right: %d\n", left_sum, right_sum);
 
 		if (right_sum > left_sum)
 		{
@@ -160,7 +176,7 @@ size_t catcierge_haar_matcher_count_contours(catcierge_haar_matcher_t *ctx, CvSe
 	{
 		area = cvContourArea(it, CV_WHOLE_SEQ, 0);
 		big_enough = (area > 10.0);
-		if (ctx->debug) printf("Area: %f %s\n", area, big_enough ? "" : "(too small)");
+		if (ctx->super.debug) printf("Area: %f %s\n", area, big_enough ? "" : "(too small)");
 
 		if (big_enough)
 		{
@@ -183,7 +199,7 @@ void catcierge_haar_matcher_save_step_image(catcierge_haar_matcher_t *ctx,
 	CvRect roi;
 	assert(result->step_img_count < MAX_STEPS);
 
-	if (ctx->debug)
+	if (ctx->super.debug)
 		cvShowImage(description, img);
 
 	step = &result->steps[result->step_img_count];
@@ -335,11 +351,11 @@ int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx,
 
 		erod_img = cvCreateImage(cvGetSize(thr_img2), 8, 1);
 		cvErode(thr_img2, erod_img, ctx->kernel3x3, 3);
-		if (ctx->debug) cvShowImage("haar eroded img", erod_img);
+		if (ctx->super.debug) cvShowImage("haar eroded img", erod_img);
 
 		open_img = cvCreateImage(cvGetSize(thr_img2), 8, 1);
 		cvMorphologyEx(erod_img, open_img, NULL, ctx->kernel5x1, CV_MOP_OPEN, 1);
-		if (ctx->debug) cvShowImage("haar opened img", erod_img);
+		if (ctx->super.debug) cvShowImage("haar opened img", erod_img);
 
 		cvFindContours(erod_img, ctx->storage, &contours2,
 			sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
@@ -349,7 +365,7 @@ int catcierge_haar_matcher_find_prey(catcierge_haar_matcher_t *ctx,
 		contour_count = catcierge_haar_matcher_count_contours(ctx, contours2);
 	}
 
-	if (ctx->debug)
+	if (ctx->super.debug)
 	{
 		cvDrawContours(img, contours, cvScalarAll(0), cvScalarAll(0), 1, 1, 8, cvPoint(0, 0));
 		cvShowImage("Haar Contours", img);
@@ -440,7 +456,7 @@ double catcierge_haar_matcher_match(void *octx,
 		goto fail;
 	}
 
-	if (ctx->debug) printf("Rect count: %d\n", (int)result->rect_count);
+	if (ctx->super.debug) printf("Rect count: %d\n", (int)result->rect_count);
 
 	cat_head_found = (result->rect_count > 0);
 
@@ -500,18 +516,18 @@ double catcierge_haar_matcher_match(void *octx,
 		// a thresholded image, so perform it before calling those.
 		thr_img = cvCreateImage(cvGetSize(img_eq), 8, 1);
 		cvThreshold(img_eq, thr_img, 0, 255, flags);
-		if (ctx->debug) cvShowImage("Haar image binary", thr_img);
+		if (ctx->super.debug) cvShowImage("Haar image binary", thr_img);
 
 		catcierge_haar_matcher_save_step_image(ctx,
 			thr_img, result, "thresh", "Global thresholded binary image", save_steps);
 
 		result->direction = catcierge_haar_guess_direction(ctx, thr_img, inverted);
-		if (ctx->debug) printf("Direction: %s\n", catcierge_get_direction_str(result->direction));
+		if (ctx->super.debug) printf("Direction: %s\n", catcierge_get_direction_str(result->direction));
 
 		// Don't bother looking for prey when the cat is going outside.
 		if ((result->direction) == MATCH_DIR_OUT)
 		{
-			if (ctx->debug) printf("Skipping prey detection!\n");
+			if (ctx->super.debug) printf("Skipping prey detection!\n");
 			snprintf(result->description, sizeof(result->description) - 1,
 				"Skipped prey detection when going out");
 			goto done;
@@ -520,7 +536,7 @@ double catcierge_haar_matcher_match(void *octx,
 		// Note that thr_img will be modified.
 		if (find_prey(ctx, img_eq, thr_img, result, save_steps))
 		{
-			if (ctx->debug) printf("Found prey!\n");
+			if (ctx->super.debug) printf("Found prey!\n");
 			ret = HAAR_FAIL;
 
 			snprintf(result->description, sizeof(result->description) - 1,
@@ -758,6 +774,7 @@ void catcierge_haar_matcher_args_init(catcierge_haar_matcher_args_t *args)
 {
 	assert(args);
 	memset(args, 0, sizeof(catcierge_haar_matcher_args_t));
+	args->super.type = MATCHER_HAAR;
 	args->min_width = 80;
 	args->min_height = 80;
 	args->in_direction = DIR_RIGHT;
@@ -771,5 +788,5 @@ void catcierge_haar_matcher_args_init(catcierge_haar_matcher_args_t *args)
 void catcierge_haar_matcher_set_debug(catcierge_haar_matcher_t *ctx, int debug)
 {
 	assert(ctx);
-	ctx->debug = debug;
+	ctx->super.debug = debug;
 }

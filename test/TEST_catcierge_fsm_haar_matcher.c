@@ -21,13 +21,15 @@ static char *run_success_tests()
 
 	catcierge_grabber_init(&grb);
 
+	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 0;
+	args->matcher = "haar"; 
 	args->matcher_type = MATCHER_HAAR;
 	args->haar.cascade = CATCIERGE_CASCADE;
 
-	if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
+	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->haar))
 	{
-		return "Failed to init haar matcher";
+		return "Failed to init catcierge lib!\n";
 	}
 
 	catcierge_haar_matcher_print_settings(&args->haar);
@@ -55,7 +57,7 @@ static char *run_success_tests()
 		mu_assert("Expected WAITING state", (grb.state == catcierge_state_waiting));
 	}
 
-	catcierge_haar_matcher_destroy(&grb.haar);
+	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -70,11 +72,12 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 
 	catcierge_grabber_init(&grb);
 
+	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 0;
+	args->matcher = "haar"; 
 	args->matcher_type = MATCHER_HAAR;
 	args->ok_matches_needed = 3;
 
-	catcierge_haar_matcher_args_init(&args->haar);
 	args->haar.prey_method = prey_method;
 	args->haar.prey_steps = 2;
 	args->haar.cascade = CATCIERGE_CASCADE;
@@ -85,9 +88,9 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	//args->save_steps = 1;
 	//args->saveimg = 1;
 
-	if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
+	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->haar))
 	{
-		return "Failed to init haar matcher";
+		return "Failed to init catcierge lib!\n";
 	}
 
 	catcierge_haar_matcher_print_settings(&args->haar);
@@ -115,7 +118,7 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 		mu_assert("Expected WAITING state", (grb.state == catcierge_state_waiting));
 	}
 
-	catcierge_haar_matcher_destroy(&grb.haar);
+	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -141,9 +144,9 @@ static char *run_save_steps_test()
 	args->output_path = "./test_save_steps";
 	catcierge_make_path(args->output_path);
 
-	if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
+	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->haar))
 	{
-		return "Failed to init haar matcher";
+		return "Failed to init catcierge lib!\n";
 	}
 
 	catcierge_test_STATUS("Test save steps");
@@ -173,7 +176,7 @@ static char *run_save_steps_test()
 	catcierge_test_STATUS("Step image count: %d", grb.match_group.matches[3].result.step_img_count);
 	mu_assert("Expected 10 step images", grb.match_group.matches[3].result.step_img_count == 11);
 
-	catcierge_haar_matcher_destroy(&grb.haar);
+	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

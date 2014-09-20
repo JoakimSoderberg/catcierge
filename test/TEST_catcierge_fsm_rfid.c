@@ -100,6 +100,8 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 	args->lock_on_invalid_rfid = 1;
 	args->rfid_inner_path = in_slave_name;
 	args->rfid_outer_path = out_slave_name;
+	args->matcher = "template";
+	args->matcher_type = MATCHER_TEMPLATE;
 	args->templ.match_flipped = 1;
 	args->templ.match_threshold = 0.8;
 	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
@@ -124,9 +126,9 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 
 	mu_assert("Failed to service RFID", !catcierge_rfid_ctx_service(&grb.rfid_ctx));
 
-	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
+	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
 	{
-		return "Failed to init template matcher!\n";
+		return "Failed to init catcierge lib!\n";
 	}
 
 	catcierge_test_STATUS("Initialized template matcher");
@@ -228,6 +230,8 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 		grb.rfid_in_match.triggered = 1;
 		grb.rfid_out_match.triggered = 1;
 	}
+	args->matcher = "template";
+	args->matcher_type = MATCHER_TEMPLATE;
 	args->templ.match_flipped = 1;
 	args->templ.match_threshold = 0.8;
 	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
@@ -240,7 +244,7 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	// the lockout logic.
 	//catcierge_init_rfid_readers(&grb);
 
-	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
+	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
@@ -293,7 +297,7 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 		}
 	}
 
-	catcierge_template_matcher_destroy(&grb.matcher);
+	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

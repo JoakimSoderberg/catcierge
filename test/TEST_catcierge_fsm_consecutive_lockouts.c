@@ -21,11 +21,8 @@ static char *run_consecutive_lockout_abort_tests()
 
 	args->saveimg = 0;
 	set_default_test_snouts(args);
-
-	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
-	{
-		return "Failed to init catcierge lib!\n";
-	}
+	args->matcher = "template";
+	args->matcher_type = MATCHER_TEMPLATE;
 
 	args->templ.match_flipped = 1;
 	args->templ.match_threshold = 0.8;
@@ -37,6 +34,11 @@ static char *run_consecutive_lockout_abort_tests()
 	// otherwise the consecutive count will become invalid.
 	args->consecutive_lockout_delay = 10;
 	args->lockout_time = 0;
+
+	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
+	{
+		return "Failed to init catcierge lib!\n";
+	}
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
@@ -92,7 +94,7 @@ static char *run_consecutive_lockout_abort_tests()
 	mu_assert("Expected program to be in running state after consecutive lockout count is aborted",
 		(grb.running == 1));
 
-	catcierge_template_matcher_destroy(&grb.matcher);
+	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -109,11 +111,8 @@ static char *run_consecutive_lockout_tests()
 
 	args->saveimg = 0;
 	set_default_test_snouts(args);
-
-	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
-	{
-		return "Failed to init catcierge lib!\n";
-	}
+	args->matcher = "template"; 
+	args->matcher_type = MATCHER_TEMPLATE;
 
 	args->templ.match_flipped = 1;
 	args->templ.match_threshold = 0.8;
@@ -121,6 +120,11 @@ static char *run_consecutive_lockout_tests()
 	args->max_consecutive_lockout_count = 3;
 	args->consecutive_lockout_delay = 10;
 	args->lockout_time = 0;
+
+	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
+	{
+		return "Failed to init catcierge lib!\n";
+	}
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
@@ -149,7 +153,7 @@ static char *run_consecutive_lockout_tests()
 	mu_assert("Expected program to be in non-running state after max_consecutive_lockout_count",
 		(grb.running == 0));
 
-	catcierge_template_matcher_destroy(&grb.matcher);
+	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

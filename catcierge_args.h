@@ -7,6 +7,7 @@
 #ifdef RPI
 #include "RaspiCamCV.h"
 #endif
+#include "catcierge_matcher.h"
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
 #include "catcierge_types.h"
@@ -83,6 +84,7 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv, catci
 void catcierge_show_usage(catcierge_args_t *args, const char *prog);
 void catcierge_print_settings(catcierge_args_t *args);
 int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count);
+catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args);
 
 int catcierge_args_init(catcierge_args_t *args);
 void catcierge_args_destroy(catcierge_args_t *args);

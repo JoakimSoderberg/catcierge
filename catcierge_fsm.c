@@ -829,14 +829,6 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 	}
 }
 
-void *catcierge_get_matcher_context(catcierge_grb_t *grb)
-{
-	// TODO: We shouldn't need this, simlpy get the current matcher context instead...
-	return ((grb->args.matcher_type == MATCHER_TEMPLATE)
-			? (void *)&grb->matcher
-			: (void *)&grb->haar);
-}
-
 double catcierge_do_match(catcierge_grb_t *grb)
 {
 	double match_res = 0.0;
@@ -844,7 +836,6 @@ double catcierge_do_match(catcierge_grb_t *grb)
 	match_group_t *mg = &grb->match_group;
 	match_result_t *result;
 	match_state_t *match;
-	void *matcher = NULL;
 	assert(grb);
 	args = &grb->args;
 
@@ -854,9 +845,7 @@ double catcierge_do_match(catcierge_grb_t *grb)
 	catcierge_cleanup_match_steps(grb, result);
 	memset(result, 0, sizeof(match_result_t));
 
-	matcher = catcierge_get_matcher_context(grb);
-
-	if ((match_res = grb->common_matcher.match(matcher, grb->img, result, args->save_steps)) < 0.0)
+	if ((match_res = grb->matcher->match(grb->matcher, grb->img, result, args->save_steps)) < 0.0)
 	{
 		CATERR("%s matcher: Error when matching frame!\n", grb->args.matcher);
 	}
@@ -977,7 +966,7 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 		if (!args->no_final_decision)
 		{
 			assert(mg->final_decision == 0);
-			mg->success = grb->common_matcher.decide(catcierge_get_matcher_context(grb), mg);
+			mg->success = grb->matcher->decide(grb->matcher, mg);
 
 			if (mg->final_decision)
 			{

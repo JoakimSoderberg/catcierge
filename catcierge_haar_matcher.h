@@ -38,6 +38,7 @@ typedef enum catcierge_haar_prey_method_e
 
 typedef struct catcierge_haar_matcher_args_s
 {
+	catcierge_matcher_args_t super;
 	const char *cascade;
 	int min_width;
 	int min_height;
@@ -53,6 +54,7 @@ typedef struct catcierge_haar_matcher_args_s
 
 typedef struct catcierge_haar_matcher_s
 {
+	catcierge_matcher_t super;
 	CvMemStorage *storage;
 	IplConvKernel *kernel2x2;
 	IplConvKernel *kernel3x3;
@@ -61,14 +63,13 @@ typedef struct catcierge_haar_matcher_s
 	cv2CascadeClassifier *cascade;
 
 	catcierge_haar_matcher_args_t *args;
-	int debug;
 } catcierge_haar_matcher_t;
 
 typedef int (*find_prey_f)(catcierge_haar_matcher_t *ctx,
 		IplImage *img, IplImage *inv_thr_img, match_result_t *result, int save_steps);
 
-int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_matcher_t *common, catcierge_haar_matcher_args_t *args);
-void catcierge_haar_matcher_destroy(catcierge_haar_matcher_t *ctx);
+int catcierge_haar_matcher_init(catcierge_matcher_t **ctx, catcierge_matcher_args_t *args);
+void catcierge_haar_matcher_destroy(catcierge_matcher_t **ctx);
 double catcierge_haar_matcher_match(void *ctx, IplImage *img, match_result_t *result, int save_steps);
 int catcierge_haar_matcher_decide(void *ctx, match_group_t *mg);
 void catcierge_haar_matcher_set_debug(catcierge_haar_matcher_t *ctx, int debug);

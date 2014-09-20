@@ -87,9 +87,10 @@ int main(int argc, char **argv)
 		ret = -1; goto fail;
 	}
 
-	if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
+	if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))
 	{
-		ret = -1; goto fail;
+		fprintf(stderr, "Failed to %s init matcher\n", grb.args.matcher);
+		return -1;
 	}
 
 	if (catcierge_output_init(&grb.output))
@@ -132,7 +133,7 @@ int main(int argc, char **argv)
 	}
 
 fail:
-	catcierge_haar_matcher_destroy(&grb.haar);
+	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_output_destroy(&grb.output);
 	catcierge_grabber_destroy(&grb);
 

@@ -34,6 +34,7 @@
 
 typedef struct catcierge_template_matcher_args_s
 {
+	catcierge_matcher_args_t super;
 	const char *snout_paths[MAX_SNOUT_COUNT];
 	size_t snout_count;
 	double match_threshold;
@@ -42,6 +43,7 @@ typedef struct catcierge_template_matcher_args_s
 
 typedef struct catcierge_template_matcher_s
 {
+	catcierge_matcher_t super;
 	CvMemStorage *storage;
 	int width;
 	int height;
@@ -57,20 +59,18 @@ typedef struct catcierge_template_matcher_s
 	int high_binary_thresh;
 	int erode;
 
-	int debug;
 	catcierge_template_matcher_args_t *args;
 } catcierge_template_matcher_t;
 
-int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx,
-	catcierge_matcher_t *common, catcierge_template_matcher_args_t *args);
+int catcierge_template_matcher_init(catcierge_matcher_t **octx,
+		catcierge_matcher_args_t *oargs);
+void catcierge_template_matcher_destroy(catcierge_matcher_t **ctx);
 
 void catcierge_template_matcher_set_match_flipped(catcierge_template_matcher_t *ctx, int match_flipped);
 void catcierge_template_matcher_set_match_threshold(catcierge_template_matcher_t *ctx, double match_threshold);
 void catcierge_template_matcher_set_binary_thresholds(catcierge_template_matcher_t *ctx, int low, int high);
 void catcierge_template_matcher_set_erode(catcierge_template_matcher_t *ctx, int erode);
 void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int debug);
-
-void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx);
 
 double catcierge_template_matcher_match(void *ctx, IplImage *img, match_result_t *result, int save_steps);
 int caticerge_template_matcher_decide(void *ctx, match_group_t *mg);

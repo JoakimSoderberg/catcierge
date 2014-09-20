@@ -33,6 +33,7 @@ typedef int (*catcierge_decide_func_t)(void *ctx, match_group_t *mg);
 typedef struct catcierge_matcher_s
 {
 	catcierge_matcher_type_t type;
+	int debug;
 	catcierge_match_func_t match;
 	catcierge_decide_func_t decide;
 } catcierge_matcher_t;
@@ -44,8 +45,8 @@ typedef struct catcierge_matcher_args_s
 
 int catcierge_is_frame_obstructed(IplImage *img, int debug);
 
-int catcierge_matcher_init(catcierge_matcher_t *ctx, catcierge_matcher_args_t *args);
-void catcierge_matcher_destroy(catcierge_matcher_t *ctx);
+int catcierge_matcher_init(catcierge_matcher_t **ctx, catcierge_matcher_args_t *args);
+void catcierge_matcher_destroy(catcierge_matcher_t **ctx);
 
 
-#endif // __CATCIERGE_COMMON_MATCHER_H__
+#endif // __CATCIERGE_MATCHER_H__

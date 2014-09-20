@@ -83,11 +83,11 @@ static int _catcierge_prepare_img(catcierge_template_matcher_t *ctx, const IplIm
 
 void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int debug)
 {
-	ctx->debug = debug;
+	ctx->super.debug = debug;
 }
 
-int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx,
-	catcierge_matcher_t *common, catcierge_template_matcher_args_t *args)
+int catcierge_template_matcher_init(catcierge_matcher_t **octx,
+		catcierge_matcher_args_t *oargs)
 {
 	int i;
 	CvSize snout_size;
@@ -95,14 +95,23 @@ int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx,
 	IplImage *snout_prep = NULL;
 	const char **snout_paths = NULL;
 	int snout_count;
+	catcierge_template_matcher_t *ctx = NULL;
+	catcierge_template_matcher_args_t *args = (catcierge_template_matcher_args_t *)oargs;
 	assert(args);
-	assert(ctx);
-	assert(common);
-	memset(ctx, 0, sizeof(catcierge_template_matcher_t));
+	assert(octx);
+
+	if (!(*octx = calloc(1, sizeof(catcierge_template_matcher_t))))
+	{
+		CATERR("Out of memory!\n");
+		return -1;
+	}
+
+	ctx = (catcierge_template_matcher_t *)*octx;
 
 	if (args->snout_count == 0)
 		return -1;
 
+	ctx->super.type = MATCHER_TEMPLATE;
 	ctx->args = args;
 
 	snout_paths = args->snout_paths;
@@ -184,14 +193,15 @@ int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx,
 		cvReleaseImage(&snout_prep);
 	}
 
-	common->match = catcierge_template_matcher_match;
-	common->decide = caticerge_template_matcher_decide;
+	ctx->super.match = catcierge_template_matcher_match;
+	ctx->super.decide = caticerge_template_matcher_decide;
 
 	return 0;
 }
 
-void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx)
+void catcierge_template_matcher_destroy(catcierge_matcher_t **octx)
 {
+	catcierge_template_matcher_t *ctx = (catcierge_template_matcher_t *)*octx;
 	size_t i;
 	assert(ctx);
 
@@ -241,6 +251,9 @@ void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx)
 		free(ctx->matchres);
 		ctx->matchres = NULL;
 	}
+
+	free(*octx);
+	*octx = NULL;
 }
 
 int caticerge_template_matcher_decide(void *ctx, match_group_t *mg)
@@ -307,7 +320,7 @@ double catcierge_template_matcher_match(void *octx,
 		cvMatchTemplate(img_cpy, ctx->snouts[i], ctx->matchres[i], CV_TM_CCOEFF_NORMED);
 		cvMinMaxLoc(ctx->matchres[i], &min_val, &max_val, &min_loc, &max_loc, NULL);
 
-		if (ctx->debug)
+		if (ctx->super.debug)
 		{
 			cvShowImage("Match image", img_cpy);
 			cvShowImage("Match template", ctx->matchres[i]);

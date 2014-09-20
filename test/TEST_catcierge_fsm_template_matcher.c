@@ -158,11 +158,13 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 	args->saveimg = 0;
 	args->lockout_method = lockout_method;
 	args->lockout_time = 2;
+	args->matcher = "template";
+	args->matcher_type = MATCHER_TEMPLATE;
 	args->templ.match_flipped = 1;
 	args->templ.match_threshold = 0.8;
 	set_default_test_snouts(args);
 
-	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
+	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
@@ -202,7 +204,7 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 		}
 	}
 
-	catcierge_template_matcher_destroy(&grb.matcher);
+	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -223,6 +225,8 @@ static char *run_success_tests(int obstruct)
 
 	catcierge_grabber_init(&grb);
 
+	args->matcher = "template";
+	args->matcher_type = MATCHER_TEMPLATE;
 	args->saveimg = 0;
 	args->templ.match_flipped = 1;
 	args->templ.match_threshold = 0.8;
@@ -231,12 +235,12 @@ static char *run_success_tests(int obstruct)
 	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
 	args->templ.snout_count++;
 
-	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
+	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
 	{
-		return "Failed to init template matcher!\n";
+		return "Failed to init catcierge lib!\n";
 	}
 
-	catcierge_template_matcher_set_debug(&grb.matcher, 0);
+	catcierge_template_matcher_set_debug((catcierge_template_matcher_t *)grb.matcher, 0);
 
 	catcierge_template_matcher_print_settings(&args->templ);
 
