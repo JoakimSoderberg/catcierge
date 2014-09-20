@@ -22,6 +22,7 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <stdio.h>
 #include "catcierge_types.h"
+#include "catcierge_common_matcher.h"
 
 #define CATCIERGE_LOW_BINARY_THRESH_DEFAULT 90
 #define CATCIERGE_HIGH_BINARY_THRESH_DEFAULT 255

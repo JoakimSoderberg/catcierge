@@ -30,8 +30,6 @@
 #include <stdarg.h>
 #include <limits.h>
 #include "catcierge_log.h"
-#include <opencv2/imgproc/imgproc_c.h>
-#include <opencv2/highgui/highgui_c.h>
 
 const char *catcierge_path_sep()
 {
@@ -267,66 +265,6 @@ void catcierge_execute(char *command, char *fmt, ...)
 	}
 
 	catcierge_run(buf);
-}
-
-// TODO: Move this to a "matcher common" file instead.
-int catcierge_is_frame_obstructed(IplImage *img, int debug)
-{
-	CvSize size;
-	int w;
-	int h;
-	int x;
-	int y;
-	int sum;
-	IplImage *tmp = NULL;
-	IplImage *tmp2 = NULL;
-	CvRect roi = cvGetImageROI(img);
-
-	// Get a suitable Region Of Interest (ROI)
-	// in the center of the image.
-	// (This should contain only the white background)
-	size = cvGetSize(img);
-	w = (int)(size.width * 0.5);
-	h = (int)(size.height * 0.1);
-	x = (size.width - w) / 2;
-	y = (size.height - h) / 2;
-
-	cvSetImageROI(img, cvRect(x, y, w, h));
-
-	// Only covert to grayscale if needed.
-	if (img->nChannels != 1)
-	{
-		tmp = cvCreateImage(cvSize(w, h), 8, 1);
-		cvCvtColor(img, tmp, CV_BGR2GRAY);
-	}
-	else
-	{
-		tmp = img;
-	}
-
-	// Get a binary image and sum the pixel values.
-	tmp2 = cvCreateImage(cvSize(w, h), 8, 1);
-	cvThreshold(tmp, tmp2, 90, 255, CV_THRESH_BINARY_INV);
-
-	sum = (int)cvSum(tmp2).val[0] / 255;
-
-	if (debug)
-	{
-		printf("Sum: %d\n", sum);
-		cvShowImage("obstruct", tmp2);
-	}
-
-	cvSetImageROI(img, cvRect(roi.x, roi.y, roi.width, roi.height));
-
-	if (img->nChannels != 1)
-	{
-		cvReleaseImage(&tmp);
-	}
-
-	cvReleaseImage(&tmp2);
-
-	// Spiders and other 1 pixel creatures need not bother!
-	return ((int)sum > 200);
 }
 
 const char *catcierge_skip_whitespace(const char *it)

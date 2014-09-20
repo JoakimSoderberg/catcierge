@@ -269,6 +269,7 @@ endif()
 
 # Catcierge lib.
 set(LIB_SRC
+	catcierge_common_matcher.c
 	catcierge_template_matcher.c
 	catcierge_haar_matcher.c
 	catcierge_haar_wrapper.cpp)

@@ -16,26 +16,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
-#ifndef __CATCIERGE_UTIL_H__
-#define __CATCIERGE_UTIL_H__
+#ifndef __CATCIERGE_COMMON_MATCHER_H__
+#define __CATCIERGE_COMMON_MATCHER_H__
+
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/highgui/highgui_c.h>
 
 #include "catcierge_types.h"
-#include <time.h>
-#include "catcierge_platform.h"
 
-void catcierge_execute(char *command, char *fmt, ...);
-void catcierge_reset_cursor_position();
+int catcierge_is_frame_obstructed(IplImage *img, int debug);
 
-int catcierge_make_path(const char *path);
-
-const char *catcierge_get_direction_str(match_direction_t dir);
-
-const char *catcierge_skip_whitespace(const char *it);
-char *catcierge_skip_whitespace_alt(char *it);
-char **catcierge_parse_list(const char *input, size_t *list_count, int end_trim);
-void catcierge_free_list(char **list, size_t count);
-void catcierge_run(char *command);
-const char *catcierge_path_sep();
-char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen);
-
-#endif // __CATCIERGE_UTIL_H__
+#endif // __CATCIERGE_COMMON_MATCHER_H__
