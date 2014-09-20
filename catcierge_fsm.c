@@ -918,6 +918,31 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 	return direction;
 }
 
+void catcierge_match_group_start(match_group_t *mg)
+{
+	assert(mg);
+
+	gettimeofday(&mg->start_tv, NULL);
+	mg->start_time = time(NULL);
+
+	memset(&mg->end_tv, 0, sizeof(mg->end_tv));
+	mg->end_time = 0;
+
+	mg->description[0] = '\0';
+
+	mg->match_count = 0;
+}
+
+void catcierge_match_group_end(match_group_t *mg)
+{
+	assert(mg);
+
+	gettimeofday(&mg->end_tv, NULL);
+	mg->end_time = time(NULL);
+
+	caticerge_calculate_matchgroup_id(mg);
+}
+
 void catcierge_decide_lock_status(catcierge_grb_t *grb)
 {
 	match_group_t *mg = &grb->match_group;
@@ -993,10 +1018,7 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 		catcierge_state_transition_lockout(grb);
 	}
 
-	gettimeofday(&mg->end_tv, NULL);
-	mg->end_time = time(NULL);
-
-	caticerge_calculate_matchgroup_id(mg);
+	catcierge_match_group_end(mg);
 
 	if (args->new_execute)
 	{
@@ -1206,7 +1228,6 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 int catcierge_state_waiting(catcierge_grb_t *grb)
 {
 	int frame_obstructed;
-	match_group_t *mg = &grb->match_group;
 	assert(grb);
 
 	catcierge_show_image(grb);
@@ -1223,16 +1244,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 	{
 		CATLOG("Something in frame! Start matching...\n");
 
-		grb->match_group.match_count = 0;
-
-		gettimeofday(&mg->start_tv, NULL);
-		mg->start_time = time(NULL);
-		
-		memset(&mg->end_tv, 0, sizeof(mg->end_tv));
-		mg->end_time = 0;
-		
-		mg->description[0] = '\0';
-
+		catcierge_match_group_start(&grb->match_group);
 		catcierge_set_state(grb, catcierge_state_matching);
 	}
 
