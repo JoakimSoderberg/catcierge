@@ -20,6 +20,7 @@
 #include <opencv2/highgui/highgui_c.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "catcierge_common_matcher.h"
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
 #include "catcierge_util.h"
@@ -54,6 +55,7 @@ static int parse_arg(catcierge_template_matcher_args_t *args,
 int main(int argc, char **argv)
 {
 	int ret = 0;
+	catcierge_common_matcher_t common;
 	catcierge_template_matcher_t ctx;
 	catcierge_haar_matcher_t hctx;
 	char *img_paths[4096];
@@ -246,7 +248,7 @@ int main(int argc, char **argv)
 
 	if (!strcmp(matcher, "template"))
 	{
-		if (catcierge_template_matcher_init(&ctx, &args))
+		if (catcierge_template_matcher_init(&ctx, &common, &args))
 		{
 			fprintf(stderr, "Failed to init template matcher\n");
 			return -1;
@@ -254,7 +256,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		if (catcierge_haar_matcher_init(&hctx, &hargs))
+		if (catcierge_haar_matcher_init(&hctx, &common, &hargs))
 		{
 			fprintf(stderr, "Failed to init haar matcher.\n");
 			return -1;

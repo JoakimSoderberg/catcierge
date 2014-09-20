@@ -22,7 +22,7 @@ static char *run_consecutive_lockout_abort_tests()
 	args->saveimg = 0;
 	set_default_test_snouts(args);
 
-	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
+	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
@@ -110,7 +110,7 @@ static char *run_consecutive_lockout_tests()
 	args->saveimg = 0;
 	set_default_test_snouts(args);
 
-	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
+	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}

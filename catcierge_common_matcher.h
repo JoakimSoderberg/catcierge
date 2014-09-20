@@ -24,6 +24,17 @@
 
 #include "catcierge_types.h"
 
+typedef double (*catcierge_match_func_t)(void *ctx,
+		IplImage *img, match_result_t *result, int save_steps);
+
+typedef int (*catcierge_decide_func_t)(void *ctx, match_group_t *mg);
+
+typedef struct catcierge_common_matcher_s
+{
+	catcierge_match_func_t match;
+	catcierge_decide_func_t decide;
+} catcierge_common_matcher_t;
+
 int catcierge_is_frame_obstructed(IplImage *img, int debug);
 
 #endif // __CATCIERGE_COMMON_MATCHER_H__

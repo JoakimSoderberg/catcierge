@@ -77,10 +77,17 @@ int main(int argc, char **argv)
 		catcierge_show_usage(args, argv[0]);
 		fprintf(stderr, "--images <4 input images>\n");
 		fprintf(stderr, "Not enough parameters\n");
-		return -1;
+		ret = -1; goto fail;
 	}
 
-	if (catcierge_haar_matcher_init(&grb.haar, &args->haar))
+	// TODO: Support the template matcher here as well...
+	if (args->matcher_type != MATCHER_HAAR)
+	{
+		fprintf(stderr, "Sorry the \"%s\" matcher is not supported by this program.\n", args->matcher);
+		ret = -1; goto fail;
+	}
+
+	if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
 	{
 		ret = -1; goto fail;
 	}

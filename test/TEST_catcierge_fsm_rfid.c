@@ -124,7 +124,7 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 
 	mu_assert("Failed to service RFID", !catcierge_rfid_ctx_service(&grb.rfid_ctx));
 
-	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
+	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
 	{
 		return "Failed to init template matcher!\n";
 	}
@@ -240,7 +240,7 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	// the lockout logic.
 	//catcierge_init_rfid_readers(&grb);
 
-	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
+	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}

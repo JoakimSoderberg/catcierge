@@ -162,7 +162,7 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 	args->templ.match_threshold = 0.8;
 	set_default_test_snouts(args);
 
-	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
+	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
 	{
 		return "Failed to init catcierge lib!\n";
 	}
@@ -231,7 +231,7 @@ static char *run_success_tests(int obstruct)
 	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
 	args->templ.snout_count++;
 
-	if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
+	if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
 	{
 		return "Failed to init template matcher!\n";
 	}

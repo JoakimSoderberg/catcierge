@@ -147,9 +147,10 @@ int main(int argc, char **argv)
 	assert((args->matcher_type == MATCHER_TEMPLATE)
 		|| (args->matcher_type == MATCHER_HAAR));
 
+	// TODO: Unify this into one function instead somehow.
 	if (args->matcher_type == MATCHER_TEMPLATE)
 	{
-		if (catcierge_template_matcher_init(&grb.matcher, &args->templ))
+		if (catcierge_template_matcher_init(&grb.matcher, &grb.common_matcher, &args->templ))
 		{
 			CATERR("Failed to init template matcher!\n");
 			return -1;
@@ -157,7 +158,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		if (catcierge_haar_matcher_init(&grb.haar, &args->haar))
+		if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
 		{
 			CATERR("Failed to init haar matcher!\n");
 			return -1;

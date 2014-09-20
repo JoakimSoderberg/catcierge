@@ -829,6 +829,14 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 	}
 }
 
+void *catcierge_get_matcher_context(catcierge_grb_t *grb)
+{
+	// TODO: We shouldn't need this, simlpy get the current matcher context instead...
+	return ((grb->args.matcher_type == MATCHER_TEMPLATE)
+			? (void *)&grb->matcher
+			: (void *)&grb->haar);
+}
+
 double catcierge_do_match(catcierge_grb_t *grb)
 {
 	double match_res = 0.0;
@@ -836,31 +844,21 @@ double catcierge_do_match(catcierge_grb_t *grb)
 	match_group_t *mg = &grb->match_group;
 	match_result_t *result;
 	match_state_t *match;
+	void *matcher = NULL;
 	assert(grb);
 	args = &grb->args;
 
+	// Clear match structs before doing a new one.
 	match = &mg->matches[mg->match_count];
 	result = &match->result;
 	catcierge_cleanup_match_steps(grb, result);
 	memset(result, 0, sizeof(match_result_t));
 
-	// TODO: Add a common type for these functions.
-	if (grb->args.matcher_type == MATCHER_TEMPLATE)
+	matcher = catcierge_get_matcher_context(grb);
+
+	if ((match_res = grb->common_matcher.match(matcher, grb->img, result, args->save_steps)) < 0.0)
 	{
-		if ((match_res = catcierge_template_matcher_match(&grb->matcher,
-							grb->img, result, args->save_steps)) < 0.0)
-		{
-			CATERR("Template matcher: Error when matching frame!\n");
-		}
-	}
-	else
-	{
-		// Haar matcher.
-		if ((match_res = catcierge_haar_matcher_match(&grb->haar,
-							grb->img, result, args->save_steps)) < 0.0)
-		{
-			CATERR("Haar matcher: Error when matching frame!\n");
-		}
+		CATERR("%s matcher: Error when matching frame!\n", grb->args.matcher);
 	}
 
 	return match_res;
@@ -950,11 +948,9 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 		// Otherwise if enough matches (default 2) are ok.
 		mg->success = (mg->success_count >= args->ok_matches_needed);
 
-		// TODO: Let the matcher veto if the match group was successful:
-		// For instance call catcierge_haar_matcher_decide.
-		// If for instance the haar matcher finds no cat face in any image
-		// perform a lockout anyway.
-		// Make this a command line option to enable.
+		// Let the matcher veto if the match group was successful.
+		// TODO: Make this a command line option to enable.
+		grb->common_matcher.decide(catcierge_get_matcher_context(grb), mg);
 	}
 
 	if (mg->success)

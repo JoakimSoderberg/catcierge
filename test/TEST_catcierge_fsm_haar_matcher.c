@@ -25,7 +25,7 @@ static char *run_success_tests()
 	args->matcher_type = MATCHER_HAAR;
 	args->haar.cascade = CATCIERGE_CASCADE;
 
-	if (catcierge_haar_matcher_init(&grb.haar, &args->haar))
+	if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
 	{
 		return "Failed to init haar matcher";
 	}
@@ -85,7 +85,7 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	//args->save_steps = 1;
 	//args->saveimg = 1;
 
-	if (catcierge_haar_matcher_init(&grb.haar, &args->haar))
+	if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
 	{
 		return "Failed to init haar matcher";
 	}
@@ -141,7 +141,7 @@ static char *run_save_steps_test()
 	args->output_path = "./test_save_steps";
 	catcierge_make_path(args->output_path);
 
-	if (catcierge_haar_matcher_init(&grb.haar, &args->haar))
+	if (catcierge_haar_matcher_init(&grb.haar, &grb.common_matcher, &args->haar))
 	{
 		return "Failed to init haar matcher";
 	}

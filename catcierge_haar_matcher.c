@@ -7,10 +7,12 @@
 #include "catcierge_log.h"
 #include <opencv2/core/core_c.h>
 
-int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_matcher_args_t *args)
+int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx,
+	catcierge_common_matcher_t *common, catcierge_haar_matcher_args_t *args)
 {
 	assert(args);
 	assert(ctx);
+	assert(common);
 
 	if (!args->cascade)
 	{
@@ -52,6 +54,8 @@ int catcierge_haar_matcher_init(catcierge_haar_matcher_t *ctx, catcierge_haar_ma
 
 	ctx->args = args;
 	ctx->debug = args->debug;
+	common->match = catcierge_haar_matcher_match;
+	common->decide = catcierge_haar_matcher_decide;
 
 	return 0;
 }
@@ -371,9 +375,10 @@ void catcierge_haar_matcher_calculate_roi(catcierge_haar_matcher_t *ctx, CvRect 
 	if (roi->x < 0) roi->x = 0;
 }
 
-double catcierge_haar_matcher_match(catcierge_haar_matcher_t *ctx,
+double catcierge_haar_matcher_match(void *octx,
 		IplImage *img, match_result_t *result, int save_steps)
 {
+	catcierge_haar_matcher_t *ctx = (catcierge_haar_matcher_t *)octx;
 	catcierge_haar_matcher_args_t *args = ctx->args;
 	double ret = HAAR_SUCCESS_NO_HEAD;
 	IplImage *img_eq = NULL;
@@ -561,39 +566,34 @@ fail:
 	return ret;
 }
 
-// TODO: Change this method to take a match_group_t instead.
-int catcierge_haar_matcher_decide(catcierge_haar_matcher_t *ctx,
-		int match_success,
-		match_result_t *results, size_t result_len,
-		char *description, size_t desc_len)
+int catcierge_haar_matcher_decide(void *ctx, match_group_t *mg)
 {
 	size_t i;
 	size_t no_head_count = 0;
-	assert(description);
-	assert(results);
-	assert(ctx);
+	assert(mg);
 
 	// If no cat is found at all, consider that a FAIL.
-	for (i = 0; i < result_len; i++)
+	for (i = 0; i < mg->match_count; i++)
 	{
-		if (results[i].result == HAAR_SUCCESS_NO_HEAD)
+		if (mg->matches[i].result.result == HAAR_SUCCESS_NO_HEAD)
 		{
 			no_head_count++;
 		}
 	}
 
-	if (no_head_count == result_len)
+	if (no_head_count == mg->match_count)
 	{
-		snprintf(description, desc_len, "No head found in any image");
-		return 0;
+		snprintf(mg->description, sizeof(mg->description),
+			"%s", "No head found in any image");
+
+		mg->success = 0;
 	}
 
-	snprintf(description, desc_len, "Successful match");
-
-	return match_success;
+	return mg->success;
 }
 
-int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const char *key, char **values, size_t value_count)
+int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args,
+		const char *key, char **values, size_t value_count)
 {
 	if (!strcmp(key, "cascade"))
 	{

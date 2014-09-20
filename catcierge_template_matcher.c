@@ -86,7 +86,8 @@ void catcierge_template_matcher_set_debug(catcierge_template_matcher_t *ctx, int
 	ctx->debug = debug;
 }
 
-int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, catcierge_template_matcher_args_t *args)
+int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx,
+	catcierge_common_matcher_t *common, catcierge_template_matcher_args_t *args)
 {
 	int i;
 	CvSize snout_size;
@@ -96,6 +97,7 @@ int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, catcierge
 	int snout_count;
 	assert(args);
 	assert(ctx);
+	assert(common);
 	memset(ctx, 0, sizeof(catcierge_template_matcher_t));
 
 	if (args->snout_count == 0)
@@ -182,6 +184,9 @@ int catcierge_template_matcher_init(catcierge_template_matcher_t *ctx, catcierge
 		cvReleaseImage(&snout_prep);
 	}
 
+	common->match = catcierge_template_matcher_match;
+	common->decide = caticerge_template_matcher_decide;
+
 	return 0;
 }
 
@@ -238,8 +243,13 @@ void catcierge_template_matcher_destroy(catcierge_template_matcher_t *ctx)
 	}
 }
 
-double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
-						const IplImage *img, match_result_t *result, int save_steps)
+int caticerge_template_matcher_decide(void *ctx, match_group_t *mg)
+{
+	return mg->success;
+}
+
+double catcierge_template_matcher_match(void *octx,
+						IplImage *img, match_result_t *result, int save_steps)
 {
 	IplImage *img_cpy = NULL;
 	IplImage *img_prep = NULL;
@@ -252,6 +262,7 @@ double catcierge_template_matcher_match(catcierge_template_matcher_t *ctx,
 	double match_sum = 0.0;
 	double match_avg = 0.0;
 	size_t i;
+	catcierge_template_matcher_t *ctx = (catcierge_template_matcher_t *)octx;
 	assert(ctx);
 	assert(img);
 
