@@ -131,6 +131,13 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return 0;
 	}
 
+	if (!strcmp(key, "save_obstruct"))
+	{
+		args->save_obstruct_img = 1;
+		if (value_count == 1) args->save_obstruct_img = atoi(values[0]);
+		return 0;
+	}
+
 	if (!strcmp(key, "new_execute"))
 	{
 		args->new_execute = 1;
@@ -330,6 +337,18 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return -1;
 	}
 
+	if (!strcmp(key, "frame_obstructed_cmd"))
+	{
+		if (value_count == 1)
+		{
+			args->frame_obstructed_cmd = values[0];
+			return 0;
+		}
+
+		fprintf(stderr, "--frame_obstructed_cmd missing value\n");
+		return -1;
+	}
+
 	if (!strcmp(key, "save_imgs_cmd"))
 	{
 		if (value_count == 1)
@@ -521,6 +540,7 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %d seconds.\n", DEFAULT_MATCH_WAIT);
 	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
 	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
+	fprintf(stderr, " --save_obstruct        Save the image that triggered the \"frame obstructed\" event.\n");
 	fprintf(stderr, " --save_steps           Save each step of the matching algorithm.\n");
 	fprintf(stderr, "                        (--save must also be turned on)\n");
 	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
@@ -586,6 +606,10 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	EPRINT_CMD_HELP("            Any paths returned are relative to this.\n");
 	EPRINT_CMD_HELP("            %%%% Produces a literal %% sign.\n");
 	EPRINT_CMD_HELP("\n");
+	fprintf(stderr, " --frame_obstructed_cmd <cmd>\n");
+	EPRINT_CMD_HELP("                        Command to run when the frame becomes obstructed\n");
+	EPRINT_CMD_HELP("                        and a new match is initiated. (--save_obstruct must be on).\n");
+	EPRINT_CMD_HELP("                         %%0 = [path]  Path to the image that obstructed the frame.\n");
 	fprintf(stderr, " --match_cmd <cmd>      Command to run after a match is made.\n");
 	EPRINT_CMD_HELP("                         %%0 = [float] Match result.\n");
 	EPRINT_CMD_HELP("                         %%1 = [0/1]   Success or failure.\n");
@@ -845,6 +869,8 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("General:\n");
 	printf("        Show video: %d\n", args->show);
 	printf("      Save matches: %d\n", args->saveimg);
+	printf("     Save obstruct: %d\n", args->save_obstruct_img);
+	printf("        Save steps: %d\n", args->save_steps);
 	printf("   Highlight match: %d\n", args->highlight_match);
 	printf("     Lockout dummy: %d\n", args->lockout_dummy);
 	printf("    Lockout method: %d\n", args->lockout_method);
@@ -886,6 +912,7 @@ int catcierge_args_init(catcierge_args_t *args)
 	catcierge_template_matcher_args_init(&args->templ);
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 1;
+	args->save_obstruct_img = 1;
 	args->match_time = DEFAULT_MATCH_WAIT;
 	args->lockout_method = OBSTRUCT_OR_TIMER_1;
 	args->lockout_time = DEFAULT_LOCKOUT_TIME;

@@ -105,10 +105,16 @@ typedef struct match_group_s
 	int final_decision;				// Was the match decision overriden by the matcher?
 	char description[512];
 	match_direction_t direction;
+	
 	struct timeval start_tv;
 	time_t start_time;
 	struct timeval end_tv;
 	time_t end_time;
+
+	IplImage *obstruct_img;
+	char obstruct_path[4096];
+	struct timeval obstruct_tv;
+	time_t obstruct_time;
 } match_group_t;
 
 #endif // __CATCIERGE_TYPES_H__

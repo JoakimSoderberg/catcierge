@@ -309,6 +309,12 @@ static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 
 		catcierge_cleanup_match_steps(grb, &grb->match_group.matches[i].result);
 	}
+
+	if (grb->match_group.obstruct_img)
+	{
+		cvReleaseImage(&grb->match_group.obstruct_img);
+		grb->match_group.obstruct_img = NULL;
+	}
 }
 
 void catcierge_setup_camera(catcierge_grb_t *grb)
@@ -918,8 +924,14 @@ void catcierge_match_group_start(match_group_t *mg)
 	mg->end_time = 0;
 
 	mg->description[0] = '\0';
-
+	mg->obstruct_path[0] = '\0';
 	mg->match_count = 0;
+
+	if (mg->obstruct_img)
+	{
+		cvReleaseImage(&mg->obstruct_img);
+		mg->obstruct_img = NULL;
+	}
 }
 
 void catcierge_match_group_end(match_group_t *mg)
@@ -930,6 +942,13 @@ void catcierge_match_group_end(match_group_t *mg)
 	mg->end_time = time(NULL);
 
 	caticerge_calculate_matchgroup_id(mg);
+
+	CATLOG("Match group id: %x%x%x%x%x\n",
+		mg->sha.Message_Digest[0],
+		mg->sha.Message_Digest[1],
+		mg->sha.Message_Digest[2],
+		mg->sha.Message_Digest[3],
+		mg->sha.Message_Digest[4]);
 }
 
 void catcierge_decide_lock_status(catcierge_grb_t *grb)
@@ -1217,6 +1236,8 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 int catcierge_state_waiting(catcierge_grb_t *grb)
 {
 	int frame_obstructed;
+	catcierge_args_t *args = &grb->args;
+	match_group_t *mg = &grb->match_group;
 	assert(grb);
 
 	catcierge_show_image(grb);
@@ -1233,7 +1254,32 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 	{
 		CATLOG("Something in frame! Start matching...\n");
 
-		catcierge_match_group_start(&grb->match_group);
+		catcierge_match_group_start(mg);
+
+		// Save the obstruct image.
+		if (grb->args.saveimg && args->save_obstruct_img)
+		{
+			char time_str[1024];
+			mg->obstruct_img = cvCloneImage(grb->img);
+
+			mg->obstruct_time = time(NULL);
+			gettimeofday(&mg->obstruct_tv, NULL);
+			get_time_str_fmt(mg->obstruct_time, &mg->obstruct_tv, time_str,
+				sizeof(time_str), "%Y-%m-%d_%H_%M_%S.%f");
+
+			snprintf(mg->obstruct_path, sizeof(mg->obstruct_path),
+				"match_obstruct_%s", time_str);
+		}
+
+		if (args->new_execute)
+		{
+			catcierge_output_execute(grb, "frame_obstructed", args->frame_obstructed_cmd);
+		}
+		else
+		{
+			catcierge_execute(args->frame_obstructed_cmd, "%s", mg->obstruct_path);
+		}
+
 		catcierge_set_state(grb, catcierge_state_matching);
 	}
 

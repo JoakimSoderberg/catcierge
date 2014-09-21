@@ -660,6 +660,18 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
+	if (!strcmp(var, "obstruct_path"))
+	{
+		return mg->obstruct_path;
+	}
+
+	if (!strncmp(var, "obstruct_time", strlen("obstruct_time")))
+	{
+		char *subvar = var + strlen("obstruct_");
+		return catcierge_get_time_var_format(subvar, buf, bufsize,
+					"%Y-%m-%d %H:%M:%S.%f", mg->obstruct_time, &mg->obstruct_tv);
+	}
+
 	if (!strncmp(var, "match", 5))
 	{
 		int idx = -1;

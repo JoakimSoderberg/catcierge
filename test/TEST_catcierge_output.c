@@ -251,6 +251,10 @@ char *run_add_and_generate_tests()
 			strcpy(grb.match_group.matches[1].path, "tut/blafile.png");
 			grb.match_group.match_count = 3;
 
+			grb.match_group.obstruct_time = time(NULL);
+			gettimeofday(&grb.match_group.obstruct_tv, NULL);
+			strcpy(grb.match_group.obstruct_path, "obstruct_path");
+
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
 				"Some awesome \"%match2_path%\" template.\n"
@@ -259,6 +263,7 @@ char *run_add_and_generate_tests()
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
 				"And match time, %match2_time:@H:@M%\n"
 				"%match_group_start_time% - %match_group_end_time%\n"
+				"%obstruct_path% %obstruct_time%"
 				"CWD:%cwd%\n"
 				"Output path: %output_path%\n"
 				"Abs output path: %abs_output_path%\n",

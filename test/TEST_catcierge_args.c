@@ -172,6 +172,8 @@ char *run_parse_args_tests()
 
 	PARSE_SINGLE_SETTING("save", args.saveimg, 1);
 
+	PARSE_SINGLE_SETTING("save_obstruct", args.save_obstruct_img, 1);
+
 	PARSE_SINGLE_SETTING("new_execute", args.new_execute, 1);
 
 	PARSE_SINGLE_SETTING("highlight", args.highlight_match, 1);
@@ -267,6 +269,7 @@ char *run_parse_args_tests()
 		PARSE_CMD_SETTING(match_cmd);
 		PARSE_CMD_SETTING(save_img_cmd);
 		PARSE_CMD_SETTING(save_imgs_cmd);
+		PARSE_CMD_SETTING(frame_obstructed_cmd);
 		PARSE_CMD_SETTING(match_done_cmd);
 		PARSE_CMD_SETTING(do_lockout_cmd);
 		PARSE_CMD_SETTING(do_unlock_cmd);

@@ -25,6 +25,7 @@ typedef struct catcierge_args_s
 
 	int show;
 	int saveimg;
+	int save_obstruct_img;
 	int highlight_match;
 	int show_fps;
 	catcierge_lockout_method_t lockout_method;
@@ -52,6 +53,7 @@ typedef struct catcierge_args_s
 	char *match_done_cmd;
 	char *do_lockout_cmd;
 	char *do_unlock_cmd;
+	char *frame_obstructed_cmd;
 	char *config_path;
 	char *chuid;
 	int temp_config_count;
