@@ -36,6 +36,7 @@ if (UNIX)
 	set(RPI_USERLAND "${PROJECT_SOURCE_DIR}/rpi_userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
 endif()
 
+option(WITH_ZMQ "Compile ZMQ support" OFF)
 option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
 
 if (CATCIERGE_GUI_TESTS)
@@ -267,7 +268,17 @@ if (RPI)
 	target_link_libraries(raspicam_test raspicamcv ${LIBS})
 endif()
 
+if (WITH_ZMQ)
+	add_definitions(-DWITH_ZMQ)
+	find_package(CZMQ REQUIRED)
+	message("CZMQ Library: ${CZMQ_LIBRARIES}")
+	message("CZMQ Include: ${CZMQ_INCLUDE_DIRS}")
+	include_directories("${CZMQ_INCLUDE_DIRS}")
+	list(APPEND LIBS "${CZMQ_LIBRARIES}")
+endif()
+
 # Catcierge lib.
+# TODO: Move all common files here instead...
 set(LIB_SRC
 	catcierge_matcher.c
 	catcierge_template_matcher.c
@@ -393,6 +404,7 @@ message("          Run valgrind memcheck on tests ")
 message("             (-DCATCIERGE_WITH_MEMCHECK): ${CATCIERGE_WITH_MEMCHECK}")
 message("           Compile with coverage support")
 message("                  (-DCATCIERGE_COVERAGE): ${CATCIERGE_COVERAGE}")
+message("   Compile with ZMQ support (-DWITH_ZMQ): ${WITH_ZMQ}")
 message("-----------------------------------------------------------------")
 if (RPI)
 message(" If compiling on another platform than raspberry pi, make sure ")

@@ -13,6 +13,10 @@
 #include <fcntl.h>
 #endif // _WIN32
 
+#ifdef WITH_ZMQ
+#include <czmq.h>
+#endif
+
 catcierge_grb_t grb;
 
 #ifndef _WIN32
@@ -167,6 +171,11 @@ int main(int argc, char **argv)
 	}
 
 	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2014\n\n");
+
+	fprintf(stderr, "Library versions:\n");
+	#ifdef WITH_ZMQ
+	fprintf(stderr, " CZMQ v%d.%d.%d\n", CZMQ_VERSION_MAJOR, CZMQ_VERSION_MINOR, CZMQ_VERSION_PATCH);
+	#endif
 
 	#ifndef _WIN32
 	pid_fd = create_pid_file(argv[0], PID_PATH, FD_CLOEXEC);

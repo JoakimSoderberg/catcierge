@@ -40,6 +40,10 @@
 #include "catcierge_fsm.h"
 #include "catcierge_strftime.h"
 
+#ifdef WITH_ZMQ
+#include <czmq.h>
+#endif
+
 catcierge_output_var_t vars[] =
 {
 	{ "state", "The current state machine state." },
@@ -1108,6 +1112,16 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			size_t written = fwrite(output, sizeof(char), len, f);
 			fclose(f);
 		}
+
+		// TODO: Add ZMQ publish here also
+		#ifdef WITH_ZMQ
+		// TODO: Enable template setting "nozmq"
+		// TODO: Publish the generated data to a PUB zmq socket.
+		if (grb->zmq_pub)
+		{
+			//zstr_send(grb->zmq_pub, "");
+		}
+		#endif
 
 		if (output)
 		{

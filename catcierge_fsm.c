@@ -32,6 +32,10 @@
 #include <pwd.h>
 #endif
 
+#ifdef WITH_ZMQ
+#include <czmq.h>
+#endif
+
 #include "catcierge_fsm.h"
 #include "catcierge_output.h"
 
@@ -1066,6 +1070,20 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 			"match_obstruct_%s", time_str);
 	}
 }
+
+#ifdef WITH_ZMQ
+int catcierge_zmq_init(catcierge_grb_t *grb)
+{
+	assert(grb);
+	grb->zmq_ctx = zctx_new();
+	grb->zmq_pub = zsocket_new(grb->zmq_ctx, ZMQ_PUB);
+
+	// TODO: Enable setting port via args.
+	zsocket_bind(grb->zmq_pub, "tcp://*:5556");
+
+	return 0;
+}
+#endif // WITH_ZMQ 
 
 // =============================================================================
 // States

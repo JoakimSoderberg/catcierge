@@ -19,6 +19,10 @@
 #include "catcierge_gpio.h"
 #endif
 
+#ifdef WITH_ZMQ
+#include <czmq.h>
+#endif
+
 //
 // Piborg Picoborg pins.
 // (For turning on Solenoids and other 12V-20V appliances.)
@@ -102,6 +106,11 @@ typedef struct catcierge_grb_s
 	int checked_rfid_lock;				// Did we check if we should do an RFID lock during this match timeout?
 
 	#endif // WITH_RFID
+
+	#ifdef WITH_ZMQ
+	zctx_t *zmq_ctx;
+	void *zmq_pub;	// ZMQ publisher.
+	#endif // WITH_ZMQ
 } catcierge_grb_t;
 
 const char *catcierge_get_state_string(catcierge_state_func_t state);
