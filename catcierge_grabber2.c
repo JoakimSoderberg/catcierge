@@ -6,8 +6,90 @@
 #include "catcierge_fsm.h"
 #include "catcierge_output.h"
 #include "catcierge_matcher.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#ifndef _WIN32
+#include <fcntl.h>
+#endif // _WIN32
 
 catcierge_grb_t grb;
+
+#ifndef _WIN32
+int pid_fd;
+#define PID_PATH "/var/run/catcierge.pid"
+
+int create_pid_file(const char *prog_name, const char *pid_path, int flags)
+{
+	int fd;
+	char buf[128];
+	struct flock fl;
+
+	if ((fd = open(pid_path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)) == -1)
+	{
+		fprintf(stderr, "Failed to open PID file \"%s\"\n", pid_path);
+		return -1;
+	}
+
+	if (flags & FD_CLOEXEC) 
+	{
+		// Use fcntl instead of O_CLOEXEC on open since it is
+		// supported on more systems.
+
+		if ((flags = fcntl(fd, F_GETFD)) == -1)
+		{
+			fprintf(stderr, "Failed to get flags for PID file \"%s\"\n", pid_path);
+		}
+		else
+		{
+			flags |= FD_CLOEXEC;
+
+			if (fcntl(fd, F_SETFD, flags) == -1)
+			{
+				fprintf(stderr, "Failed to set flags for PID file \"%s\"\n", pid_path);
+			}
+		}
+	}
+
+	fl.l_type = F_WRLCK;
+	fl.l_whence = SEEK_SET;
+	fl.l_start = 0;
+	fl.l_len = 0;
+
+	if (fcntl(fd, F_SETLK, &fl) == -1) 
+	{
+		if ((errno == EAGAIN) || (errno == EACCES))
+		{
+			fprintf(stderr, "PID file '%s' is locked. '%s' is probably already running.\n",
+				pid_path, prog_name);
+		}	
+		else
+		{
+			fprintf(stderr, "Unable to lock PID file '%s'\n", pid_path);
+		}
+
+		return -1;
+	}
+
+	if (ftruncate(fd, 0) == -1)
+	{
+		fprintf(stderr, "Failed to truncate PID file '%s\n'", pid_path);
+		close(fd);
+		return -1;
+	}
+
+	snprintf(buf, sizeof(buf), "%ld\n", (long)getpid());
+	
+	if (write(fd, buf, strlen(buf)) != strlen(buf))
+	{
+		fprintf(stderr, "Failed to write PID file '%s'\n", pid_path);
+		close(fd);
+		return -1;
+	}
+
+	return fd;
+}
+#endif // _WIN32
 
 static void sig_handler(int signo)
 {
@@ -85,6 +167,10 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2014\n\n");
 
+	#ifndef _WIN32
+	pid_fd = create_pid_file(argv[0], PID_PATH, FD_CLOEXEC);
+	#endif
+
 	if (catcierge_grabber_init(&grb))
 	{
 		fprintf(stderr, "Failed to init\n");
@@ -159,14 +245,14 @@ int main(int argc, char **argv)
 	if (catcierge_output_init(&grb.output))
 	{
 		CATERR("Failed to init output template system\n");
-		exit(-1);
+		return -1;
 	}
 
 	if (catcierge_output_load_templates(&grb.output,
 			args->inputs, args->input_count))
 	{
 		CATERR("Failed to load output templates\n");
-		exit(-1);
+		return -1;
 	}
 
 	CATLOG("Initialized output templates\n");
@@ -176,6 +262,7 @@ int main(int argc, char **argv)
 	#endif
 
 	catcierge_setup_camera(&grb);
+
 	CATLOG("Starting detection!\n");
 	grb.running = 1;
 	catcierge_set_state(&grb, catcierge_state_waiting);
@@ -214,6 +301,14 @@ int main(int argc, char **argv)
 	{
 		fclose(grb.log_file);
 	}
+
+	#ifndef _WIN32
+	if (pid_fd > 0)
+	{
+		close(pid_fd);
+		unlink(PID_PATH);
+	}
+	#endif
 
 	return 0;
 }
