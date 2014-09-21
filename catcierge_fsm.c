@@ -1048,6 +1048,25 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 	}
 }
 
+void catcierge_save_obstruct_image(catcierge_grb_t *grb)
+{
+	if (grb->args.saveimg && grb->args.save_obstruct_img)
+	{
+		char time_str[1024];
+		match_group_t *mg = &grb->match_group;
+
+		mg->obstruct_img = cvCloneImage(grb->img);
+
+		mg->obstruct_time = time(NULL);
+		gettimeofday(&mg->obstruct_tv, NULL);
+		get_time_str_fmt(mg->obstruct_time, &mg->obstruct_tv, time_str,
+			sizeof(time_str), "%Y-%m-%d_%H_%M_%S.%f");
+
+		snprintf(mg->obstruct_path, sizeof(mg->obstruct_path),
+			"match_obstruct_%s", time_str);
+	}
+}
+
 // =============================================================================
 // States
 // =============================================================================
@@ -1257,19 +1276,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 		catcierge_match_group_start(mg);
 
 		// Save the obstruct image.
-		if (grb->args.saveimg && args->save_obstruct_img)
-		{
-			char time_str[1024];
-			mg->obstruct_img = cvCloneImage(grb->img);
-
-			mg->obstruct_time = time(NULL);
-			gettimeofday(&mg->obstruct_tv, NULL);
-			get_time_str_fmt(mg->obstruct_time, &mg->obstruct_tv, time_str,
-				sizeof(time_str), "%Y-%m-%d_%H_%M_%S.%f");
-
-			snprintf(mg->obstruct_path, sizeof(mg->obstruct_path),
-				"match_obstruct_%s", time_str);
-		}
+		catcierge_save_obstruct_image(grb);
 
 		if (args->new_execute)
 		{

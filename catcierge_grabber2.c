@@ -160,6 +160,7 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR " (" CATCIERGE_GIT_HASH_SHORT "");
 
+	// Was this built with changes in the git sources?
 	if (CATCIERGE_GIT_TAINTED)
 	{
 		fprintf(stderr, "-tainted");
