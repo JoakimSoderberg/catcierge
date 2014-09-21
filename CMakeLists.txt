@@ -83,7 +83,7 @@ if (GIT_FOUND)
 		OUTPUT_VARIABLE GIT_STATUS_OUTPUT
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
-	string(LENGTH GIT_STATUS_OUTPUT GIT_STATUS)
+	string(LENGTH "${GIT_STATUS_OUTPUT}" GIT_STATUS)
 	if (${GIT_STATUS} GREATER 0)
 		set(GIT_STATUS 1)
 	else()
@@ -401,7 +401,7 @@ message("-----------------------------------------------------------------")
 endif()
 
 if (GIT_STATUS)
-	message(WARNING "\nWarning build made from uncommited changes!\n${GIT_STATUS_OUTPUT}")
+	message(WARNING "\nWarning build made from uncommited changes!\n'${GIT_STATUS_OUTPUT}'")
 endif()
 
 
