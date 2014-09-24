@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/JoakimSoderberg/catcierge.png)](https://travis-ci.org/JoakimSoderberg/catcierge)
+[![Travis Build Status](https://travis-ci.org/JoakimSoderberg/catcierge.png)](https://travis-ci.org/JoakimSoderberg/catcierge)
+[![Appveyor Build status](https://ci.appveyor.com/api/projects/status/6aq2tpajh1nmy6b3)](https://ci.appveyor.com/project/JoakimSoderberg/catcierge)
 [![Coverage Status](https://coveralls.io/repos/JoakimSoderberg/catcierge/badge.png)](https://coveralls.io/r/JoakimSoderberg/catcierge)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/2506/badge.svg)](https://scan.coverity.com/projects/2506)
 

@@ -1,0 +1,11 @@
+install:
+  - cinst OpenCV
+build:
+
+build_script:
+  - git submodule update --init
+  - md build
+  - cd build
+  - cmake -DOpenCV_DIR=c:\OpenCV249\opencv\build ..
+  - cmake --build .
+  - ctest --output-on-failure
