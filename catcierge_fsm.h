@@ -140,4 +140,9 @@ int catcierge_state_lockout(catcierge_grb_t *grb);
 int catcierge_state_matching(catcierge_grb_t *grb);
 int catcierge_state_waiting(catcierge_grb_t *grb);
 
+#ifdef WITH_ZMQ
+void catcierge_zmq_destroy(catcierge_grb_t *grb);
+int catcierge_zmq_init(catcierge_grb_t *grb);
+#endif
+
 #endif // __CATCIERGE_FSM_H__

@@ -617,11 +617,11 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 
 	if (args->new_execute)
 	{
-		catcierge_output_execute(grb, "match_group_done", args->save_imgs_cmd);
+		catcierge_output_execute(grb, "match_group_done", args->match_group_done_cmd);
 	}
 	else
 	{
-		catcierge_execute(args->save_imgs_cmd,
+		catcierge_execute(args->match_group_done_cmd,
 			"%d %s %s %s %s %f %f %f %f %d %d %d %d %d",
 			grb->match_group.success, 						// %0 = Match success.
 			grb->match_group.matches[0].path,				// %1 = Image 1 path (of now saved image).
@@ -930,6 +930,7 @@ void catcierge_match_group_start(match_group_t *mg)
 	mg->description[0] = '\0';
 	mg->obstruct_path[0] = '\0';
 	mg->match_count = 0;
+	mg->final_decision = 0;
 
 	if (mg->obstruct_img)
 	{
@@ -1072,16 +1073,57 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 }
 
 #ifdef WITH_ZMQ
+
+void catcierge_zmq_destroy(catcierge_grb_t *grb)
+{
+	if (grb->zmq_ctx && grb->zmq_pub)
+	{
+		zsocket_destroy(grb->zmq_ctx, grb->zmq_pub);
+		grb->zmq_pub = NULL;
+	}
+
+	if (grb->zmq_ctx)
+	{
+		zctx_destroy(&grb->zmq_ctx);
+		grb->zmq_ctx = NULL;
+	}
+}
+
 int catcierge_zmq_init(catcierge_grb_t *grb)
 {
+	catcierge_args_t *args = &grb->args;
 	assert(grb);
-	grb->zmq_ctx = zctx_new();
-	grb->zmq_pub = zsocket_new(grb->zmq_ctx, ZMQ_PUB);
 
-	// TODO: Enable setting port via args.
-	zsocket_bind(grb->zmq_pub, "tcp://*:5556");
+	if (!args->zmq)
+	{
+		return 0;
+	}
+
+	if (!(grb->zmq_ctx = zctx_new()))
+	{
+		CATERR("Failed to create ZMQ context\n");
+		return -1;
+	}
+
+	if (!(grb->zmq_pub = zsocket_new(grb->zmq_ctx, ZMQ_PUB)))
+	{
+		CATERR("Failed to create ZMQ publisher socket\n");
+		goto fail;
+	}
+
+	if (zsocket_bind(grb->zmq_pub, "tcp://%s:%d",
+		args->zmq_iface, args->zmq_port) != args->zmq_port)
+	{
+		CATERR("Failed to bind to ZMQ publisher to interface %s:%d\n",
+			args->zmq_iface, args->zmq_port);
+		goto fail;
+	}
 
 	return 0;
+
+fail:
+	catcierge_zmq_destroy(grb);
+	return -1;
 }
 #endif // WITH_ZMQ 
 

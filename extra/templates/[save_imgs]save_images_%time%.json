@@ -1,4 +1,4 @@
-%!event save_imgs
+%!event match_group_done
 {
 	"time": "%time%",
 	"git_hash": "%git_hash%",

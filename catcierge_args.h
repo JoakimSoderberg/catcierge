@@ -18,6 +18,10 @@
 #define MAX_TEMP_CONFIG_VALUES 128
 #define DEFAULT_OK_MATCHES_NEEDED 2
 #define MAX_INPUT_TEMPLATES 32
+#ifdef WITH_ZMQ
+#define DEFAULT_ZMQ_PORT 5556
+#define DEFAULT_ZMQ_IFACE "*"
+#endif // WITH_ZMQ
 
 typedef struct catcierge_args_s
 {
@@ -49,7 +53,7 @@ typedef struct catcierge_args_s
 	int new_execute;
 	char *match_cmd;
 	char *save_img_cmd;
-	char *save_imgs_cmd;
+	char *match_group_done_cmd;
 	char *match_done_cmd;
 	char *do_lockout_cmd;
 	char *do_unlock_cmd;
@@ -77,6 +81,12 @@ typedef struct catcierge_args_s
 	#ifdef RPI
 	RASPIVID_SETTINGS rpi_settings;
 	#endif // RPI
+
+	#ifdef WITH_ZMQ
+	int zmq;
+	int zmq_port;
+	char *zmq_iface;
+	#endif // WITH_ZMQ
 } catcierge_args_t;
 
 typedef int (*catcierge_parse_args_cb)(catcierge_args_t *, char *key, char **values, size_t value_count, void *user);

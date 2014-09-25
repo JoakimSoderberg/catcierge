@@ -31,6 +31,10 @@ typedef struct catcierge_output_settings_s
 {
 	char **event_filter;
 	size_t event_filter_count;
+	#ifdef WITH_ZMQ
+	char *topic; // ZMQ topic name, defaults to template name.
+	int nozmq;
+	#endif
 } catcierge_output_settings_t;
 
 typedef struct catcierge_output_template_s

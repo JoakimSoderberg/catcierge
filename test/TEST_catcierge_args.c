@@ -268,7 +268,7 @@ char *run_parse_args_tests()
 
 		PARSE_CMD_SETTING(match_cmd);
 		PARSE_CMD_SETTING(save_img_cmd);
-		PARSE_CMD_SETTING(save_imgs_cmd);
+		PARSE_CMD_SETTING(match_group_done_cmd);
 		PARSE_CMD_SETTING(frame_obstructed_cmd);
 		PARSE_CMD_SETTING(match_done_cmd);
 		PARSE_CMD_SETTING(do_lockout_cmd);

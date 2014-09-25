@@ -205,7 +205,30 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return 0;
 	}
 
-	if (!strcmp(key, "output"))
+	#ifdef WITH_ZMQ
+	if (!strcmp(key, "zmq"))
+	{
+		args->zmq = 1;
+		if (value_count == 1) args->zmq = atoi(values[0]);
+		return 0;
+	}
+
+	if (!strcmp(key, "zmq_port"))
+	{
+		args->zmq_port = DEFAULT_ZMQ_PORT;
+		if (value_count == 1) args->zmq_port = atoi(values[0]);
+		return 0;
+	}
+
+	if (!strcmp(key, "zmq_iface"))
+	{
+		args->zmq_iface = DEFAULT_ZMQ_IFACE;
+		if (value_count == 1) args->zmq_iface = values[0];
+		return 0;
+	}
+	#endif // WITH_ZMQ
+
+	if (!strcmp(key, "output") || !strcmp(key, "output_path"))
 	{
 		if (value_count == 1)
 		{
@@ -213,15 +236,15 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
-		fprintf(stderr, "--output missing path value\n");
+		fprintf(stderr, "--output_path missing path value\n");
 		return -1;
 	}
 
-	if (!strcmp(key, "input"))
+	if (!strcmp(key, "input") || !strcmp(key, "template"))
 	{
 		if (value_count == 0)
 		{
-			fprintf(stderr, "--input missing value\n");
+			fprintf(stderr, "--template missing value\n");
 			return -1;
 		}
 
@@ -349,15 +372,15 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return -1;
 	}
 
-	if (!strcmp(key, "save_imgs_cmd"))
+	if (!strcmp(key, "save_imgs_cmd") || !strcmp(key, "match_group_done_cmd"))
 	{
 		if (value_count == 1)
 		{
-			args->save_imgs_cmd = values[0];
+			args->match_group_done_cmd = values[0];
 			return 0;
 		}
 
-		fprintf(stderr, "--save_imgs_cmd missing value\n");
+		fprintf(stderr, "--match_group_done_cmd missing value\n");
 		return -1;
 	}
 
@@ -521,7 +544,11 @@ static void catcierge_config_free_temp_strings(catcierge_args_t *args)
 void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 {
 	fprintf(stderr, "Usage: %s [options]\n\n", prog);
-	fprintf(stderr, "General settings:\n");
+	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg\n");
+	fprintf(stderr, "                        or /etc/catcierge.cfg\n");
+	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are\n");
+	fprintf(stderr, "                        the same as these options.\n");
+	fprintf(stderr, "Lockout settings:\n");
 	fprintf(stderr, "-----------------\n");
 	fprintf(stderr, " --lockout_method <1|2|3>\n");
 	fprintf(stderr, "                        Defines the method used to decide when to unlock:\n");
@@ -537,26 +564,37 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "                        counted as a consecutive lockout. Default %0.1f\n", DEFAULT_CONSECUTIVE_LOCKOUT_DELAY);
 	fprintf(stderr, " --lockout_dummy        Do everything as normal, but don't actually\n");
 	fprintf(stderr, "                        lock the door. This is useful for testing.\n");
-	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %d seconds.\n", DEFAULT_MATCH_WAIT);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Presentation settings:\n");
+	fprintf(stderr, "----------------------\n");
 	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
+	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
+	fprintf(stderr, " --nocolor              Turn off all color output.\n");
+	fprintf(stderr, " --noanim               Turn off any animation.\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Output settings:\n");
+	fprintf(stderr, "----------------\n");
 	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
 	fprintf(stderr, " --save_obstruct        Save the image that triggered the \"frame obstructed\" event.\n");
 	fprintf(stderr, " --save_steps           Save each step of the matching algorithm.\n");
 	fprintf(stderr, "                        (--save must also be turned on)\n");
-	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
-	fprintf(stderr, " --nocolor              Turn off all color output.\n");
-	fprintf(stderr, " --noanim               Turn off any animation.\n");
-	fprintf(stderr, " --input <path>         Path to one or more template files generated on certain events.\n");
-	fprintf(stderr, " --output <path>        Path to where the match images should be saved.\n");
+	fprintf(stderr, " --template <path>      Path to one or more template files generated on specified events.\n");
+	fprintf(stderr, "                        (Not to be confused with the template matcher)\n");
+	fprintf(stderr, " --output <path>        Path to where the match images and generated templates should be saved.\n");
 	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
-	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg\n");
-	fprintf(stderr, "                        or /etc/catcierge.cfg\n");
-	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are\n");
-	fprintf(stderr, "                        the same as these options.\n");
+	#ifdef WITH_ZMQ
+	fprintf(stderr, " --zmq                  Publish generated output templates to a ZMQ socket.\n");
+	fprintf(stderr, " --zmq_port             The TCP port that the ZMQ publisher listens on. Default %d\n", DEFAULT_ZMQ_PORT);
+	fprintf(stderr, " --zmq_iface            The interface the ZMQ publisher listens on. Default %s\n", DEFAULT_ZMQ_IFACE);
+	#endif // WITH_ZMQ
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Matcher settings:\n");
+	fprintf(stderr, "-----------------\n");
 	fprintf(stderr, " --ok_matches_needed <number>\n");
 	fprintf(stderr, "                        The number of matches out of %d matches\n", MATCH_MAX_COUNT);
 	fprintf(stderr, "                        that need to be OK for the match to be considered\n");
 	fprintf(stderr, "                        an over all OK match.\n");
+	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %d seconds.\n", DEFAULT_MATCH_WAIT);
 	fprintf(stderr, " --matcher <template|haar>\n");
 	fprintf(stderr, "                        The type of matcher to use. Haar cascade is more\n");
 	fprintf(stderr, "                        accurate if a well trained cascade exists for your cat.\n");
@@ -578,7 +616,7 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	catcierge_template_matcher_usage();
 	#ifdef WITH_RFID
 	fprintf(stderr, "\n");
-	fprintf(stderr, "RFID:\n");
+	fprintf(stderr, "RFID settings:\n");
 	fprintf(stderr, "-----\n");
 	fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
 	fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
@@ -621,7 +659,7 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	EPRINT_CMD_HELP("                         %%1 = [0/1]    Match success.\n");
 	EPRINT_CMD_HELP("                         %%2 = [string] Image path (Image is saved to disk).\n");
 	EPRINT_CMD_HELP("\n");
-	fprintf(stderr, " --save_imgs_cmd <cmd>  Command that runs when all match images have been saved\n");
+	fprintf(stderr, " --match_group_done_cmd <cmd>  Command that runs when all match images have been saved\n");
 	fprintf(stderr, "                        to disk.\n");
 	fprintf(stderr, "                        (This is most likely what you want to use in most cases)\n");
 	EPRINT_CMD_HELP("                         %%0 = [0/1]    Match success.\n");
@@ -884,7 +922,13 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("      No animation: %d\n", args->noanim);
 	printf(" Ok matches needed: %d\n", args->ok_matches_needed);
 	printf("       Output path: %s\n", args->output_path);
-	printf("\n");
+	#ifdef WITH_ZMQ
+	printf("     ZMQ publisher: %d\n", args->zmq);
+	printf("          ZMQ port: %d\n", args->zmq_port);
+	printf("     ZMQ interface: %s\n", args->zmq_iface);
+	#endif
+	printf("\n"); 
+	printf("      Matcher type: %s\n", args->matcher);
 	if (!args->matcher || !strcmp(args->matcher, "template"))
 		catcierge_template_matcher_print_settings(&args->templ);
 	else
@@ -931,6 +975,11 @@ int catcierge_args_init(catcierge_args_t *args)
 		raspiCamCvSetDefaultCameraParameters(&settings->camera_parameters);
 	}
 	#endif // RPI
+
+	#ifdef WITH_ZMQ
+	args->zmq_port = DEFAULT_ZMQ_PORT;
+	args->zmq_iface = DEFAULT_ZMQ_IFACE;
+	#endif
 
 	return 0;
 }

@@ -122,6 +122,18 @@ int catcierge_output_init(catcierge_output_t *ctx)
 	return 0;
 }
 
+void catcierge_output_free_template_settings(catcierge_output_settings_t *settings)
+{
+	#ifdef WITH_ZMQ
+	if (settings->topic) free(settings->topic);
+	settings->topic = NULL;
+	#endif
+
+	catcierge_free_list(settings->event_filter, settings->event_filter_count);
+	settings->event_filter = NULL;
+	settings->event_filter_count = 0;
+}
+
 void catcierge_output_free_template(catcierge_output_template_t *t)
 {
 	if (!t)
@@ -136,9 +148,7 @@ void catcierge_output_free_template(catcierge_output_template_t *t)
 	if (t->generated_path) free(t->generated_path);
 	t->generated_path = NULL;
 
-	catcierge_free_list(t->settings.event_filter, t->settings.event_filter_count);
-	t->settings.event_filter = NULL;
-	t->settings.event_filter_count = 0;
+	catcierge_output_free_template_settings(&t->settings);
 }
 
 void catcierge_output_destroy(catcierge_output_t *ctx)
@@ -166,7 +176,13 @@ void catcierge_output_destroy(catcierge_output_t *ctx)
 
 int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, const char *events)
 {
+	size_t i;
 	assert(settings);
+
+	if (settings->event_filter)
+	{
+		catcierge_free_list(settings->event_filter, settings->event_filter_count);
+	}
 
 	if (!(settings->event_filter = catcierge_parse_list(events, &settings->event_filter_count, 1)))
 	{
@@ -240,9 +256,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 
 			if (catcierge_output_read_event_setting(settings, it))
 			{
-				CATERR("Failed to parse event setting\n");
-				free(tmp);
-				return NULL;
+				CATERR("Failed to parse event setting\n"); goto fail;
 			}
 			it = row_end;
 			continue;
@@ -254,26 +268,74 @@ const char *catcierge_output_read_template_settings(const char *name,
 			it = catcierge_skip_whitespace_alt(it);
 			continue;
 		}
+		else if (!strncmp(it, "topic", 5))
+		{
+			// ZMQ topic.
+			it += 5;
+			it = catcierge_skip_whitespace_alt(it);
+
+			#ifdef WITH_ZMQ
+			if (settings->topic) free(settings->topic);
+			if (!(settings->topic = strdup(it)))
+			{
+				CATERR("Out of memory!\n"); goto fail;
+			}
+			#endif
+
+			it = row_end;
+			continue;
+		}
+		else if (!strncmp(it, "nozmq", 5))
+		{
+			// Don't publish this template to ZMQ.
+			it += 5;
+			it = catcierge_skip_whitespace_alt(it);
+			#ifdef WITH_ZMQ
+			settings->nozmq = 1;
+			#endif
+			it = row_end;
+			continue;
+		}
 		else
 		{
 			const char *unknown_end = strchr(it, '\n');
 			int line_len = unknown_end ? (int)(unknown_end - it) : strlen(it);
 			CATERR("Unknown template setting: \"%*s\"\n", line_len, it);
 			it += line_len;
-			free(tmp);
-			return NULL;
+			goto fail;
 		}
 	}
 
 	bytes_read = it - tmp;
-	free(tmp);
 
 	if (settings->event_filter_count == 0)
 	{
 		CATERR("!!! Output template \"%s\" missing event filter, nothing will be generated !!!\n", name);
 	}
 
+	#ifdef WITH_ZMQ
+	// Default for ZMQ publish topic to be the same as the template name.
+	if (!settings->topic)
+	{
+		if (!(settings->topic = strdup(name)))
+		{
+			CATERR("Out of memory!\n"); goto fail;
+		}
+	}
+	#endif
+
+	free(tmp);
+
 	return template_str + bytes_read;
+fail:
+	if (tmp)
+	{
+		free(tmp);
+	}
+
+	catcierge_output_free_template_settings(settings);
+
+	return NULL;
 }
 
 int catcierge_output_add_template(catcierge_output_t *ctx,
@@ -311,6 +373,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 	// This is so that we can pass the path of the generated
 	// target path at run time to the catcierge_execute function
 	// and the external program can distinguish between multiple templates.
+	// TODO: Enable having a name as a setting within the template as well.
 	{
 		char name[4096];
 		memset(name, 0, sizeof(name));
@@ -344,7 +407,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		goto out_of_memory;
 	}
 
-	if (!(template_str = catcierge_output_read_template_settings(t->target_path,
+	if (!(template_str = catcierge_output_read_template_settings(t->name,
 							&t->settings, template_str)))
 	{
 		goto fail;
@@ -1061,10 +1124,12 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		// Filter out any events that don't have the current "event" in their list.
 		if (!catcierge_output_template_registered_to_event(t, event))
 		{
+			CATLOG("Skip template %s\n", t->name);
 			continue;
 		}
 
 		// First generate the target path.
+		// TODO: Optionally don't care about generating the path (ZMQ only).
 		{
 			if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
 			{
@@ -1099,6 +1164,15 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			return -1;
 		}
 
+		#ifdef WITH_ZMQ
+		if (grb->args.zmq && grb->zmq_pub && !t->settings.nozmq)
+		{
+			CATLOG("ZMQ Publish topic %s, %d bytes\n", t->settings.topic, strlen(output));
+			zstr_sendfm(grb->zmq_pub, t->settings.topic);
+			zstr_send(grb->zmq_pub, output);
+		}
+		#endif
+
 		if (!(f = fopen(full_path, "w")))
 		{
 			CATERR("Failed to open template output file \"%s\" for writing\n", full_path);
@@ -1112,16 +1186,6 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			size_t written = fwrite(output, sizeof(char), len, f);
 			fclose(f);
 		}
-
-		// TODO: Add ZMQ publish here also
-		#ifdef WITH_ZMQ
-		// TODO: Enable template setting "nozmq"
-		// TODO: Publish the generated data to a PUB zmq socket.
-		if (grb->zmq_pub)
-		{
-			//zstr_send(grb->zmq_pub, "");
-		}
-		#endif
 
 		if (output)
 		{

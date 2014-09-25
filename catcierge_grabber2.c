@@ -17,6 +17,8 @@
 #include <czmq.h>
 #endif
 
+#include <opencv2/core/version.hpp>
+
 catcierge_grb_t grb;
 
 #ifndef _WIN32
@@ -173,8 +175,9 @@ int main(int argc, char **argv)
 	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2014\n\n");
 
 	fprintf(stderr, "Library versions:\n");
+	fprintf(stderr, " OpenCV v%d.%d.%d\n", CV_MAJOR_VERSION, CV_MINOR_VERSION, CV_SUBMINOR_VERSION);
 	#ifdef WITH_ZMQ
-	fprintf(stderr, " CZMQ v%d.%d.%d\n", CZMQ_VERSION_MAJOR, CZMQ_VERSION_MINOR, CZMQ_VERSION_PATCH);
+	fprintf(stderr, "   CZMQ v%d.%d.%d\n", CZMQ_VERSION_MAJOR, CZMQ_VERSION_MINOR, CZMQ_VERSION_PATCH);
 	#endif
 
 	#ifndef _WIN32
@@ -273,7 +276,12 @@ int main(int argc, char **argv)
 
 	catcierge_setup_camera(&grb);
 
+	#ifdef WITH_ZMQ
+	catcierge_zmq_init(&grb);
+	#endif
+
 	CATLOG("Starting detection!\n");
+	// TODO: Create a catcierge_grb_start(grb) function that does this instead.
 	grb.running = 1;
 	catcierge_set_state(&grb, catcierge_state_waiting);
 	catcierge_timer_set(&grb.frame_timer, 1.0);
@@ -299,12 +307,19 @@ int main(int argc, char **argv)
 
 		catcierge_run_state(&grb);
 		catcierge_print_spinner(&grb);
-	} while (grb.running);
+	} while (
+		grb.running
+		#ifdef WITH_ZMQ
+		&& !zctx_interrupted
+		#endif
+		);
 
 	catcierge_matcher_destroy(&grb.matcher);
-
 	catcierge_output_destroy(&grb.output);
 	catcierge_destroy_camera(&grb);
+	#ifdef WITH_ZMQ
+	catcierge_zmq_destroy(&grb);
+	#endif
 	catcierge_grabber_destroy(&grb);
 
 	if (grb.log_file)
