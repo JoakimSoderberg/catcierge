@@ -38,7 +38,7 @@ char *catcierge_output_generate(catcierge_output_t *ctx, catcierge_grb_t *grb,
 		const char *template_str);
 
 int catcierge_output_generate_templates(catcierge_output_t *ctx,
-		catcierge_grb_t *grb, const char *output_path, const char *event);
+		catcierge_grb_t *grb, const char *event);
 
 int catcierge_output_load_template(catcierge_output_t *ctx, char *path);
 

@@ -240,6 +240,54 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return -1;
 	}
 
+	if (!strcmp(key, "match_output_path"))
+	{
+		if (value_count == 1)
+		{
+			args->match_output_path = values[0];
+			return 0;
+		}
+
+		fprintf(stderr, "--match_output_path missing path value\n");
+		return -1;
+	}
+
+	if (!strcmp(key, "steps_output_path"))
+	{
+		if (value_count == 1)
+		{
+			args->steps_output_path = values[0];
+			return 0;
+		}
+
+		fprintf(stderr, "--steps_output_path missing path value\n");
+		return -1;
+	}
+
+	if (!strcmp(key, "obstruct_output_path"))
+	{
+		if (value_count == 1)
+		{
+			args->obstruct_output_path = values[0];
+			return 0;
+		}
+
+		fprintf(stderr, "--obstruct_output_path missing path value\n");
+		return -1;
+	}
+
+	if (!strcmp(key, "template_output_path"))
+	{
+		if (value_count == 1)
+		{
+			args->template_output_path = values[0];
+			return 0;
+		}
+
+		fprintf(stderr, "--template_output_path missing path value\n");
+		return -1;
+	}
+
 	if (!strcmp(key, "input") || !strcmp(key, "template"))
 	{
 		if (value_count == 0)
@@ -580,10 +628,25 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "                        (--save must also be turned on)\n");
 	fprintf(stderr, " --template <path>      Path to one or more template files generated on specified events.\n");
 	fprintf(stderr, "                        (Not to be confused with the template matcher)\n");
-	fprintf(stderr, " --output <path>        Path to where the match images and generated templates should be saved.\n");
+	fprintf(stderr, " --output_path <path>   Path to where the match images and generated templates should be saved.\n");
+	fprintf(stderr, "                        Note that this path can contain variables of the format %%var%%\n");
+	fprintf(stderr, "                        when --new_execute is used. See --cmdhelp for available variables.\n");
+	fprintf(stderr, "   --match_output_path <path>\n");
+	fprintf(stderr, "                        Override --output_path for match images and save them here instead.\n");
+	fprintf(stderr, "                        If --new_execute is used, this can be relative to --output_path\n");
+	fprintf(stderr, "                        by using %%output_path%% in the path.\n");
+	fprintf(stderr, "   --steps_output_path <path>\n");
+	fprintf(stderr, "                        If --save_steps is enabled, save step images to this path.\n");
+	fprintf(stderr, "                        Same as for --match_output_path, overrides --output_path.\n");
+	fprintf(stderr, "   --obstruct_output_path <path>\n");
+	fprintf(stderr, "                        Path for the obstruct images. Overrides --output_path.\n");
+	fprintf(stderr, "   --template_output_path <path>\n");
+	fprintf(stderr, "                        Output path for templates. Overrides --output_path.\n");
+	fprintf(stderr, "\n");
 	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
 	#ifdef WITH_ZMQ
 	fprintf(stderr, " --zmq                  Publish generated output templates to a ZMQ socket.\n");
+	fprintf(stderr, "                        If a template contains the setting 'nozmq' it will not be published.\n");
 	fprintf(stderr, " --zmq_port             The TCP port that the ZMQ publisher listens on. Default %d\n", DEFAULT_ZMQ_PORT);
 	fprintf(stderr, " --zmq_iface            The interface the ZMQ publisher listens on. Default %s\n", DEFAULT_ZMQ_IFACE);
 	#endif // WITH_ZMQ
@@ -905,29 +968,37 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("Settings:\n");
 	printf("--------------------------------------------------------------------------------\n");
 	printf("General:\n");
-	printf("        Show video: %d\n", args->show);
-	printf("      Save matches: %d\n", args->saveimg);
-	printf("     Save obstruct: %d\n", args->save_obstruct_img);
-	printf("        Save steps: %d\n", args->save_steps);
-	printf("   Highlight match: %d\n", args->highlight_match);
-	printf("     Lockout dummy: %d\n", args->lockout_dummy);
-	printf("    Lockout method: %d\n", args->lockout_method);
-	printf("         Lock time: %d seconds\n", args->lockout_time);
-	printf("     Lockout error: %d %s\n", args->max_consecutive_lockout_count,
+	printf("          Show video: %d\n", args->show);
+	printf("        Save matches: %d\n", args->saveimg);
+	printf("       Save obstruct: %d\n", args->save_obstruct_img);
+	printf("          Save steps: %d\n", args->save_steps);
+	printf("     Highlight match: %d\n", args->highlight_match);
+	printf("       Lockout dummy: %d\n", args->lockout_dummy);
+	printf("      Lockout method: %d\n", args->lockout_method);
+	printf("           Lock time: %d seconds\n", args->lockout_time);
+	printf("       Lockout error: %d %s\n", args->max_consecutive_lockout_count,
 							(args->max_consecutive_lockout_count == 0) ? "(off)" : "");
-	printf(" Lockout err delay: %0.1f\n", args->consecutive_lockout_delay);
-	printf("     Match timeout: %d seconds\n", args->match_time);
-	printf("          Log file: %s\n", args->log_path ? args->log_path : "-");
-	printf("          No color: %d\n", args->nocolor);
-	printf("      No animation: %d\n", args->noanim);
-	printf(" Ok matches needed: %d\n", args->ok_matches_needed);
-	printf("       Output path: %s\n", args->output_path);
+	printf("   Lockout err delay: %0.1f\n", args->consecutive_lockout_delay);
+	printf("       Match timeout: %d seconds\n", args->match_time);
+	printf("            Log file: %s\n", args->log_path ? args->log_path : "-");
+	printf("            No color: %d\n", args->nocolor);
+	printf("        No animation: %d\n", args->noanim);
+	printf("   Ok matches needed: %d\n", args->ok_matches_needed);
+	printf("         Output path: %s\n", args->output_path);
+	if (args->match_output_path && strcmp(args->output_path, args->match_output_path))
+	printf("   Match output path: %s\n", args->match_output_path);
+	if (args->steps_output_path && strcmp(args->output_path, args->steps_output_path))
+	printf("   Steps output path: %s\n", args->steps_output_path);
+	if (args->obstruct_output_path && strcmp(args->output_path, args->obstruct_output_path))
+	printf("Obstruct output path: %s\n", args->obstruct_output_path);
+	if (args->template_output_path && strcmp(args->output_path, args->template_output_path))
+	printf("Template output path: %s\n", args->template_output_path);
 	#ifdef WITH_ZMQ
-	printf("     ZMQ publisher: %d\n", args->zmq);
-	printf("          ZMQ port: %d\n", args->zmq_port);
-	printf("     ZMQ interface: %s\n", args->zmq_iface);
+	printf("       ZMQ publisher: %d\n", args->zmq);
+	printf("            ZMQ port: %d\n", args->zmq_port);
+	printf("       ZMQ interface: %s\n", args->zmq_iface);
 	#endif
-	printf("      Matcher type: %s\n", args->matcher);
+	printf("        Matcher type: %s\n", args->matcher);
 	printf("\n"); 
 	if (!args->matcher || !strcmp(args->matcher, "template"))
 		catcierge_template_matcher_print_settings(&args->templ);
@@ -935,11 +1006,11 @@ void catcierge_print_settings(catcierge_args_t *args)
 		catcierge_haar_matcher_print_settings(&args->haar);
 	#ifdef WITH_RFID
 	printf("RFID:\n");
-	printf("        Inner RFID: %s\n", args->rfid_inner_path ? args->rfid_inner_path : "-");
-	printf("        Outer RFID: %s\n", args->rfid_outer_path ? args->rfid_outer_path : "-");
-	printf("   Lock on no RFID: %d\n", args->lock_on_invalid_rfid);
-	printf("    RFID lock time: %.2f seconds\n", args->rfid_lock_time);
-	printf("      Allowed RFID: %s\n", (args->rfid_allowed_count <= 0) ? "-" : args->rfid_allowed[0]);
+	printf("          Inner RFID: %s\n", args->rfid_inner_path ? args->rfid_inner_path : "-");
+	printf("          Outer RFID: %s\n", args->rfid_outer_path ? args->rfid_outer_path : "-");
+	printf("     Lock on no RFID: %d\n", args->lock_on_invalid_rfid);
+	printf("      RFID lock time: %.2f seconds\n", args->rfid_lock_time);
+	printf("        Allowed RFID: %s\n", (args->rfid_allowed_count <= 0) ? "-" : args->rfid_allowed[0]);
 	for (i = 1; i < args->rfid_allowed_count; i++)
 	{
 		printf("                 %s\n", args->rfid_allowed[i]);

@@ -204,6 +204,31 @@ char *run_parse_args_tests()
 	PARSE_SETTING("output", "Expected invalid parse for missing value",
 		(ret == -1));
 
+	PARSE_SETTING("output_path /some/output/path", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.output_path, "/some/output/path"));
+	PARSE_SETTING("output_path", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SETTING("match_output_path /some/output/path", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.match_output_path, "/some/output/path"));
+	PARSE_SETTING("match_output_path", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SETTING("steps_output_path /some/output/path", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.steps_output_path, "/some/output/path"));
+	PARSE_SETTING("steps_output_path", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SETTING("obstruct_output_path /some/output/path", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.obstruct_output_path, "/some/output/path"));
+	PARSE_SETTING("obstruct_output_path", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SETTING("template_output_path /some/output/path", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.template_output_path, "/some/output/path"));
+	PARSE_SETTING("template_output_path", "Expected invalid parse for missing value",
+		(ret == -1));
+
 	{
 		size_t i;
 

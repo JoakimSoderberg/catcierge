@@ -72,8 +72,8 @@ static char *run_generate_tests()
 			{ "aaa %match3_direction% bbb", "aaa in bbb" },
 			{ "%match3_result%", "0.800000" },
 			{ "%state%", "Waiting" },
-			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg3" },
-			{ "%match4_path%", "" }, // Match count is only 3, so this should be empty.
+			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg4" },
+			{ "%match4_path%", "/some/path/omg4" }, // Match count is only 3, so this should be empty.
 			{ "%match_count%", "3" },
 			{ "%match_group_count%", "3" },
 			{ "%match_group_final_decision%", "1" },
@@ -198,6 +198,7 @@ char *run_add_and_generate_tests()
 {
 	catcierge_grb_t grb;
 	catcierge_output_t *o = &grb.output;
+	memset(&grb.args, 0, sizeof(grb.args));
 
 	catcierge_grabber_init(&grb);
 	{
@@ -217,7 +218,7 @@ char *run_add_and_generate_tests()
 			}
 			mu_assert("Expected template count 1", o->template_count == 1);
 
-			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path, "all"))
+			if (catcierge_output_generate_templates(o, &grb, "all"))
 				return "Failed to generate templates";
 		}
 
@@ -232,7 +233,7 @@ char *run_add_and_generate_tests()
 			}
 			mu_assert("Expected template count 2", o->template_count == 2);
 
-			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path, "all"))
+			if (catcierge_output_generate_templates(o, &grb, "all"))
 				return "Failed to generate templates";
 		}
 
@@ -272,7 +273,7 @@ char *run_add_and_generate_tests()
 			}
 			mu_assert("Expected template count 3", o->template_count == 3);
 
-			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path, "all"))
+			if (catcierge_output_generate_templates(o, &grb, "all"))
 				return "Failed to generate templates";
 		}
 
@@ -297,7 +298,7 @@ char *run_add_and_generate_tests()
 			mu_assert("Expected template count 4", o->template_count == 4);
 			mu_assert("Expected named template", !strcmp(o->templates[3].name, "arne"));
 
-			if (catcierge_output_generate_templates(o, &grb, grb.args.output_path, "all"))
+			if (catcierge_output_generate_templates(o, &grb, "all"))
 				return "Failed to generate templates";
 
 			// Try getting the template_path for the arne template.

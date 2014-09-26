@@ -56,6 +56,11 @@ catcierge_output_var_t vars[] =
 	{ "lockout_time", "Value of --lockout_time." },
 	{ "lockout_error", "Value of --lockout_error." },
 	{ "lockout_error_delay", "Value of --lockout_error_delay."},
+	{ "output_path", "The output path specified via --output_path." },
+	{ "match_output_path", "The output path specified via --match_output_path." },
+	{ "steps_output_path", "The output path specified via --steps_output_path." },
+	{ "obstruct_output_path", "The output path specified via --obstruct_output_path." },
+	{ "template_output_path", "The output path specified via --template_output_path." },
 	{ "match_group_id", "Match group ID."},
 	{ "match_group_success", "Match group success status."},
 	{ "match_group_success_count", "Match group success count."},
@@ -98,7 +103,6 @@ catcierge_output_var_t vars[] =
 	{ "git_tainted", "Was the git working tree changed when building."},
 	{ "version", "The catcierge version." },
 	{ "cwd", "Current working directory." },
-	{ "output_path", "The output path specified via --output_path." },
 };
 
 void catcierge_output_print_usage()
@@ -299,6 +303,15 @@ const char *catcierge_output_read_template_settings(const char *name,
 			#ifdef WITH_ZMQ
 			settings->nozmq = 1;
 			#endif
+			it = row_end;
+			continue;
+		}
+		else if (!strncmp(it, "nofile", 6))
+		{
+			// Don't write this template to file.
+			it += 6;
+			it = catcierge_skip_whitespace_alt(it);
+			settings->nofile = 1;
 			it = row_end;
 			continue;
 		}
@@ -598,7 +611,32 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strcmp(var, "output_path"))
 	{
-		return grb->args.output_path;
+		return catcierge_output_generate(&grb->output, grb,
+			grb->args.output_path);
+	}
+
+	if (!strcmp(var, "match_output_path"))
+	{
+		return catcierge_output_generate(&grb->output, grb,
+			grb->args.match_output_path);
+	}
+
+	if (!strcmp(var, "steps_output_path"))
+	{
+		return catcierge_output_generate(&grb->output, grb,
+			grb->args.steps_output_path);
+	}
+
+	if (!strcmp(var, "obstruct_output_path"))
+	{
+		return catcierge_output_generate(&grb->output, grb,
+			grb->args.obstruct_output_path);
+	}
+
+	if (!strcmp(var, "template_output_path"))
+	{
+		return catcierge_output_generate(&grb->output, grb,
+			grb->args.template_output_path);
 	}
 
 	if (!strcmp(var, "matcher"))
@@ -771,7 +809,8 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		if (!strncmp(var, "matchcur", 8))
 		{
-			idx = grb->match_group.match_count - 1;
+			// TODO: Hmm this needs closer investigation...
+			idx = grb->match_group.match_count;
 			subvar = var + strlen("matchcur_");
 		}
 		else
@@ -793,7 +832,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		m = &grb->match_group.matches[idx];
 
-		if ((size_t)idx >= grb->match_group.match_count)
+		if ((size_t)idx > grb->match_group.match_count)
 		{
 			return "";
 		}
@@ -1131,9 +1170,10 @@ int catcierge_output_template_registered_to_event(catcierge_output_template_t *t
 }
 
 int catcierge_output_generate_templates(catcierge_output_t *ctx,
-	catcierge_grb_t *grb, const char *output_path, const char *event)
+	catcierge_grb_t *grb, const char *event)
 {
 	catcierge_output_template_t *t = NULL;
+	catcierge_args_t *args = &grb->args;
 	char *output = NULL;
 	char *path = NULL;
 	char full_path[4096];
@@ -1143,9 +1183,9 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 	assert(ctx);
 	assert(grb);
 
-	if (!output_path)
+	if (!args->template_output_path)
 	{
-		output_path = ".";
+		args->template_output_path = args->output_path;
 	}
 
 	catcierge_output_free_generated_paths(ctx);
@@ -1169,9 +1209,10 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			char *gen_output_path = NULL;
 
 			// Generate the output path.
-			if (!(gen_output_path = catcierge_output_generate(&grb->output, grb, output_path)))
+			if (!(gen_output_path = catcierge_output_generate(&grb->output,
+					grb, args->template_output_path)))
 			{
-				CATERR("Failed to generate output path from: \"%s\"\n", output_path);
+				CATERR("Failed to generate output path from: \"%s\"\n", args->template_output_path);
 			}
 
 			if (catcierge_make_path(gen_output_path))
@@ -1228,21 +1269,23 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		}
 		#endif
 
-		CATLOG("Generate template: %s\n", full_path);
+		if (!t->settings.nofile)
+		{
+			CATLOG("Generate template: %s\n", full_path);
 
-		// TODO: Optionally don't care about writing to file (ZMQ only).
-		if (!(f = fopen(full_path, "w")))
-		{
-			CATERR("Failed to open template output file \"%s\" for writing\n", full_path);
-			free(output);
-			free(path);
-			return -1;
-		}
-		else
-		{
-			size_t len = strlen(output);
-			size_t written = fwrite(output, sizeof(char), len, f);
-			fclose(f);
+			if (!(f = fopen(full_path, "w")))
+			{
+				CATERR("Failed to open template output file \"%s\" for writing\n", full_path);
+				free(output);
+				free(path);
+				return -1;
+			}
+			else
+			{
+				size_t len = strlen(output);
+				size_t written = fwrite(output, sizeof(char), len, f);
+				fclose(f);
+			}
 		}
 
 		if (output)
@@ -1364,8 +1407,7 @@ void catcierge_output_execute(catcierge_grb_t *grb,
 	if (!command)
 		return;
 
-	if (catcierge_output_generate_templates(&grb->output,
-		grb, grb->args.output_path, event))
+	if (catcierge_output_generate_templates(&grb->output, grb, event))
 	{
 		CATERR("Failed to generate templates on execute!\n");
 		return;

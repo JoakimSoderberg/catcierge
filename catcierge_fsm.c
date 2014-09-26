@@ -525,11 +525,16 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 	if (args->saveimg)
 	{
 		char base_path[1024];
-		char *gen_output_path = NULL;
+		char *match_gen_output_path = NULL;
 
-		if (!(gen_output_path = catcierge_output_generate(&grb->output, grb, args->output_path)))
+		if (!args->match_output_path)
 		{
-			CATERR("Failed to generate output path from: \"%s\"\n", args->output_path);
+			args->match_output_path = args->output_path;
+		}
+
+		if (!(match_gen_output_path = catcierge_output_generate(&grb->output, grb, args->match_output_path)))
+		{
+			CATERR("Failed to generate match output path from: \"%s\"\n", args->match_output_path);
 		}
 
 		// TODO: Enable setting this via template variables instead.
@@ -540,10 +545,15 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 			m->time_str,
 			(int)grb->match_group.match_count);
 
-		snprintf(m->path, sizeof(m->path) - 1, "%s", gen_output_path);
+		snprintf(m->path, sizeof(m->path) - 1, "%s", match_gen_output_path);
 		snprintf(m->filename, sizeof(m->filename) - 1, "%s.png", base_path);
 		snprintf(m->full_path, sizeof(m->full_path) - 1, "%s%s%s",
 					m->path, catcierge_path_sep(), m->filename);
+
+		if (match_gen_output_path)
+		{
+			free(match_gen_output_path);
+		}
 
 		m->img = cvCloneImage(img);
 		// TODO: Add option to save the image right away also.
@@ -551,12 +561,23 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 		if (args->save_steps)
 		{
 			match_step_t *step;
+			char *step_gen_output_path = NULL;
+
+			if (!args->steps_output_path)
+			{
+				args->steps_output_path = args->output_path;
+			}
 
 			for (j = 0; j < m->result.step_img_count; j++)
 			{
+				if (!(step_gen_output_path = catcierge_output_generate(&grb->output, grb, args->steps_output_path)))
+				{
+					CATERR("Failed to generate step output path from: \"%s\"\n", args->steps_output_path);
+				}
+
 				step = &m->result.steps[j];
 				snprintf(step->path, sizeof(step->path) - 1,
-					"%s", gen_output_path);
+					"%s", step_gen_output_path);
 
 				snprintf(step->filename, sizeof(step->filename) - 1,
 					"%s_%02d_%s.png",
@@ -566,12 +587,13 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 
 				snprintf(step->full_path, sizeof(step->full_path) - 1, "%s%s%s",
 					step->path, catcierge_path_sep(), step->filename);
-			}
-		}
 
-		if (gen_output_path)
-		{
-			free(gen_output_path);
+				if (step_gen_output_path)
+				{
+					free(step_gen_output_path);
+					step_gen_output_path = NULL;
+				}
+			}
 		}
 	}
 
@@ -1111,10 +1133,15 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 		get_time_str_fmt(mg->obstruct_time, &mg->obstruct_tv, time_str,
 			sizeof(time_str), NULL);
 
-		// TODO: Break this out into a function and reuse for all saved images.
-		if (!(gen_output_path = catcierge_output_generate(&grb->output, grb, args->output_path)))
+		if (!args->obstruct_output_path)
 		{
-			CATERR("Failed to generate output path from: \"%s\"\n", args->output_path);
+			args->obstruct_output_path = args->output_path;
+		}
+
+		// TODO: Break this out into a function and reuse for all saved images.
+		if (!(gen_output_path = catcierge_output_generate(&grb->output, grb, args->obstruct_output_path)))
+		{
+			CATERR("Failed to generate output path from: \"%s\"\n", args->obstruct_output_path);
 		}
 
 		snprintf(mg->obstruct_path, sizeof(mg->obstruct_path) - 1, "%s", gen_output_path);

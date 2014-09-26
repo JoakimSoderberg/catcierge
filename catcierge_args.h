@@ -40,6 +40,10 @@ typedef struct catcierge_args_s
 	int show_cmd_help;
 	int match_time;
 	char *output_path;
+	char *match_output_path;
+	char *steps_output_path;
+	char *obstruct_output_path;
+	char *template_output_path;
 	int ok_matches_needed;
 	int save_steps;
 	int no_final_decision;
