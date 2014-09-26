@@ -1168,11 +1168,18 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		{
 			char *gen_output_path = NULL;
 
+			// Generate the output path.
 			if (!(gen_output_path = catcierge_output_generate(&grb->output, grb, output_path)))
 			{
 				CATERR("Failed to generate output path from: \"%s\"\n", output_path);
 			}
 
+			if (catcierge_make_path(gen_output_path))
+			{
+				CATERR("Failed to create directory %s\n", gen_output_path);
+			}
+
+			// Generate the filename.
 			if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
 			{
 				CATERR("Failed to generate output path for template \"%s\"\n", t->target_path);
