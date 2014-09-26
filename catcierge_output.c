@@ -56,6 +56,7 @@ catcierge_output_var_t vars[] =
 	{ "lockout_time", "Value of --lockout_time." },
 	{ "lockout_error", "Value of --lockout_error." },
 	{ "lockout_error_delay", "Value of --lockout_error_delay."},
+	{ "match_group_id", "Match group ID."},
 	{ "match_group_success", "Match group success status."},
 	{ "match_group_success_count", "Match group success count."},
 	{ "match_group_final_decision", "Did the match group veto the final decision?"},
@@ -64,14 +65,21 @@ catcierge_output_var_t vars[] =
 	{ "match_group_count", "Match group count o matches so far."},
 	{ "match_group_max_count", "Match group max number of matches that will be made."},
 	{ "match#_id", "Unique ID for match #." },
-	{ "match#_path", "Image path for match #." },
-	{ "match#_abs_path", "Absolute image path for match #." },
+	{ "match#_filename", "Image filenamefor match #." },
+	{ "match#_path", "Image output path for match # (excluding filename)." },
+	{ "match#_abs_path", "Absolute image path for match # (excluding filename)." },
+	{ "match#_full_path", "Image path for match #." },
+	{ "match#_abs_full_path", "Absolute image path for match #." },
 	{ "match#_success", "Success status for match #." },
 	{ "match#_direction", "Direction for match #." },
 	{ "match#_description", "Description of match #." },
 	{ "match#_result", "Result for match #." },
 	{ "match#_time", "Time of match #." },
-	{ "match#_step#_path", "Image path for match step # for match #."},
+	{ "match#_step#_filename", "Image filename for match step # for match #."},
+	{ "match#_step#_path", "Image path for match step # for match # (excluding filename)."},
+	{ "match#_step#_abs_path", "Absolute image path for match step # for match # (excluding filename)."},
+	{ "match#_step#_full_path", "Image path for match step # for match #."},
+	{ "match#_step#_abs_full_path", "Absolute image path for match step # for match #."},
 	{ "match#_step#_name", "Short name for match step # for match #."},
 	{ "match#_step#_desc", "Description for match step # for match #."},
 	{ "match#_step#_active", "If this match step was used for match #."},
@@ -90,8 +98,7 @@ catcierge_output_var_t vars[] =
 	{ "git_tainted", "Was the git working tree changed when building."},
 	{ "version", "The catcierge version." },
 	{ "cwd", "Current working directory." },
-	{ "output_path", "The output path." },
-	{ "abs_output_path", "Absolute output path ." },
+	{ "output_path", "The output path specified via --output_path." },
 };
 
 void catcierge_output_print_usage()
@@ -594,18 +601,6 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return grb->args.output_path;
 	}
 
-	if (!strcmp(var, "abs_output_path"))
-	{
-		if (!catcierge_get_abs_path(grb->args.output_path, buf, bufsize))
-		{
-			// If we fail simply return the relative path
-			// (The directory might not exist on the file system).
-			return grb->args.output_path;
-		}
-
-		return buf;
-	}
-
 	if (!strcmp(var, "matcher"))
 	{
 		return grb->args.matcher;
@@ -726,9 +721,39 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
+	if (!strcmp(var, "obstruct_filename"))
+	{
+		return mg->obstruct_filename;
+	}
+
 	if (!strcmp(var, "obstruct_path"))
 	{
 		return mg->obstruct_path;
+	}
+
+	if (!strcmp(var, "abs_obstruct_path"))
+	{
+		if (!catcierge_get_abs_path(mg->obstruct_path, buf, bufsize))
+		{
+			return mg->obstruct_path;
+		}
+
+		return buf;
+	}
+
+	if (!strcmp(var, "obstruct_full_path"))
+	{
+		return mg->obstruct_full_path;
+	}
+
+	if (!strcmp(var, "abs_obstruct_full_path"))
+	{
+		if (!catcierge_get_abs_path(mg->obstruct_full_path, buf, bufsize))
+		{
+			return mg->obstruct_full_path;
+		}
+
+		return buf;
 	}
 
 	if (!strncmp(var, "obstruct_time", strlen("obstruct_time")))
@@ -782,6 +807,19 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 			if (!catcierge_get_abs_path(m->path, buf, bufsize))
 			{
 				return m->path;
+			}
+
+			return buf;
+		}
+		if (!strcmp(subvar, "full_path"))
+		{
+			return m->full_path;
+		}
+		else if (!strcmp(subvar, "abs_full_path"))
+		{
+			if (!catcierge_get_abs_path(m->full_path, buf, bufsize))
+			{
+				return m->full_path;
 			}
 
 			return buf;
@@ -1128,7 +1166,12 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		// path later, either inside the template itself, but most importantly we
 		// want to be able to pass the path to an external program).
 		{
-			// TODO: Generate the output_path here.
+			char *gen_output_path = NULL;
+
+			if (!(gen_output_path = catcierge_output_generate(&grb->output, grb, output_path)))
+			{
+				CATERR("Failed to generate output path from: \"%s\"\n", output_path);
+			}
 
 			if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
 			{
@@ -1142,7 +1185,13 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 
 			// Assemble the full output path.
 			snprintf(full_path, sizeof(full_path), "%s%s%s",
-				output_path, catcierge_path_sep(), path);
+				gen_output_path, catcierge_path_sep(), path);
+
+			if (gen_output_path)
+			{
+				free(gen_output_path);
+				gen_output_path = NULL;
+			}
 
 			// We make a copy so that we can use the generated
 			// path as a variable in the templates contents, or
@@ -1171,6 +1220,8 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			zstr_send(grb->zmq_pub, output);
 		}
 		#endif
+
+		CATLOG("Generate template: %s\n", full_path);
 
 		// TODO: Optionally don't care about writing to file (ZMQ only).
 		if (!(f = fopen(full_path, "w")))

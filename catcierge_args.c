@@ -956,12 +956,13 @@ int catcierge_args_init(catcierge_args_t *args)
 	catcierge_template_matcher_args_init(&args->templ);
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 1;
-	args->save_obstruct_img = 1;
+	args->save_obstruct_img = 0;
 	args->match_time = DEFAULT_MATCH_WAIT;
 	args->lockout_method = OBSTRUCT_OR_TIMER_1;
 	args->lockout_time = DEFAULT_LOCKOUT_TIME;
 	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
 	args->ok_matches_needed = DEFAULT_OK_MATCHES_NEEDED;
+	args->output_path = ".";
 
 	#ifdef RPI
 	{

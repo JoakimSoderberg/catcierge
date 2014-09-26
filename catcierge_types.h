@@ -61,7 +61,9 @@ typedef enum catcierge_lockout_method_s
 typedef struct match_step_s
 {
 	IplImage *img;
-	char path[1024];
+	char path[4096];
+	char filename[1024];
+	char full_path[4096];
 	const char *name;
 	const char *description;
 } match_step_t;
@@ -83,6 +85,7 @@ typedef struct match_result_s
 // The state of a single match.
 typedef struct match_state_s
 {
+	char full_path[4096];			// The full path.
 	char path[4096];				// Path to where the image for this match should be saved.
 	char filename[1024];			// Name of the file only.
 	IplImage *img;					// A cached image of the match frame.
@@ -112,7 +115,9 @@ typedef struct match_group_s
 	time_t end_time;
 
 	IplImage *obstruct_img;
+	char obstruct_filename[1024];
 	char obstruct_path[4096];
+	char obstruct_full_path[4096];
 	struct timeval obstruct_tv;
 	time_t obstruct_time;
 } match_group_t;

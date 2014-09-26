@@ -263,10 +263,9 @@ char *run_add_and_generate_tests()
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
 				"And match time, %match2_time:@H:@M%\n"
 				"%match_group_start_time% - %match_group_end_time%\n"
-				"%obstruct_path% %obstruct_time%"
+				"%obstruct_path% %abs_obstruct_path% %obstruct_time%"
 				"CWD:%cwd%\n"
-				"Output path: %output_path%\n"
-				"Abs output path: %abs_output_path%\n",
+				"Output path: %output_path%\n",
 				"the path2"))
 			{
 				return "Failed to add template";
