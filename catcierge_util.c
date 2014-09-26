@@ -138,9 +138,9 @@ int catcierge_make_path(const char *pathname, ...)
 	char *formatted;
 	char *slash;
 	va_list argptr;
-	va_start (argptr, pathname);
+	va_start(argptr, pathname);
 	formatted = catcierge_vprintf(pathname, argptr);
-	va_end (argptr);
+	va_end(argptr);
 
 	// Create parent directory levels if needed
 	slash = strchr(formatted + 1, '/');

@@ -457,22 +457,19 @@ static int catcierge_calculate_match_id(IplImage *img, match_state_t *m)
 	return 0;
 }
 
-static int caticerge_calculate_matchgroup_id(match_group_t *mg)
+static int caticerge_calculate_matchgroup_id(match_group_t *mg, IplImage *img)
 {
 	size_t i;
-	match_state_t *m;
+	char time_str[512];
 	assert(mg);
 
+	get_time_str_fmt(mg->start_time, &mg->start_tv, time_str,
+		sizeof(time_str), NULL);
+
+	// We base the match group id on the obstruct image + timestamp.
 	SHA1Reset(&mg->sha);
-
-	for (i = 0; i < mg->match_count; i++)
-	{
-		m = &mg->matches[i];
-
-		SHA1Input(&mg->sha,
-				(const unsigned char *)&m->sha.Message_Digest,
-				5 * sizeof(m->sha.Message_Digest[0]));
-	}
+	SHA1Input(&mg->sha, (const unsigned char *)img->imageData, img->imageSize);
+	SHA1Input(&mg->sha, (const unsigned char *)time_str, strlen(time_str));
 
 	if (!SHA1Result(&mg->sha))
 	{
@@ -501,7 +498,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 	m->time = time(NULL); // TODO: Get rid of this and use tv.tv_sec instead, same thing.
 	gettimeofday(&m->tv, NULL);
 	get_time_str_fmt(m->time, &m->tv, m->time_str,
-		sizeof(m->time_str), "%Y-%m-%d_%H_%M_%S.%f");
+		sizeof(m->time_str), NULL);
 
 	// Calculate match id from time + image data.
 	if (catcierge_calculate_match_id(img, m))
@@ -917,7 +914,7 @@ static match_direction_t catcierge_guess_overall_direction(catcierge_grb_t *grb)
 	return direction;
 }
 
-void catcierge_match_group_start(match_group_t *mg)
+void catcierge_match_group_start(match_group_t *mg, IplImage *img)
 {
 	assert(mg);
 
@@ -932,6 +929,18 @@ void catcierge_match_group_start(match_group_t *mg)
 	mg->match_count = 0;
 	mg->final_decision = 0;
 
+	// We base the matchgroup id on the obstruct image + timestamp.
+	caticerge_calculate_matchgroup_id(mg, img);
+
+	CATLOG("\n");
+	log_printc(stdout, COLOR_YELLOW, "=== Match group id: %x%x%x%x%x ===\n",
+		mg->sha.Message_Digest[0],
+		mg->sha.Message_Digest[1],
+		mg->sha.Message_Digest[2],
+		mg->sha.Message_Digest[3],
+		mg->sha.Message_Digest[4]);
+	CATLOG("\n");
+
 	if (mg->obstruct_img)
 	{
 		cvReleaseImage(&mg->obstruct_img);
@@ -945,15 +954,6 @@ void catcierge_match_group_end(match_group_t *mg)
 
 	gettimeofday(&mg->end_tv, NULL);
 	mg->end_time = time(NULL);
-
-	caticerge_calculate_matchgroup_id(mg);
-
-	CATLOG("Match group id: %x%x%x%x%x\n",
-		mg->sha.Message_Digest[0],
-		mg->sha.Message_Digest[1],
-		mg->sha.Message_Digest[2],
-		mg->sha.Message_Digest[3],
-		mg->sha.Message_Digest[4]);
 }
 
 void catcierge_decide_lock_status(catcierge_grb_t *grb)
@@ -1059,6 +1059,12 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 	{
 		char time_str[1024];
 		match_group_t *mg = &grb->match_group;
+
+		if (mg->obstruct_img)
+		{
+			cvReleaseImage(&mg->obstruct_img);
+			mg->obstruct_img = NULL;
+		}
 
 		mg->obstruct_img = cvCloneImage(grb->img);
 
@@ -1333,7 +1339,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 	{
 		CATLOG("Something in frame! Start matching...\n");
 
-		catcierge_match_group_start(mg);
+		catcierge_match_group_start(mg, grb->img);
 
 		// Save the obstruct image.
 		catcierge_save_obstruct_image(grb);

@@ -1105,11 +1105,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 	assert(ctx);
 	assert(grb);
 
-	if (output_path)
-	{
-		catcierge_make_path(output_path);
-	}
-	else
+	if (!output_path)
 	{
 		output_path = ".";
 	}
@@ -1127,9 +1123,13 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			continue;
 		}
 
-		// First generate the target path.
-		// TODO: Optionally don't care about generating the path (ZMQ only).
+		// First generate the target path
+		// (It is important this comes first, since we might refer to the generated
+		// path later, either inside the template itself, but most importantly we
+		// want to be able to pass the path to an external program).
 		{
+			// TODO: Generate the output_path here.
+
 			if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
 			{
 				CATERR("Failed to generate output path for template \"%s\"\n", t->target_path);
@@ -1172,6 +1172,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		}
 		#endif
 
+		// TODO: Optionally don't care about writing to file (ZMQ only).
 		if (!(f = fopen(full_path, "w")))
 		{
 			CATERR("Failed to open template output file \"%s\" for writing\n", full_path);
