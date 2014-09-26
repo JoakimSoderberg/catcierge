@@ -18,10 +18,17 @@
 //
 #include <stdio.h>
 #include <errno.h>
+#include "catcierge_config.h"
 #include "catcierge_util.h"
 #include "catcierge_strftime.h"
-#ifndef _WIN32
+#ifdef CATCIERGE_HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#ifdef CATCIERGE_HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef CATCIERGE_HAVE_SYS_STAT_H
+#include <sys/stat.h>
 #endif
 #include <time.h>
 #include <stdlib.h>
@@ -40,17 +47,137 @@ const char *catcierge_path_sep()
 	#endif
 }
 
-int catcierge_make_path(const char *path)
+mode_t catcierge_file_mode(const char *filename)
 {
-	// TODO: This is kind of trivial... Do this properly instead.
-	char cmd[4096];
-	#ifdef WIN32
-	snprintf(cmd, sizeof(cmd), "md %s", path);
-	#else
-	snprintf(cmd, sizeof(cmd), "mkdir -p %s", path);
-	#endif
-	system(cmd);
+	// Originally from CZMQ.
+	#ifdef _WIN32
+	unsigned short mode;
+	DWORD dwfa = GetFileAttributesA(filename);
 
+	if (dwfa == 0xffffffff)
+		return -1;
+
+	mode = 0;
+
+	if (dwfa & FILE_ATTRIBUTE_DIRECTORY)
+		mode |= S_IFDIR;
+	else
+		mode |= S_IFREG;
+
+	if (!(dwfa & FILE_ATTRIBUTE_HIDDEN))
+		mode |= S_IRUSR;
+
+	if (!(dwfa & FILE_ATTRIBUTE_READONLY))
+		mode |= S_IWUSR;
+
+	return mode;
+	#else
+	struct stat stat_buf;
+
+	if (stat((char *) filename, &stat_buf) == 0)
+		return stat_buf.st_mode;
+	else
+		return -1;
+	#endif
+}
+
+//
+// Format a string with variable arguments, returning a freshly allocated
+// buffer. If there was insufficient memory, returns NULL. Free the returned
+// string using free().
+//
+char *catcierge_vprintf(const char *format, va_list argptr)
+{
+	// Originally from CZMQ.
+	int size = 256;
+	int required;
+	char *string = (char *)malloc(size);
+	// Using argptr is destructive, so we take a copy each time we need it
+	// We define va_copy for Windows in catcierge_platform.h
+	va_list my_argptr;
+	va_copy(my_argptr, argptr);
+	required = vsnprintf(string, size, format, my_argptr);
+	va_end(my_argptr);
+
+	#ifdef _WIN32
+	if (required < 0 || required >= size)
+	{
+		va_copy(my_argptr, argptr);
+		#ifdef _MSC_VER
+		required = _vscprintf(format, argptr);
+		#else
+		required = vsnprintf(NULL, 0, format, argptr);
+		#endif
+		va_end(my_argptr);
+	}
+	#endif // _WIN32
+
+	// If formatted string cannot fit into small string, reallocate a
+	// larger buffer for it.
+	if (required >= size)
+	{
+		size = required + 1;
+		free(string);
+		string = (char *)malloc(size);
+
+		if (string) 
+		{
+			va_copy(my_argptr, argptr);
+			vsnprintf(string, size, format, my_argptr);
+			va_end(my_argptr);
+		}
+	}
+
+	return string;
+}
+
+int catcierge_make_path(const char *pathname, ...)
+{
+	// Originally from CZMQ.
+	mode_t mode;
+	char *formatted;
+	char *slash;
+	va_list argptr;
+	va_start (argptr, pathname);
+	formatted = catcierge_vprintf(pathname, argptr);
+	va_end (argptr);
+
+	// Create parent directory levels if needed
+	slash = strchr(formatted + 1, '/');
+
+	while (1)
+	{
+		if (slash)
+			*slash = 0; // Cut at slash
+		
+		mode = catcierge_file_mode(formatted);
+		
+		if (mode == (mode_t)-1) 
+		{
+			// Does not exist, try to create it
+			#ifdef _WIN32
+			if (!CreateDirectoryA(formatted, NULL))
+			#else
+			if (mkdir(formatted, 0775))
+			#endif
+			{
+				return -1; // Failed
+			}
+		}
+		else if ((mode & S_IFDIR) == 0) 
+		{
+			// Not a directory, abort
+		}
+
+		// End if last segment
+		if (!slash)
+			break;
+
+		*slash = '/';
+		slash = strchr(slash + 1, '/');
+	}
+
+	free(formatted);
 	return 0;
 }
 

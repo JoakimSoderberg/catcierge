@@ -176,7 +176,6 @@ void catcierge_output_destroy(catcierge_output_t *ctx)
 
 int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, const char *events)
 {
-	size_t i;
 	assert(settings);
 
 	if (settings->event_filter)

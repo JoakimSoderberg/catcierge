@@ -927,8 +927,8 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("          ZMQ port: %d\n", args->zmq_port);
 	printf("     ZMQ interface: %s\n", args->zmq_iface);
 	#endif
-	printf("\n"); 
 	printf("      Matcher type: %s\n", args->matcher);
+	printf("\n"); 
 	if (!args->matcher || !strcmp(args->matcher, "template"))
 		catcierge_template_matcher_print_settings(&args->templ);
 	else
