@@ -609,35 +609,22 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
-	if (!strcmp(var, "output_path"))
-	{
-		return catcierge_output_generate(&grb->output, grb,
-			grb->args.output_path);
-	}
+	#define CHECK_OUTPUT_PATH_VAR(name, _output) \
+		if (!strcmp(name, #_output)) \
+		{ \
+			char *s = catcierge_output_generate(&grb->output, grb, grb->args._output); \
+			if (!s) \
+				return NULL; \
+			snprintf(buf, bufsize - 1, "%s", s); \
+			free(s); \
+			return buf; \
+		}
 
-	if (!strcmp(var, "match_output_path"))
-	{
-		return catcierge_output_generate(&grb->output, grb,
-			grb->args.match_output_path);
-	}
-
-	if (!strcmp(var, "steps_output_path"))
-	{
-		return catcierge_output_generate(&grb->output, grb,
-			grb->args.steps_output_path);
-	}
-
-	if (!strcmp(var, "obstruct_output_path"))
-	{
-		return catcierge_output_generate(&grb->output, grb,
-			grb->args.obstruct_output_path);
-	}
-
-	if (!strcmp(var, "template_output_path"))
-	{
-		return catcierge_output_generate(&grb->output, grb,
-			grb->args.template_output_path);
-	}
+	CHECK_OUTPUT_PATH_VAR(var, output_path);
+	CHECK_OUTPUT_PATH_VAR(var, match_output_path);
+	CHECK_OUTPUT_PATH_VAR(var, steps_output_path);
+	CHECK_OUTPUT_PATH_VAR(var, obstruct_output_path);
+	CHECK_OUTPUT_PATH_VAR(var, template_output_path);
 
 	if (!strcmp(var, "matcher"))
 	{
