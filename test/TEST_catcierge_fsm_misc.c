@@ -18,6 +18,9 @@ static char *run_tests()
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	#ifdef WITH_ZMQ
+	catcierge_zmq_init(&grb);
+	#endif
 	catcierge_timer_set(&grb.frame_timer, 1.0);
 	catcierge_timer_start(&grb.frame_timer);
 
@@ -66,6 +69,9 @@ static char *run_tests()
 	sleep(1);
 	catcierge_print_spinner(&grb);
 
+	#ifdef WITH_ZMQ
+	catcierge_zmq_destroy(&grb);
+	#endif
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

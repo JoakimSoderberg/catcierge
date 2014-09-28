@@ -195,6 +195,7 @@ int catcierge_template_matcher_init(catcierge_matcher_t **octx,
 
 	ctx->super.match = catcierge_template_matcher_match;
 	ctx->super.decide = caticerge_template_matcher_decide;
+	ctx->super.translate = catcierge_template_matcher_translate;
 
 	return 0;
 }
@@ -399,6 +400,72 @@ void catcierge_template_matcher_usage()
 	fprintf(stderr, " --match_flipped <0|1>  Match a flipped version of the snout\n");
 	fprintf(stderr, "                        (don't consider going out a failed match). Default on.\n");
 	fprintf(stderr, "\n");
+}
+
+catcierge_output_var_t templ_vars[] =
+{
+	{ "snout", "Snout paths given via --snout." },
+	{ "threshold", "Value of --threshold." },
+	{ "match_flipped", "Value of --match_flipped" }
+};
+
+void catcierge_template_output_print_usage()
+{
+	size_t i;
+
+	fprintf(stderr, "Template matcher output variables:\n");
+
+	for (i = 0; i < sizeof(templ_vars) / sizeof(templ_vars[0]); i++)
+	{
+		fprintf(stderr, "%20s   %s\n", templ_vars[i].name, templ_vars[i].description);
+	}
+}
+
+const char *catcierge_template_matcher_translate(catcierge_matcher_t *octx, const char *var,
+	char *buf, size_t bufsize)
+{
+	catcierge_template_matcher_t *ctx = (catcierge_template_matcher_t *)octx;
+	assert(ctx);
+
+	if (!strcmp(var, "snout_count"))
+	{
+		snprintf(buf, bufsize - 1, "%d", (int)ctx->args->snout_count);
+		return buf;
+	}
+
+	if (!strncmp(var, "snout", 5))
+	{
+		int idx = 0;
+		var += 5;
+
+		if (sscanf(var, "%d", &idx) == EOF)
+		{
+			return NULL;
+		}
+
+		idx--; // Convert to 0-based index.
+
+		if ((idx < 0) || (idx > ctx->args->snout_count))
+		{
+			return NULL;
+		}
+
+		return ctx->args->snout_paths[idx];
+	}
+
+	if (!strcmp(var, "threshold"))
+	{
+		snprintf(buf, bufsize - 1, "%f", ctx->args->match_threshold);
+		return buf;
+	}
+
+	if (!strcmp(var, "match_flipped"))
+	{
+		snprintf(buf, bufsize - 1, "%d", ctx->args->match_flipped);
+		return buf;
+	}
+
+	return NULL;
 }
 
 int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *args, const char *key, char **values, size_t value_count)

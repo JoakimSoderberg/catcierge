@@ -192,6 +192,16 @@ const char *catcierge_get_direction_str(match_direction_t dir)
 	}
 }
 
+const char *catcierge_get_left_right_str(direction_t dir)
+{
+	switch (dir)
+	{
+		case DIR_LEFT: return "left";
+		case DIR_RIGHT: return "right";
+		default: return "unknown";	
+	}
+}
+
 void catcierge_reset_cursor_position()
 {
 	#ifdef _WIN32

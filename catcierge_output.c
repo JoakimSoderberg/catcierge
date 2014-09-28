@@ -545,6 +545,7 @@ static char *catcierge_get_template_path(catcierge_grb_t *grb, const char *var)
 const char *catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var)
 {
+	const char *matcher_val;
 	match_group_t *mg = &grb->match_group;
 
 	if (!strncmp(var, "template_path", 13))
@@ -631,9 +632,9 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return grb->args.matcher;
 	}
 
-	if (grb->args.matcher && !strncmp(var, grb->args.matcher, strlen(grb->args.matcher)))
+	if ((matcher_val = grb->matcher->translate(grb->matcher, var, buf, bufsize)))
 	{
-		// TODO: Pass the output generation to the matcher so it can return its settings.
+		return matcher_val;
 	}
 
 	if (!strcmp(var, "ok_matches_needed"))
@@ -796,7 +797,6 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		if (!strncmp(var, "matchcur", 8))
 		{
-			// TODO: Hmm this needs closer investigation...
 			idx = grb->match_group.match_count;
 			subvar = var + strlen("matchcur_");
 		}

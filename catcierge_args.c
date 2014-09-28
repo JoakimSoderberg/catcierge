@@ -698,6 +698,8 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "See --cmdhelp for a list of variables. Otherwise this uses the same\n");
 	fprintf(stderr, "command line arguments as the old commands section below.\n");
 	if (args->show_cmd_help) catcierge_output_print_usage();
+	if (args->show_cmd_help) catcierge_template_output_print_usage();
+	if (args->show_cmd_help) catcierge_haar_output_print_usage();	
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Commands (old):\n");
 	fprintf(stderr, "---------------\n");

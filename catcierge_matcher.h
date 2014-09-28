@@ -29,6 +29,10 @@ typedef double (*catcierge_match_func_t)(void *ctx,
 
 typedef int (*catcierge_decide_func_t)(void *ctx, match_group_t *mg);
 
+struct catcierge_matcher_s;
+typedef const char *(*catcierge_matcher_translate_func_t)(struct catcierge_matcher_s *octx, const char *var,
+	char *buf, size_t bufsize);
+
 // TODO: Totally abstract the matchers into this file. External code should just have to ask for a matcher type. How to solve for the args parsing?
 typedef struct catcierge_matcher_s
 {
@@ -36,6 +40,7 @@ typedef struct catcierge_matcher_s
 	int debug;
 	catcierge_match_func_t match;
 	catcierge_decide_func_t decide;
+	catcierge_matcher_translate_func_t translate;
 } catcierge_matcher_t;
 
 typedef struct catcierge_matcher_args_s

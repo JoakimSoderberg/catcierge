@@ -178,7 +178,16 @@ char *run_parse_args_tests()
 
 	PARSE_SINGLE_SETTING("highlight", args.highlight_match, 1);
 
-	PARSE_SINGLE_SETTING("save", args.saveimg, 1);
+	#ifdef WITH_ZMQ
+	PARSE_SINGLE_SETTING("zmq", args.zmq, 1);
+
+	PARSE_SETTING("zmq_port 1234", "Expected a valid parse", 
+		(ret == 0) && (args.zmq_port == 1234));
+
+	PARSE_SETTING("zmq_iface eth1", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.zmq_iface, "eth1"));
+
+	#endif
 
 	PARSE_SETTING("lockout 5", "Expected a valid parse",
 		(ret == 0) && (args.lockout_time == 5));

@@ -238,7 +238,7 @@ foreach (GCOV_FILE ${GCOV_FILES})
 				set(GCOV_FILE_SOURCE "${GCOV_FILE_SOURCE}${SOURCE}\\n")
 			endif()
 		else()
-			message(WARNING "Failed to properly parse line --> ${GCOV_LINE}")
+			message(WARNING "${GCOV_FILE}: Failed to properly parse line --> ${GCOV_LINE}")
 		endif()
 	endforeach()
 

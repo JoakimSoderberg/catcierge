@@ -29,6 +29,7 @@ void catcierge_reset_cursor_position();
 int catcierge_make_path(const char *pathname, ...);
 
 const char *catcierge_get_direction_str(match_direction_t dir);
+const char *catcierge_get_left_right_str(direction_t dir);
 
 const char *catcierge_skip_whitespace(const char *it);
 char *catcierge_skip_whitespace_alt(char *it);

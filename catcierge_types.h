@@ -29,6 +29,12 @@
 
 #define MATCH_MAX_COUNT 4 // The number of matches to perform before deciding the lock state.
 
+typedef struct catcierge_output_var_s
+{
+	char *name;
+	char *description;
+} catcierge_output_var_t;
+
 typedef enum match_direction_e
 {
 	MATCH_DIR_UNKNOWN = -1,

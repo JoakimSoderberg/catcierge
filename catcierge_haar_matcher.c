@@ -67,6 +67,7 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 	ctx->super.debug = args->debug;
 	ctx->super.match = catcierge_haar_matcher_match;
 	ctx->super.decide = catcierge_haar_matcher_decide;
+	ctx->super.translate = catcierge_haar_matcher_translate;
 
 	return 0;
 }
@@ -754,6 +755,103 @@ void catcierge_haar_matcher_usage()
 	fprintf(stderr, " --prey_steps <1-2>     Only applicable for normal prey mode. 2 means a secondary\n");
 	fprintf(stderr, "                        search should be made if no prey is found initially.\n");
 	fprintf(stderr, "\n");
+}
+
+catcierge_output_var_t haar_vars[] =
+{
+	{ "cascade", "Cascade XML given via --cascade." },
+	{ "in_direction", "The in direction left or right, same as --in_direction." },
+	{ "min_size", "Minimum size of a match in the format WxH. Given by --min_size." },
+	{ "min_size_width", "Minimum width of a match. Given --min_size." },
+	{ "min_size_height", "Minimum height of a match. Given by --min_size." },
+	{ "no_match_is_fail", "Value of --no_match_is_fail." },
+	{ "eq_histogram", "Value of --eq_histogram." },
+	{ "prey_method", "Value of --prey_method." },
+	{ "prey_steps", "Value of --prey_steps." },
+};
+
+void catcierge_haar_output_print_usage()
+{
+	size_t i;
+
+	fprintf(stderr, "Template matcher output variables:\n");
+
+	for (i = 0; i < sizeof(haar_vars) / sizeof(haar_vars[0]); i++)
+	{
+		fprintf(stderr, "%20s   %s\n", haar_vars[i].name, haar_vars[i].description);
+	}
+}
+
+const char *catcierge_haar_matcher_prey_method_str(catcierge_haar_prey_method_t method)
+{
+	switch (method)
+	{
+		case PREY_METHOD_NORMAL: return "normal";
+		case PREY_METHOD_ADAPTIVE: return "adaptive";
+		default: return "unknown";
+	}
+}
+
+const char *catcierge_haar_matcher_translate(catcierge_matcher_t *octx, const char *var,
+	char *buf, size_t bufsize)
+{
+	catcierge_haar_matcher_t *ctx = (catcierge_haar_matcher_t *)octx;
+	assert(ctx);
+
+	if (!strcmp(var, "cascade"))
+	{
+		return ctx->args->cascade;
+	}
+
+	if (!strcmp(var, "in_direction"))
+	{
+		return catcierge_get_left_right_str(ctx->args->in_direction);
+	}
+
+	if (!strcmp(var, "min_size"))
+	{
+		snprintf(buf, bufsize - 1, "%dx%d",
+			ctx->args->min_width,
+			ctx->args->min_height);
+		return buf;
+	}
+
+	if (!strcmp(var, "min_size_width"))
+	{
+		snprintf(buf, bufsize - 1, "%d", ctx->args->min_width);
+		return buf;
+	}
+
+	if (!strcmp(var, "min_size_height"))
+	{
+		snprintf(buf, bufsize - 1, "%d", ctx->args->min_height);
+		return buf;
+	}
+
+	if (!strcmp(var, "no_match_is_fail"))
+	{
+		snprintf(buf, bufsize - 1, "%d", ctx->args->no_match_is_fail);
+		return buf;
+	}
+
+	if (!strcmp(var, "eq_histogram"))
+	{
+		snprintf(buf, bufsize - 1, "%d", ctx->args->eq_histogram);
+		return buf;
+	}
+
+	if (!strcmp(var, "prey_method"))
+	{
+		return catcierge_haar_matcher_prey_method_str(ctx->args->prey_method);
+	}
+
+	if (!strcmp(var, "prey_steps"))
+	{
+		snprintf(buf, bufsize - 1, "%d", ctx->args->prey_steps);
+		return buf;
+	}
+
+	return NULL;
 }
 
 void catcierge_haar_matcher_print_settings(catcierge_haar_matcher_args_t *args)

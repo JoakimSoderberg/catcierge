@@ -16,6 +16,22 @@ typedef struct output_test_s
 	const char *expected;
 } output_test_t;
 
+static int do_init_matcher(catcierge_grb_t *grb, const char *type)
+{
+	catcierge_args_t *args = &grb->args;
+
+	args->haar.cascade = CATCIERGE_CASCADE;
+	args->matcher = type;
+	args->matcher_type = !strcmp(type, "haar") ? MATCHER_HAAR : MATCHER_TEMPLATE;
+
+	if (catcierge_matcher_init(&grb->matcher, catcierge_get_matcher_args(args)))
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
 static char *run_validate_tests()
 {
 	catcierge_output_t o;
@@ -32,6 +48,11 @@ static char *run_validate_tests()
 			"Not terminated %match_success% after a valid %match1_path"
 		};
 
+		if (do_init_matcher(&grb, "haar"))
+		{
+			return "Failed to init matcher";
+		}
+
 		for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
 		{
 			catcierge_test_STATUS("Test invalid template: \"%s\"", tests[i]);
@@ -41,6 +62,7 @@ static char *run_validate_tests()
 			catcierge_test_SUCCESS("Success!");
 		}
 
+		catcierge_matcher_destroy(&grb.matcher);
 	}
 	catcierge_grabber_destroy(&grb);
 
@@ -98,7 +120,16 @@ static char *run_generate_tests()
 			{ "%lockout_time%", "23" },
 			{ "%lockout_error%", "20" },
 			{ "%lockout_error_delay%", "2.44" },
-			{ "%ok_matches_needed%", "4" }
+			{ "%ok_matches_needed%", "4" },
+			{ "%cascade%", CATCIERGE_CASCADE },
+			{ "%in_direction%", "right" },
+			{ "%min_size%", "80x80" },
+			{ "%min_size_width%", "80" },
+			{ "%min_size_height%", "80" },
+			{ "%no_match_is_fail%", "0" },
+			{ "%eq_histogram%", "0" },
+			{ "%prey_method%", "adaptive" },
+			{ "%prey_steps%", "2" }
 		};
 
 		#undef _XSTR
@@ -112,7 +143,11 @@ static char *run_generate_tests()
 			{ "%match1_stepKK_path%", NULL}
 		};
 
-		grb.args.matcher = "haar";
+		if (do_init_matcher(&grb, "haar"))
+		{
+			return "Failed to init matcher";
+		}
+
 		grb.args.match_time = 13;
 		grb.args.lockout_method = 2;
 		grb.args.lockout_time = 23;
@@ -188,6 +223,8 @@ static char *run_generate_tests()
 
 			catcierge_output_destroy(&o);
 		}
+
+		catcierge_matcher_destroy(&grb.matcher);
 	}
 	catcierge_grabber_destroy(&grb);
 
@@ -197,12 +234,21 @@ static char *run_generate_tests()
 char *run_add_and_generate_tests()
 {
 	catcierge_grb_t grb;
+	catcierge_args_t *args = &grb.args; 
 	catcierge_output_t *o = &grb.output;
 	memset(&grb.args, 0, sizeof(grb.args));
 
 	catcierge_grabber_init(&grb);
 	{
-		grb.args.output_path = "template_tests";
+		args->output_path = "template_tests";
+		args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
+		args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
+		args->templ.snout_count = 2;
+		
+		if (do_init_matcher(&grb, "template"))
+		{
+			return "Failed to init matcher";
+		}
 
 		if (catcierge_output_init(o))
 			return "Failed to init output context";
@@ -266,7 +312,12 @@ char *run_add_and_generate_tests()
 				"%match_group_start_time% - %match_group_end_time%\n"
 				"%obstruct_path% %abs_obstruct_path% %obstruct_time%"
 				"CWD:%cwd%\n"
-				"Output path: %output_path%\n",
+				"Output path: %output_path%\n"
+				"Snouts: %snout1% %snout2%\n"
+				"Snout count: %snout_count%\n"
+				"Threshold: %threshold%\n"
+				"Match flipped: %match_flipped%\n"
+				,
 				"the path2"))
 			{
 				return "Failed to add template";
@@ -327,6 +378,7 @@ char *run_add_and_generate_tests()
 		}
 
 		catcierge_output_destroy(o);
+		catcierge_matcher_destroy(&grb.matcher);
 	}
 	catcierge_grabber_destroy(&grb);
 
@@ -382,6 +434,14 @@ static char *run_load_templates_test()
 			{
 				"%!    nop    \n"
 				"%!event tut   \n"
+				"Some cool template",
+				"two_events_rev_%time%"
+			},
+			{
+				"%!nofile    \n"
+				"%!event tut   \n"
+				"%!nozmq\n"
+				"%!topic\n"
 				"Some cool template",
 				"two_events_rev_%time%"
 			}
@@ -482,6 +542,8 @@ int TEST_catcierge_output(int argc, char **argv)
 	catcierge_test_HEADLINE("TEST_catcierge_output");
 
 	catcierge_output_print_usage();
+	catcierge_haar_output_print_usage();
+	catcierge_template_output_print_usage();
 
 	CATCIERGE_RUN_TEST((e = run_generate_tests()),
 		"Run generate tests.",

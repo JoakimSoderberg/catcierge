@@ -20,12 +20,7 @@
 #define __CATCIERGE_OUTPUT_TYPES_H__
 
 #include <stdio.h>
-
-typedef struct catcierge_output_var_s
-{
-	char *name;
-	char *description;
-} catcierge_output_var_t;
+#include "catcierge_types.h"
 
 typedef struct catcierge_output_settings_s
 {

@@ -82,4 +82,8 @@ int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *arg
 void catcierge_template_matcher_print_settings(catcierge_template_matcher_args_t * args);
 void catcierge_template_matcher_args_init(catcierge_template_matcher_args_t *args);
 
+const char *catcierge_template_matcher_translate(catcierge_matcher_t *octx, const char *var,
+	char *buf, size_t bufsize);
+void catcierge_template_output_print_usage();
+
 #endif // __CATCIERGE_TEMPLATE_MATCHER_H__
