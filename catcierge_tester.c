@@ -235,7 +235,7 @@ int main(int argc, char **argv)
 	// Create output directory.
 	if (save)
 	{
-		catcierge_make_path(output_path);
+		catcierge_make_path("%s", output_path);
 	}
 
 	args.super.type = MATCHER_TEMPLATE;

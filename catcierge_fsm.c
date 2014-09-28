@@ -118,7 +118,7 @@ static void rfid_set_direction(catcierge_grb_t *grb, rfid_match_t *current, rfid
 	// Update the match if we get a complete tag.
 	if (complete && (data_len > other->data_len))
 	{
-		strncpy(current->data, data, sizeof(current->data));
+		strncpy(current->data, data, sizeof(current->data) - 1);
 		current->data_len = data_len;
 		current->complete = complete;
 	}
