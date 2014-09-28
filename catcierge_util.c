@@ -134,6 +134,7 @@ char *catcierge_vprintf(const char *format, va_list argptr)
 int catcierge_make_path(const char *pathname, ...)
 {
 	// Originally from CZMQ.
+	int ret = 0;
 	mode_t mode;
 	char *formatted;
 	char *slash;
@@ -141,6 +142,11 @@ int catcierge_make_path(const char *pathname, ...)
 	va_start(argptr, pathname);
 	formatted = catcierge_vprintf(pathname, argptr);
 	va_end(argptr);
+
+	if (!formatted)
+	{
+		return -1;
+	}
 
 	// Create parent directory levels if needed
 	slash = strchr(formatted + 1, '/');
@@ -161,7 +167,7 @@ int catcierge_make_path(const char *pathname, ...)
 			if (mkdir(formatted, 0775))
 			#endif
 			{
-				return -1; // Failed
+				ret = -1; goto fail;
 			}
 		}
 		else if ((mode & S_IFDIR) == 0) 
@@ -177,8 +183,9 @@ int catcierge_make_path(const char *pathname, ...)
 		slash = strchr(slash + 1, '/');
 	}
 
+fail:
 	free(formatted);
-	return 0;
+	return ret;
 }
 
 const char *catcierge_get_direction_str(match_direction_t dir)

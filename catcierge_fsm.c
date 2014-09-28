@@ -142,7 +142,7 @@ static void rfid_set_direction(catcierge_grb_t *grb, rfid_match_t *current, rfid
 
 	current->triggered = 1;
 	current->complete = complete;
-	strncpy(current->data, data, sizeof(current->data));
+	strncpy(current->data, data, sizeof(current->data) - 1);
 	current->data_len = data_len;
 	current->is_allowed = match_allowed_rfid(grb, current->data);
 

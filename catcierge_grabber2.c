@@ -74,6 +74,7 @@ int create_pid_file(const char *prog_name, const char *pid_path, int flags)
 			fprintf(stderr, "Unable to lock PID file '%s'\n", pid_path);
 		}
 
+		close(fd);
 		return -1;
 	}
 

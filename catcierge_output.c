@@ -922,7 +922,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 			if (!strcmp(stepvar, "path"))
 			{
-				return step->path ? step->path : "";
+				return step->path;
 			}
 			else if (!strcmp(stepvar, "name"))
 			{
@@ -1165,6 +1165,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 	char *path = NULL;
 	char full_path[4096];
 	char *dir = NULL;
+	char *gen_output_path = NULL;
 	size_t i;
 	FILE *f = NULL;
 	assert(ctx);
@@ -1193,13 +1194,12 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		// path later, either inside the template itself, but most importantly we
 		// want to be able to pass the path to an external program).
 		{
-			char *gen_output_path = NULL;
-
 			// Generate the output path.
 			if (!(gen_output_path = catcierge_output_generate(&grb->output,
 					grb, args->template_output_path)))
 			{
 				CATERR("Failed to generate output path from: \"%s\"\n", args->template_output_path);
+				goto fail_template;
 			}
 
 			if (catcierge_make_path(gen_output_path))
@@ -1211,8 +1211,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
 			{
 				CATERR("Failed to generate output path for template \"%s\"\n", t->target_path);
-				if (output) free(output);
-				return -1;
+				goto fail_template;
 			}
 
 			// Replace whitespace with underscore.
@@ -1222,20 +1221,13 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			snprintf(full_path, sizeof(full_path), "%s%s%s",
 				gen_output_path, catcierge_path_sep(), path);
 
-			if (gen_output_path)
-			{
-				free(gen_output_path);
-				gen_output_path = NULL;
-			}
-
 			// We make a copy so that we can use the generated
 			// path as a variable in the templates contents, or
 			// when passed to catcierge_execute. 
 			if (!(t->generated_path = strdup(full_path)))
 			{
 				CATERR("Out of memory!\n");
-				free(path);
-				return -1;
+				goto fail_template;
 			}
 		}
 
@@ -1243,8 +1235,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		if (!(output = catcierge_output_generate_ex(ctx, grb, t->tmpl)))
 		{
 			CATERR("Failed to generate output for template \"%s\"\n", t->target_path);
-			free(path);
-			return -1;
+			goto fail_template;
 		}
 
 		#ifdef WITH_ZMQ
@@ -1263,9 +1254,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			if (!(f = fopen(full_path, "w")))
 			{
 				CATERR("Failed to open template output file \"%s\" for writing\n", full_path);
-				free(output);
-				free(path);
-				return -1;
+				goto fail_template;
 			}
 			else
 			{
@@ -1275,6 +1264,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			}
 		}
 
+fail_template:
 		if (output)
 		{
 			free(output);
@@ -1285,6 +1275,12 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		{
 			free(path);
 			path = NULL;
+		}
+
+		if (gen_output_path)
+		{
+			free(gen_output_path);
+			gen_output_path = NULL;
 		}
 	}
 

@@ -235,13 +235,7 @@ int main(int argc, char **argv)
 	// Create output directory.
 	if (save)
 	{
-		char cmd[2048];
-		#ifdef _WIN32
-		snprintf(cmd, sizeof(cmd), "md %s", output_path);
-		#else
-		snprintf(cmd, sizeof(cmd), "mkdir -p %s", output_path);
-		#endif
-		system(cmd);
+		catcierge_make_path(output_path);
 	}
 
 	args.super.type = MATCHER_TEMPLATE;

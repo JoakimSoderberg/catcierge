@@ -58,10 +58,10 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 	catcierge_grb_t grb;
 	catcierge_args_t *args;
 	args = &grb.args;
-	int in_slave;
-	int in_master;
-	int out_slave;
-	int out_master;
+	int in_slave = 0;
+	int in_master = 0;
+	int out_slave = 0;
+	int out_master = 0;
 	char *in_slave_name = NULL;
 	char *out_slave_name = NULL;
 	int ret = 0;
@@ -88,6 +88,7 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 		catcierge_test_STATUS("Outer slave tty: %s\n", out_slave_name);
 	}
 
+	memset(args, 0, sizeof(catcierge_args_t));
 	catcierge_grabber_init(&grb);
 
 	if (conf->allowed_list)
@@ -190,6 +191,7 @@ cleanup:
 	if (out_slave_name) free(out_slave_name);
 	if (in_slave_name) free(in_slave_name);
 
+	// TODO: Fix init of this properly...
 	catcierge_template_matcher_destroy(&grb.matcher);
 	catcierge_grabber_destroy(&grb);
 
