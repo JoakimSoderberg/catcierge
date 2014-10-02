@@ -62,6 +62,7 @@ typedef struct catcierge_args_s
 	char *do_lockout_cmd;
 	char *do_unlock_cmd;
 	char *frame_obstructed_cmd;
+	char *state_change_cmd;
 	char *config_path;
 	char *chuid;
 	int temp_config_count;

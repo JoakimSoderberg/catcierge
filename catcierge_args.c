@@ -468,6 +468,18 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return -1;
 	}
 
+	if (!strcmp(key, "state_change_cmd"))
+	{
+		if (value_count == 1)
+		{
+			args->state_change_cmd = values[0];
+			return 0;
+		}
+
+		fprintf(stderr, "--state_change_cmd cmd missing value\n");
+		return -1;
+	}
+
 	if (!strcmp(key, "nocolor"))
 	{
 		args->nocolor = 1;
@@ -765,6 +777,10 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "                        This will override the normal lockout method.\n");
 	fprintf(stderr, " --do_unlock_cmd <cmd>  Command that is run when we should unlock.\n");
 	fprintf(stderr, "                        This will override the normal unlock method.\n");
+	fprintf(stderr, " --state_change_cmd <cmd>\n");
+	fprintf(stderr, "                        Command to run when the state machine changes state.\n");
+	fprintf(stderr, "                         %%0 = Previous state.\n");
+	fprintf(stderr, "                         %%1 = New state.\n");
 	fprintf(stderr, "\n");
 	#endif // WITH_RFID
 	fprintf(stderr, " --help                 Show this help.\n");

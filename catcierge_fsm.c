@@ -66,6 +66,7 @@ void catcierge_print_state(catcierge_state_func_t state)
 
 void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 {
+	catcierge_args_t *args = &grb->args;
 	assert(grb);
 
 	// Prints timestamp.
@@ -78,6 +79,18 @@ void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 
 	grb->prev_state = grb->state;
 	grb->state = new_state;
+
+	if (args->new_execute)
+	{
+		catcierge_output_execute(grb, "state_change", args->state_change_cmd);
+	}
+	else
+	{
+		catcierge_execute(args->state_change_cmd, 
+			"%s %s",
+			catcierge_get_state_string(grb->prev_state), // old state.
+			catcierge_get_state_string(grb->state)); // new state.
+	}
 }
 
 #ifdef WITH_RFID
