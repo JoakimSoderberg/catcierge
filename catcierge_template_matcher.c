@@ -445,7 +445,7 @@ const char *catcierge_template_matcher_translate(catcierge_matcher_t *octx, cons
 
 		idx--; // Convert to 0-based index.
 
-		if ((idx < 0) || (idx > ctx->args->snout_count))
+		if ((idx < 0) || (idx > (int)ctx->args->snout_count))
 		{
 			return NULL;
 		}

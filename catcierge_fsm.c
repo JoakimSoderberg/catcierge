@@ -459,7 +459,6 @@ static int catcierge_calculate_match_id(IplImage *img, match_state_t *m)
 
 static int caticerge_calculate_matchgroup_id(match_group_t *mg, IplImage *img)
 {
-	size_t i;
 	char time_str[512];
 	assert(mg);
 
