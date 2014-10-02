@@ -943,7 +943,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	return NULL;
 }
 
-static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
+char *catcierge_output_generate(catcierge_output_t *ctx,
 	catcierge_grb_t *grb, const char *template_str)
 {
 	char buf[4096];
@@ -1074,17 +1074,11 @@ fail:
 	return output;
 }
 
-char *catcierge_output_generate(catcierge_output_t *ctx, catcierge_grb_t *grb,
-		const char *template_str)
-{
-	return catcierge_output_generate_ex(ctx, grb, template_str);
-}
-
 int catcierge_output_validate(catcierge_output_t *ctx,
 	catcierge_grb_t *grb, const char *template_str)
 {
 	int is_valid = 0;
-	char *output = catcierge_output_generate_ex(ctx, grb, template_str);
+	char *output = catcierge_output_generate(ctx, grb, template_str);
 	is_valid = (output != NULL);
 
 	if (output)
@@ -1218,7 +1212,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			}
 
 			// Generate the filename.
-			if (!(path = catcierge_output_generate_ex(ctx, grb, t->target_path)))
+			if (!(path = catcierge_output_generate(ctx, grb, t->target_path)))
 			{
 				CATERR("Failed to generate output path for template \"%s\"\n", t->target_path);
 				goto fail_template;
@@ -1242,7 +1236,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		}
 
 		// And then generate the template contents.
-		if (!(output = catcierge_output_generate_ex(ctx, grb, t->tmpl)))
+		if (!(output = catcierge_output_generate(ctx, grb, t->tmpl)))
 		{
 			CATERR("Failed to generate output for template \"%s\"\n", t->target_path);
 			goto fail_template;
