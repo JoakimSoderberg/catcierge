@@ -34,8 +34,8 @@ static int do_init_matcher(catcierge_grb_t *grb, const char *type)
 
 static char *run_validate_tests()
 {
-	catcierge_output_t o;
 	catcierge_grb_t grb;
+	catcierge_output_t *o = &grb.output;
 	catcierge_args_t *args = &grb.args;
 	size_t i;
 	int ret;
@@ -48,6 +48,11 @@ static char *run_validate_tests()
 			"Not terminated %match_success% after a valid %match1_path"
 		};
 
+		if (catcierge_output_init(o))
+		{
+			return "Failed to init output context";
+		}
+
 		if (do_init_matcher(&grb, "haar"))
 		{
 			return "Failed to init matcher";
@@ -56,12 +61,13 @@ static char *run_validate_tests()
 		for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
 		{
 			catcierge_test_STATUS("Test invalid template: \"%s\"", tests[i]);
-			ret = catcierge_output_validate(&o, &grb, tests[i]);
+			ret = catcierge_output_validate(o, &grb, tests[i]);
 			catcierge_test_STATUS("Ret %d", ret);
 			mu_assert("Failed to invalidate template", ret == 0);
 			catcierge_test_SUCCESS("Success!");
 		}
 
+		catcierge_output_destroy(o);
 		catcierge_matcher_destroy(&grb.matcher);
 	}
 	catcierge_grabber_destroy(&grb);
