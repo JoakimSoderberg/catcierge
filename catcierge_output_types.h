@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include "catcierge_types.h"
 
+#define CATCIERGE_OUTPUT_MAX_RECURSION 10
+
 typedef struct catcierge_output_settings_s
 {
 	char **event_filter;
@@ -48,6 +50,7 @@ typedef struct catcierge_output_s
 	catcierge_output_template_t *templates;
 	size_t template_count;
 	size_t template_max_count;
+	int recursion;
 } catcierge_output_t;
 
 #endif // __CATCIERGE_OUTPUT_TYPES_H__

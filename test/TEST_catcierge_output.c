@@ -231,7 +231,7 @@ static char *run_generate_tests()
 	return NULL;
 }
 
-char *run_add_and_generate_tests()
+static char *run_add_and_generate_tests()
 {
 	catcierge_grb_t grb;
 	catcierge_args_t *args = &grb.args; 
@@ -534,6 +534,52 @@ static char *run_load_templates_test()
 	return NULL;
 }
 
+static char *run_recursion_tests()
+{
+	catcierge_grb_t grb;
+	catcierge_output_t *o = &grb.output;
+	catcierge_args_t *args = &grb.args; 
+
+	catcierge_grabber_init(&grb);
+	{
+
+		if (catcierge_output_init(o))
+			return "Failed to init output context";
+
+		catcierge_test_STATUS("Try infinite output template recursion");
+		{
+			args->output_path = "arne";
+			args->match_output_path = "%output_path%/hej";
+
+			// These refer to each other = Recursion...
+			args->steps_output_path = "%match_output_path%/weise/%obstruct_output_path%";
+			args->obstruct_output_path = "%steps_output_path%/Mera jul!";
+
+			if (catcierge_output_add_template(o,
+				"%!event all\n"
+				"%output_path%\n"
+				"%match_output_path%\n"
+				"%steps_output_path%\n", 
+				"recursiveoutputpath"))
+			{
+				return "Failed to add template";
+			}
+
+			mu_assert("Expected template count 1", o->template_count == 1);
+
+			if (catcierge_output_generate_templates(o, &grb, "all"))
+				return "Failed generating infinite recursion template";
+
+			catcierge_test_STATUS("Failed on infinite recursion template\n");
+		}
+
+		catcierge_output_destroy(o);
+	}
+	catcierge_grabber_destroy(&grb);
+
+	return NULL;
+}
+
 int TEST_catcierge_output(int argc, char **argv)
 {
 	char *e = NULL;
@@ -560,6 +606,10 @@ int TEST_catcierge_output(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_load_templates_test()),
 		"Run load templates tests.",
 		"Load templates tests", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_recursion_tests()),
+		"Run recursion templates tests.",
+		"Recursion tests", &ret);
 
 	// TODO: Add a test for template paths in other directory.
 

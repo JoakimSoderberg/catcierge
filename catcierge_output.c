@@ -958,6 +958,14 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 	assert(ctx);
 	assert(grb);
 
+	if (ctx->recursion >= CATCIERGE_OUTPUT_MAX_RECURSION)
+	{
+		CATERR("Max output template recursion level reached (%d)!\n",
+			CATCIERGE_OUTPUT_MAX_RECURSION);
+		ctx->recursion = 0;
+		return NULL;
+	}
+
 	if (!(output = malloc(out_len)))
 	{
 		return NULL;
@@ -968,6 +976,8 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 		free(output);
 		return NULL;
 	}
+
+	ctx->recursion++;
 
 	len = 0;
 	linenum = 0;
@@ -1042,7 +1052,7 @@ static char *catcierge_output_generate_ex(catcierge_output_t *ctx,
 			}
 			else
 			{
-				CATERR("Unknown template variable \"%s\"\n", s);
+				CATERR("Unknown or recursive template variable \"%s\"\n", s);
 				free(output);
 				output = NULL;
 				goto fail;
