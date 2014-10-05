@@ -1049,6 +1049,8 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 					output[len] = *res++;
 					len++;
 				}
+
+				ctx->recursion--;
 			}
 			else
 			{
