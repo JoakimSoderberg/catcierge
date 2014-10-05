@@ -924,6 +924,32 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 			{
 				return step->path;
 			}
+			else if (!strcmp(stepvar, "abs_path"))
+			{
+				if (!catcierge_get_abs_path(step->path, buf, bufsize))
+				{
+					return step->path;
+				}
+
+				return buf;
+			}
+			else if (!strcmp(stepvar, "full_path"))
+			{
+				return step->full_path;
+			}
+			else if (!strcmp(stepvar, "abs_full_path"))
+			{
+				if (!catcierge_get_abs_path(step->full_path, buf, bufsize))
+				{
+					return step->full_path;
+				}
+
+				return buf;
+			}
+			else if (!strcmp(stepvar, "filename"))
+			{
+				return step->filename;
+			}
 			else if (!strcmp(stepvar, "name"))
 			{
 				return step->name ? step->name : "";

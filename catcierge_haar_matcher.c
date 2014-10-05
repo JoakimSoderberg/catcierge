@@ -774,7 +774,8 @@ void catcierge_haar_output_print_usage()
 {
 	size_t i;
 
-	fprintf(stderr, "Template matcher output variables:\n");
+	fprintf(stderr, "Haar matcher output variables:\n");
+	fprintf(stderr, "------------------------------\n");
 
 	for (i = 0; i < sizeof(haar_vars) / sizeof(haar_vars[0]); i++)
 	{

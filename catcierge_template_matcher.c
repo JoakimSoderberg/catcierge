@@ -404,7 +404,8 @@ void catcierge_template_matcher_usage()
 
 catcierge_output_var_t templ_vars[] =
 {
-	{ "snout", "Snout paths given via --snout." },
+	{ "snout_count", "Number of snouts given via --snout."},
+	{ "snout#", "Snout paths given via --snout (1 to snout_count)." },
 	{ "threshold", "Value of --threshold." },
 	{ "match_flipped", "Value of --match_flipped" }
 };
@@ -414,6 +415,7 @@ void catcierge_template_output_print_usage()
 	size_t i;
 
 	fprintf(stderr, "Template matcher output variables:\n");
+	fprintf(stderr, "----------------------------------\n");
 
 	for (i = 0; i < sizeof(templ_vars) / sizeof(templ_vars[0]); i++)
 	{
