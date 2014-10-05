@@ -1,0 +1,11 @@
+%!event state_change
+{
+	"type": "state_change",
+	"state": "%state%",
+	"prev_state": "%prev_state%",
+	"time": "%time%"
+	"git_hash": "%git_hash%",
+	"version": "%version%",
+	"git_tainted": %git_tainted%
+}
+
