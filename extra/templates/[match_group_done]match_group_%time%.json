@@ -1,7 +1,7 @@
 %!event match_group_done
 {
 	"id": "%match_group_id%",
-	"type": "match_group_done",
+	"catcierge_type": "match_group_done",
 	"time": "%time%",
 	"git_hash": "%git_hash%",
 	"git_hash_short": "%git_hash_short%",
@@ -25,18 +25,17 @@
 		},
 		"matchtime": %matchtime%,
 		"ok_matches_needed": %ok_matches_needed%,
-		"no_final_decision", %no_final_decision%,
+		"no_final_decision": %no_final_decision%,
 		"lockout_method": %lockout_method%,
 		"lockout_time": %lockout_time%,
 		"lockout_error": %lockout_error%,
-		"lockout_error_delay": %lockout_error_delay%,
-
+		"lockout_error_delay": %lockout_error_delay%
 	},
 	"match_group_success": %match_group_success%,
 	"match_group_count": %match_group_count%,
 	"match_group_max_count": %match_group_max_count%,
-	"match_group_direction": %match_group_direction%,
-	"description": %match_group_description%,
+	"match_group_direction": "%match_group_direction%",
+	"description": "%match_group_description%",
 	"matches": [
 	{
 		"id": "%match1_id%",
