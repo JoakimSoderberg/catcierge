@@ -189,6 +189,8 @@ int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, c
 {
 	assert(settings);
 
+	CATLOG("    Event filters: %s\n", events);
+
 	if (settings->event_filter)
 	{
 		catcierge_free_list(settings->event_filter, settings->event_filter_count);
@@ -1217,7 +1219,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		// Filter out any events that don't have the current "event" in their list.
 		if (!catcierge_output_template_registered_to_event(t, event))
 		{
-			CATLOG("Skip template %s\n", t->name);
+			//CATLOG("  Skip template %s because event %s not registered for it\n", t->name, event);
 			continue;
 		}
 
@@ -1419,14 +1421,14 @@ void catcierge_output_execute(catcierge_grb_t *grb,
 {
 	char *generated_cmd = NULL;
 
-	if (!command)
-		return;
-
 	if (catcierge_output_generate_templates(&grb->output, grb, event))
 	{
 		CATERR("Failed to generate templates on execute!\n");
 		return;
 	}
+
+	if (!command)
+		return;
 
 	if (!(generated_cmd = catcierge_output_generate(&grb->output, grb, command)))
 	{
