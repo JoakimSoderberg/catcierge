@@ -1049,6 +1049,7 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 	// so many false negatives.
 	if (mg->direction == MATCH_DIR_OUT)
 	{
+		snprintf(mg->description, sizeof(mg->description) - 1, "Going out");
 		mg->success = 1;
 	}
 	else
@@ -1071,6 +1072,8 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 
 	if (mg->success)
 	{
+		snprintf(mg->description, sizeof(mg->description) - 1, "Everything OK!");
+
 		CATLOG("Everything OK! (%d out of %d matches succeeded)"
 				" Door kept open...\n", mg->success_count, MATCH_MAX_COUNT);
 
