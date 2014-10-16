@@ -10,6 +10,10 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
+#ifdef WITH_ZMQ
+#include <czmq.h>
+#endif
+
 typedef struct fsm_tester_ctx_s
 {
 	char *img_paths[4];
@@ -80,13 +84,6 @@ int main(int argc, char **argv)
 		ret = -1; goto fail;
 	}
 
-	// TODO: Support the template matcher here as well...
-	if (args->matcher_type != MATCHER_HAAR)
-	{
-		fprintf(stderr, "Sorry the \"%s\" matcher is not supported by this program.\n", args->matcher);
-		ret = -1; goto fail;
-	}
-
 	if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))
 	{
 		fprintf(stderr, "Failed to %s init matcher\n", grb.args.matcher);
@@ -105,6 +102,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to load output templates\n");
 		exit(-1);
 	}
+
+	#ifdef WITH_ZMQ
+	catcierge_zmq_init(&grb);
+	#endif
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
@@ -133,6 +134,9 @@ int main(int argc, char **argv)
 	}
 
 fail:
+	#ifdef WITH_ZMQ
+	catcierge_zmq_destroy(&grb);
+	#endif
 	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_output_destroy(&grb.output);
 	catcierge_grabber_destroy(&grb);
