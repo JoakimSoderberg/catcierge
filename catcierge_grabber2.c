@@ -213,16 +213,6 @@ int main(int argc, char **argv)
 		// TODO: Add verify function for settings. Make sure we have everything we need...
 
 		catcierge_print_settings(args);
-
-		if (args->output_path)
-		{
-			CATLOG("Creating output directory: \"%s\"\n", args->output_path);
-			catcierge_make_path(args->output_path);
-		}
-		else
-		{
-			args->output_path = ".";
-		}
 	}
 
 	setup_sig_handlers();

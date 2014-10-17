@@ -822,6 +822,8 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv, catci
 	char **values = (char **)calloc(argc, sizeof(char *));
 	size_t value_count = 0;
 
+	args->program_name = argv[0];
+
 	if (!values)
 	{
 		fprintf(stderr, "Out of memory!\n");
@@ -835,6 +837,7 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv, catci
 		{
 			args->show_cmd_help = 1;
 			catcierge_show_usage(args, argv[0]);
+			if (cb) cb(args, &argv[i][2], NULL, 0, user);
 			exit(1);
 		}
 
@@ -842,6 +845,7 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv, catci
 		if (!strcmp(argv[i], "--camhelp"))
 		{
 			catcierge_show_cam_help();
+			if (cb) cb(args, &argv[i][2], NULL, 0, user);
 			exit(1);
 		}
 		#endif // RPI
@@ -849,6 +853,7 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv, catci
 		if (!strcmp(argv[i], "--help"))
 		{
 			catcierge_show_usage(args, argv[0]);
+			if (cb) cb(args, &argv[i][2], NULL, 0, user);
 			exit(1);
 		}
 

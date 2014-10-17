@@ -17,17 +17,19 @@ def main():
 	args = parser.parse_args()
 
 	files = glob.glob("%s/*.png" % args.image_dir)  # Get all files in the image dir.
-	rand_file = random.choice(files)  # .../all/match__2014-09-23_17_15_10__1.png
-	file_glob = "%s*.png" % rand_file[:-5]  # .../all/match__2014-09-23_17_15_10__
+	images = []
+	
+	while len(images) < 4:
+		rand_file = random.choice(files)  # .../all/match__2014-09-23_17_15_10__1.png
+		file_glob = "%s*.png" % rand_file[:-5]  # .../all/match__2014-09-23_17_15_10__
+		images = glob.glob(file_glob)
 
-	#fsm_args = "%s --images %s" % (args.extra_args, file_glob)
+	extra_args = [os.path.expanduser(os.path.expandvars(s)) for s in args.extra_args.split(" ")]
 
-	the_args = [args.exe_path] + args.extra_args.split(" ") + ["--images"] + glob.glob(file_glob)
+	the_args = [args.exe_path] + extra_args + ["--images"] + images
 	print(the_args)
 
 	call(the_args)
-	#"--input ../extra/templates/*.json --output_path ~/higgs/catcierge_images/%match_group_id% --match_output_path %output_path%/%matchcur_id% --zmq --new_execute"
-
 
 
 if __name__ == '__main__': main()

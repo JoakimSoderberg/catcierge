@@ -26,6 +26,7 @@
 typedef struct catcierge_args_s
 {
 	alini_parser_t *parser;
+	char *program_name;
 
 	int show;
 	int saveimg;
