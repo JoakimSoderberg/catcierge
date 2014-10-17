@@ -13,12 +13,20 @@ def main():
 	parser.add_argument("--exe_path", help="Path to catcierge_fsm_tester executable")
 	parser.add_argument("--image_dir", help="Directory of images")
 	parser.add_argument("--extra_args", help="Extra arguments to pass", default="")
+	parser.add_argument("--fail", help="Only get a random fail image", action="store_true")
 
 	args = parser.parse_args()
 
-	files = glob.glob("%s/*.png" % args.image_dir)  # Get all files in the image dir.
+	# Get all files in the image dir.
+	if args.fail:
+		files = glob.glob("%s/*fail*.png" % args.image_dir)
+	else:
+		files = glob.glob("%s/*.png" % args.image_dir)
+
 	images = []
 	
+	# Sometimes this method fails to get 4 images.
+	# Instead just continue until we get that... 
 	while len(images) < 4:
 		rand_file = random.choice(files)  # .../all/match__2014-09-23_17_15_10__1.png
 		file_glob = "%s*.png" % rand_file[:-5]  # .../all/match__2014-09-23_17_15_10__
