@@ -21,6 +21,7 @@
 #ifdef WITH_ZMQ
 #define DEFAULT_ZMQ_PORT 5556
 #define DEFAULT_ZMQ_IFACE "*"
+#define DEFAULT_ZMQ_TRANSPORT "tcp"
 #endif // WITH_ZMQ
 
 typedef struct catcierge_args_s
@@ -92,6 +93,7 @@ typedef struct catcierge_args_s
 	int zmq;
 	int zmq_port;
 	char *zmq_iface;
+	char *zmq_transport;
 	#endif // WITH_ZMQ
 } catcierge_args_t;
 

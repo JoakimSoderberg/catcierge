@@ -1219,13 +1219,16 @@ int catcierge_zmq_init(catcierge_grb_t *grb)
 		goto fail;
 	}
 
-	if (zsocket_bind(grb->zmq_pub, "tcp://%s:%d",
-		args->zmq_iface, args->zmq_port) != args->zmq_port)
+	if (zsocket_bind(grb->zmq_pub, "%s://%s:%d",
+		args->zmq_transport, args->zmq_iface, args->zmq_port) < 0)
 	{
-		CATERR("Failed to bind to ZMQ publisher to interface %s:%d\n",
-			args->zmq_iface, args->zmq_port);
+		CATERR("Failed to bind to ZMQ publisher to %s://%s:%d\n",
+			args->zmq_transport, args->zmq_iface, args->zmq_port);
 		goto fail;
 	}
+
+	CATLOG("ZMQ publish to %s://%s:%d\n",
+			args->zmq_transport, args->zmq_iface, args->zmq_port);
 
 	return 0;
 

@@ -187,6 +187,9 @@ char *run_parse_args_tests()
 	PARSE_SETTING("zmq_iface eth1", "Expected a valid parse",
 		(ret == 0) && !strcmp(args.zmq_iface, "eth1"));
 
+	PARSE_SETTING("zmq_transport inproc", "Expected a valid parse",
+		(ret == 0) && !strcmp(args.zmq_transport, "inproc"));
+
 	#endif
 
 	PARSE_SETTING("lockout 5", "Expected a valid parse",

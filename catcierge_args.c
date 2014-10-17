@@ -216,14 +216,41 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 	if (!strcmp(key, "zmq_port"))
 	{
 		args->zmq_port = DEFAULT_ZMQ_PORT;
-		if (value_count == 1) args->zmq_port = atoi(values[0]);
+
+		if (value_count < 1)
+		{
+			fprintf(stderr, "--zmq_port missing value\n");
+			return -1;
+		}
+
+		args->zmq_port = atoi(values[0]);
+
 		return 0;
 	}
 
 	if (!strcmp(key, "zmq_iface"))
 	{
-		args->zmq_iface = DEFAULT_ZMQ_IFACE;
-		if (value_count == 1) args->zmq_iface = values[0];
+		if (value_count < 1)
+		{
+			fprintf(stderr, "--zmq_iface missing interface name\n");
+			return -1;
+		}
+
+		args->zmq_iface = values[0];
+
+		return 0;
+	}
+
+	if (!strcmp(key, "zmq_transport"))
+	{
+		if (value_count != 1)
+		{
+			fprintf(stderr, "--zmq_transport missing value\n");
+			return -1;
+		}
+
+		args->zmq_transport = values[0];
+
 		return 0;
 	}
 	#endif // WITH_ZMQ
@@ -1020,7 +1047,8 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("       ZMQ publisher: %d\n", args->zmq);
 	printf("            ZMQ port: %d\n", args->zmq_port);
 	printf("       ZMQ interface: %s\n", args->zmq_iface);
-	#endif
+	printf("       ZMQ transport: %s\n", args->zmq_transport);
+	#endif // WITH_ZMQ
 	printf("        Matcher type: %s\n", args->matcher);
 	printf("\n"); 
 	if (!args->matcher || !strcmp(args->matcher, "template"))
@@ -1074,6 +1102,7 @@ int catcierge_args_init(catcierge_args_t *args)
 	#ifdef WITH_ZMQ
 	args->zmq_port = DEFAULT_ZMQ_PORT;
 	args->zmq_iface = DEFAULT_ZMQ_IFACE;
+	args->zmq_transport = DEFAULT_ZMQ_TRANSPORT;
 	#endif
 
 	return 0;
