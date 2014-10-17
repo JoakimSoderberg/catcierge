@@ -1057,6 +1057,13 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 		// Otherwise if enough matches (default 2) are ok.
 		mg->success = (mg->success_count >= args->ok_matches_needed);
 
+		if (!mg->success)
+		{
+			snprintf(mg->description, sizeof(mg->description) - 1,
+				"Lockout %d of %d matches failed",
+				(MATCH_MAX_COUNT - mg->success_count), MATCH_MAX_COUNT);
+		}
+
 		// Let the matcher veto if the match group was successful.
 		if (!args->no_final_decision)
 		{
@@ -1065,7 +1072,7 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 
 			if (mg->final_decision)
 			{
-				CATLOG("Match group vetoed match success: %s\n", mg->description);
+				CATERR("!!! Match group vetoed match success: %s !!!\n", mg->description);
 			}
 		}
 	}
