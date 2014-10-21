@@ -459,10 +459,10 @@ static char *run_load_templates_test()
 		// Create temporary files to use as test templates.
 		for (i = 0; i < TEST_TEMPLATE_COUNT; i++)
 		{
-			inputs[i] = templs[i].target_path;
+			inputs[i] = templs[i].filename;
 			input_count++;
 
-			f = fopen(templs[i].target_path, "w");
+			f = fopen(templs[i].filename, "w");
 			mu_assert("Failed to open target path", f);
 
 			fwrite(templs[i].tmpl, 1, strlen(templs[i].tmpl), f);

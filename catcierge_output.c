@@ -152,8 +152,8 @@ void catcierge_output_free_template(catcierge_output_template_t *t)
 	if (!t)
 		return;
 
-	if (t->target_path) free(t->target_path);
-	t->target_path = NULL;
+	if (t->filename) free(t->filename);
+	t->filename = NULL;
 	if (t->tmpl) free(t->tmpl);
 	t->tmpl = NULL;
 	if (t->name) free(t->name);
@@ -362,16 +362,16 @@ fail:
 }
 
 int catcierge_output_add_template(catcierge_output_t *ctx,
-		const char *template_str, const char *target_path)
+		const char *template_str, const char *filename)
 {
 	const char *path;
 	catcierge_output_template_t *t;
 	assert(ctx);
 
 	// Get only the filename.
-	if ((path = strrchr(target_path, catcierge_path_sep()[0])))
+	if ((path = strrchr(filename, catcierge_path_sep()[0])))
 	{
-		target_path = path + 1;
+		filename = path + 1;
 	}
 
 	// Grow the templates array if needed.
@@ -396,12 +396,11 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 	// This is so that we can pass the path of the generated
 	// target path at run time to the catcierge_execute function
 	// and the external program can distinguish between multiple templates.
-	// TODO: Enable having a name as a setting within the template as well.
 	{
 		char name[4096];
 		memset(name, 0, sizeof(name));
 
-		if (sscanf(target_path, "[%[^]]", name) == 1)
+		if (sscanf(filename, "[%[^]]", name) == 1)
 		{
 			size_t name_len = strlen(name);
 
@@ -412,7 +411,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 				goto fail;
 			}
 
-			target_path += 1 + name_len + 1; // Name + the []
+			filename += 1 + name_len + 1; // Name + the []
 		}
 		else
 		{
@@ -425,7 +424,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		}
 	}
 
-	if (!(t->target_path = strdup(target_path)))
+	if (!(t->filename = strdup(filename)))
 	{
 		goto out_of_memory;
 	}
@@ -443,7 +442,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 
 	ctx->template_count++;
 
-	CATLOG(" %s (%s)\n", t->name, t->target_path);
+	CATLOG(" %s (%s)\n", t->name, t->filename);
 
 	return 0;
 
@@ -1244,9 +1243,9 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			}
 
 			// Generate the filename.
-			if (!(path = catcierge_output_generate(ctx, grb, t->target_path)))
+			if (!(path = catcierge_output_generate(ctx, grb, t->filename)))
 			{
-				CATERR("Failed to generate output path for template \"%s\"\n", t->target_path);
+				CATERR("Failed to generate output path for template \"%s\"\n", t->filename);
 				goto fail_template;
 			}
 
@@ -1270,7 +1269,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		// And then generate the template contents.
 		if (!(output = catcierge_output_generate(ctx, grb, t->tmpl)))
 		{
-			CATERR("Failed to generate output for template \"%s\"\n", t->target_path);
+			CATERR("Failed to generate output for template \"%s\"\n", t->filename);
 			goto fail_template;
 		}
 
