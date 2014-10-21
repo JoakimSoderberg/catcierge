@@ -3,6 +3,8 @@
 	"id": "%match_group_id%",
 	"catcierge_type": "match_group_done",
 	"time": "%time%",
+	"timezone": "%time:@Z%",
+	"timezone_utc_offset": "%time:@z%",
 	"git_hash": "%git_hash%",
 	"git_hash_short": "%git_hash_short%",
 	"git_tainted": %git_tainted%,
@@ -31,6 +33,8 @@
 		"lockout_error": %lockout_error%,
 		"lockout_error_delay": %lockout_error_delay%
 	},
+	"match_group_start": "%match_group_start_time%",
+	"match_group_end": "%match_group_end_time%",
 	"match_group_success": %match_group_success%,
 	"match_group_count": %match_group_count%,
 	"match_group_max_count": %match_group_max_count%,
