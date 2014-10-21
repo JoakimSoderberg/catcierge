@@ -39,7 +39,6 @@ typedef struct catcierge_output_settings_s
 typedef struct catcierge_output_template_s
 {
 	char *tmpl;
-	char *filename;			// Input target path.
 	char *generated_path;	// The last generated path.
 	char *name;
 	catcierge_output_settings_t settings;

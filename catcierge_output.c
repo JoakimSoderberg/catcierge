@@ -155,8 +155,6 @@ void catcierge_output_free_template(catcierge_output_template_t *t)
 	if (!t)
 		return;
 
-	if (t->filename) free(t->filename);
-	t->filename = NULL;
 	if (t->tmpl) free(t->tmpl);
 	t->tmpl = NULL;
 	if (t->name) free(t->name);
@@ -283,6 +281,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 			it += 8;
 			it = catcierge_skip_whitespace_alt(it);
 
+			if (settings->filename) free(settings->filename);
 			if (!(settings->filename = strdup(it)))
 			{
 				CATERR("Out of memory!\n"); goto fail;
@@ -440,7 +439,10 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		}
 	}
 
-	if (!(t->filename = strdup(filename)))
+	// Default to the template filenames filename 
+	// (which can include output variables that can be expanded).
+	// However, the settings might override this.
+	if (!(t->settings.filename = strdup(filename)))
 	{
 		goto out_of_memory;
 	}
@@ -451,13 +453,6 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		goto fail;
 	}
 
-	// Overwrite the filename from the settings.
-	if (t->settings.filename != NULL)
-	{
-		free(t->filename);
-		t->filename = t->settings.filename;
-	}
-
 	if (!(t->tmpl = strdup(template_str)))
 	{
 		goto out_of_memory;
@@ -465,7 +460,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 
 	ctx->template_count++;
 
-	CATLOG(" %s (%s)\n", t->name, t->filename);
+	CATLOG(" %s (%s)\n", t->name, t->settings.filename);
 
 	return 0;
 
@@ -1266,9 +1261,9 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			}
 
 			// Generate the filename.
-			if (!(path = catcierge_output_generate(ctx, grb, t->filename)))
+			if (!(path = catcierge_output_generate(ctx, grb, t->settings.filename)))
 			{
-				CATERR("Failed to generate output path for template \"%s\"\n", t->filename);
+				CATERR("Failed to generate output path for template \"%s\"\n", t->settings.filename);
 				goto fail_template;
 			}
 
@@ -1292,7 +1287,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		// And then generate the template contents.
 		if (!(output = catcierge_output_generate(ctx, grb, t->tmpl)))
 		{
-			CATERR("Failed to generate output for template \"%s\"\n", t->filename);
+			CATERR("Failed to generate output for template \"%s\"\n", t->settings.filename);
 			goto fail_template;
 		}
 

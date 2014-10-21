@@ -400,49 +400,56 @@ static char *run_load_templates_test()
 	{
 		size_t i;
 		FILE *f;
+		char *filenames[] =
+		{
+			"a_%time%",
+			"b_%time%",
+			"c_%time%",
+			"abc_%time%",
+			"abc2_%time%",
+			"123_abc_%time%",
+			"two_events_%time%",
+			"bla_bla_%time%",
+			"two_events_rev_%time%",
+			"two_events_rev2_%time%"
+		};
+
+		// TODO: Rewrite this to be inited by a function or something...
 		catcierge_output_template_t templs[] =
 		{
 			{ 
 				"%! event all\n"
-				"Arne weise %time% %match1_path% julafton", // Contents.
-				"a_%time%", // Path.
+				"Arne weise %time% %match1_path% julafton" // Contents.
 			},
 			{
 				"%! event *\n"
-				"the template contents\nis %time:@c%",
-				"b_%time%"
+				"the template contents\nis %time:@c%"
 			},
 			{
-				"%! event all\n",
-				"c_%time%"
+				"%! event all\n"
 			},
 			{ 
 				"%! event arne, weise\n"
-				"Hello world\n",
-				"abc_%time%"
+				"Hello world\n"
 			},
 			{ 
 				"%! event    arne   ,    weise   \n\n\n"
-				"Hello world\n",
-				"abc_%time%"
+				"Hello world\n"
 			},
 			{
 				"%!bla\n"
-				"Some cool template",
-				"123_abc_%time%"
+				"Some cool template"
 			},
 			{
 				"%!event tut   \n"
 				"%!    nop    \n"
-				"Some cool template",
-				"two_events_%time%"
+				"Some cool template"
 			},
 			{
 				"%!    nop    \n"
 				"%!event tut   \n"
 				"%!filename blarg_%time%\n"
-				"Some cool template",
-				"two_events_rev_%time%"
+				"Some cool template"
 			},
 			{
 				"%!nofile    \n"
@@ -450,7 +457,6 @@ static char *run_load_templates_test()
 				"%!nozmq\n"
 				"%!topic\n"
 				"Some cool template",
-				"two_events_rev_%time%"
 			}
 		};
 		#define TEST_TEMPLATE_COUNT sizeof(templs) / sizeof(templs[0])
@@ -460,10 +466,11 @@ static char *run_load_templates_test()
 		// Create temporary files to use as test templates.
 		for (i = 0; i < TEST_TEMPLATE_COUNT; i++)
 		{
-			inputs[i] = templs[i].filename;
+			templs[i].settings.filename = filenames[i];
+			inputs[i] = templs[i].settings.filename;
 			input_count++;
 
-			f = fopen(templs[i].filename, "w");
+			f = fopen(templs[i].settings.filename, "w");
 			mu_assert("Failed to open target path", f);
 
 			fwrite(templs[i].tmpl, 1, strlen(templs[i].tmpl), f);
