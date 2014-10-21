@@ -32,7 +32,7 @@ int catcierge_output_init(catcierge_output_t *ctx);
 void catcierge_output_destroy(catcierge_output_t *ctx);
 
 int catcierge_output_add_template(catcierge_output_t *ctx,
-		const char *template_str, const char *target_path);
+		const char *template_str, const char *filename);
 
 char *catcierge_output_generate(catcierge_output_t *ctx, catcierge_grb_t *grb,
 		const char *template_str);

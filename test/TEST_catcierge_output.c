@@ -440,6 +440,7 @@ static char *run_load_templates_test()
 			{
 				"%!    nop    \n"
 				"%!event tut   \n"
+				"%!filename blarg_%time%\n"
 				"Some cool template",
 				"two_events_rev_%time%"
 			},

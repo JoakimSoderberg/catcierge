@@ -145,6 +145,9 @@ void catcierge_output_free_template_settings(catcierge_output_settings_t *settin
 	catcierge_free_list(settings->event_filter, settings->event_filter_count);
 	settings->event_filter = NULL;
 	settings->event_filter_count = 0;
+
+	if (settings->filename) free(settings->filename);
+	settings->filename = NULL;
 }
 
 void catcierge_output_free_template(catcierge_output_template_t *t)
@@ -272,6 +275,19 @@ const char *catcierge_output_read_template_settings(const char *name,
 			{
 				CATERR("Failed to parse event setting\n"); goto fail;
 			}
+			it = row_end;
+			continue;
+		}
+		else if (!strncmp(it, "filename", 8))
+		{
+			it += 8;
+			it = catcierge_skip_whitespace_alt(it);
+
+			if (!(settings->filename = strdup(it)))
+			{
+				CATERR("Out of memory!\n"); goto fail;
+			}
+
 			it = row_end;
 			continue;
 		}
@@ -433,6 +449,13 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 							&t->settings, template_str)))
 	{
 		goto fail;
+	}
+
+	// Overwrite the filename from the settings.
+	if (t->settings.filename != NULL)
+	{
+		free(t->filename);
+		t->filename = t->settings.filename;
 	}
 
 	if (!(t->tmpl = strdup(template_str)))
