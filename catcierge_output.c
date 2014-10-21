@@ -62,6 +62,8 @@ catcierge_output_var_t vars[] =
 	{ "obstruct_output_path", "The output path specified via --obstruct_output_path." },
 	{ "template_output_path", "The output path specified via --template_output_path." },
 	{ "match_group_id", "Match group ID."},
+	{ "match_group_start_time", "Match group start time."},
+	{ "match_group_end_time", "Match group end time."},
 	{ "match_group_success", "Match group success status."},
 	{ "match_group_success_count", "Match group success count."},
 	{ "match_group_final_decision", "Did the match group veto the final decision?"},
@@ -692,14 +694,14 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
-	if (!strcmp(var, "match_group_start_time"))
+	if (!strncmp(var, "match_group_start_time", 22))
 	{
 		var += strlen("match_group_start_");
 		return catcierge_get_time_var_format(var, buf, bufsize,
 					"%Y-%m-%d %H:%M:%S.%f", mg->start_time, &mg->start_tv);
 	}
 
-	if (!strcmp(var, "match_group_end_time"))
+	if (!strncmp(var, "match_group_end_time", 20))
 	{
 		var += strlen("match_group_end_");
 		return catcierge_get_time_var_format(var, buf, bufsize,
