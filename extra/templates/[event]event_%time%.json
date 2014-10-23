@@ -3,8 +3,8 @@
 {
 	"id": "%match_group_id%",
 	"catcierge_type": "match_group_done",
-	"timestamp": "%match_group_start_time:@Y-@m-@dT@H:@M:@S.@f@z%",
-	"timestamp_end": "%match_group_end_time:@Y-@m-@dT@H:@M:@S.@f@z%",
+	"start": "%match_group_start_time:@Y-@m-@dT@H:@M:@S.@f@z%",
+	"end": "%match_group_end_time:@Y-@m-@dT@H:@M:@S.@f@z%",
 	"time_generated": "%time%",
 	"timezone": "%time:@Z%",
 	"timezone_utc_offset": "%time:@z%",
