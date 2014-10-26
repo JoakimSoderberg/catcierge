@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include "catcierge_args.h"
 #include "minunit.h"
 #include "catcierge_test_helpers.h"
@@ -100,6 +101,7 @@ char *run_parse_args_tests()
 	#define xstr(a) str(a)
 	#define str(a) #a
 
+	// TODO: This doesn't work with quoted strings.
 	#define GET_KEY_VALUES(str) \
 		do \
 		{ \
@@ -327,6 +329,18 @@ char *run_parse_args_tests()
 		(ret == 0) && !strcmp(args.chuid, "userid"));
 	PARSE_SETTING("chuid", "Expected invalid parse for missing value",
 		(ret == -1));
+
+	{
+		char *k = "base_time";
+		char *vls[] = { "2014-10-26T14:00:22" };
+		ret = catcierge_parse_setting(&args, k, vls, 1);
+		catcierge_test_STATUS("ret == %d base_time == %s", ret, args.base_time);
+		assert((ret == 0) && !strcmp(args.base_time, "2014-10-26T14:00:22"));
+
+		PARSE_SETTING("base_time", "Expected invalid parse for missing value",
+			(ret == -1));
+
+	}
 
 	// Template matcher settings.
 	{

@@ -3,6 +3,7 @@
 #define __CATCIERGE_ARGS_H__
 
 #include <stdio.h>
+#include <time.h>
 #include "alini/alini.h"
 #ifdef RPI
 #include "RaspiCamCV.h"
@@ -73,6 +74,8 @@ typedef struct catcierge_args_s
 	int noanim;
 	char *inputs[MAX_INPUT_TEMPLATES];
 	size_t input_count;
+
+	char *base_time;
 
 	#ifdef WITH_RFID
 	char *rfid_detect_cmd;

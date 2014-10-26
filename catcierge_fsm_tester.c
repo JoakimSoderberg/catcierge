@@ -60,6 +60,8 @@ static void show_usage(const char *progname)
 	fprintf(stderr, " --help                     Show this help (including full catcierge help).\n");
 	fprintf(stderr, " --images <4 input images>  Input images that are passed to catcierge.\n");
 	fprintf(stderr, " --delay <seconds>          Delay this long before passing the images.\n");
+	fprintf(stderr, " --base_time <date>         The base date time we should use instead of the current time.\n");
+	fprintf(stderr, "                            In the format YYYY-mm-ddTHH:MM:SS.\n");
 }
 
 int parse_args_callback(catcierge_args_t *args,

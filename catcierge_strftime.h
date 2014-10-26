@@ -24,4 +24,6 @@
 
 int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct tm *tm, struct timeval *tv);
 
+void catcierge_strftime_set_base_diff(long time_diff);
+
 #endif // __CATCIERGE_STRFTIME_H__

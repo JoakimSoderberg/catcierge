@@ -28,6 +28,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+long catcierge_base_time_diff;
+
+void catcierge_strftime_set_base_diff(long time_diff)
+{
+	catcierge_base_time_diff = time_diff;
+}
+
 #if _WIN32
 #include <crtdbg.h>  // For _CrtSetReportMode
 
@@ -65,6 +72,16 @@ int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct 
 	_CrtSetReportMode(_CRT_ASSERT, 0);
 
 	#endif // _WIN32
+
+	if (catcierge_base_time_diff)
+	{
+		time_t t;
+		struct tm tmp_tm = *tm;
+		tv->tv_sec -= catcierge_base_time_diff;
+		t = mktime(&tmp_tm);
+		t -= catcierge_base_time_diff;
+		tm = localtime(&t);
+	}
 
 	// Add millisecond formatting (uses %f as python).
 	if (tv)

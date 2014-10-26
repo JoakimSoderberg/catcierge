@@ -16,6 +16,7 @@
 
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
+#include "catcierge_strftime.h"
 
 #ifdef WITH_RFID
 int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char *allowed)
@@ -561,10 +562,56 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
-		fprintf(stderr, "--rid_match_cmd missing value\n");
+		fprintf(stderr, "--rfid_match_cmd missing value\n");
 		return -1;
 	}
 	#endif // WITH_RFID
+
+	#ifndef _WIN32
+	// TODO: Support this on windows.
+	if (!strcmp(key, "base_time"))
+	{
+		if (value_count == 1)
+		{
+			struct tm base_time_tm;
+			time_t base_time_t;
+			struct timeval base_time_now;
+			long base_time_diff;
+
+			memset(&base_time_tm, 0, sizeof(base_time_tm));
+			memset(&base_time_now, 0, sizeof(base_time_now));
+
+			args->base_time = values[0];
+
+			// TODO: Make all but base_time_diff local to this function.
+			if (!strptime(args->base_time, "%Y-%m-%dT%H:%M:%S", &base_time_tm))
+			{
+				fprintf(stderr, "HSD\n");
+				goto fail_base_time;
+			}
+
+			if ((base_time_t = mktime(&base_time_tm)) == -1)
+			{
+				fprintf(stderr, "GDGDSGDS\n");
+				goto fail_base_time;
+			}
+
+			gettimeofday(&base_time_now, NULL);
+			base_time_diff = base_time_now.tv_sec - base_time_t;
+
+			catcierge_strftime_set_base_diff(base_time_diff);
+
+			return 0;
+
+		fail_base_time:
+			fprintf(stderr, "Failed to parse --base_time %s\n", values[0]);
+			return -1;
+		}
+
+		fprintf(stderr, "--base_time missing value\n");
+		return -1;
+	}
+	#endif // _WIN32
 
 	#ifdef RPI
 	if (!strncmp(key, "rpi-", 4))
