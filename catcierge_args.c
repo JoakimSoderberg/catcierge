@@ -583,16 +583,13 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 
 			args->base_time = values[0];
 
-			// TODO: Make all but base_time_diff local to this function.
 			if (!strptime(args->base_time, "%Y-%m-%dT%H:%M:%S", &base_time_tm))
 			{
-				fprintf(stderr, "HSD\n");
 				goto fail_base_time;
 			}
 
 			if ((base_time_t = mktime(&base_time_tm)) == -1)
 			{
-				fprintf(stderr, "GDGDSGDS\n");
 				goto fail_base_time;
 			}
 
