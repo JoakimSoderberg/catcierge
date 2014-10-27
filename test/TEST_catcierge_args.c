@@ -330,6 +330,7 @@ char *run_parse_args_tests()
 	PARSE_SETTING("chuid", "Expected invalid parse for missing value",
 		(ret == -1));
 
+	#ifndef _WIN32
 	{
 		char *k = "base_time";
 		char *vls[] = { "2014-10-26T14:00:22" };
@@ -341,6 +342,7 @@ char *run_parse_args_tests()
 			(ret == -1));
 
 	}
+	#endif // _WIN32
 
 	// Template matcher settings.
 	{
