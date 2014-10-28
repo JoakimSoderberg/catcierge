@@ -22,12 +22,15 @@ def main():
 	parser.add_argument("--exe_path", help="Path to catcierge_fsm_tester executable")
 	parser.add_argument("--image_dir", help="Directory of images")
 	parser.add_argument("--extra_args", help="Extra arguments to pass", default="")
+	# TODO: Add option to start at a specific image / index.
 
 	args = parser.parse_args()
 
 	extra_args = [os.path.expanduser(os.path.expandvars(s)) for s in args.extra_args.split(" ")]
 
 	firsts = glob.glob("%s/match*__0.png" % args.image_dir)
+
+	i = 0
 
 	while len(firsts) > 0:
 
@@ -82,18 +85,19 @@ def main():
 					print("WARNING: Got more than 4 candidates: %s" % candidates)
 					# TODO: Copy these images to a separate directory for manual processing
 				else:
+					print("=" * 79)
+					print ("Index %d" % i)
 					print [os.path.basename(x) for x in candidates]
-					# --exe_path bin/catcierge_fsm_tester --image_dir ../examples/real/all/ --extra_args "--input ../extra/templates/[event]event_%time%.json --output_path ~/higgs/catcierge_images/%match_group_id% --match_output_path %output_path%/%matchcur_id% --steps_output_path %match_output_path%/steps --zmq --new_execute --save --save_steps --save_obstruct --delay 1
+
 					if (args.exe_path):
-						print("=" * 79)
 						the_args = [args.exe_path] + extra_args + ["--images"] + candidates + ["--base_time", dt.strftime("%Y-%m-%dT%H:%M:%S")]
 						print(the_args)
 						call(the_args)
-						
 		else:
 			print("Skipping invalid file: %s" % filename)
 
 		firsts.pop(0)
+		i += 1
 
 
 if __name__ == '__main__': main()

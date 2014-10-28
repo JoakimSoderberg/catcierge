@@ -702,6 +702,8 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strcmp(var, "match_group_id"))
 	{
+		// TODO: Break out this output into a separate function and allow the format bla_id:4
+		// for all ID variables. Which will return the first 4 characters of the sha.
 		snprintf(buf, bufsize - 1, "%x%x%x%x%x",
 				mg->sha.Message_Digest[0],
 				mg->sha.Message_Digest[1],
