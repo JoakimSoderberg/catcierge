@@ -22,43 +22,14 @@ def main():
 	parser.add_argument("--exe_path", help="Path to catcierge_fsm_tester executable")
 	parser.add_argument("--image_dir", help="Directory of images")
 	parser.add_argument("--extra_args", help="Extra arguments to pass", default="")
-	parser.add_argument("--fail", help="Only get a random fail image", action="store_true")
 
 	args = parser.parse_args()
 
-	images = glob.glob("%s/match*.png" % args.image_dir)
+	extra_args = [os.path.expanduser(os.path.expandvars(s)) for s in args.extra_args.split(" ")]
+
 	firsts = glob.glob("%s/match*__0.png" % args.image_dir)
 
 	while len(firsts) > 0:
-		"""
-		filepath = images[0]  # .../all/match__2014-09-23_17_15_10__1.png
-		filedir = os.path.dirname(filepath)
-		filename = os.path.basename(filepath).lstrip("match_").lstrip("_").lstrip("fail")
-		file_glob = "%s/*%s*.png" % (filedir, filename[:-5])  # .../all/match__2014-09-23_17_15_10__
-		img_set = glob.glob(file_glob)
-
-		if (len(img_set) != 4):
-			m = re.search(".*?((\d+)-(\d+)-(\d+)_(\d+)_(\d+)_(\d+)).*?\.png", filename)
-			if m:
-				tm = time.strptime(m.group(1), "%Y-%m-%d_%H_%M_%S")
-				dt = datetime.fromtimestamp(time.mktime(tm))
-				for timestamp in datespan(dt - timedelta(seconds=3), dt + timedelta(seconds=3), delta=timedelta(seconds=1)):
-					print("TIME: %s" % timestamp.strftime("%Y-%m-%d_%H_%M_%S"))
-					# TODO: Look for images with these dates in the images list
-			else:
-				print("Skipping invalid file: %s" % filename)
-				images.pop(0)
-				continue
-
-		if (len(img_set) != 4):
-			print("Warning only got %d images (%s)" % (len(img_set), img_set))
-			return
-		else:
-			pass #print("%s" % img_set)
-
-		for img in img_set:
-			images.pop(0)
-		"""
 
 		filepath = firsts[0]
 
@@ -112,13 +83,17 @@ def main():
 					# TODO: Copy these images to a separate directory for manual processing
 				else:
 					print [os.path.basename(x) for x in candidates]
-					# TODO: Pass to external program.
-
-			firsts.pop(0)
+					# --exe_path bin/catcierge_fsm_tester --image_dir ../examples/real/all/ --extra_args "--input ../extra/templates/[event]event_%time%.json --output_path ~/higgs/catcierge_images/%match_group_id% --match_output_path %output_path%/%matchcur_id% --steps_output_path %match_output_path%/steps --zmq --new_execute --save --save_steps --save_obstruct --delay 1
+					if (args.exe_path):
+						print("=" * 79)
+						the_args = [args.exe_path] + extra_args + ["--images"] + candidates + ["--base_time", dt.strftime("%Y-%m-%dT%H:%M:%S")]
+						print(the_args)
+						call(the_args)
+						
 		else:
 			print("Skipping invalid file: %s" % filename)
-			firsts.pop(0)
-			continue
+
+		firsts.pop(0)
 
 
 if __name__ == '__main__': main()
