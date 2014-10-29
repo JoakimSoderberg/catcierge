@@ -108,6 +108,7 @@ static char *run_generate_tests()
 			{ "%match_group_success_count%", "3" },
 			{ "%match_group_max_count%", _XSTR(MATCH_MAX_COUNT) },
 			{ "%match_group_id%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
+			{ "%match_group_id:4%", "34aa" },
 			{ "%match_group_desc%", "hej" },
 			{ "%match_group_description%", "hej" },
 			{ "%match1_step1_path%", "some/step/path" },

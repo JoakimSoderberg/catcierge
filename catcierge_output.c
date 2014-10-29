@@ -563,6 +563,36 @@ static char *catcierge_get_template_path(catcierge_grb_t *grb, const char *var)
 	return NULL;
 }
 
+static char *catcierge_get_short_id(char *subvar, char *buf, size_t bufsize, SHA1Context *sha)
+{
+	int n;
+	int ret;
+	assert(sha);
+
+	ret = snprintf(buf, bufsize - 1, "%x%x%x%x%x",
+			sha->Message_Digest[0],
+			sha->Message_Digest[1],
+			sha->Message_Digest[2],
+			sha->Message_Digest[3],
+			sha->Message_Digest[4]);
+
+	if (*subvar == ':')
+	{
+		subvar++;
+		n = atoi(subvar);
+
+		if (n < 0)
+			return NULL;
+
+		if (n >= ret)
+			n = ret - 1;
+
+		buf[n] = '\0';
+	}
+
+	return buf;
+}
+
 const char *catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var)
 {
@@ -700,17 +730,10 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
-	if (!strcmp(var, "match_group_id"))
+	if (!strncmp(var, "match_group_id", 14))
 	{
-		// TODO: Break out this output into a separate function and allow the format bla_id:4
-		// for all ID variables. Which will return the first 4 characters of the sha.
-		snprintf(buf, bufsize - 1, "%x%x%x%x%x",
-				mg->sha.Message_Digest[0],
-				mg->sha.Message_Digest[1],
-				mg->sha.Message_Digest[2],
-				mg->sha.Message_Digest[3],
-				mg->sha.Message_Digest[4]);
-		return buf;
+		char *subvar = var + 14;
+		return catcierge_get_short_id(subvar, buf, bufsize, &mg->sha);
 	}
 
 	if (!strncmp(var, "match_group_start_time", 22))
@@ -877,15 +900,10 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		{
 			return m->filename;
 		}
-		else if (!strcmp(subvar, "id"))
+		else if (!strncmp(subvar, "id", 2))
 		{
-			snprintf(buf, bufsize - 1, "%x%x%x%x%x",
-				m->sha.Message_Digest[0],
-				m->sha.Message_Digest[1],
-				m->sha.Message_Digest[2],
-				m->sha.Message_Digest[3],
-				m->sha.Message_Digest[4]);
-			return buf;
+			char *subsubvar = subvar + 2;
+			return catcierge_get_short_id(subsubvar, buf, bufsize, &m->sha);
 		}
 		else if (!strcmp(subvar, "success"))
 		{
