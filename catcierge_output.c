@@ -585,7 +585,7 @@ static char *catcierge_get_short_id(char *subvar, char *buf, size_t bufsize, SHA
 			return NULL;
 
 		if (n >= ret)
-			n = ret - 1;
+			n = ret;
 
 		buf[n] = '\0';
 	}

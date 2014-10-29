@@ -109,6 +109,9 @@ static char *run_generate_tests()
 			{ "%match_group_max_count%", _XSTR(MATCH_MAX_COUNT) },
 			{ "%match_group_id%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
 			{ "%match_group_id:4%", "34aa" },
+			{ "%match_group_id:10%", "34aa973cd4" },
+			{ "%match_group_id:40%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
+			{ "%match_group_id:45%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
 			{ "%match_group_desc%", "hej" },
 			{ "%match_group_description%", "hej" },
 			{ "%match1_step1_path%", "some/step/path" },
@@ -147,7 +150,8 @@ static char *run_generate_tests()
 			{ "%match5_path%", NULL },
 			{ "%matchX_path%", NULL },
 			{ "%match1_step600_path%", NULL},
-			{ "%match1_stepKK_path%", NULL}
+			{ "%match1_stepKK_path%", NULL},
+			{ "%match_group_id:-4%", NULL }
 		};
 
 		if (do_init_matcher(&grb, "haar"))
