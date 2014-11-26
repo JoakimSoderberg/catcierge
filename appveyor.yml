@@ -9,3 +9,5 @@ build_script:
   - cmake -DOpenCV_DIR=c:\OpenCV249\opencv\build ..
   - cmake --build .
   - ctest --output-on-failure
+cache:
+  - C:\OpenCV249
