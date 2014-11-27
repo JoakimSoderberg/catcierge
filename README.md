@@ -5,7 +5,7 @@
 
 Catcierge
 =========
-![Catcierge](https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/diy/small_logo.jpg)
+![Catcierge](https://raw.githubusercontent.com/JoakimSoderberg/catcierge-examples/master/diy/small_logo.jpg)
 
 Catcierge is an image recognition and RFID detection system for a DIY cat door.
 It can be used to detect prey that the cat tries to bring in,
