@@ -74,16 +74,18 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 
 void catcierge_haar_matcher_destroy(catcierge_matcher_t **octx)
 {
-	catcierge_haar_matcher_t *ctx = (catcierge_haar_matcher_t *)*octx;
-	assert(ctx);
+	catcierge_haar_matcher_t *ctx;
+
+	if (!octx || !(*octx))
+		return;
+
+	ctx = (catcierge_haar_matcher_t *)*octx;
 
 	if (ctx->cascade)
 	{
 		cv2CascadeClassifier_destroy(ctx->cascade);
 		ctx->cascade = NULL;
 	}
-
-	// TODO: We might have to release the xml as well..
 
 	if (ctx->kernel2x2)
 	{

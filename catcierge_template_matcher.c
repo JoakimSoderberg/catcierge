@@ -202,9 +202,13 @@ int catcierge_template_matcher_init(catcierge_matcher_t **octx,
 
 void catcierge_template_matcher_destroy(catcierge_matcher_t **octx)
 {
-	catcierge_template_matcher_t *ctx = (catcierge_template_matcher_t *)*octx;
+	catcierge_template_matcher_t *ctx;
 	size_t i;
-	assert(ctx);
+
+	if (!octx || !(*octx))
+		return;
+
+	ctx = (catcierge_template_matcher_t *)*octx;
 
 	if (ctx->snouts)
 	{
