@@ -36,6 +36,8 @@ if (UNIX)
 	set(RPI_USERLAND "${PROJECT_SOURCE_DIR}/rpi_userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
 endif()
 
+option(WITH_TEST_PROGRAMS "Turns on compilation of tester programs" ON)
+option(WITH_UNIT_TESTS "Turn on compilation of unit test" ON)
 option(WITH_ZMQ "Compile ZMQ support" OFF)
 option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
 
@@ -51,6 +53,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 find_package(Git)
 
 if (GIT_FOUND)
+	# TODO: Move this to separate CMake script.
 	macro (git_log_format FORMAT_CHARS VAR_NAME)
 		execute_process(
 			COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%${FORMAT_CHARS}
@@ -92,6 +95,7 @@ if (GIT_FOUND)
 	endif()
 endif()
 
+# Coverage only works with GCC for a debug build.
 if (CATCIERGE_COVERAGE)
 	if(NOT CMAKE_COMPILER_IS_GNUCXX)
 		if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -278,7 +282,6 @@ if (WITH_ZMQ)
 endif()
 
 # Catcierge lib.
-# TODO: Move all common files here instead...
 set(LIB_SRC
 	${PROJECT_SOURCE_DIR}/catcierge_strftime.c
 	${PROJECT_SOURCE_DIR}/catcierge_matcher.c
@@ -295,7 +298,6 @@ set(LIB_SRC
 	${PROJECT_SOURCE_DIR}/catcierge_output.c)
 
 if (WIN32)
-	#list(APPEND TESTER_SRC win32/gettimeofday.c)
 	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/win32/gettimeofday.c)
 endif()
 
@@ -311,45 +313,34 @@ endif()
 add_library(catcierge ${LIB_SRC})
 target_link_libraries(catcierge ${LIBS})
 
-# Test program for the catcierge matcher.
-set(TESTER_SRC catcierge_tester.c)
+set(CATCIERGE_PROGRAMS catcierge_grabber2)
 
-add_executable(catcierge_tester ${TESTER_SRC})
-add_dependencies(catcierge_tester catcierge)
-target_link_libraries(catcierge_tester catcierge)
+if (WITH_TEST_PROGRAMS)
+	list(APPEND CATCIERGE_PROGRAMS
+		catcierge_tester
+		catcierge_fsm_tester)
 
-# Finite state machine test program.
-set(FSM_TESTER_SRC ${PROJECT_SOURCE_DIR}/catcierge_fsm_tester.c)
-
-add_executable(catcierge_fsm_tester ${FSM_TESTER_SRC})
-add_dependencies(catcierge_fsm_tester catcierge)
-target_link_libraries(catcierge_fsm_tester catcierge)
-
-# Test program for the catcierge rfid readers.
-if (WITH_RFID)
-	set(RFID_SRC ${PROJECT_SOURCE_DIR}/catcierge_rfid_tester.c)
-	add_executable(catcierge_rfid_tester ${RFID_SRC})
-	add_dependencies(catcierge_rfid_tester catcierge)
-	target_link_libraries(catcierge_rfid_tester catcierge)
+	if (WITH_RFID)
+		list(APPEND CATCIERGE_PROGRAMS catcierge_rfid_tester)
+	endif()
 endif()
 
-# Capture program for the catcierge.
-set(GRABBER2_SRC ${PROJECT_SOURCE_DIR}/catcierge_grabber2.c)
+foreach (PROGRAM_NAME ${CATCIERGE_PROGRAMS})
+	add_executable(${PROGRAM_NAME} ${PROJECT_SOURCE_DIR}/${PROGRAM_NAME}.c)
+	target_link_libraries(${PROGRAM_NAME} catcierge)
 
-add_executable(catcierge_grabber2 ${GRABBER2_SRC})
-add_dependencies(catcierge_grabber2 catcierge)
-target_link_libraries(catcierge_grabber2 catcierge)
-
-if (RPI)
-	add_dependencies(catcierge_grabber2 raspicamcv)
-	target_link_libraries(catcierge_grabber2 raspicamcv)
-endif()
+	if (RPI)
+		target_link_libraries(${PROGRAM_NAME} raspicamcv)
+	endif()
+endforeach()
 
 ################################## Tests ##################################
-set(REGRESS_SRC ${LIB_SRC})
+if (WITH_UNIT_TESTS)
+	set(REGRESS_SRC ${LIB_SRC})
 
-ENABLE_TESTING()
-add_subdirectory(test)
+	ENABLE_TESTING()
+	add_subdirectory(test)
+endif()
 
 message("------------------------------------------------------------------")
 message(" Settings:")
