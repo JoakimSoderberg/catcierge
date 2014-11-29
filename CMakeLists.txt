@@ -280,49 +280,46 @@ endif()
 # Catcierge lib.
 # TODO: Move all common files here instead...
 set(LIB_SRC
-	catcierge_matcher.c
-	catcierge_template_matcher.c
-	catcierge_haar_matcher.c
-	catcierge_haar_wrapper.cpp)
+	${PROJECT_SOURCE_DIR}/catcierge_strftime.c
+	${PROJECT_SOURCE_DIR}/catcierge_matcher.c
+	${PROJECT_SOURCE_DIR}/catcierge_template_matcher.c
+	${PROJECT_SOURCE_DIR}/catcierge_haar_matcher.c
+	${PROJECT_SOURCE_DIR}/catcierge_haar_wrapper.cpp
+	${PROJECT_SOURCE_DIR}/catcierge_util.c
+	${PROJECT_SOURCE_DIR}/catcierge_log.c
+	${PROJECT_SOURCE_DIR}/alini/alini.c
+	${PROJECT_SOURCE_DIR}/sha1/sha1.c
+	${PROJECT_SOURCE_DIR}/catcierge_args.c
+	${PROJECT_SOURCE_DIR}/catcierge_timer.c
+	${PROJECT_SOURCE_DIR}/catcierge_fsm.c
+	${PROJECT_SOURCE_DIR}/catcierge_output.c)
+
+if (WIN32)
+	#list(APPEND TESTER_SRC win32/gettimeofday.c)
+	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/win32/gettimeofday.c)
+endif()
+
+if (RPI)
+	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/catcierge_gpio.c)
+endif()
 
 if (WITH_RFID)
 	add_definitions(-DWITH_RFID)
-	list(APPEND LIB_SRC catcierge_rfid.c)
+	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/catcierge_rfid.c)
 endif()
-
-list(APPEND LIB_SRC alini/alini.c)
 
 add_library(catcierge ${LIB_SRC})
 target_link_libraries(catcierge ${LIBS})
 
 # Test program for the catcierge matcher.
-set(TESTER_SRC
-	catcierge_strftime.c
-	catcierge_tester.c
-	catcierge_util.c
-	catcierge_log.c)
-if (WIN32)
-	list(APPEND TESTER_SRC win32/gettimeofday.c)
-endif()
+set(TESTER_SRC catcierge_tester.c)
+
 add_executable(catcierge_tester ${TESTER_SRC})
 add_dependencies(catcierge_tester catcierge)
 target_link_libraries(catcierge_tester catcierge)
 
 # Finite state machine test program.
-set(FSM_TESTER_SRC
-	catcierge_strftime.c
-	catcierge_fsm_tester.c
-	catcierge_args.c
-	catcierge_log.c
-	catcierge_util.c
-	catcierge_timer.c
-	catcierge_fsm.c
-	catcierge_output.c
-	sha1/sha1.c)
-
-if (WIN32)
-	list(APPEND FSM_TESTER_SRC win32/gettimeofday.c)
-endif()
+set(FSM_TESTER_SRC ${PROJECT_SOURCE_DIR}/catcierge_fsm_tester.c)
 
 add_executable(catcierge_fsm_tester ${FSM_TESTER_SRC})
 add_dependencies(catcierge_fsm_tester catcierge)
@@ -330,33 +327,14 @@ target_link_libraries(catcierge_fsm_tester catcierge)
 
 # Test program for the catcierge rfid readers.
 if (WITH_RFID)
-	set(RFID_SRC
-		catcierge_strftime.c
-		catcierge_rfid_tester.c 
-		catcierge_rfid.c
-		catcierge_log.c)
+	set(RFID_SRC ${PROJECT_SOURCE_DIR}/catcierge_rfid_tester.c)
 	add_executable(catcierge_rfid_tester ${RFID_SRC})
+	add_dependencies(catcierge_rfid_tester catcierge)
+	target_link_libraries(catcierge_rfid_tester catcierge)
 endif()
 
 # Capture program for the catcierge.
-set(GRABBER2_SRC
-		catcierge_strftime.c
-		catcierge_grabber2.c 
-		catcierge_args.c
-		catcierge_log.c
-		catcierge_util.c
-		catcierge_timer.c
-		catcierge_fsm.c
-		catcierge_output.c
-		sha1/sha1.c)
-
-if (RPI)
-	list(APPEND GRABBER2_SRC catcierge_gpio.c)
-endif()
-
-if (WIN32)
-	list(APPEND GRABBER2_SRC win32/gettimeofday.c)
-endif()
+set(GRABBER2_SRC ${PROJECT_SOURCE_DIR}/catcierge_grabber2.c)
 
 add_executable(catcierge_grabber2 ${GRABBER2_SRC})
 add_dependencies(catcierge_grabber2 catcierge)
@@ -368,27 +346,7 @@ if (RPI)
 endif()
 
 ################################## Tests ##################################
-set(REGRESS_SRC
-	${PROJECT_SOURCE_DIR}/catcierge_strftime.c
-	${PROJECT_SOURCE_DIR}/catcierge_args.c
-	${PROJECT_SOURCE_DIR}/catcierge_fsm.c
-	${PROJECT_SOURCE_DIR}/catcierge_log.c
-	${PROJECT_SOURCE_DIR}/catcierge_timer.c
-	${PROJECT_SOURCE_DIR}/catcierge_util.c
-	${PROJECT_SOURCE_DIR}/catcierge_output.c
-	${PROJECT_SOURCE_DIR}/sha1/sha1.c)
-
-if (WITH_RFID)
-	list(APPEND REGRESS_SRC ${PROJECT_SOURCE_DIR}/catcierge_rfid.c)
-endif()
-
-if (WIN32)
-	list(APPEND REGRESS_SRC ${PROJECT_SOURCE_DIR}/win32/gettimeofday.c)
-endif()
-
-if (RPI)
-	list(APPEND REGRESS_SRC ${PROJECT_SOURCE_DIR}/catcierge_gpio.c)
-endif()
+set(REGRESS_SRC ${LIB_SRC})
 
 ENABLE_TESTING()
 add_subdirectory(test)
