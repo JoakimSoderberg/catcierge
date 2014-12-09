@@ -247,11 +247,11 @@ if (RPI)
 		${RPI_USERLAND}/interface/mmal/
 		${RPI_USERLAND}/interface/khronos/include/
 		${RPI_USERLAND}
-		raspicam_cv
+		${PROJECT_SOURCE_DIR}/raspicam_cv
 		)
 
 	file(GLOB RASPICAM_SRC ${RPI_USERLAND}/host_applications/linux/apps/raspicam/*.c)
-	list(APPEND RASPICAM_SRC raspicam_cv/RaspiCamCV.c)
+	list(APPEND RASPICAM_SRC ${PROJECT_SOURCE_DIR}/raspicam_cv/RaspiCamCV.c)
 
 	add_library(raspicamcv ${RASPICAM_SRC})
 
@@ -266,10 +266,11 @@ if (RPI)
 	target_link_libraries(raspicamcv ${RASPICAM_LIBS})
 
 	# Raspicam test app.
-	set(RASPICAM_TEST_SRC raspicam_cv/RaspiCamTest.c)
-	add_executable(raspicam_test ${RASPICAM_TEST_SRC})
-	add_dependencies(raspicam_test raspicamcv)
-	target_link_libraries(raspicam_test raspicamcv ${LIBS})
+	if (WITH_TEST_PROGRAMS)
+		set(RASPICAM_TEST_SRC ${PROJECT_SOURCE_DIR}/raspicam_cv/RaspiCamTest.c)
+		add_executable(raspicam_test ${RASPICAM_TEST_SRC})
+		target_link_libraries(raspicam_test raspicamcv ${LIBS})
+	endif()
 endif()
 
 if (WITH_ZMQ)
