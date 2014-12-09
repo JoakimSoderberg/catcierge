@@ -1,0 +1,11 @@
+.DS_Store
+doc/*.aux
+doc/*.log
+doc/*.pdf
+doc/*.synctex.gz
+doc/*.png
+prototype/*.jpg
+prototype/*.png
+prototype/*/*
+build*/
+extra/*.png
