@@ -172,11 +172,13 @@ $ ./catcierge_rfid_tester
 
 ### Prototypes
 
+**!Note! The below prototype is quite outdated. For the Haar cascade matcher the
+prototype can be found in the [catcierge-samples][catcierge_samples] repository.**
+
 To test different matching strategies there's a Python prototype as well
 in the aptly named "protoype/" directory. The prototype is named after my
 cat [higgs.py](prototype/higgs.py). This was the first prototype used to
-create the Template matcher technique. For the Haar cascade matcher the
-prototype can be found in the [catcierge-samples][catcierge_samples] repository.
+create the Template matcher technique. 
 
 It has some more advanced options that allows you to create montage 
 pictures of the match result of multiple images. This was used to
