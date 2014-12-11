@@ -10,29 +10,25 @@ language: c
 os:
   - linux
   - osx
-matrix:
-  # Only run coverage on gcc.
-  exclude:
-    - compiler: clang
-      env: CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug -DCATCIERGE_GUI_TESTS=ON" COVERALLS=yes
 before_install:
   # Enable running GUI tests to run with a dummy X-server.
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
+  - if [ x$TRAVIS_OS_NAME == xlinux ]; then export DISPLAY=:99.0; fi
+  - if [ x$TRAVIS_OS_NAME == xlinux ]; then sh -e /etc/init.d/xvfb start; fi
 install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y -qq libopencv-dev
-  - if [ x$CAT_METHOD == xcoverage ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
-  - if [ x$CAT_METHOD == xmemcheck ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
+  - if [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xlinux ]; then sudo apt-get update -qq && sudo apt-get install -y -qq libopencv-dev; fi
+  - if [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xlinux ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
+  - if [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xlinux ]; then sudo apt-get update -qq && sudo apt-get install -y -qq lcov valgrind; fi
+  - if [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xosx ]; then brew tap homebrew/science && brew update && brew install opencv; fi
 script:
-  - if [ x$CAT_METHOD == xcoverage ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && cmake --build . --target coveralls; fi
-  - if [ x$CAT_METHOD == xmemcheck ] && [ "$COVERITY_SCAN_BRANCH" != 1 ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && ctest --output-on-failure; fi
+  # Only run coverage on Linux/gcc.
+  - if [ x$CAT_METHOD == xcoverage ] && [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xlinux ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && cmake --build . --target coveralls; fi
+  - if [ x$CAT_METHOD == xmemcheck ] && [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xlinux ]; then mkdir build && cd build && cmake -DRPI=0 $CMAKE_ARGS .. && cmake --build . && ctest --output-on-failure; fi
+  - if [ x$CAT_METHOD == xmemcheck ] && [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xosx ]; then mkdir build && cd build && cmake -DRPI=0 -DOpenCV_DIR=/usr/local/Cellar/opencv/2.4.9/build $CMAKE_ARGS .. && cmake --build . && ctest --output-on-failure; fi
 
 addons:
   coverity_scan:
     project:
       name: "JoakimSoderberg/catcierge"
-      description: "Catcierge an interactive cat door prey detector"
     notification_email: joakim.soderberg@gmail.com
     build_command_prepend: "mkdir build && cd build && cmake -DRPI=OFF -DCATCIERGE_WITH_MEMCHECK=OFF .."
     build_command: "cmake --build ."
