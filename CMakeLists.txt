@@ -251,7 +251,7 @@ if (RPI)
 		)
 
 	file(GLOB RASPICAM_SRC ${RPI_USERLAND}/host_applications/linux/apps/raspicam/*.c)
-	list(APPEND RASPICAM_SRC ${PROJECT_SOURCE_DIR}/raspicam_cv/RaspiCamCV.c)
+	list(APPEND RASPICAM_SRC ${PROJECT_SOURCE_DIR}/src/raspicam_cv/RaspiCamCV.c)
 
 	add_library(raspicamcv ${RASPICAM_SRC})
 
