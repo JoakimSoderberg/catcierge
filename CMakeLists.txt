@@ -26,6 +26,8 @@ set(CATCIERGE_VERSION_MAJOR 0)
 set(CATCIERGE_VERSION_MINOR 4)
 set(CATCIERGE_VERSION_PATCH 0)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
 
 if (UNIX)
@@ -33,6 +35,8 @@ if (UNIX)
 	option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
 	option(RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." ON)
 	option(CATCIERGE_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" OFF)
+	option(CATCIERGE_COVERALLS "Turn on generating coverage data for http://coveralls.io/. This only works when run on Travis-CI." OFF)
+	option(CATCIERGE_COVERALLS_UPLOAD "If CATCIERGE_COVERALLS is set, upload the generated JSON." ON)
 	set(RPI_USERLAND "${PROJECT_SOURCE_DIR}/rpi_userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
 endif()
 
@@ -40,6 +44,15 @@ option(WITH_TEST_PROGRAMS "Turns on compilation of tester programs" ON)
 option(WITH_UNIT_TESTS "Turn on compilation of unit test" ON)
 option(WITH_ZMQ "Compile ZMQ support" OFF)
 option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
+
+# Turn on coverage if we're running coveralls!
+if (CATCIERGE_COVERALLS)
+	if (NOT "$ENV{TRAVIS}" STREQUAL "true")
+		message(WARNING "CATCIERGE_COVERALLS turned on but not running on Travis-CI. Upload will fail! Set CATCIERGE_COVERALLS_UPLOAD=OFF to turn off this warning")
+	endif()
+
+	set(CATCIERGE_COVERAGE ON)
+endif()
 
 if (CATCIERGE_GUI_TESTS)
 	add_definitions(-DCATCIERGE_GUI_TESTS)
@@ -97,18 +110,11 @@ endif()
 
 # Coverage only works with GCC for a debug build.
 if (CATCIERGE_COVERAGE)
-	if(NOT CMAKE_COMPILER_IS_GNUCXX)
-		if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-			message(FATAL_ERROR "Compiler is not GNU gcc! Aborting... You can set this on the command line using CC=/usr/bin/gcc CXX=/usr/bin/g++ cmake <options> ..")
-		endif()
-	endif()
+   include(CodeCoverage)
+   include(Coveralls)
 
-	if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-	  message(FATAL_ERROR "Code coverage results with an optimised (non-Debug) build may be misleading! Add -DCMAKE_BUILD_TYPE=Debug")
-	endif()
-
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
+   # This adds coverage arguments to gcc/clang.
+   coveralls_turn_on_coverage()
 endif()
 
 if (WIN32)
@@ -143,8 +149,6 @@ check_include_files(util.h CATCIERGE_HAVE_UTIL_H)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/catcierge_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/src/sha1)
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 if (NOT RPI AND NOT OpenCV_DIR)
 message("-----------------------------------------------------------------")
@@ -355,17 +359,20 @@ message("          Run valgrind memcheck on tests ")
 message("             (-DCATCIERGE_WITH_MEMCHECK): ${CATCIERGE_WITH_MEMCHECK}")
 message("           Compile with coverage support")
 message("                  (-DCATCIERGE_COVERAGE): ${CATCIERGE_COVERAGE}")
+message("      Generate http://coveralls.io/ json:")
+message("                  (-DCATCIERGE_COVERALLS) ${CATCIERGE_COVERALLS}")
+message("                 Upload json to coverlls:")
+message("           (-DCATCIERGE_COVERALLS_UPLOAD) ${CATCIERGE_COVERALLS_UPLOAD}")
 message("   Compile with ZMQ support (-DWITH_ZMQ): ${WITH_ZMQ}")
 message("-----------------------------------------------------------------")
-if (RPI)
-message(" If compiling on another platform than raspberry pi, make sure ")
-message(" you add -DRPI=OFF to the command line !!!")
-message("-----------------------------------------------------------------")
-endif()
 
 if (GIT_STATUS)
 	message(WARNING "\nWarning build made from uncommited changes!\n'${GIT_STATUS_OUTPUT}'")
 endif()
 
-
+if (RPI)
+message(" If compiling on another platform than raspberry pi, make sure ")
+message(" you add -DRPI=OFF to the command line !!!")
+message("-----------------------------------------------------------------")
+endif()
 

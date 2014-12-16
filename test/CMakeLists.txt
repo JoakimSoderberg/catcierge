@@ -50,12 +50,18 @@ endif()
 
 if (CATCIERGE_COVERAGE)
 	if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-		include(CodeCoverage)
 		setup_target_for_coverage(
 			${CATCIERGE_TEST_DRIVER}_coverage 	# Coverage make target.
 			coverage 						# Name of output directory.
 			make							# Name of test runner executable.
 			test)							# Arguments to the test runner above (make test).
+	endif()
+
+	# Check if we're running on travis to add this target.
+	if (CATCIERGE_COVERALLS)
+		message("Creating coveralls target for sources:")
+		set(COVERAGE_SRCS ${LIB_SRC})
+		coveralls_setup("${COVERAGE_SRCS}" ${CATCIERGE_COVERALLS_UPLOAD})
 	endif()
 endif()
 
@@ -80,57 +86,3 @@ foreach (test_name ${TEST_SRCS_NO_EXT})
 	endif()
 endforeach()
 
-###################### Coveralls!
-# TODO: Move all this to it's own file.
-
-# Check if we're running on travis to add this target.
-if ("$ENV{TRAVIS}" STREQUAL "true")
-
-	# When passing a CMake list to an external process, the list
-	# will be converted from the format "1;2;3" to "1 2 3".
-	# This means the script we're calling won't see it as a list
-	# of sources, but rather just one long path. We remedy this
-	# by replacing ";" with "*" and then reversing that in the script.
-	# http://cmake.3232098.n2.nabble.com/Passing-a-CMake-list-quot-as-is-quot-to-a-custom-target-td6505681.html
-	set(COVERAGE_SRCS_TMP ${REGRESS_SRC} ${LIB_SRC})
-	set(COVERAGE_SRCS "")
-	foreach (COVERAGE_SRC ${COVERAGE_SRCS_TMP})
-		set(COVERAGE_SRCS "${COVERAGE_SRCS}*${COVERAGE_SRC}")
-	endforeach()
-
-	message("Coverage sources: ${COVERAGE_SRCS}")
-	set(COVERALLS_FILE ${PROJECT_BINARY_DIR}/coveralls.json)
-
-	find_program(CURL_EXECUTABLE curl)
-
-	if (NOT CURL_EXECUTABLE)
-		message(FATAL_ERROR "curl not found! Aborting")
-	endif()
-
-	add_custom_target(coveralls
-
-		# Zero the coverage counters.
-		COMMAND ${CMAKE_COMMAND}
-				-P "${PROJECT_SOURCE_DIR}/cmake/CoverallsClear.cmake"
-
-		# Run regress tests.
-		COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-
-		# Generate Gcov and translate it into coveralls JSON.
-		COMMAND ${CMAKE_COMMAND}
-				-DCOVERAGE_SRCS="${COVERAGE_SRCS}" # TODO: This is passed like: "a b c", not "a;b;c"
-				-DCOVERALLS_OUTPUT_FILE="${COVERALLS_FILE}"
-				-DCOV_PATH="${PROJECT_BINARY_DIR}"
-				-P "${PROJECT_SOURCE_DIR}/cmake/CoverallsGenerateGcov.cmake"
-
-		# Upload the JSON to coveralls.
-		COMMAND ${CURL_EXECUTABLE}
-				-F json_file=@${COVERALLS_FILE}
-				https://coveralls.io/api/v1/jobs
-
-		WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-		COMMENT "Generating and uploading coveralls output..."
-		)
-else()
-	message("Skipping coveralls upload, not running Travis")
-endif()
