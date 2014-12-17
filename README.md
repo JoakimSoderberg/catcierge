@@ -1,5 +1,6 @@
 [![Travis Build Status](https://travis-ci.org/JoakimSoderberg/catcierge.png)](https://travis-ci.org/JoakimSoderberg/catcierge)
-[![Build Status](https://drone.io/github.com/JoakimSoderberg/catcierge/status.png)](https://drone.io/github.com/JoakimSoderberg/catcierge/latest)
+[![Drone.io Build Status](https://drone.io/github.com/JoakimSoderberg/catcierge/status.png)](https://drone.io/github.com/JoakimSoderberg/catcierge/latest)
+[![Circle CI](https://circleci.com/gh/JoakimSoderberg/catcierge.svg?style=svg)](https://circleci.com/gh/JoakimSoderberg/catcierge)
 [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/6aq2tpajh1nmy6b3)](https://ci.appveyor.com/project/JoakimSoderberg/catcierge)
 [![Coverage Status](https://coveralls.io/repos/JoakimSoderberg/catcierge/badge.png)](https://coveralls.io/r/JoakimSoderberg/catcierge)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/2506/badge.svg)](https://scan.coverity.com/projects/2506)
