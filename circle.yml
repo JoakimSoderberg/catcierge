@@ -1,0 +1,10 @@
+checkout:
+  post:
+    - git submodule sync
+    - git submodule update --init
+dependencies:
+  override:
+    - sudo apt-get update; sudo apt-get install cmake libopencv-dev
+test:
+  override:
+    - mkdir build && cd build && cmake -DRPI=OFF .. && cmake --build . && ctest --output-on-failure
