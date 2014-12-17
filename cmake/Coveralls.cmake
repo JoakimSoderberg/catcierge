@@ -26,6 +26,22 @@
 # Param _COVERALLS_UPLOAD Upload the result to coveralls?
 #
 function(coveralls_setup _COVERAGE_SRCS _COVERALLS_UPLOAD)
+
+	if (ARGC GREATER 2)
+		message("Coveralls: Using alternate CMake script dir: ${_CMAKE_SCRIPT_PATH}")
+		set(_CMAKE_SCRIPT_PATH ${ARGN})
+	else()
+		set(_CMAKE_SCRIPT_PATH ${PROJECT_SOURCE_DIR}/cmake)
+	endif()
+
+	if (NOT EXISTS "${_CMAKE_SCRIPT_PATH}/CoverallsClear.cmake")
+		message(FATAL_ERROR "Coveralls: Missing ${_CMAKE_SCRIPT_PATH}/CoverallsClear.cmake")
+	endif()
+
+	if (NOT EXISTS "${_CMAKE_SCRIPT_PATH}/CoverallsGenerateGcov.cmake")
+		message(FATAL_ERROR "Coveralls: Missing ${_CMAKE_SCRIPT_PATH}/CoverallsGenerateGcov.cmake")
+	endif()
+
 	# When passing a CMake list to an external process, the list
 	# will be converted from the format "1;2;3" to "1 2 3".
 	# This means the script we're calling won't see it as a list
@@ -46,7 +62,7 @@ function(coveralls_setup _COVERAGE_SRCS _COVERALLS_UPLOAD)
 
 		# Zero the coverage counters.
 		COMMAND ${CMAKE_COMMAND}
-				-P "${PROJECT_SOURCE_DIR}/cmake/CoverallsClear.cmake"
+				-P "${_CMAKE_SCRIPT_PATH}/CoverallsClear.cmake"
 
 		# Run regress tests.
 		COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -59,7 +75,7 @@ function(coveralls_setup _COVERAGE_SRCS _COVERALLS_UPLOAD)
 				-DCOVERALLS_OUTPUT_FILE="${COVERALLS_FILE}"
 				-DCOV_PATH="${PROJECT_BINARY_DIR}"
 				-DPROJECT_ROOT="${PROJECT_SOURCE_DIR}"
-				-P "${PROJECT_SOURCE_DIR}/cmake/CoverallsGenerateGcov.cmake"
+				-P "${_CMAKE_SCRIPT_PATH}/CoverallsGenerateGcov.cmake"
 
 		WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 		COMMENT "Generating coveralls output..."

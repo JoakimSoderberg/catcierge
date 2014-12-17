@@ -57,7 +57,6 @@ if (CATCIERGE_COVERAGE)
 			test)							# Arguments to the test runner above (make test).
 	endif()
 
-	# Check if we're running on travis to add this target.
 	if (CATCIERGE_COVERALLS)
 		message("Creating coveralls target for sources:")
 		set(COVERAGE_SRCS ${LIB_SRC})
