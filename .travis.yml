@@ -7,6 +7,7 @@ env:
    - CAT_METHOD=memcheck
    - CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERALLS=ON -DCMAKE_BUILD_TYPE=Debug -DCATCIERGE_GUI_TESTS=ON" COVERALLS=yes
 language: c
+sudo: false
 os:
   - linux
   - osx
