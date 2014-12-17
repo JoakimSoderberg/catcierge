@@ -1,3 +1,7 @@
+branches:
+  except:
+    - gh-pages
+
 install:
   - cinst OpenCV
 build:
@@ -6,7 +10,16 @@ build_script:
   - git submodule update --init
   - md build
   - cd build
-  - cmake -DOpenCV_DIR=c:\OpenCV249\opencv\build ..
+  - cmake -DCMAKE_BUILD_TYPE=Release -DOpenCV_DIR=c:\OpenCV249\opencv\build ..
   - cmake --build .
   - ctest --output-on-failure
 
+artifacts:
+  - path: bin\Release\catcierge_*
+
+deploy:
+  provider: GitHub
+  draft: false
+  prerelease: false
+  on:
+    branch: master                # release from master branch only
