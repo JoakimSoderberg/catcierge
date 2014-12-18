@@ -3,12 +3,13 @@ targets:
     build_dependencies:
       - libopencv-dev
       - cmake
-
+  ubuntu-14.04:
+    build_dependencies:
+      - libopencv-dev
+      - cmake
 buildpack: https://github.com/pkgr/pkgr-noop-buildpack
-
 user: catcierge
 group: catcierge
-
 before:
   - git submodule sync
   - git submodule update --init
