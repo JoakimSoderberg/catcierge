@@ -15,7 +15,7 @@ build_script:
   - ctest --output-on-failure
 
 artifacts:
-  - path: bin\Release\*
+  - path: 'build\bin\Release\*'
 
 deploy:
   - provider: GitHub
@@ -23,6 +23,6 @@ deploy:
       secure: 84CY6AXTjAYkNNGX/vk8XrJ65Yd3EZ5NDlHRHtloSoGZRW2dMlJikeyHr0ZOV837
     draft: false
     prerelease: false
-    artifact: /*/
+    artifact: /build\bin\Release\.*/
     on:
       branch: master                # release from master branch only
