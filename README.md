@@ -1,9 +1,9 @@
-[![Travis Build Status](https://travis-ci.org/JoakimSoderberg/catcierge.png)](https://travis-ci.org/JoakimSoderberg/catcierge)
-[![Drone.io Build Status](https://drone.io/github.com/JoakimSoderberg/catcierge/status.png)](https://drone.io/github.com/JoakimSoderberg/catcierge/latest)
-[![Circle CI](https://circleci.com/gh/JoakimSoderberg/catcierge.svg?style=svg)](https://circleci.com/gh/JoakimSoderberg/catcierge)
-[![Appveyor Build status](https://ci.appveyor.com/api/projects/status/6aq2tpajh1nmy6b3)](https://ci.appveyor.com/project/JoakimSoderberg/catcierge)
-[![Coverage Status](https://coveralls.io/repos/JoakimSoderberg/catcierge/badge.png)](https://coveralls.io/r/JoakimSoderberg/catcierge)
-[![Coverity Scan Build Status](https://scan.coverity.com/projects/2506/badge.svg)](https://scan.coverity.com/projects/2506)
+[![Travis Build Status][travis_img]][travis]
+[![Drone.io Build Status][drone_img]][drone]
+[![Circle CI][circleci_img]][circleci]
+[![Appveyor Build status][appveyor_img]][appveyor]
+[![Coverage Status][coveralls_img]][coveralls]
+[![Coverity Scan Build Status][coverity_img]][coverity]
 
 Catcierge
 =========
@@ -17,10 +17,22 @@ Raspberry Pi including the camera board. However, it also runs on Windows, Linux
 There is also preliminary support for reading animal RFID tags commonly used for cats
 (the kind that veterinarians insert into their necks).
 
+Build status
+------------
+
+| Service               | Status                                                                                                                                                     |
+|-----------------------|----------------------------------------------------------|
+| Travis-CI (Linux/OSX) | [![Travis Build Status][travis_img]][travis]             |
+| Drone.io (Linux)      | [![Drone.io Build Status][drone_img]][drone]             |
+| CircleCI (Linux)      | [![Circle CI][circleci_img]][circleci]                   |
+| Appveyor (Windows)    | [![Appveyor Build status][appveyor_img]][appveyor]       |
+| Unit Test Coverage    | [![Coverage Status][coveralls_img]][coveralls]           |
+| Statical Analysis     | [![Coverity Scan Build Status][coverity_img]][coverity]  |
+
 Background
 ----------
 The Catcierge project came about to solve the problem of our cat having the
-nasty habit of delivering "gifts" through our cat door in the form 
+nasty habit of delivering "gifts" through our cat door in the form
 of dead, or partly dead / fully alive rodents or birds.
 
 Instead of simply not allowing our cat to use the cat door like normal people
@@ -30,12 +42,12 @@ I found the [Flo Control project][flo_control] project and based the general ide
 on that setup (detecting prey based on the cats head profile).
 
 The first implementation used a simple template matching technique, but after
-evaluating that for a while I realised a better solution was needed. 
+evaluating that for a while I realised a better solution was needed.
 Instead I trained a Haar Cascade recognizer to find the cats head, and then
 used various other techniques to detect if it has prey in it's mouth or not.
 This technique has turned out to be very reliable and successful with
 hardly any false positives. The training data and results for the Haar cascade
-training can be found in a separate repository 
+training can be found in a separate repository
 [https://github.com/JoakimSoderberg/catcierge-samples](catcierge-samples)
 
 Hardware design details
@@ -44,7 +56,7 @@ To read more about how to build your own hardware that this code can run on, and
 
 Dependencies
 ------------
-For the image recognition catcierge uses OpenCV via the 
+For the image recognition catcierge uses OpenCV via the
 [raspicam_cv library][raspicam_cv] written by [Emil Valkov][emil_valkov]
 (which is included in the catcierge source).
 
@@ -133,7 +145,7 @@ $ start catcierge.sln # Or launch Visual Studio and build from there...
 
 Running the main program
 ------------------------
-The main program is named [catcierge_grabber2](catcierge_grabber2.c) which 
+The main program is named [catcierge_grabber2](catcierge_grabber2.c) which
 performs all the logic of doing the image recognition, RFID detection and
 deciding if the door should be locked or not.
 
@@ -150,7 +162,7 @@ There are both prototypes written in Python, as well as test programs that
 uses the C code from the real program. The Python and C versions of OpenCV
 behaves slightly differently in some cases, I am not sure why exactly.
 
-To test the image recognition there is a test program 
+To test the image recognition there is a test program
 [catcierge_tester](catcierge_tester.c) that allows you to specify an image
 to match against.
 
@@ -180,9 +192,9 @@ prototype can be found in the [catcierge-samples][catcierge_samples] repository.
 To test different matching strategies there's a Python prototype as well
 in the aptly named "protoype/" directory. The prototype is named after my
 cat [higgs.py](prototype/higgs.py). This was the first prototype used to
-create the Template matcher technique. 
+create the Template matcher technique.
 
-It has some more advanced options that allows you to create montage 
+It has some more advanced options that allows you to create montage
 pictures of the match result of multiple images. This was used to
 compare the result of different matching strategies during development.
 
@@ -212,3 +224,16 @@ $ python higgs.py --snout snouts/snout{1,2}.png --output <path/to/output> --nosh
 [rfid_cat]: http://www.priority1design.com.au/shopfront/index.php?main_page=product_info&cPath=1&products_id=23
 [rpi_userland]: https://github.com/raspberrypi/userland
 [catcierge_samples]: https://github.com/JoakimSoderberg/catcierge-samples
+
+[travis_img]: https://travis-ci.org/JoakimSoderberg/catcierge.png
+[travis]: https://travis-ci.org/JoakimSoderberg/catcierge
+[drone_img]: https://drone.io/github.com/JoakimSoderberg/catcierge/status.png
+[drone]: https://drone.io/github.com/JoakimSoderberg/catcierge/latest
+[circleci_img]: https://circleci.com/gh/JoakimSoderberg/catcierge.svg?style=svg
+[circleci]: https://circleci.com/gh/JoakimSoderberg/catcierge
+[appveyor_img]: https://ci.appveyor.com/api/projects/status/6aq2tpajh1nmy6b3
+[appveyor]: https://ci.appveyor.com/project/JoakimSoderberg/catcierge
+[coveralls_img]: https://coveralls.io/repos/JoakimSoderberg/catcierge/badge.png
+[coveralls]: https://coveralls.io/r/JoakimSoderberg/catcierge
+[coverity_img]: https://scan.coverity.com/projects/2506/badge.svg
+[coverity]: https://scan.coverity.com/projects/2506)
