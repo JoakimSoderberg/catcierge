@@ -25,4 +25,5 @@ deploy:
     prerelease: false
     artifact: /.*\.zip/
     on:
-      branch: master                # release from master branch only
+      branch: master           # Release from master branch only.
+      appveyor_repo_tag: true  # Deploy on tag push only.
