@@ -11,11 +11,11 @@ build_script:
   - md build
   - cd build
   - cmake -DCMAKE_BUILD_TYPE=Release -DOpenCV_DIR=c:\OpenCV249\opencv\build ..
-  - cmake --build .
+  - cmake --build . --config Release
   - ctest --output-on-failure
 
 artifacts:
-  - path: 'build\bin\Release\*'
+  - path: build\bin\Release
 
 deploy:
   - provider: GitHub
