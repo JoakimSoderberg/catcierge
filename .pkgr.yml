@@ -1,0 +1,14 @@
+build_dependencies:
+  - libopencv-dev
+  - cmake
+
+user: catcierge
+group: catcierge
+
+before:
+  - git submodule sync
+  - git submodule update --init
+  - mkdir build
+  - cd build
+  - cmake -DRPI=OFF ..
+  - cmake --build .
