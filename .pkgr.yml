@@ -3,10 +3,8 @@ targets:
     build_dependencies:
       - libopencv-dev
       - cmake
-  ubuntu-14.04:
-    build_dependencies:
-      - libopencv-dev
-      - cmake
+    dependencies:
+      - libopencv-objdetect2.3
 buildpack: https://github.com/pkgr/pkgr-noop-buildpack
 user: catcierge
 group: catcierge
