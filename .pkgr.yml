@@ -1,6 +1,10 @@
-build_dependencies:
-  - libopencv-dev
-  - cmake
+targets:
+  ubuntu-12.04:
+    build_dependencies:
+      - libopencv-dev
+      - cmake
+
+buildpack: https://github.com/pkgr/pkgr-noop-buildpack
 
 user: catcierge
 group: catcierge
