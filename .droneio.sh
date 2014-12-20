@@ -14,7 +14,7 @@ GUEST_DEPENDENCIES="build-essential git m4 sudo python"
 function setup_arm_chroot {
     # Host dependencies
     sudo apt-get update -qq
-    sudo apt-get install -qq -y debootstrap qemu-user-static binfmt-support sbuild
+    sudo apt-get install -qq -y linux-image-$(uname -r) debootstrap qemu-user-static binfmt-support sbuild
 
     # Create chrooted environment
     sudo mkdir ${CHROOT_DIR}
@@ -44,7 +44,7 @@ function setup_arm_chroot {
     sudo touch ${CHROOT_DIR}/.chroot_is_done
 
     # Call ourselves again which will cause tests to run
-    sudo chroot ${CHROOT_DIR} bash -c "cd ${TRAVIS_BUILD_DIR} && ./.drone-io.sh"
+    sudo chroot ${CHROOT_DIR} bash -c "cd ${TRAVIS_BUILD_DIR} && ./.droneio.sh"
 }
 
 if [ -e "/.chroot_is_done" ]; then
