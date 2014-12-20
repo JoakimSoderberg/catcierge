@@ -46,7 +46,7 @@ function setup_arm_chroot {
     sudo touch ${CHROOT_DIR}/.chroot_is_done
 
     # Call ourselves again which will cause tests to run
-    sudo chroot ${CHROOT_DIR} bash -c "cd ${TRAVIS_BUILD_DIR} && ./.travis-ci.sh"
+    sudo chroot ${CHROOT_DIR} bash -c "cd ${TRAVIS_BUILD_DIR} && ./.drone-io.sh"
 }
 
 if [ -e "/.chroot_is_done" ]; then
@@ -58,6 +58,7 @@ else
   # ARM test run, need to set up chrooted environment first
   echo "Setting up chrooted ARM environment"
   setup_arm_chroot
+  exit
 fi
 
 echo "Running tests"
@@ -65,7 +66,8 @@ echo "Environment: $(uname -a)"
 
 git submodule update --recursive --init
 sudo apt-get update -qq
-sudo apt-get install -y -qq libopencv-devmkdir build
+sudo apt-get install -y -qq libopencv-dev
+mkdir build
 cd build
 cmake -DRPI=OFF ..
 cmake --build .
