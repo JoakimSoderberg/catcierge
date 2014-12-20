@@ -11,6 +11,18 @@ targets:
       - cmake
     dependencies:
       - libopencv-objdetect2.4
+  centos-6:
+    build_dependencies:
+      - opencv
+      - cmake
+    dependencies:
+      - opencv
+  fedora-20:
+    build_dependencies:
+      - opencv
+      - cmake
+    dependencies:
+      - opencv
 buildpack: https://github.com/pkgr/pkgr-noop-buildpack
 user: catcierge
 group: catcierge
