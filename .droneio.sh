@@ -11,12 +11,9 @@ HOST_DEPENDENCIES="debootstrap qemu-user-static binfmt-support sbuild"
 # Debian package dependencies for the chrooted environment
 GUEST_DEPENDENCIES="build-essential git m4 sudo python"
 
-# Command used to run the tests
-TEST_COMMAND="make test"
-
 function setup_arm_chroot {
     # Host dependencies
-    sudo apt-get install -qq -y ${HOST_DEPENDENCIES}
+    sudo apt-get install -qq -y debootstrap qemu-user-static binfmt-support sbuild
 
     # Create chrooted environment
     sudo mkdir ${CHROOT_DIR}
@@ -36,7 +33,7 @@ function setup_arm_chroot {
     # Install dependencies inside chroot
     sudo chroot ${CHROOT_DIR} apt-get update
     sudo chroot ${CHROOT_DIR} apt-get --allow-unauthenticated install \
-        -qq -y ${GUEST_DEPENDENCIES}
+        -qq -y build-essential git sudo libopencv-dev
 
     # Create build dir and copy travis build files to our chroot environment
     sudo mkdir -p ${CHROOT_DIR}/${TRAVIS_BUILD_DIR}
@@ -55,6 +52,8 @@ if [ -e "/.chroot_is_done" ]; then
 
   . ./envvars.sh
 else
+  git submodule update --recursive --init
+
   # ARM test run, need to set up chrooted environment first
   echo "Setting up chrooted ARM environment"
   setup_arm_chroot
@@ -64,11 +63,11 @@ fi
 echo "Running tests"
 echo "Environment: $(uname -a)"
 
-git submodule update --recursive --init
-sudo apt-get update -qq
-sudo apt-get install -y -qq libopencv-dev
+#git submodule update --recursive --init
+#sudo apt-get update -qq
+#sudo apt-get install -y -qq libopencv-dev
 mkdir build
 cd build
-cmake -DRPI=OFF ..
+cmake -DRPI=ON ..
 cmake --build .
 ctest --output-on-failure
