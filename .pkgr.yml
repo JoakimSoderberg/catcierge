@@ -13,13 +13,13 @@ targets:
       - libopencv-objdetect2.4
   centos-6:
     build_dependencies:
-      - opencv
+      - opencv-devel
       - cmake
     dependencies:
       - opencv
   fedora-20:
     build_dependencies:
-      - opencv
+      - opencv-devel
       - cmake
     dependencies:
       - opencv
