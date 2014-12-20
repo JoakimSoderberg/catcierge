@@ -13,6 +13,7 @@ GUEST_DEPENDENCIES="build-essential git m4 sudo python"
 
 function setup_arm_chroot {
     # Host dependencies
+    sudo apt-get update -qq
     sudo apt-get install -qq -y debootstrap qemu-user-static binfmt-support sbuild
 
     # Create chrooted environment
