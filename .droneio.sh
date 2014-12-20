@@ -40,7 +40,7 @@ function setup_arm_chroot {
 
     # Create build dir and copy travis build files to our chroot environment
     sudo mkdir -p ${CHROOT_DIR}/${TRAVIS_BUILD_DIR}
-    sudo rsync -av ${TRAVIS_BUILD_DIR}/ ${CHROOT_DIR}/${TRAVIS_BUILD_DIR}/
+    sudo rsync -a ${TRAVIS_BUILD_DIR}/ ${CHROOT_DIR}/${TRAVIS_BUILD_DIR}/
 
     # Indicate chroot environment has been set up
     sudo touch ${CHROOT_DIR}/.chroot_is_done
