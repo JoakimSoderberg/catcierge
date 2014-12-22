@@ -18,6 +18,7 @@ static char *run_tests()
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_setup_camera(&grb);
 	#ifdef WITH_ZMQ
 	catcierge_zmq_init(&grb);
 	#endif

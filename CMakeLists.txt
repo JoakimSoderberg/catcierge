@@ -201,6 +201,8 @@ if (RPI AND NOT OpenCV_DIR)
 	find_package(JPEG)
 	find_package(TIFF)
 	find_package(GTK2)
+	find_package(PNG)
+	find_package(Threads)
 
 	set(LIBS 
 		${JASPER_LIBRARIES}
@@ -209,9 +211,11 @@ if (RPI AND NOT OpenCV_DIR)
 		${TIFF_LIBRARIES}
 		${JPEG_LIBRARIES}
 		${ZLIB_LIBRARIES}
-		${OpenCV_LIBS} 
+		${PNG_LIBRARIES}
+		${OpenCV_LIBS}
 		stdc++ 
 		rt
+		${CMAKE_THREAD_LIBS_INIT}
 		)
 else()
 	if (WIN32)
@@ -265,6 +269,7 @@ if (RPI)
 		${RPI_USERLAND}/build/lib/libmmal_util.so
 		${RPI_USERLAND}/build/lib/libvcos.so
 		${RPI_USERLAND}/build/lib/libbcm_host.so
+		m
 		)
 
 	target_link_libraries(raspicamcv ${RASPICAM_LIBS})
