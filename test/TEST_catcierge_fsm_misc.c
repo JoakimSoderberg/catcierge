@@ -70,6 +70,7 @@ static char *run_tests()
 	sleep(1);
 	catcierge_print_spinner(&grb);
 
+	catcierge_destroy_camera(&grb);
 	#ifdef WITH_ZMQ
 	catcierge_zmq_destroy(&grb);
 	#endif
