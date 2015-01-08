@@ -35,7 +35,6 @@ int catcierge_matcher_init(catcierge_matcher_t **ctx, catcierge_matcher_args_t *
 	{
 		if (catcierge_template_matcher_init(ctx, args))
 		{
-			CATERR("Failed to init template matcher!\n");
 			return -1;
 		}
 	}
@@ -43,7 +42,6 @@ int catcierge_matcher_init(catcierge_matcher_t **ctx, catcierge_matcher_args_t *
 	{
 		if (catcierge_haar_matcher_init(ctx, args))
 		{
-			CATERR("Failed to init haar matcher!\n");
 			return -1;
 		}
 	}

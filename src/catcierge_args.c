@@ -51,7 +51,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			if (strcmp(args->matcher, "template")
 				&& strcmp(args->matcher, "haar"))
 			{
-				fprintf(stderr, "Invalid template type \"%s\"\n", args->matcher);
+				fprintf(stderr, "Invalid matcher type for --matcher, \"%s\". Must be \"template\" or \"haar\"\n", args->matcher);
 				return -1;
 			}
 
@@ -628,6 +628,28 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 	return -1;
 }
 
+int catcierge_validate_settings(catcierge_args_t *args)
+{
+	if (!args->matcher)
+	{
+		fprintf(stderr, "--matcher not specified!\n");
+		return -1;
+	}
+
+	// TODO: Put this in the matcher code just as for parsing arguments.
+	if (args->matcher_type == MATCHER_HAAR)
+	{
+		if (!args->haar.cascade)
+		{
+			fprintf(stderr, "Missing --cascade for the haar matcher\n");
+			return -1;
+		}
+	}
+
+	// TODO: Add more checks here.
+	return 0;
+}
+
 int temp_config_count = 0;
 #define MAX_TEMP_CONFIG_VALUES 128
 char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
@@ -655,7 +677,8 @@ static void alini_cb(alini_parser_t *parser, char *section, char *key, char *val
 
 	if (catcierge_parse_setting(args, key, &temp_config_values[temp_config_count], 1) < 0)
 	{
-		fprintf(stderr, "Failed to parse setting in config: %s\n", key);
+		fprintf(stderr, "Failed to parse setting in config: \"%s\"\n", key);
+		args->config_failure = -1;
 	}
 
 	temp_config_count++;
@@ -1029,6 +1052,11 @@ int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
 		alini_parser_setcallback_foundkvpair(args->parser, alini_cb);
 		alini_parser_set_context(args->parser, args);
 		alini_parser_start(args->parser);
+
+		if (args->config_failure)
+		{
+			return -1;
+		}
 	}
 	else
 	{

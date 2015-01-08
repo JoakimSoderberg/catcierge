@@ -160,6 +160,11 @@ void setup_sig_handlers()
 	#endif // _WIN32
 }
 
+void short_usage(const char *progname)
+{
+	fprintf(stderr, "For more details use --help\n");
+}
+
 int main(int argc, char **argv)
 {
 	catcierge_args_t *args;
@@ -168,18 +173,18 @@ int main(int argc, char **argv)
 	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR " (" CATCIERGE_GIT_HASH_SHORT "");
 
 	// Was this built with changes in the git sources?
-	if (CATCIERGE_GIT_TAINTED)
-	{
-		fprintf(stderr, "-tainted");
-	}
+	#ifdef CATCIERGE_GIT_TAINTED
+	fprintf(stderr, "-tainted");
+	#endif
 
-	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2014\n\n");
+	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2015\n\n");
 
 	fprintf(stderr, "Library versions:\n");
 	fprintf(stderr, " OpenCV v%d.%d.%d\n", CV_MAJOR_VERSION, CV_MINOR_VERSION, CV_SUBMINOR_VERSION);
 	#ifdef WITH_ZMQ
 	fprintf(stderr, "   CZMQ v%d.%d.%d\n", CZMQ_VERSION_MAJOR, CZMQ_VERSION_MINOR, CZMQ_VERSION_PATCH);
 	#endif
+	fprintf(stderr, "\n");
 
 	#ifndef _WIN32
 	pid_fd = create_pid_file(argv[0], PID_PATH, FD_CLOEXEC);
@@ -195,13 +200,13 @@ int main(int argc, char **argv)
 	{
 		if (catcierge_parse_config(args, argc, argv))
 		{
-			catcierge_show_usage(args, argv[0]);
+			short_usage(argv[0]);
 			return -1;
 		}
 
 		if (catcierge_parse_cmdargs(args, argc, argv, NULL, NULL))
 		{
-			catcierge_show_usage(args, argv[0]);
+			short_usage(argv[0]);
 			return -1;
 		}
 
@@ -211,6 +216,11 @@ int main(int argc, char **argv)
 		}
 
 		// TODO: Add verify function for settings. Make sure we have everything we need...
+		if (catcierge_validate_settings(args))
+		{
+			short_usage(argv[0]);
+			return -1;
+		}
 
 		catcierge_print_settings(args);
 	}
@@ -240,7 +250,7 @@ int main(int argc, char **argv)
 
 	if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))
 	{
-		CATERR("Failed to %s init matcher\n", grb.args.matcher);
+		CATERR("Failed to init %s matcher\n", grb.args.matcher);
 		return -1;
 	}
 

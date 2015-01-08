@@ -29,6 +29,7 @@ typedef struct catcierge_args_s
 {
 	alini_parser_t *parser;
 	char *program_name;
+	int config_failure;
 
 	int show;
 	int saveimg;
@@ -107,6 +108,7 @@ int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv, catci
 void catcierge_show_usage(catcierge_args_t *args, const char *prog);
 void catcierge_print_settings(catcierge_args_t *args);
 int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count);
+int catcierge_validate_settings(catcierge_args_t *args);
 catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args);
 
 int catcierge_args_init(catcierge_args_t *args);
