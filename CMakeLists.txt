@@ -180,7 +180,7 @@ if (RPI AND NOT OpenCV_DIR)
 		/usr/lib/libopencv_ml.a
 		/usr/lib/libopencv_contrib.a
 		/usr/lib/libopencv_flann.a
-		/usr/lib/libopencv_gpu.a
+		#/usr/lib/libopencv_gpu.a
 		/usr/lib/libopencv_legacy.a
 		/usr/lib/libopencv_video.a
 		)
