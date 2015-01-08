@@ -393,6 +393,8 @@ void catcierge_execute(char *command, char *fmt, ...)
 						return;
 					}
 
+					while (isdigit(*command)) command++;
+
 					if ((cur_opt >= 0) && (cur_opt < count))
 					{
 						strcpy(&buf[i], extras[cur_opt]);
