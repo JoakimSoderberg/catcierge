@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from optparse import OptionParser
 import argparse
 import smtplib
