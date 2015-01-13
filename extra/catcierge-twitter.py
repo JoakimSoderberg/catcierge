@@ -36,8 +36,6 @@ def main():
 	parser.add_argument("--direction", metavar="DIRECTION",
 					help = "0 for in, 1 for out, -1 for unknown", default = -1)
 
-	parser.add_argument("--")
-
 	args = parser.parse_args()
 	
 	twitter = Twython(args.consumer_key, args.consumer_secret, args.oauth_token, args.oauth_token_secret)
