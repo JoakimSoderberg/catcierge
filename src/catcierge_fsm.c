@@ -1311,7 +1311,8 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 
 		if (!frame_obstructed || catcierge_timer_has_timed_out(&grb->lockout_timer))
 		{
-			CATLOG("End of lockout!\n");
+			CATLOG("End of lockout! (timed out after %.2f seconds)\n",
+				catcierge_timer_get(&grb->lockout_timer));
 			catcierge_do_unlock(grb);
 			catcierge_set_state(grb, catcierge_state_waiting);
 			return 0;
@@ -1334,15 +1335,16 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 				return 0;
 			}
 
-			CATLOG("Frame is clear, start lockout timer...\n\n");
-			catcierge_timer_set(&grb->lockout_timer, grb->args.lockout_time);
+			CATLOG("Frame is clear, start lockout timer for %d seconds...\n\n",
+				args->lockout_time);
+			catcierge_timer_set(&grb->lockout_timer, args->lockout_time);
 			catcierge_timer_start(&grb->lockout_timer);
 		}
 	}
 
 	if (catcierge_timer_has_timed_out(&grb->lockout_timer))
 	{
-		CATLOG("End of lockout! (timed out after %f seconds)\n",
+		CATLOG("End of lockout! (timed out after %.2f seconds)\n",
 			catcierge_timer_get(&grb->lockout_timer));
 
 		catcierge_do_unlock(grb);

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 #include "catcierge_fsm.h"
 #include "catcierge_args.h"
 #include "catcierge_types.h"
@@ -19,6 +20,8 @@ typedef struct fsm_tester_ctx_s
 	char *img_paths[4];
 	size_t img_count;
 	double delay;
+	int keep_running;
+	int keep_obstructing;
 } fsm_tester_ctx_t;
 
 static IplImage *load_image(const char *path)
@@ -62,6 +65,9 @@ static void show_usage(const char *progname)
 	fprintf(stderr, " --delay <seconds>          Delay this long before passing the images.\n");
 	fprintf(stderr, " --base_time <date>         The base date time we should use instead of the current time.\n");
 	fprintf(stderr, "                            In the format YYYY-mm-ddTHH:MM:SS.\n");
+	fprintf(stderr, " --keep_running             Keep running after matching.\n");
+	fprintf(stderr, " --keep_obstructing         When --keep_running is turned on, don't clear the frame.\n");
+	fprintf(stderr, "                            To clear the frame do Ctrl+C (then to break do it again).\n");
 }
 
 int parse_args_callback(catcierge_args_t *args,
@@ -103,16 +109,44 @@ int parse_args_callback(catcierge_args_t *args,
 		fprintf(stderr, "\n###############################################################################\n\n");
 		show_usage(args->program_name);
 	}
+	else if (!strcmp(key, "keep_running"))
+	{
+		ctx->keep_running = 1;
+		return 0;
+	}
+	else if (!strcmp(key, "keep_obstructing"))
+	{
+		ctx->keep_obstructing = 1;
+		return 0;
+	}
 
 	return -1;
+}
+
+fsm_tester_ctx_t ctx;
+catcierge_grb_t grb;
+
+static void sig_handler(int signo)
+{
+	fprintf(stderr, "Received SIGINT...\n");
+
+	if (ctx.keep_obstructing)
+	{
+		fprintf(stderr, "Stop obstructing frame!\n");
+		ctx.keep_obstructing = 0;
+	}
+	else
+	{
+		fprintf(stderr, "Exiting!\n");
+		grb.running = 0;
+	}
 }
 
 int main(int argc, char **argv)
 {
 	size_t i;
 	int ret = 0;
-	fsm_tester_ctx_t ctx;
-	catcierge_grb_t grb;
+	IplImage *clear_img = NULL;
 	catcierge_args_t *args = &grb.args;
 
 	memset(&ctx, 0, sizeof(ctx));
@@ -165,18 +199,22 @@ int main(int argc, char **argv)
 	catcierge_timer_set(&grb.frame_timer, 1.0);
 	catcierge_timer_start(&grb.frame_timer);
 
+	if (signal(SIGINT, sig_handler) == SIG_ERR)
+	{
+		fprintf(stderr, "Failed to set SIGINT handler\n");
+	}
+
+	if (!(clear_img = create_clear_image()))
+	{
+		ret = -1; goto fail;
+	}
+
 	// For delayed start we create a clear image that will
 	// be fed to the state machine until we're ready to obstruct the frame.
 	if (ctx.delay > 0.0)
 	{
-		IplImage *clear_img = NULL;
 		catcierge_timer_t t;
 		printf("Delaying match start by %0.2f seconds\n", ctx.delay);
-
-		if (!(clear_img = create_clear_image()))
-		{
-			ret = -1; goto fail;
-		}
 
 		catcierge_timer_reset(&t);
 		catcierge_timer_set(&t, ctx.delay);
@@ -188,7 +226,6 @@ int main(int argc, char **argv)
 			catcierge_run_state(&grb);
 		}
 
-		cvReleaseImage(&clear_img);
 		grb.img = NULL;
 	}
 
@@ -201,6 +238,7 @@ int main(int argc, char **argv)
 	catcierge_run_state(&grb);
 	cvReleaseImage(&grb.img);
 	grb.img = NULL;
+	grb.running = 1;
 
 	// Load the match images.
 	for (i = 0; i < ctx.img_count; i++)
@@ -216,7 +254,30 @@ int main(int argc, char **argv)
 		grb.img = NULL;
 	}
 
+	// Keep running so we can test the lockout modes.
+	if (ctx.keep_running)
+	{
+		// Load one of the obstructing images to start with
+		if (!(grb.img = load_image(ctx.img_paths[0])))
+		{
+			ret = -1; goto fail;
+		}
+
+		while (grb.running)
+		{
+			// If --keep_obstructing is set the user has
+			// to press ctrl+c before the clear image is used.
+			if ((grb.img != clear_img) && !ctx.keep_obstructing)
+			{
+				grb.img = clear_img;
+			}
+
+			catcierge_run_state(&grb);
+		}
+	}
+
 fail:
+	cvReleaseImage(&clear_img);
 	#ifdef WITH_ZMQ
 	catcierge_zmq_destroy(&grb);
 	#endif
