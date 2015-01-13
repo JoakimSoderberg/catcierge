@@ -25,7 +25,7 @@ def send_mail(to_emails, from_email, smtp_server, password, images, match_status
 		else:
 			txt += "  Direction: UNKNOWN"
 	except Exception:
-		txt += "  Direction: %s" % direction.upper()
+		txt += "  Direction: %s\n" % direction.upper()
 
 	for m in match_statuses:
 		txt += "  Result: %s\n" % m
