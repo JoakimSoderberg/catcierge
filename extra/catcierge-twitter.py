@@ -33,8 +33,10 @@ def main():
 	parser.add_argument("--match_statuses", metavar="MATCHSTATUS", type = float, nargs="+",
 					help = "List of statuses for each match", default = [])
 
-	parser.add_argument("--direction", metavar="DIRECTION", type = int,
+	parser.add_argument("--direction", metavar="DIRECTION",
 					help = "0 for in, 1 for out, -1 for unknown", default = -1)
+
+	parser.add_argument("--")
 
 	args = parser.parse_args()
 	
@@ -56,10 +58,13 @@ def main():
 
 	direction = "UNKNOWN"
 
-	if args.direction == 1:
-		direction = "OUT"
-	elif args.direction == 0:
-		direction = "IN"
+	try:
+		if int(args.direction) == 1:
+			direction = "OUT"
+		elif int(args.direction) == 0:
+			direction = "IN"
+	except:
+		direction = args.direction.upper()
 
 	twitter.update_status_with_media(status = 'Match: %s\nDirecton: %s\n' % (("OK" if args.status else "FAIL"), direction), media = img)
 

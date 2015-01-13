@@ -17,8 +17,15 @@ def send_mail(to_emails, from_email, smtp_server, password, images, match_status
 
 	txt = "Match: %s\n" % ("OK" if match_status else "FAIL")
 
-	if direction != -1:
-		txt += "  Direction: %s\n" % ("OUT" if direction else "IN")
+	try:
+		direction = int(direction)
+
+		if direction != -1:
+			txt += "  Direction: %s\n" % ("OUT" if direction else "IN")
+		else:
+			txt += "  Direction: UNKNOWN"
+	except Exception:
+		txt += "  Direction: %s" % direction.upper()
 
 	for m in match_statuses:
 		txt += "  Result: %s\n" % m
@@ -64,7 +71,7 @@ def main():
 	parser.add_argument("--match_statuses", metavar="MATCHSTATUS", type = float, nargs="+",
 					help = "List of statuses for each match", default = [])
 
-	parser.add_argument("--direction", metavar="DIRECTION", type = int,
+	parser.add_argument("--direction", metavar="DIRECTION",
 					help = "0 for in, 1 for out, -1 for unknown", default = -1)
 
 	args = parser.parse_args()
