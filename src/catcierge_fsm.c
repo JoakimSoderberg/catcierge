@@ -510,7 +510,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 	m->time = time(NULL); // TODO: Get rid of this and use tv.tv_sec instead, same thing.
 	gettimeofday(&m->tv, NULL);
 	get_time_str_fmt(m->time, &m->tv, m->time_str,
-		sizeof(m->time_str), NULL);
+		sizeof(m->time_str), FILENAME_TIME_FORMAT);
 
 	// Calculate match id from time + image data.
 	if (catcierge_calculate_match_id(img, m))
@@ -1154,7 +1154,7 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 		mg->obstruct_time = time(NULL);
 		gettimeofday(&mg->obstruct_tv, NULL);
 		get_time_str_fmt(mg->obstruct_time, &mg->obstruct_tv, time_str,
-			sizeof(time_str), NULL);
+			sizeof(time_str), FILENAME_TIME_FORMAT);
 
 		if (!args->obstruct_output_path)
 		{

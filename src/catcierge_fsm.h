@@ -56,6 +56,8 @@ typedef struct rfid_match_s
 
 #define MATCH_MAX_COUNT 4 // The number of matches to perform before deciding the lock state.
 
+#define FILENAME_TIME_FORMAT "%Y-%m-%d_%H_%M_%S.%f"
+
 struct catcierge_grb_s;
 typedef int (*catcierge_state_func_t)(struct catcierge_grb_s *);
 

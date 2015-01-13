@@ -38,7 +38,7 @@ char *get_time_str_fmt(time_t t, struct timeval *tv, char *time_str, size_t len,
 
 	if (!fmt)
 	{
-		fmt = "%Y-%m-%d_%H_%M_%S.%f";
+		fmt = "%Y-%m-%d %H:%M:%S.%f";
 	}
 
 	if (catcierge_strftime(time_str, len, fmt, &tm, tv))
