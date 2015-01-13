@@ -1104,8 +1104,9 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 	}
 	else
 	{
-		CATLOG("Lockout! %d out of %d matches failed.\n",
-				(MATCH_MAX_COUNT - mg->success_count), MATCH_MAX_COUNT);
+		CATLOG("Lockout! %d out of %d matches failed (for %d seconds).\n",
+				(MATCH_MAX_COUNT - mg->success_count), MATCH_MAX_COUNT,
+				args->lockout_time);
 
 		catcierge_check_max_consecutive_lockouts(grb);
 		catcierge_state_transition_lockout(grb);
