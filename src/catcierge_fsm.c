@@ -707,7 +707,7 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 	}
 }
 
-static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
+static int catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
 {
 	catcierge_args_t *args;
 	assert(grb);
@@ -751,8 +751,11 @@ static void catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
 			// TODO: Add a special event the user can trigger an external program with here...
 			grb->running = 0;
 			//exit(1);
+			return -1;
 		}
 	}
+
+	return 0;
 }
 
 #ifdef WITH_RFID
@@ -1108,8 +1111,11 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 				(MATCH_MAX_COUNT - mg->success_count), MATCH_MAX_COUNT,
 				args->lockout_time);
 
-		catcierge_check_max_consecutive_lockouts(grb);
-		catcierge_state_transition_lockout(grb);
+		// Only do the lockout if something isn't wrong.
+		if (!catcierge_check_max_consecutive_lockouts(grb))
+		{
+			catcierge_state_transition_lockout(grb);
+		}
 	}
 
 	catcierge_match_group_end(mg);
