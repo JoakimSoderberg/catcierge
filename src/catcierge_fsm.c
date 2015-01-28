@@ -1392,6 +1392,7 @@ void catcierge_state_transition_lockout(catcierge_grb_t *grb)
 			break;
 		case OBSTRUCT_OR_TIMER_1:
 		case TIMER_ONLY_3:
+			catcierge_timer_reset(&grb->lockout_timer);
 			catcierge_timer_set(&grb->lockout_timer, args->lockout_time);
 			catcierge_timer_start(&grb->lockout_timer);
 			break;
@@ -1555,6 +1556,8 @@ int catcierge_grabber_init(catcierge_grb_t *grb)
 
 void catcierge_grabber_destroy(catcierge_grb_t *grb)
 {
+	// Always make sure we unlock.
+	catcierge_do_unlock(grb);
 	catcierge_args_destroy(&grb->args);
 	catcierge_cleanup_imgs(grb);
 }
