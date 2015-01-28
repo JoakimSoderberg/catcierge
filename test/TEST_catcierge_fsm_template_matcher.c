@@ -154,6 +154,7 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	grb.running = 1;
 
 	args->saveimg = 0;
 	args->lockout_method = lockout_method;
@@ -224,6 +225,7 @@ static char *run_success_tests(int obstruct)
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	grb.running = 1;
 
 	args->matcher = "template";
 	args->matcher_type = MATCHER_TEMPLATE;

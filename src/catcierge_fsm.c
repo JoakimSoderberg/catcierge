@@ -43,7 +43,11 @@ void catcierge_run_state(catcierge_grb_t *grb)
 {
 	assert(grb);
 	assert(grb->state);
-	grb->state(grb);
+
+	if (grb->running)
+	{
+		grb->state(grb);
+	}
 }
 
 const char *catcierge_get_state_string(catcierge_state_func_t state)
@@ -386,6 +390,8 @@ int catcierge_drop_root_privileges(const char *user)
 			strerror(errno));
 		return -1;
 	}
+	#else
+	CATLOG("(Drop root privileges not compiled)\n");
 	#endif // CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
 	return 0;
 }
@@ -881,6 +887,7 @@ static void catcierge_show_image(catcierge_grb_t *grb)
 			// drawing the match rects since that might interfer with the match.
 			tmp_img = cvCloneImage(grb->img);
 
+			// TODO: Hmmm this should not be -1 I think?
 			m = &grb->match_group.matches[grb->match_group.match_count - 1];
 			res = &m->result;
 
@@ -917,6 +924,7 @@ double catcierge_do_match(catcierge_grb_t *grb)
 	match_result_t *result;
 	match_state_t *match;
 	assert(grb);
+	assert(mg->match_count < MATCH_MAX_COUNT);
 	args = &grb->args;
 
 	// Clear match structs before doing a new one.
@@ -1027,6 +1035,7 @@ void catcierge_match_group_end(match_group_t *mg)
 
 	gettimeofday(&mg->end_tv, NULL);
 	mg->end_time = time(NULL);
+	mg->match_count = 0;
 }
 
 void catcierge_decide_lock_status(catcierge_grb_t *grb)
@@ -1089,8 +1098,10 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 
 		if (grb->consecutive_lockout_count > 0)
 		{
+			CATLOG("Consecutive lockout count reset (was %d)\n",
+				grb->consecutive_lockout_count);
+
 			grb->consecutive_lockout_count = 0;
-			CATLOG("Consecutive lockout count reset\n");
 		}
 
 		// Make sure the door is open.
@@ -1112,7 +1123,11 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 				args->lockout_time);
 
 		// Only do the lockout if something isn't wrong.
-		if (!catcierge_check_max_consecutive_lockouts(grb))
+		if (catcierge_check_max_consecutive_lockouts(grb))
+		{
+			catcierge_set_state(grb, catcierge_state_waiting);
+		}
+		else
 		{
 			catcierge_state_transition_lockout(grb);
 		}
@@ -1138,6 +1153,8 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 	{
 		catcierge_save_images(grb, mg->direction);
 	}
+
+	assert(mg->match_count < MATCH_MAX_COUNT);
 }
 
 void catcierge_save_obstruct_image(catcierge_grb_t *grb)

@@ -132,7 +132,7 @@ static char *run_consecutive_lockout_tests()
 
 	// Cause "max consecutive lockout count" of lockouts
 	// to make sure an abort is triggered.
-	for (i = 0; i <= 3; i++)
+	for (i = 0; i < 3; i++)
 	{
 		// Obstruct the frame to begin matching.
 		load_test_image_and_run(&grb, 1, 2);
@@ -145,9 +145,9 @@ static char *run_consecutive_lockout_tests()
 		// Run the state machine to end lockout
 		// without passing a new image.
 		catcierge_run_state(&grb);
-		mu_assert("Unexpeced consecutive lockout count", (grb.consecutive_lockout_count == (i+1)));
-
-		catcierge_test_STATUS("Consecutive lockout %d", i+1);
+		catcierge_test_STATUS("Consecutive lockout: %d, Expecting: %d, Running: %d",
+			grb.consecutive_lockout_count, i+1, grb.running);
+		mu_assert("Unexpected consecutive lockout count", (grb.consecutive_lockout_count == (i+1)));
 	}
 
 	mu_assert("Expected program to be in non-running state after max_consecutive_lockout_count",

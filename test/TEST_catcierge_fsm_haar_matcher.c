@@ -34,6 +34,7 @@ static char *run_success_tests()
 
 	catcierge_haar_matcher_print_settings(&args->haar);
 
+	grb.running = 1;
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
 	for (j = 6; j <= 9; j++)
@@ -95,6 +96,7 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 
 	catcierge_haar_matcher_print_settings(&args->haar);
 
+	grb.running = 1;
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
 	for (j = 10; j <= 14; j++)
@@ -151,6 +153,7 @@ static char *run_save_steps_test()
 
 	catcierge_test_STATUS("Test save steps");
 
+	grb.running = 1;
 	catcierge_set_state(&grb, catcierge_state_waiting);
 
 	// This is the initial image that obstructs the frame

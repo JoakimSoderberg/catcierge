@@ -91,6 +91,7 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 	}
 
 	catcierge_grabber_init(&grb);
+	grb.running = 1;
 
 	if (conf->allowed_list)
 	{
@@ -218,6 +219,7 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	grb.running = 1;
 
 	args->saveimg = 0;
 	args->match_time = 1; // Set this so that the RFID check is triggered.
