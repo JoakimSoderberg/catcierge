@@ -1322,7 +1322,7 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 
 	catcierge_show_image(grb);
 
-	if (args->lockout_method == OBSTRUCT_OR_TIMER_1)
+	if (args->lockout_method == OBSTRUCT_OR_TIMER_3)
 	{
 		// Stop the lockout when frame is clear
 		// OR if the lockout timer ends.
@@ -1366,6 +1366,8 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 		}
 	}
 
+	// TIMER_ONLY_1
+	// Start the lockout timer right away and unlock after that.
 	if (catcierge_timer_has_timed_out(&grb->lockout_timer))
 	{
 		CATLOG("End of lockout! (timed out after %.2f seconds)\n",
@@ -1382,17 +1384,22 @@ void catcierge_state_transition_lockout(catcierge_grb_t *grb)
 	catcierge_args_t *args;
 	assert(grb);
 	args = &grb->args;
+	catcierge_timer_reset(&grb->lockout_timer);
 
 	// Start the timer up front depending on lockout method.
 	switch (args->lockout_method)
 	{
 		default: break;
 		case OBSTRUCT_THEN_TIMER_2:
-			catcierge_timer_reset(&grb->lockout_timer);
+			CATLOG("Waiting to start lockout timer until frame clears (Lockout method 2)\n");
 			break;
-		case OBSTRUCT_OR_TIMER_1:
-		case TIMER_ONLY_3:
-			catcierge_timer_reset(&grb->lockout_timer);
+		case OBSTRUCT_OR_TIMER_3:
+			CATLOG("Wait for lockout timer to finish OR frame to clear (Lockout method 3)\n");
+			catcierge_timer_set(&grb->lockout_timer, args->lockout_time);
+			catcierge_timer_start(&grb->lockout_timer);
+			break;
+		case TIMER_ONLY_1:
+			CATLOG("Waiting for lockout timer only (Lockout method 1)\n");
 			catcierge_timer_set(&grb->lockout_timer, args->lockout_time);
 			catcierge_timer_start(&grb->lockout_timer);
 			break;

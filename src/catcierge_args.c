@@ -110,11 +110,11 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		{
 			args->lockout_method = atoi(values[0]);
 
-			if ((args->lockout_method < OBSTRUCT_OR_TIMER_1)
-			 || (args->lockout_method > TIMER_ONLY_3))
+			if ((args->lockout_method < TIMER_ONLY_1)
+			 || (args->lockout_method > OBSTRUCT_OR_TIMER_3))
 			{
 				fprintf(stderr, "--lockout_method needs a value between %d and %d\n",
-					OBSTRUCT_OR_TIMER_1, TIMER_ONLY_3);
+					TIMER_ONLY_1, OBSTRUCT_OR_TIMER_3);
 				return -1;
 			}
 
@@ -706,9 +706,9 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "-----------------\n");
 	fprintf(stderr, " --lockout_method <1|2|3>\n");
 	fprintf(stderr, "                        Defines the method used to decide when to unlock:\n");
-	fprintf(stderr, "                        [1: Wait for clear frame or that the timer has timed out.]\n");
-	fprintf(stderr, "                         2: Wait for clear frame and then start unlock timer.\n");
-	fprintf(stderr, "                         3: Only use the timer, don't care about clear frame.\n");
+	fprintf(stderr, "                        [1: Only use the timer, don't care about clear frame.]\n");
+	fprintf(stderr, "                         2: Wait for clear frame or that the timer has timed out.\n");
+	fprintf(stderr, "                         3: Wait for clear frame and then start unlock timer.\n");
 	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %d seconds.\n", DEFAULT_LOCKOUT_TIME);
 	fprintf(stderr, " --lockout_error <n>    Number of lockouts in a row that's allowed before we\n");
 	fprintf(stderr, "                        consider it an error and quit the program. \n");
@@ -1152,7 +1152,7 @@ int catcierge_args_init(catcierge_args_t *args)
 	args->saveimg = 1;
 	args->save_obstruct_img = 0;
 	args->match_time = DEFAULT_MATCH_WAIT;
-	args->lockout_method = OBSTRUCT_OR_TIMER_1;
+	args->lockout_method = TIMER_ONLY_1;
 	args->lockout_time = DEFAULT_LOCKOUT_TIME;
 	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
 	args->ok_matches_needed = DEFAULT_OK_MATCHES_NEEDED;

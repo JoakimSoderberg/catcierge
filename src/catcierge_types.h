@@ -56,9 +56,9 @@ typedef enum catcierge_matcher_type_e
 
 typedef enum catcierge_lockout_method_s
 {
-	OBSTRUCT_OR_TIMER_1 = 1,
+	TIMER_ONLY_1 = 1,
 	OBSTRUCT_THEN_TIMER_2 = 2,
-	TIMER_ONLY_3 = 3
+	OBSTRUCT_OR_TIMER_3 = 3
 } catcierge_lockout_method_t;
 
 #define MAX_STEPS 24

@@ -26,7 +26,7 @@ static char *run_consecutive_lockout_abort_tests()
 
 	args->templ.match_flipped = 1;
 	args->templ.match_threshold = 0.8;
-	args->lockout_method = TIMER_ONLY_3;
+	args->lockout_method = TIMER_ONLY_1;
 	args->max_consecutive_lockout_count = 3;
 	// It's important we change this from the default 3 seconds.
 	// Since when the tests run under valgrind they are much slower
@@ -116,7 +116,7 @@ static char *run_consecutive_lockout_tests()
 
 	args->templ.match_flipped = 1;
 	args->templ.match_threshold = 0.8;
-	args->lockout_method = TIMER_ONLY_3;
+	args->lockout_method = TIMER_ONLY_1;
 	args->max_consecutive_lockout_count = 3;
 	args->consecutive_lockout_delay = 10;
 	args->lockout_time = 0;

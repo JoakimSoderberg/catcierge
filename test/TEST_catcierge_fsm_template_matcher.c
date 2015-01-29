@@ -19,7 +19,7 @@ static char *run_lockout_tests(catcierge_grb_t *grb, int obstruct,
 
 	switch (lockout_method)
 	{
-		case OBSTRUCT_OR_TIMER_1:
+		case OBSTRUCT_OR_TIMER_3:
 			if (obstruct == 1)
 			{
 				// Obstruct and then un-obstruct.
@@ -130,7 +130,7 @@ static char *run_lockout_tests(catcierge_grb_t *grb, int obstruct,
 					(grb->state == catcierge_state_waiting));
 			}
 			break;
-		case TIMER_ONLY_3:
+		case TIMER_ONLY_1:
 			// Sleep for unlock time and make sure we've unlocked.
 			catcierge_test_STATUS("Lockout method: Timer only, sleep %d seconds",
 				args->lockout_time + 1);
@@ -326,9 +326,9 @@ int TEST_catcierge_fsm_template_matcher(int argc, char **argv)
 	{
 		size_t i;
 		catcierge_lockout_method_t locks[] = {
-			OBSTRUCT_OR_TIMER_1,
+			OBSTRUCT_OR_TIMER_3,
 			OBSTRUCT_THEN_TIMER_2,
-			TIMER_ONLY_3
+			TIMER_ONLY_1
 		};
 
 		for (i = 0; i < sizeof(locks) / sizeof(locks[0]); i++)
