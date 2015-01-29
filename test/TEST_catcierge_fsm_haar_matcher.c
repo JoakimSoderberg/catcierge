@@ -51,7 +51,7 @@ static char *run_success_tests()
 		{
 			load_test_image_and_run(&grb, j, i);
 		}
-	
+
 		mu_assert("Expected KEEP OPEN state", (grb.state == catcierge_state_keepopen));
 
 		load_test_image_and_run(&grb, 1, 5);
@@ -78,6 +78,7 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	args->matcher = "haar"; 
 	args->matcher_type = MATCHER_HAAR;
 	args->ok_matches_needed = 3;
+	args->lockout_method = OBSTRUCT_OR_TIMER_3;
 
 	args->haar.prey_method = prey_method;
 	args->haar.prey_steps = 2;

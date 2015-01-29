@@ -159,11 +159,11 @@ char *run_parse_args_tests()
 		(ret == -1));
 	PARSE_SINGLE_SETTING("no_final_decision", args.no_final_decision, 1);
 
-	PARSE_SETTING("lockout_method 1", "Expected valid parse OBSTRUCT_OR_TIMER_3",
+	PARSE_SETTING("lockout_method 3", "Expected valid parse OBSTRUCT_OR_TIMER_3",
 		(ret == 0) && (args.lockout_method == OBSTRUCT_OR_TIMER_3));
 	PARSE_SETTING("lockout_method 2", "Expected valid parse OBSTRUCT_THEN_TIMER_2",
 		(ret == 0) && (args.lockout_method == OBSTRUCT_THEN_TIMER_2));
-	PARSE_SETTING("lockout_method 3", "Expected valid parse TIMER_ONLY_1",
+	PARSE_SETTING("lockout_method 1", "Expected valid parse TIMER_ONLY_1",
 		(ret == 0) && (args.lockout_method == TIMER_ONLY_1));
 	PARSE_SETTING("lockout_method 0", "Expected invalid parse for out of bounds",
 		(ret == -1));
