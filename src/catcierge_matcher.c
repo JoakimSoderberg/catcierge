@@ -88,11 +88,12 @@ int catcierge_is_frame_obstructed(IplImage *img, int debug)
 	// Get a suitable Region Of Interest (ROI)
 	// in the center of the image.
 	// (This should contain only the white background)
+
 	size = cvGetSize(img);
-	w = (int)(size.width * 0.5);
+	w = (int)(size.width / 2);
 	h = (int)(size.height * 0.1);
-	x = (size.width - w) / 2;
-	y = (size.height - h) / 2;
+	x = roi.x + (size.width - w) / 2;
+	y = roi.y + (size.height - h) / 2;
 
 	cvSetImageROI(img, cvRect(x, y, w, h));
 
@@ -115,8 +116,17 @@ int catcierge_is_frame_obstructed(IplImage *img, int debug)
 
 	if (debug)
 	{
+		//cvRectangleR(img, cvRect(x, y, w, h), CV_RGB(255, 0, 0), 2, 8, 0);
+		cvShowImage("bla", img);
+
+		printf("\nroi: x: %d, y: %d, w: %d, h:%d\n",
+			roi.x, roi.y, roi.width, roi.height);
+		printf("size: w: %d, h: %d\n", size.width, size.height);
+		printf("x: %d, y: %d, w: %d, h: %d\n", x, y, w, h);
+
 		printf("Sum: %d\n", sum);
 		cvShowImage("obstruct", tmp2);
+		//cvWaitKey(0);
 	}
 
 	cvSetImageROI(img, cvRect(roi.x, roi.y, roi.width, roi.height));

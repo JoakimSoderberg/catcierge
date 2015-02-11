@@ -24,7 +24,7 @@ typedef struct fsm_tester_ctx_s
 	int keep_obstructing;
 } fsm_tester_ctx_t;
 
-static IplImage *load_image(const char *path)
+static IplImage *load_image(catcierge_grb_t *grb, const char *path)
 {
 	IplImage *img = NULL;
 
@@ -32,6 +32,11 @@ static IplImage *load_image(const char *path)
 	{
 		fprintf(stderr, "Failed to load image: %s\n", path);
 		return NULL;
+	}
+
+	if ((grb->args.roi.width != 0) && (grb->args.roi.height != 0))
+	{
+		cvSetImageROI(img, grb->args.roi);
 	}
 
 	return img;
@@ -230,7 +235,7 @@ int main(int argc, char **argv)
 	}
 
 	// Load the first image and obstruct the frame.
-	if (!(grb.img = load_image(ctx.img_paths[0])))
+	if (!(grb.img = load_image(&grb, ctx.img_paths[0])))
 	{
 		ret = -1; goto fail;
 	}
@@ -243,7 +248,7 @@ int main(int argc, char **argv)
 	// Load the match images.
 	for (i = 0; i < ctx.img_count; i++)
 	{
-		if (!(grb.img = load_image(ctx.img_paths[i])))
+		if (!(grb.img = load_image(&grb, ctx.img_paths[i])))
 		{
 			ret = -1; goto fail;
 		}
@@ -258,7 +263,7 @@ int main(int argc, char **argv)
 	if (ctx.keep_running)
 	{
 		// Load one of the obstructing images to start with
-		if (!(grb.img = load_image(ctx.img_paths[0])))
+		if (!(grb.img = load_image(&grb, ctx.img_paths[0])))
 		{
 			ret = -1; goto fail;
 		}

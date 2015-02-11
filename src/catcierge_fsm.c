@@ -446,7 +446,7 @@ fail:
 }
 #endif // RPI
 
-IplImage *catcierge_get_frame(catcierge_grb_t *grb)
+IplImage *catcierge_get_raw_frame(catcierge_grb_t *grb)
 {
 	assert(grb);
 
@@ -455,6 +455,21 @@ IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 	#else
 	return cvQueryFrame(grb->capture);
 	#endif	
+}
+
+IplImage *catcierge_get_frame(catcierge_grb_t *grb)
+{
+	IplImage *img;
+	assert(grb);
+
+	img = catcierge_get_raw_frame(grb);
+
+	if ((grb->args.roi.width != 0) && (grb->args.roi.height != 0))
+	{
+		cvSetImageROI(img, grb->args.roi);
+	}
+
+	return img;
 }
 
 static int catcierge_calculate_match_id(IplImage *img, match_state_t *m)
@@ -1269,6 +1284,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb);
 
 int catcierge_state_keepopen(catcierge_grb_t *grb)
 {
+	catcierge_args_t *args = &grb->args;
 	assert(grb);
 
 	catcierge_show_image(grb);
@@ -1280,7 +1296,7 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 		// We have successfully matched a valid cat :D
 		int frame_obstructed;
 
-		if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img, 0)) < 0)
+		if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img, args->obstruct_debug)) < 0)
 		{
 			CATERR("Failed to run check for obstructed frame\n");
 			return -1;
@@ -1327,7 +1343,7 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 		// Stop the lockout when frame is clear
 		// OR if the lockout timer ends.
 
-		if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img, 0)) < 0)
+		if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img, args->obstruct_debug)) < 0)
 		{
 			CATERR("Failed to run check for obstructed frame\n");
 			return -1;
@@ -1348,7 +1364,7 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 
 		if (!catcierge_timer_isactive(&grb->lockout_timer))
 		{
-			if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img, 0)) < 0)
+			if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img, args->obstruct_debug)) < 0)
 			{
 				CATERR("Failed to run check for obstructed frame\n");
 				return -1;
@@ -1468,7 +1484,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 
 	// Wait until the middle of the frame is black
 	// before we try to match anything.
-	if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img, 0)) < 0)
+	if ((frame_obstructed = catcierge_is_frame_obstructed(grb->img, args->obstruct_debug)) < 0)
 	{
 		CATERRFPS("Failed to perform check for obstructed frame\n");
 		return -1;

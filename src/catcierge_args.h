@@ -75,6 +75,8 @@ typedef struct catcierge_args_s
 	int noanim;
 	char *inputs[MAX_INPUT_TEMPLATES];
 	size_t input_count;
+	CvRect roi;
+	int obstruct_debug;
 
 	char *base_time;
 

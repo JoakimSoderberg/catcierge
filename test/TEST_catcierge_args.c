@@ -325,6 +325,13 @@ char *run_parse_args_tests()
 
 	PARSE_SINGLE_SETTING("save_steps", args.noanim, 1);
 
+	PARSE_SETTING("roi 1 2 3 4", "Expected a valid parse",
+		(ret == 0) 
+		&& (args.roi.x == 1) && (args.roi.y == 2)
+		&& (args.roi.width == 3) && (args.roi.height == 4));
+	PARSE_SETTING("roi", "Expected invalid parse for missing value",
+		(ret == -1));
+
 	PARSE_SETTING("chuid userid", "Expected a valid parse",
 		(ret == 0) && !strcmp(args.chuid, "userid"));
 	PARSE_SETTING("chuid", "Expected invalid parse for missing value",

@@ -541,6 +541,28 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return -1;
 	}
 
+	if (!strcmp(key, "roi"))
+	{
+		if (value_count == 4)
+		{
+			args->roi = cvRect(atoi(values[0]),
+								atoi(values[1]),
+								atoi(values[2]),
+								atoi(values[3]));
+			return 0;
+		}
+
+		fprintf(stderr, "--roi expecting 4 values (x, y, w, h)\n");
+		return -1;
+	}
+
+	if (!strcmp(key, "obstruct_debug"))
+	{
+		args->obstruct_debug = 1;
+		if (value_count == 1) args->obstruct_debug = atoi(values[0]);
+		return 0;
+	}
+
 	#ifdef WITH_RFID
 	if (!strcmp(key, "rfid_detect_cmd"))
 	{
@@ -702,6 +724,8 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "                        or /etc/catcierge.cfg\n");
 	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are\n");
 	fprintf(stderr, "                        the same as these options.\n");
+	fprintf(stderr, " --chuid <uid>          Run process under this uid.\n");
+	fprintf(stderr, " --roi <x y w h>        Crop all input image to this region of interest.\n");
 	fprintf(stderr, "Lockout settings:\n");
 	fprintf(stderr, "-----------------\n");
 	fprintf(stderr, " --lockout_method <1|2|3>\n");
