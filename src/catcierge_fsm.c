@@ -464,6 +464,7 @@ IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 
 	img = catcierge_get_raw_frame(grb);
 
+	// TODO: This is a bad idea. Move this to obstruct frame only!
 	if ((grb->args.roi.width != 0) && (grb->args.roi.height != 0))
 	{
 		cvSetImageROI(img, grb->args.roi);
