@@ -683,7 +683,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return grb->args.matcher;
 	}
 
-	if ((matcher_val = grb->matcher->translate(grb->matcher, var, buf, bufsize)))
+	if (grb->matcher && (matcher_val = grb->matcher->translate(grb->matcher, var, buf, bufsize)))
 	{
 		return matcher_val;
 	}
@@ -852,6 +852,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 			if (sscanf(var, "match%d_", &idx) == EOF)
 			{
+				CATERR("Output: Failed to parse %s\n", var);
 				return NULL;
 			}
 
@@ -860,6 +861,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		if ((idx < 0) || (idx >= MATCH_MAX_COUNT))
 		{
+			CATERR("Output: %s out of index. (%lu > %lu)\n", var, idx, grb->match_group.match_count);
 			return NULL;
 		}
 
@@ -867,6 +869,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		if ((size_t)idx > grb->match_group.match_count)
 		{
+			CATERR("Output: %s out of index. (%lu > %lu)\n", var, idx, grb->match_group.match_count);
 			return "";
 		}
 
@@ -1010,6 +1013,25 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	return NULL;
 }
 
+static char *catcierge_output_realloc_if_needed(char *str, size_t new_size, size_t *max_size)
+{
+	assert(max_size);
+
+	while (new_size >= *max_size)
+	{
+		CATLOG("Realloc needed! %lu >= %u\n", new_size, *max_size);
+		(*max_size) *= 2;
+
+		if (!(str = realloc(str, *max_size)))
+		{
+			CATERR("Out of memory\n");
+			return NULL;
+		}
+	}
+
+	return str;
+}
+
 char *catcierge_output_generate(catcierge_output_t *ctx,
 	catcierge_grb_t *grb, const char *template_str)
 {
@@ -1022,6 +1044,7 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 	size_t out_len = 2 * orig_len + 1;
 	size_t len;
 	size_t linenum;
+	size_t reslen;
 	assert(ctx);
 	assert(grb);
 
@@ -1029,7 +1052,7 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 	{
 		CATERR("Max output template recursion level reached (%d)!\n",
 			CATCIERGE_OUTPUT_MAX_RECURSION);
-		ctx->recursion = 0;
+		ctx->recursion_error = 1;
 		return NULL;
 	}
 
@@ -1043,8 +1066,6 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 		free(output);
 		return NULL;
 	}
-
-	ctx->recursion++;
 
 	len = 0;
 	linenum = 0;
@@ -1094,41 +1115,53 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 			// Terminate so we get the var name in a nice comparable string.
 			*it++ = '\0';
 
+			// Some variables can nest other variables, make sure
+			// we don't end up in an infinite recursion.
+			ctx->recursion++;
+
 			// Find the value of the variable and append it to the output.
-			if ((res = catcierge_output_translate(grb, buf, sizeof(buf), s)))
+			if (!(res = catcierge_output_translate(grb, buf, sizeof(buf), s)))
 			{
-				size_t reslen = strlen(res);
-
-				// Make sure we have enough room.
-				while ((len + reslen + 1) >= out_len)
+				if (ctx->recursion_error)
 				{
-					out_len *= 2;
-
-					if (!(output = realloc(output, out_len)))
-					{
-						CATERR("Out of memory\n"); goto fail;
-					}
+					CATERR(" %*s\"%s\"\n", (CATCIERGE_OUTPUT_MAX_RECURSION - ctx->recursion), "", s);
+					ctx->recursion--;
+				}
+				else
+				{
+					CATERR("Unknown template variable \"%s\"\n", s);
 				}
 
-				// Append ...
-				while (*res)
-				{
-					output[len] = *res++;
-					len++;
-				}
-
-				ctx->recursion--;
-			}
-			else
-			{
-				CATERR("Unknown or recursive template variable \"%s\"\n", s);
 				free(output);
 				output = NULL;
 				goto fail;
 			}
+
+			ctx->recursion--;
+
+			reslen = strlen(res);
+
+			// Make sure we have enough room.
+			if (!(output = catcierge_output_realloc_if_needed(output, (len + reslen + 1), &out_len)))
+			{
+				goto fail;
+			}
+
+			// Append the variable to the output.
+			while (*res)
+			{
+				output[len] = *res++;
+				len++;
+			}
 		}
 		else
 		{
+			// Make sure we have enough room.
+			if (!(output = catcierge_output_realloc_if_needed(output, (len + 1), &out_len)))
+			{
+				goto fail;
+			}
+
 			output[len] = *it++;
 			len++;
 		}

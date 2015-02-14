@@ -524,7 +524,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 	assert(grb->match_group.match_count <= MATCH_MAX_COUNT);
 	args = &grb->args;
 
-	m = &grb->match_group.matches[grb->match_group.match_count];
+	m = &grb->match_group.matches[grb->match_group.match_count - 1];
 	res = &m->result;
 
 	// Get time of match and format.
@@ -940,11 +940,11 @@ double catcierge_do_match(catcierge_grb_t *grb)
 	match_result_t *result;
 	match_state_t *match;
 	assert(grb);
-	assert(mg->match_count < MATCH_MAX_COUNT);
+	assert(mg->match_count <= MATCH_MAX_COUNT);
 	args = &grb->args;
 
 	// Clear match structs before doing a new one.
-	match = &mg->matches[mg->match_count];
+	match = &mg->matches[mg->match_count - 1];
 	result = &match->result;
 	catcierge_cleanup_match_steps(grb, result);
 	memset(result, 0, sizeof(match_result_t));
@@ -1051,7 +1051,6 @@ void catcierge_match_group_end(match_group_t *mg)
 
 	gettimeofday(&mg->end_tv, NULL);
 	mg->end_time = time(NULL);
-	mg->match_count = 0;
 }
 
 void catcierge_decide_lock_status(catcierge_grb_t *grb)
@@ -1170,7 +1169,7 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 		catcierge_save_images(grb, mg->direction);
 	}
 
-	assert(mg->match_count < MATCH_MAX_COUNT);
+	assert(mg->match_count <= MATCH_MAX_COUNT);
 }
 
 void catcierge_save_obstruct_image(catcierge_grb_t *grb)
@@ -1433,6 +1432,8 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	assert(grb);
 	args = &grb->args;
 
+	grb->match_group.match_count++;
+
 	// We have something to match against.
 	if (catcierge_do_match(grb) < 0)
 	{
@@ -1441,7 +1442,6 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	}
 
 	catcierge_process_match_result(grb, grb->img);
-	grb->match_group.match_count++;
 
 	// Runs the --match_cmd program specified.
 	if (args->new_execute)

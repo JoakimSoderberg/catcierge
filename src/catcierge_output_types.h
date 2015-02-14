@@ -51,6 +51,7 @@ typedef struct catcierge_output_s
 	size_t template_count;
 	size_t template_max_count;
 	int recursion;
+	int recursion_error;
 } catcierge_output_t;
 
 #endif // __CATCIERGE_OUTPUT_TYPES_H__
