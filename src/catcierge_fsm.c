@@ -746,12 +746,18 @@ static int catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
 			<= (args->lockout_time + args->consecutive_lockout_delay)))
 		{
 			grb->consecutive_lockout_count++;
-			CATLOG("Consecutive lockout! %d out of %d before quiting. "
-				   "(%0.2f sec <= %0.2f sec)\n",
-					grb->consecutive_lockout_count, 
-					args->max_consecutive_lockout_count,
-					lockout_timer_val,
-					(args->lockout_time + args->consecutive_lockout_delay));
+			if (grb->consecutive_lockout_count > 1)
+			{
+				CATLOG("Consecutive lockout! %d out of %d before quiting. "
+					   "(%0.2f sec <= %0.2f sec)\n",
+						grb->consecutive_lockout_count,
+						args->max_consecutive_lockout_count,
+						lockout_timer_val,
+						(args->lockout_time + args->consecutive_lockout_delay));
+				CATLOG("  (Lockout Time %0.2f + Consecutive lockout delay %0.2f = %0.2f)\n",
+						args->consecutive_lockout_delay,
+						args->lockout_time, args->consecutive_lockout_delay);
+			}
 		}
 		else
 		{
@@ -760,7 +766,7 @@ static int catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
 			CATLOG("Consecutive lockout count reset. "
 					"%0.2f seconds between lockouts "
 					"(consecutive lockout delay = %0.2f seconds)\n",
-					catcierge_timer_get(&grb->lockout_timer),
+					lockout_timer_val,
 					args->consecutive_lockout_delay);
 		}
 

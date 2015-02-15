@@ -1019,7 +1019,7 @@ static char *catcierge_output_realloc_if_needed(char *str, size_t new_size, size
 
 	while (new_size >= *max_size)
 	{
-		CATLOG("Realloc needed! %lu >= %u\n", new_size, *max_size);
+		//CATLOG("Realloc needed! %lu >= %u\n", new_size, *max_size);
 		(*max_size) *= 2;
 
 		if (!(str = realloc(str, *max_size)))
