@@ -251,6 +251,8 @@ int main(int argc, char **argv)
 	}
 
 	matcher->debug = debug;
+	if (!matcher->is_obstructed)
+		matcher->is_obstructed = catcierge_is_frame_obstructed;
 	//catcierge_set_binary_thresholds(&ctx, 90, 200);
 
 	// If we should preload the images or not
@@ -279,7 +281,7 @@ int main(int argc, char **argv)
 			// This tests if an image frame is clear or not (matchable).
 			int frame_obstructed;
 
-			if ((frame_obstructed = catcierge_is_frame_obstructed(imgs[i], debug)) < 0)
+			if ((frame_obstructed = matcher->is_obstructed(matcher, imgs[i])) < 0)
 			{
 				fprintf(stderr, "Failed to detect check for matchability frame\n");
 				return -1;

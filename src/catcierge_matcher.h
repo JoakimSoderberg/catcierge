@@ -24,16 +24,24 @@
 
 #include "catcierge_types.h"
 
+struct catcierge_matcher_s;
+
 typedef double (*catcierge_match_func_t)(void *ctx,
 		IplImage *img, match_result_t *result, int save_steps);
 
 typedef int (*catcierge_decide_func_t)(void *ctx, match_group_t *mg);
 
-struct catcierge_matcher_s;
 typedef const char *(*catcierge_matcher_translate_func_t)(struct catcierge_matcher_s *octx, const char *var,
-	char *buf, size_t bufsize);
+														  char *buf, size_t bufsize);
 
-// TODO: Totally abstract the matchers into this file. External code should just have to ask for a matcher type. How to solve for the args parsing?
+typedef int (*catcierge_is_obstruct_func_t)(struct catcierge_matcher_s *ctx, IplImage *img);
+
+typedef struct catcierge_matcher_args_s
+{
+	catcierge_matcher_type_t type;
+	CvRect roi;
+} catcierge_matcher_args_t;
+
 typedef struct catcierge_matcher_s
 {
 	catcierge_matcher_type_t type;
@@ -41,14 +49,11 @@ typedef struct catcierge_matcher_s
 	catcierge_match_func_t match;
 	catcierge_decide_func_t decide;
 	catcierge_matcher_translate_func_t translate;
+	catcierge_is_obstruct_func_t is_obstructed;
+	catcierge_matcher_args_t *args;
 } catcierge_matcher_t;
 
-typedef struct catcierge_matcher_args_s
-{
-	catcierge_matcher_type_t type;
-} catcierge_matcher_args_t;
-
-int catcierge_is_frame_obstructed(IplImage *img, int debug);
+int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img);
 
 int catcierge_matcher_init(catcierge_matcher_t **ctx, catcierge_matcher_args_t *args);
 void catcierge_matcher_destroy(catcierge_matcher_t **ctx);

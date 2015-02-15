@@ -51,6 +51,13 @@ int catcierge_matcher_init(catcierge_matcher_t **ctx, catcierge_matcher_args_t *
 		return -1;
 	}
 
+	if (!(*ctx)->is_obstructed)
+	{
+		(*ctx)->is_obstructed = catcierge_is_frame_obstructed;
+	}
+
+	(*ctx)->args = args;
+
 	return 0;
 }
 
@@ -73,7 +80,7 @@ void catcierge_matcher_destroy(catcierge_matcher_t **ctx)
 	*ctx = NULL;
 }
 
-int catcierge_is_frame_obstructed(IplImage *img, int debug)
+int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img)
 {
 	CvSize size;
 	int w;
@@ -81,6 +88,7 @@ int catcierge_is_frame_obstructed(IplImage *img, int debug)
 	int x;
 	int y;
 	int sum;
+	int debug = 0;
 	IplImage *tmp = NULL;
 	IplImage *tmp2 = NULL;
 	CvRect roi = cvGetImageROI(img);
