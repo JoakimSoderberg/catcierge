@@ -1126,6 +1126,9 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 				{
 					CATERR(" %*s\"%s\"\n", (CATCIERGE_OUTPUT_MAX_RECURSION - ctx->recursion), "", s);
 					ctx->recursion--;
+
+					if (ctx->recursion == 0)
+						ctx->recursion_error = 0;
 				}
 				else
 				{

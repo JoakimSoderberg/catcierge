@@ -574,13 +574,6 @@ static char *run_recursion_tests()
 			args->steps_output_path = "%match_output_path%/weise/%obstruct_output_path%";
 			args->obstruct_output_path = "%steps_output_path%/Mera jul!";
 
-			if (catcierge_output_add_template(o, 
-				"%!event all\n"
-				"Some other template %time% %bice%\n", "normalpath"))
-			{
-				return "Failed to add normal template with unknown variable";
-			}
-
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
 				"%output_path%\n"
@@ -589,6 +582,13 @@ static char *run_recursion_tests()
 				"recursiveoutputpath"))
 			{
 				return "Failed to add recursive template";
+			}
+
+			if (catcierge_output_add_template(o,
+				"%!event all\n"
+				"Some other template %time% %bice%\n", "normalpath"))
+			{
+				return "Failed to add normal template with unknown variable";
 			}
 
 			mu_assert("Expected template count 1", o->template_count == 2);
