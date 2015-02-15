@@ -88,10 +88,15 @@ int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img
 	int x;
 	int y;
 	int sum;
-	int debug = 0;
 	IplImage *tmp = NULL;
 	IplImage *tmp2 = NULL;
-	CvRect roi = cvGetImageROI(img);
+	CvRect orig_roi = cvGetImageROI(img);
+	CvRect *roi = &ctx->args->roi;
+
+	if ((roi->width != 0) && (roi->height != 0))
+	{
+		cvSetImageROI(img, *roi);
+	}
 
 	// Get a suitable Region Of Interest (ROI)
 	// in the center of the image.
@@ -100,8 +105,8 @@ int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img
 	size = cvGetSize(img);
 	w = (int)(size.width / 2);
 	h = (int)(size.height * 0.1);
-	x = roi.x + (size.width - w) / 2;
-	y = roi.y + (size.height - h) / 2;
+	x = roi->x + (size.width - w) / 2;
+	y = roi->y + (size.height - h) / 2;
 
 	cvSetImageROI(img, cvRect(x, y, w, h));
 
@@ -122,10 +127,12 @@ int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img
 
 	sum = (int)cvSum(tmp2).val[0] / 255;
 
-	if (debug)
+	#if 0
 	{
+		// NOTE! Since this function this runs very often, this should
+		// only ever be turned on while developing, it will spam ALOT.
 		//cvRectangleR(img, cvRect(x, y, w, h), CV_RGB(255, 0, 0), 2, 8, 0);
-		cvShowImage("bla", img);
+		cvShowImage("obstruct_roi", img);
 
 		printf("\nroi: x: %d, y: %d, w: %d, h:%d\n",
 			roi.x, roi.y, roi.width, roi.height);
@@ -136,8 +143,9 @@ int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img
 		cvShowImage("obstruct", tmp2);
 		//cvWaitKey(0);
 	}
+	#endif
 
-	cvSetImageROI(img, cvRect(roi.x, roi.y, roi.width, roi.height));
+	cvSetImageROI(img, cvRect(orig_roi.x, orig_roi.y, orig_roi.width, orig_roi.height));
 
 	if (img->nChannels != 1)
 	{

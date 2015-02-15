@@ -1092,16 +1092,24 @@ int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
 
 catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
 {
+	catcierge_matcher_args_t *margs = NULL;
+
 	if (args->matcher_type == MATCHER_TEMPLATE)
 	{
-		return (catcierge_matcher_args_t *)&args->templ;
+		margs = (catcierge_matcher_args_t *)&args->templ;
 	}
 	else if (args->matcher_type == MATCHER_HAAR)
 	{
-		return (catcierge_matcher_args_t *)&args->haar;
+		margs = (catcierge_matcher_args_t *)&args->haar;
 	}
 
-	return NULL;
+	// TODO: This is an ugly way to pass this on... But whatever for now.
+	if (margs)
+	{
+		margs->roi = args->roi;
+	}
+
+	return margs;
 }
 
 void catcierge_print_settings(catcierge_args_t *args)

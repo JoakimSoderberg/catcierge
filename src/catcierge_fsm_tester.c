@@ -34,11 +34,6 @@ static IplImage *load_image(catcierge_grb_t *grb, const char *path)
 		return NULL;
 	}
 
-	if ((grb->args.roi.width != 0) && (grb->args.roi.height != 0))
-	{
-		cvSetImageROI(img, grb->args.roi);
-	}
-
 	return img;
 }
 

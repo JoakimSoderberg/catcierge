@@ -446,7 +446,7 @@ fail:
 }
 #endif // RPI
 
-IplImage *catcierge_get_raw_frame(catcierge_grb_t *grb)
+IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 {
 	assert(grb);
 
@@ -455,22 +455,6 @@ IplImage *catcierge_get_raw_frame(catcierge_grb_t *grb)
 	#else
 	return cvQueryFrame(grb->capture);
 	#endif	
-}
-
-IplImage *catcierge_get_frame(catcierge_grb_t *grb)
-{
-	IplImage *img;
-	assert(grb);
-
-	img = catcierge_get_raw_frame(grb);
-
-	// TODO: This is a bad idea. Move this to obstruct frame only!
-	if ((grb->args.roi.width != 0) && (grb->args.roi.height != 0))
-	{
-		cvSetImageROI(img, grb->args.roi);
-	}
-
-	return img;
 }
 
 static int catcierge_calculate_match_id(IplImage *img, match_state_t *m)
