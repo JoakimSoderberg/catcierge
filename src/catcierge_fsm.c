@@ -1209,6 +1209,15 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 	}
 }
 
+void catcierge_fsm_start(catcierge_grb_t *grb)
+{
+	grb->running = 1;
+	catcierge_set_state(grb, catcierge_state_waiting);
+	catcierge_timer_set(&grb->frame_timer, 1.0);
+	catcierge_timer_set(&grb->startup_timer, grb->args.startup_delay);
+	catcierge_timer_start(&grb->startup_timer);
+}
+
 #ifdef WITH_ZMQ
 
 void catcierge_zmq_destroy(catcierge_grb_t *grb)
@@ -1473,6 +1482,17 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 
 	catcierge_show_image(grb);
 
+	if (catcierge_timer_isactive(&grb->startup_timer))
+	{
+		if (!catcierge_timer_has_timed_out(&grb->startup_timer))
+		{
+			return 0;
+		}
+
+		catcierge_timer_reset(&grb->startup_timer);
+		CATLOG("Startup delay of %0.2f seconds has ended!\n", args->startup_delay);
+	}
+
 	// Wait until the middle of the frame is black
 	// before we try to match anything.
 	if ((frame_obstructed = grb->matcher->is_obstructed(grb->matcher, grb->img)) < 0)
@@ -1543,6 +1563,11 @@ void catcierge_print_spinner(catcierge_grb_t *grb)
 			{
 				log_printf(stdout, COLOR_NORMAL, "Frame is obstructed. Waiting for it to clear...\n");
 			}
+		}
+		else if (catcierge_timer_isactive(&grb->startup_timer))
+		{
+			log_printf(stdout, COLOR_NORMAL, "Waiting for the startup delay %d seconds left.\n",
+				(int)(args->startup_delay - catcierge_timer_get(&grb->startup_timer)));
 		}
 		else
 		{

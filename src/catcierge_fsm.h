@@ -88,6 +88,7 @@ typedef struct catcierge_grb_s
 	catcierge_timer_t rematch_timer;
 	catcierge_timer_t lockout_timer;
 	catcierge_timer_t frame_timer;
+	catcierge_timer_t startup_timer;
 
 	catcierge_output_t output;
 
@@ -134,6 +135,7 @@ void catcierge_setup_camera(catcierge_grb_t *grb);
 void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state);
 void catcierge_run_state(catcierge_grb_t *grb);
 int catcierge_drop_root_privileges(const char *user);
+void catcierge_fsm_start(catcierge_grb_t *grb);
 
 int catcierge_state_waiting(catcierge_grb_t *grb);
 int catcierge_state_keepopen(catcierge_grb_t *grb);

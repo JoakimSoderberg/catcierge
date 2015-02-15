@@ -556,11 +556,28 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		return -1;
 	}
 
-	if (!strcmp(key, "obstruct_debug"))
+	if (!strcmp(key, "auto_roi"))
 	{
-		args->obstruct_debug = 1;
-		if (value_count == 1) args->obstruct_debug = atoi(values[0]);
+		args->auto_roi = 1;
+
+		if (value_count == 1)
+		{
+			args->auto_roi = atoi(values[0]);
+		}
+
 		return 0;
+	}
+
+	if (!strcmp(key, "startup_delay"))
+	{
+		if (value_count == 1)
+		{
+			args->startup_delay = (double)atof(values[0]);
+			return 0;
+		}
+
+		fprintf(stderr, "--startup_delay missing value\n");
+		return -1;
 	}
 
 	#ifdef WITH_RFID

@@ -76,7 +76,8 @@ typedef struct catcierge_args_s
 	char *inputs[MAX_INPUT_TEMPLATES];
 	size_t input_count;
 	CvRect roi;
-	int obstruct_debug;
+	int auto_roi;
+	double startup_delay;
 
 	char *base_time;
 

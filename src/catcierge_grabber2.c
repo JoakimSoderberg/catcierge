@@ -283,9 +283,7 @@ int main(int argc, char **argv)
 
 	CATLOG("Starting detection!\n");
 	// TODO: Create a catcierge_grb_start(grb) function that does this instead.
-	grb.running = 1;
-	catcierge_set_state(&grb, catcierge_state_waiting);
-	catcierge_timer_set(&grb.frame_timer, 1.0);
+	catcierge_fsm_start(&grb);
 
 	// Run the program state machine.
 	do

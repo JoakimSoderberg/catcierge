@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 	#endif
 
 	catcierge_set_state(&grb, catcierge_state_waiting);
-	catcierge_timer_set(&grb.frame_timer, 1.0);
+	catcierge_fsm_start(&grb);
 	catcierge_timer_start(&grb.frame_timer);
 
 	if (signal(SIGINT, sig_handler) == SIG_ERR)
@@ -238,7 +238,6 @@ int main(int argc, char **argv)
 	catcierge_run_state(&grb);
 	cvReleaseImage(&grb.img);
 	grb.img = NULL;
-	grb.running = 1;
 
 	// Load the match images.
 	for (i = 0; i < ctx.img_count; i++)
@@ -265,6 +264,11 @@ int main(int argc, char **argv)
 
 		while (grb.running)
 		{
+			if (!catcierge_timer_isactive(&grb.frame_timer))
+			{
+				catcierge_timer_start(&grb.frame_timer);
+			}
+
 			// If --keep_obstructing is set the user has
 			// to press ctrl+c before the clear image is used.
 			if ((grb.img != clear_img) && !ctx.keep_obstructing)

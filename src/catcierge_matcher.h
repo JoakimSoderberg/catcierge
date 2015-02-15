@@ -40,6 +40,7 @@ typedef struct catcierge_matcher_args_s
 {
 	catcierge_matcher_type_t type;
 	CvRect roi;
+	int auto_roi;
 } catcierge_matcher_args_t;
 
 typedef struct catcierge_matcher_s
