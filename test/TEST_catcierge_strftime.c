@@ -19,6 +19,7 @@ static char *run_tests()
 	struct tm tm;
 	time_t t;
 	int milliseconds;
+	long base_time_diff;
 
 	t = 1409661310;
 	catcierge_test_STATUS("t = %ld\n", (long int)t);
@@ -54,6 +55,15 @@ static char *run_tests()
 
 	catcierge_test_STATUS("Got: \"%s\" Expected: \"%d\"", buf, tv.tv_usec);
 	mu_assert("Unexpected millisecond string", atoi(buf) == tv.tv_usec);
+
+	// Test setting the base time.
+	base_time_diff = t;
+	catcierge_strftime_set_base_diff(base_time_diff);
+	ret = catcierge_strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S.%f", &tm, &tv);
+	mu_assert("Formatting failed with known input", ret >= 0);
+
+	catcierge_test_STATUS("Got: \"%s\" Expected: \"%s\"", buf, "1970-01-01 00:00:00.1215752191");
+	mu_assert("Unexpected millisecond string", !strcmp(buf, "1970-01-01 00:00:00.1215752191"));
 
 	return NULL;
 }
