@@ -162,19 +162,3 @@ void log_printc(FILE *fd, enum catcierge_color_e print_color, const char *fmt, .
 	}
 }
 
-void log_print_csv(FILE *fd, const char *fmt, ...)
-{
-	char time_str[256];
-	va_list ap;
-
-	if (!fd)
-		return;
-
-	get_time_str(time_str, sizeof(time_str));
-	fprintf(fd, "%s, ", time_str);
-
-	va_start(ap, fmt);
-	vfprintf(fd, fmt, ap);
-	va_end(ap);
-}
-

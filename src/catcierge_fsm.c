@@ -163,9 +163,6 @@ static void rfid_set_direction(catcierge_grb_t *grb, rfid_match_t *current, rfid
 	current->data_len = data_len;
 	current->is_allowed = match_allowed_rfid(grb, current->data);
 
-	//log_print_csv(log_file, "rfid, %s, %s\n", 
-	//		current->data, (current->is_allowed > 0)? "allowed" : "rejected");
-
 	if (args->new_execute)
 	{
 		// TODO: Do we have all RFID vars for this?
@@ -614,13 +611,6 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 			}
 		}
 	}
-
-	// Log match to file.
-	log_print_csv(grb->log_file, "match, %s, %f, %f, %s, %s\n",
-		 res->success ? "success" : "failure",
-		 res->result, args->templ.match_threshold,
-		 args->saveimg ? m->path : "-",
-		 catcierge_get_direction_str(res->direction));
 }
 
 static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direction)
@@ -820,14 +810,12 @@ static void catcierge_should_we_rfid_lockout(catcierge_grb_t *grb)
 				else
 				{
 					CATLOG("RFID lockout!\n");
-					log_print_csv(grb->log_file, "rfid_check, lockout\n");
 					catcierge_state_transition_lockout(grb);
 				}
 			}
 			else
 			{
 				CATLOG("RFID OK!\n");
-				log_print_csv(grb->log_file, "rfid_check, ok\n");
 			}
 
 			if (args->rfid_inner_path) CATLOG("  %s RFID: %s\n", grb->rfid_in.name, grb->rfid_in_match.triggered ? grb->rfid_in_match.data : "No tag data");
