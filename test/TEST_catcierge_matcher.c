@@ -72,6 +72,8 @@ static char *do_run_delayed_start_tests(int test_no_backlight)
 		{
 			mu_assert("Expected fsm to run", grb.running == 1);
 		}
+
+		catcierge_matcher_destroy(&grb.matcher);
 	}
 	catcierge_grabber_destroy(&grb);
 
