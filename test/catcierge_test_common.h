@@ -4,6 +4,8 @@
 
 #include "catcierge_args.h"
 
+IplImage *create_clear_image();
+IplImage *create_black_image();
 IplImage *open_test_image(int series, int i);
 void set_default_test_snouts(catcierge_args_t *args);
 void free_test_image(catcierge_grb_t *grb);

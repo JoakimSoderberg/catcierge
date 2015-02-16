@@ -10,6 +10,31 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
+static IplImage *create_fill_image(CvScalar color)
+{
+	IplImage *img = NULL;
+
+	if (!(img = cvCreateImage(cvSize(320, 240), IPL_DEPTH_8U, 1)))
+	{
+		fprintf(stderr, "Failed to create clear image\n");
+		return NULL;
+	}
+
+	cvSet(img, color, NULL);
+
+	return img;
+}
+
+IplImage *create_clear_image()
+{
+	return create_fill_image(CV_RGB(255, 255, 255));
+}
+
+IplImage *create_black_image()
+{
+	return create_fill_image(CV_RGB(0, 0, 0));
+}
+
 IplImage *open_test_image(int series, int i)
 {
 	IplImage *img = NULL;

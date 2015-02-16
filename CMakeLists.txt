@@ -148,7 +148,10 @@ check_include_files(pty.h CATCIERGE_HAVE_PTY_H)
 check_include_files(util.h CATCIERGE_HAVE_UTIL_H)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/catcierge_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/src/sha1)
+include_directories(
+	${PROJECT_SOURCE_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}
+	${PROJECT_SOURCE_DIR}/src/sha1)
 
 if (NOT RPI AND NOT OpenCV_DIR)
 message("-----------------------------------------------------------------")
@@ -330,13 +333,21 @@ if (WITH_TEST_PROGRAMS)
 		catcierge_tester
 		catcierge_fsm_tester)
 
+	# We use some of the unit test helpers in fsm tester.
+	list(APPEND catcierge_fsm_tester_SRC
+		${PROJECT_SOURCE_DIR}/test/catcierge_test_common.c
+		${PROJECT_SOURCE_DIR}/test/catcierge_test_helpers.c)
+
 	if (WITH_RFID)
 		list(APPEND CATCIERGE_PROGRAMS catcierge_rfid_tester)
 	endif()
 endif()
 
 foreach (PROGRAM_NAME ${CATCIERGE_PROGRAMS})
-	add_executable(${PROGRAM_NAME} ${PROJECT_SOURCE_DIR}/src/${PROGRAM_NAME}.c)
+	list(APPEND ${PROGRAM_NAME}_SRC "${PROJECT_SOURCE_DIR}/src/${PROGRAM_NAME}.c")
+	message("${PROGRAM_NAME}_SRC = ${${PROGRAM_NAME}_SRC}")
+
+	add_executable(${PROGRAM_NAME} ${${PROGRAM_NAME}_SRC})
 	target_link_libraries(${PROGRAM_NAME} catcierge)
 
 	if (RPI)

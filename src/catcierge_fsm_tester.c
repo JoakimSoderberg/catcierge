@@ -8,6 +8,7 @@
 #include "catcierge_config.h"
 #include "catcierge_args.h"
 #include "catcierge_output.h"
+#include "test/catcierge_test_common.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
@@ -33,21 +34,6 @@ static IplImage *load_image(catcierge_grb_t *grb, const char *path)
 		fprintf(stderr, "Failed to load image: %s\n", path);
 		return NULL;
 	}
-
-	return img;
-}
-
-static IplImage *create_clear_image()
-{
-	IplImage *img = NULL;
-
-	if (!(img = cvCreateImage(cvSize(320, 240), IPL_DEPTH_8U, 1)))
-	{
-		fprintf(stderr, "Failed to create clear image\n");
-		return NULL;
-	}
-
-	cvSet(img, CV_RGB(255, 255, 255), NULL);
 
 	return img;
 }
