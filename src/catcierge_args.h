@@ -77,6 +77,7 @@ typedef struct catcierge_args_s
 	size_t input_count;
 	CvRect roi;
 	int auto_roi;
+	int min_backlight;
 	double startup_delay;
 
 	char *base_time;

@@ -82,6 +82,7 @@ void catcierge_matcher_destroy(catcierge_matcher_t **ctx)
 
 int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRect *r)
 {
+	int ret = 0;
 	CvSeq *contours = NULL;
 	double max_area = 0.0;
 	double area;
@@ -125,22 +126,28 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 		{
 			max_area = area;
 			biggest_contour = it;
-			CATLOG("Biggest area: %0.2f\n", max_area);
 		}
 
 		it = it->h_next;
 	}
 
-	// TODO: Add an arg for the min size area the back light should be detected for.
-
 	if (!biggest_contour)
 	{
-		CATERR("Failed to find back light\n");
-		return -1;
+		CATERR("Failed to find back light!\n");
+		ret = -1; goto fail;
+	}
+
+	if (max_area < (double)ctx->args->min_backlight)
+	{
+		CATERR("Failed to find back light!\n");
+		CATERR("Back light area too small %0.0f expecting %d or bigger\n",
+				max_area, ctx->args->min_backlight);
+		ret = -1; goto fail;
 	}
 
 	*r = cvBoundingRect(biggest_contour, 0);
 
+fail:
 	if (img->nChannels != 1)
 	{
 		cvReleaseImage(&tmp);
@@ -149,7 +156,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 	cvReleaseImage(&tmp2);
 	cvReleaseMemStorage(&storage);
 
-	return 0;
+	return ret;
 }
 
 int catcierge_is_frame_obstructed(catcierge_matcher_t *ctx, IplImage *img)

@@ -1498,14 +1498,18 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 
 			if (catcierge_get_back_light_area(grb->matcher, grb->img, &args->roi))
 			{
-				CATERR("Failed to find the back light!\n");
-				// TODO: Shutdown here.
+				CATERR("Forcing Exit!\n");m
+				grb->running = 0;
+				return -1;
 			}
 		}
 
-		CATLOG("Obstruction Region Of Interest (ROI): x: %d y: %d w: %d h: %d\n",
-					args->roi.x, args->roi.y,
-					args->roi.width, args->roi.height);
+		if ((args->roi.width != 0) && (args->roi.height != 0))
+		{
+			CATLOG("Obstruction Region Of Interest (ROI): x: %d y: %d w: %d h: %d\n",
+						args->roi.x, args->roi.y,
+						args->roi.width, args->roi.height);
+		}
 	}
 
 	// Wait until the middle of the frame is black

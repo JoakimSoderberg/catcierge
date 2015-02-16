@@ -323,7 +323,19 @@ char *run_parse_args_tests()
 
 	PARSE_SINGLE_SETTING("noanim", args.noanim, 1);
 
-	PARSE_SINGLE_SETTING("save_steps", args.noanim, 1);
+	PARSE_SINGLE_SETTING("save_steps", args.save_steps, 1);
+
+	PARSE_SINGLE_SETTING("auto_roi", args.auto_roi, 1);
+
+	PARSE_SETTING("min_backlight 25000", "Expected a valid parse",
+		(ret == 0) && (args.min_backlight == 25000));
+	PARSE_SETTING("min_backlight", "Expected invalid parse for missing value",
+		(ret == -1));
+
+	PARSE_SETTING("startup_delay 5.0", "Expected a valid parse",
+		(ret == 0) && (args.startup_delay == 5.0));
+	PARSE_SETTING("startup_delay", "Expected invalid parse for missing value",
+		(ret == -1));
 
 	PARSE_SETTING("roi 1 2 3 4", "Expected a valid parse",
 		(ret == 0) 

@@ -552,7 +552,7 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 			return 0;
 		}
 
-		fprintf(stderr, "--roi expecting 4 values (x, y, w, h)\n");
+		fprintf(stderr, "--roi expecting 4 values (x, y, w, h) only got %lu\n", value_count);
 		return -1;
 	}
 
@@ -566,6 +566,18 @@ int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **valu
 		}
 
 		return 0;
+	}
+
+	if (!strcmp(key, "min_backlight"))
+	{
+		if (value_count == 1)
+		{
+			args->min_backlight = atoi(values[0]);
+			return 0;
+		}
+
+		fprintf(stderr, "--min_backlight missing value\n");
+		return -1;
 	}
 
 	if (!strcmp(key, "startup_delay"))
@@ -751,6 +763,9 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, " --auto_roi             Automatically crop to the area covered by the backlight.\n");
 	fprintf(stderr, "                        This will be done after --startup_delay has ended.\n");
 	fprintf(stderr, "                        This will override --roi.\n");
+	fprintf(stderr, " --min_backlight        If --auto_roi is on, this sets the minimum allowed area the\n");
+	fprintf(stderr, "                        backlight is allowed to be before it is considered broken.\n");
+	fprintf(stderr, "                        If it is smaller than this, the program will exit. Default 10000\n");
 	fprintf(stderr, "Lockout settings:\n");
 	fprintf(stderr, "-----------------\n");
 	fprintf(stderr, " --lockout_method <1|2|3>\n");
@@ -1132,6 +1147,7 @@ catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
 	if (margs)
 	{
 		margs->roi = &args->roi;
+		margs->min_backlight = args->min_backlight;
 	}
 
 	return margs;
@@ -1147,6 +1163,10 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("Settings:\n");
 	printf("--------------------------------------------------------------------------------\n");
 	printf("General:\n");
+	printf("       Startup delay: %0.1f seconds\n", args->startup_delay);
+	printf("            Auto ROI: %d\n", args->auto_roi);
+	if (args->auto_roi)
+	printf(" Min. backlight area: %d\n", args->min_backlight);
 	printf("          Show video: %d\n", args->show);
 	printf("        Save matches: %d\n", args->saveimg);
 	printf("       Save obstruct: %d\n", args->save_obstruct_img);
@@ -1214,6 +1234,7 @@ int catcierge_args_init(catcierge_args_t *args)
 	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
 	args->ok_matches_needed = DEFAULT_OK_MATCHES_NEEDED;
 	args->output_path = ".";
+	args->min_backlight = 10000;
 
 	#ifdef RPI
 	{
