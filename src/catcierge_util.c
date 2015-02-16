@@ -493,16 +493,13 @@ char **catcierge_parse_list(const char *input, size_t *list_count, int end_trim)
 
 	if (!(list = (char **)calloc(*list_count, sizeof(char *))))
 	{
-		CATERR("Out of memory!\n");
-		return NULL;
+		CATERR("Out of memory!\n"); return NULL;
 	}
 
 	// strtok changes its input.
 	if (!(input_copy = strdup(input)))
 	{
-		free(list);
-		*list_count = 0;
-		return NULL;
+		CATERR("Out of memory!\n"); goto fail;
 	}
 
 	s = strtok(input_copy, ",");
@@ -513,8 +510,7 @@ char **catcierge_parse_list(const char *input, size_t *list_count, int end_trim)
 
 		if (!(list[i] = strdup(s)))
 		{
-			CATERR("Out of memory!\n");
-			goto fail;
+			CATERR("Out of memory!\n"); goto fail;
 		}
 
 		if (end_trim)
@@ -532,26 +528,13 @@ char **catcierge_parse_list(const char *input, size_t *list_count, int end_trim)
 	return list;
 
 fail:
-	if (list)
-	{
-		for (i = 0; i < (*list_count); i++)
-		{
-			if (list[i])
-			{
-				free(list[i]);
-				list[i] = NULL;
-			}
-		}
-
-		free(list);
-	}
+	catcierge_free_list(list, *list_count);
+	*list_count = 0;
 
 	if (input_copy)
 	{
 		free(input_copy);
 	}
-
-	*list_count = 0;
 
 	return NULL;
 }
