@@ -80,3 +80,16 @@ int load_test_image_and_run(catcierge_grb_t *grb, int series, int i)
 	free_test_image(grb);
 	return 0;
 }
+
+int load_black_test_image_and_run(catcierge_grb_t *grb)
+{
+	if (!(grb->img = create_black_image()))
+	{
+		return -1;
+	}
+
+	catcierge_run_state(grb);
+	free_test_image(grb);
+	return 0;
+}
+

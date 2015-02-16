@@ -106,6 +106,7 @@ static char *run_generate_tests()
 			{ "%match_group_count%", "3" },
 			{ "%match_group_final_decision%", "1" },
 			{ "%match_group_success_count%", "3" },
+			{ "%match_group_direction%", "in" },
 			{ "%match_group_max_count%", _XSTR(MATCH_MAX_COUNT) },
 			{ "%match_group_id%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
 			{ "%match_group_id:4%", "34aa" },
@@ -139,7 +140,9 @@ static char *run_generate_tests()
 			{ "%no_match_is_fail%", "0" },
 			{ "%eq_histogram%", "0" },
 			{ "%prey_method%", "adaptive" },
-			{ "%prey_steps%", "2" }
+			{ "%prey_steps%", "2" },
+			{ "%no_final_decision%", "1" },
+			{ "%obstruct_filename%", "obstructify" }
 		};
 
 		#undef _XSTR
@@ -159,6 +162,7 @@ static char *run_generate_tests()
 			return "Failed to init matcher";
 		}
 
+		grb.args.no_final_decision = 1;
 		grb.args.match_time = 13;
 		grb.args.lockout_method = 2;
 		grb.args.lockout_time = 23;
@@ -177,6 +181,8 @@ static char *run_generate_tests()
 		strcpy(grb.match_group.matches[1].path, "/some/path/omg2");
 		strcpy(grb.match_group.matches[2].path, "/some/path/omg3");
 		strcpy(grb.match_group.matches[3].path, "/some/path/omg4");
+		grb.match_group.direction = MATCH_DIR_IN;
+		strcpy(grb.match_group.obstruct_filename, "obstructify");
 		grb.match_group.matches[0].result.success = 4;
 		grb.match_group.matches[2].result.direction = MATCH_DIR_IN;
 		grb.match_group.matches[2].result.result = 0.8;
@@ -321,7 +327,8 @@ static char *run_add_and_generate_tests()
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
 				"And match time, %match2_time:@H:@M%\n"
 				"%match_group_start_time% - %match_group_end_time%\n"
-				"%obstruct_path% %abs_obstruct_path% %obstruct_time%"
+				"%obstruct_path% %abs_obstruct_path% %obstruct_full_path%\n"
+				"%abs_obstruct_full_path% %obstruct_time%\n"
 				"CWD:%cwd%\n"
 				"Output path: %output_path%\n"
 				"Snouts: %snout1% %snout2%\n"
@@ -459,8 +466,9 @@ static char *run_load_templates_test()
 			{
 				"%!nofile    \n"
 				"%!event tut   \n"
+				"%!event hej, hopp\n"
 				"%!nozmq\n"
-				"%!topic\n"
+				"%!topic 123\n"
 				"Some cool template",
 			}
 		};
@@ -546,6 +554,14 @@ static char *run_load_templates_test()
 		mu_assert("Expected event list to contain \"tut\"", !strcmp(o.templates[6].settings.event_filter[0], "tut"));
 		catcierge_test_SUCCESS("Loaded two settings, nop+event");
 
+		if (catcierge_output_load_template(&o, inputs[8]))
+		{
+			return "Failed to load nozmq, nofile, topic settings";
+		}
+
+		mu_assert("Expected template count to be 7", o.template_count == 8);
+		catcierge_test_SUCCESS("Multiple settings, nozmq, nfile, topic");
+
 		catcierge_output_destroy(&o);
 	}
 	catcierge_grabber_destroy(&grb);
@@ -606,6 +622,36 @@ static char *run_recursion_tests()
 	return NULL;
 }
 
+static char *run_grow_template_array_test()
+{
+	int i;
+	catcierge_grb_t grb;
+	catcierge_output_t *o = &grb.output;
+	catcierge_args_t *args = &grb.args; 
+
+	catcierge_grabber_init(&grb);
+	{
+		if (catcierge_output_init(o))
+			return "Failed to init output context";
+
+		for (i = 0; i < 20; i++)
+		{
+			catcierge_test_STATUS("Adding template %d", i);
+			catcierge_output_add_template(o, 
+				"%!event tut\n"
+				"Template contents %time%",
+				"path_%time%");
+		}
+
+		mu_assert("Expected 20 templates", o->template_count == 20);
+
+		catcierge_output_destroy(o);
+	}
+	catcierge_grabber_destroy(&grb);
+
+	return NULL;
+}
+
 int TEST_catcierge_output(int argc, char **argv)
 {
 	char *e = NULL;
@@ -636,6 +682,10 @@ int TEST_catcierge_output(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_recursion_tests()),
 		"Run recursion templates tests.",
 		"Recursion tests", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_grow_template_array_test()),
+		"Run grow template array tests.",
+		"Grow template array tests", &ret);
 
 	// TODO: Add a test for template paths in other directory.
 

@@ -301,7 +301,6 @@ static void catcierge_cleanup_match_steps(catcierge_grb_t *grb, match_result_t *
 		if (step->img)
 		{
 			cvReleaseImage(&step->img);
-			step->img = NULL;
 		}
 
 		step->description = NULL;
@@ -322,7 +321,6 @@ static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 		if (grb->match_group.matches[i].img)
 		{
 			cvReleaseImage(&grb->match_group.matches[i].img);
-			grb->match_group.matches[i].img = NULL;
 		}
 
 		catcierge_cleanup_match_steps(grb, &grb->match_group.matches[i].result);
@@ -331,7 +329,6 @@ static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 	if (grb->match_group.obstruct_img)
 	{
 		cvReleaseImage(&grb->match_group.obstruct_img);
-		grb->match_group.obstruct_img = NULL;
 	}
 }
 
@@ -402,16 +399,14 @@ int catcierge_setup_gpio(catcierge_grb_t *grb)
 	// Set export for pins.
 	if (gpio_export(DOOR_PIN) || gpio_set_direction(DOOR_PIN, OUT))
 	{
-		CATERRFPS("Failed to export and set direction for door pin\n");
-		ret = -1;
-		goto fail;
+		CATERR("Failed to export and set direction for door pin\n");
+		ret = -1; goto fail;
 	}
 
 	if (gpio_export(BACKLIGHT_PIN) || gpio_set_direction(BACKLIGHT_PIN, OUT))
 	{
-		CATERRFPS("Failed to export and set direction for backlight pin\n");
-		ret = -1;
-		goto fail;
+		CATERR("Failed to export and set direction for backlight pin\n");
+		ret = -1; goto fail;
 	}
 
 	// Start with the door open and light on.
@@ -634,7 +629,6 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 		// TODO: Add execute event for this?
 
 		cvReleaseImage(&mg->obstruct_img);
-		mg->obstruct_img = NULL;
 	}
 
 	for (i = 0; i < MATCH_MAX_COUNT; i++)
@@ -675,7 +669,6 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 		}
 
 		cvReleaseImage(&m->img);
-		m->img = NULL;
 	}
 
 	if (args->new_execute)
@@ -1019,7 +1012,6 @@ void catcierge_match_group_start(match_group_t *mg, IplImage *img)
 	if (mg->obstruct_img)
 	{
 		cvReleaseImage(&mg->obstruct_img);
-		mg->obstruct_img = NULL;
 	}
 }
 
@@ -1162,7 +1154,6 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 		if (mg->obstruct_img)
 		{
 			cvReleaseImage(&mg->obstruct_img);
-			mg->obstruct_img = NULL;
 		}
 
 		mg->obstruct_img = cvCloneImage(grb->img);
@@ -1388,11 +1379,11 @@ void catcierge_state_transition_lockout(catcierge_grb_t *grb)
 	assert(grb);
 	args = &grb->args;
 	catcierge_timer_reset(&grb->lockout_timer);
+	assert((args->lockout_method >= TIMER_ONLY_1) && (args->lockout_method <= OBSTRUCT_OR_TIMER_3));
 
 	// Start the timer up front depending on lockout method.
 	switch (args->lockout_method)
 	{
-		default: break;
 		case OBSTRUCT_THEN_TIMER_2:
 			CATLOG("Waiting to start lockout timer until frame clears (Lockout method 2)\n");
 			break;
@@ -1424,8 +1415,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	// We have something to match against.
 	if (catcierge_do_match(grb) < 0)
 	{
-		CATERRFPS("Error when matching frame!\n");
-		return -1;
+		CATERR("Error when matching frame!\n"); return -1;
 	}
 
 	catcierge_process_match_result(grb, grb->img);
@@ -1487,8 +1477,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 			if (catcierge_get_back_light_area(grb->matcher, grb->img, &args->roi))
 			{
 				CATERR("Forcing Exit!\n");
-				grb->running = 0;
-				return -1;
+				grb->running = 0; return -1;
 			}
 		}
 
@@ -1504,8 +1493,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 	// before we try to match anything.
 	if ((frame_obstructed = grb->matcher->is_obstructed(grb->matcher, grb->img)) < 0)
 	{
-		CATERRFPS("Failed to perform check for obstructed frame\n");
-		return -1;
+		CATERR("Failed to perform check for obstructed frame\n"); return -1;
 	}
 
 	if (frame_obstructed)

@@ -39,6 +39,17 @@ char *run_test_catcierge_get_abs_path()
 	return NULL;
 }
 
+static char *run_make_path_tests()
+{
+	#define LONG "loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong"
+	if (catcierge_make_path("%s/%s/%s/%s/%s/path", LONG, LONG, LONG, LONG, LONG))
+	{
+		return "Failed to create long path";
+	}
+
+	return NULL;
+}
+
 int TEST_catcierge_util(int argc, char *argv[])
 {
 	int ret = 0;
@@ -47,6 +58,10 @@ int TEST_catcierge_util(int argc, char *argv[])
 	CATCIERGE_RUN_TEST((e = run_test_catcierge_get_abs_path()),
 		"catcierge_get_abs_path",
 		"catcierge_get_abs_path", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_make_path_tests()),
+		"catcierge_make_path tests",
+		"catcierge_make_path tests", &ret);
 
 	if (ret)
 	{

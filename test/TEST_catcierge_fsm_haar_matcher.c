@@ -143,6 +143,7 @@ static char *run_save_steps_test()
 	args->haar.cascade = CATCIERGE_CASCADE;
 
 	args->save_steps = 1;
+	args->save_obstruct_img = 1;
 	args->saveimg = 1;
 	args->output_path = "./test_save_steps";
 	catcierge_make_path(args->output_path);

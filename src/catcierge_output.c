@@ -128,8 +128,7 @@ int catcierge_output_init(catcierge_output_t *ctx)
 	if (!(ctx->templates = calloc(ctx->template_max_count,
 		sizeof(catcierge_output_template_t))))
 	{
-		CATERR("Out of memory\n");
-		return -1;
+		CATERR("Out of memory\n"); return -1;
 	}
 
 	return 0;
@@ -221,8 +220,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 
 	if (!(tmp = strdup(template_str)))
 	{
-		CATERR("Out of memory!\n");
-		return NULL;
+		CATERR("Out of memory!\n"); return NULL;
 	}
 
 	it = tmp;
@@ -309,6 +307,11 @@ const char *catcierge_output_read_template_settings(const char *name,
 			{
 				CATERR("Out of memory!\n"); goto fail;
 			}
+
+			if (strlen(settings->topic) == 0)
+			{
+				CATERR("Empty topic specified in template\n"); goto fail;
+			}
 			#endif
 
 			it = row_end;
@@ -390,7 +393,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 	}
 
 	// Grow the templates array if needed.
-	if (ctx->template_max_count < (ctx->template_count + 1))
+	if (ctx->template_max_count <= ctx->template_count)
 	{
 		ctx->template_max_count *= 2;
 
@@ -639,12 +642,6 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return buf;
 	}
 
-	if (!strcmp(var, "git_tainted"))
-	{
-		snprintf(buf, bufsize - 1, "%d", CATCIERGE_GIT_TAINTED);
-		return buf;
-	}
-
 	if (!strcmp(var, "version"))
 	{
 		return CATCIERGE_VERSION_STR;
@@ -654,8 +651,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	{
 		if (!getcwd(buf, bufsize - 1))
 		{
-			CATERR("Failed to get cwd\n");
-			return NULL;
+			CATERR("Failed to get cwd\n"); return NULL;
 		}
 
 		return buf;
@@ -852,8 +848,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 			if (sscanf(var, "match%d_", &idx) == EOF)
 			{
-				CATERR("Output: Failed to parse %s\n", var);
-				return NULL;
+				CATERR("Output: Failed to parse %s\n", var); return NULL;
 			}
 
 			idx--; // Convert to 0-based index.
@@ -861,8 +856,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		if ((idx < 0) || (idx >= MATCH_MAX_COUNT))
 		{
-			CATERR("Output: %s out of index. (%lu > %lu)\n", var, idx, grb->match_group.match_count);
-			return NULL;
+			CATERR("Output: %s out of index. (%lu > %lu)\n", var, idx, grb->match_group.match_count); return NULL;
 		}
 
 		m = &grb->match_group.matches[idx];
@@ -1024,8 +1018,7 @@ static char *catcierge_output_realloc_if_needed(char *str, size_t new_size, size
 
 		if (!(str = realloc(str, *max_size)))
 		{
-			CATERR("Out of memory\n");
-			return NULL;
+			CATERR("Out of memory\n"); return NULL;
 		}
 	}
 
