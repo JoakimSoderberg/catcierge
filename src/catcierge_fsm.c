@@ -1491,6 +1491,21 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 
 		catcierge_timer_reset(&grb->startup_timer);
 		CATLOG("Startup delay of %0.2f seconds has ended!\n", args->startup_delay);
+
+		if (args->auto_roi)
+		{
+			CATLOG("Automatically setting the frame obstruction Region Of Interest (ROI) to the back light area.\n");
+
+			if (catcierge_get_back_light_area(grb->matcher, grb->img, &args->roi))
+			{
+				CATERR("Failed to find the back light!\n");
+				// TODO: Shutdown here.
+			}
+		}
+
+		CATLOG("Obstruction Region Of Interest (ROI): x: %d y: %d w: %d h: %d\n",
+					args->roi.x, args->roi.y,
+					args->roi.width, args->roi.height);
 	}
 
 	// Wait until the middle of the frame is black

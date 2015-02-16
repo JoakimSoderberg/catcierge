@@ -195,7 +195,6 @@ int main(int argc, char **argv)
 	catcierge_zmq_init(&grb);
 	#endif
 
-	catcierge_set_state(&grb, catcierge_state_waiting);
 	catcierge_fsm_start(&grb);
 	catcierge_timer_start(&grb.frame_timer);
 

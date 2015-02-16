@@ -742,7 +742,15 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog)
 	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are\n");
 	fprintf(stderr, "                        the same as these options.\n");
 	fprintf(stderr, " --chuid <uid>          Run process under this uid.\n");
+	fprintf(stderr, " --startup_delay <n>    Number of seconds to wait after starting before starting\n");
+	fprintf(stderr, "                        to capture anything. This is so that if you have a back light\n");
+	fprintf(stderr, "                        that is turned on at startup, it has time to turn on, otherwise\n");
+	fprintf(stderr, "                        the program will think something is obstructing the image and start\n");
+	fprintf(stderr, "                        trying to match.\n");
 	fprintf(stderr, " --roi <x y w h>        Crop all input image to this region of interest.\n");
+	fprintf(stderr, " --auto_roi             Automatically crop to the area covered by the backlight.\n");
+	fprintf(stderr, "                        This will be done after --startup_delay has ended.\n");
+	fprintf(stderr, "                        This will override --roi.\n");
 	fprintf(stderr, "Lockout settings:\n");
 	fprintf(stderr, "-----------------\n");
 	fprintf(stderr, " --lockout_method <1|2|3>\n");
@@ -1123,7 +1131,7 @@ catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
 	// TODO: This is an ugly way to pass this on... But whatever for now.
 	if (margs)
 	{
-		margs->roi = args->roi;
+		margs->roi = &args->roi;
 	}
 
 	return margs;

@@ -80,7 +80,79 @@ void catcierge_matcher_destroy(catcierge_matcher_t **ctx)
 	*ctx = NULL;
 }
 
-int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img)
+int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRect *r)
+{
+	CvSeq *contours = NULL;
+	double max_area = 0.0;
+	double area;
+	CvSeq *biggest_contour = NULL;
+	CvSeq *it = NULL;
+	IplImage *tmp = NULL;
+	IplImage *tmp2 = NULL;
+	CvMemStorage *storage = NULL;
+	assert(ctx);
+	assert(r);
+
+	if (!(storage = cvCreateMemStorage(0)))
+	{
+		return -1;
+	}
+
+	// Only covert to grayscale if needed.
+	if (img->nChannels != 1)
+	{
+		tmp = cvCreateImage(cvGetSize(img), 8, 1);
+		cvCvtColor(img, tmp, CV_BGR2GRAY);
+	}
+	else
+	{
+		tmp = img;
+	}
+
+	// Get a binary image.
+	tmp2 = cvCreateImage(cvGetSize(img), 8, 1);
+	cvThreshold(tmp, tmp2, 90, 255, CV_THRESH_BINARY);
+
+	cvFindContours(tmp2, storage, &contours,
+		sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
+
+	it = contours;
+	while (it)
+	{
+		area = cvContourArea(it, CV_WHOLE_SEQ, 0);
+
+		if (area > max_area)
+		{
+			max_area = area;
+			biggest_contour = it;
+			CATLOG("Biggest area: %0.2f\n", max_area);
+		}
+
+		it = it->h_next;
+	}
+
+	// TODO: Add an arg for the min size area the back light should be detected for.
+
+	if (!biggest_contour)
+	{
+		CATERR("Failed to find back light\n");
+		return -1;
+	}
+
+	*r = cvBoundingRect(biggest_contour, 0);
+
+	if (img->nChannels != 1)
+	{
+		cvReleaseImage(&tmp);
+	}
+
+	cvReleaseImage(&tmp2);
+	cvReleaseMemStorage(&storage);
+
+	return 0;
+}
+
+int catcierge_is_frame_obstructed(catcierge_matcher_t *ctx, IplImage *img)
 {
 	CvSize size;
 	int w;
@@ -91,9 +163,12 @@ int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img
 	IplImage *tmp = NULL;
 	IplImage *tmp2 = NULL;
 	CvRect orig_roi = cvGetImageROI(img);
-	CvRect *roi = &ctx->args->roi;
+	CvRect *roi;
+	assert(ctx);
 
-	if ((roi->width != 0) && (roi->height != 0))
+	roi = ctx->args->roi;
+
+	if (roi && (roi->width != 0) && (roi->height != 0))
 	{
 		cvSetImageROI(img, *roi);
 	}
@@ -105,8 +180,8 @@ int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img
 	size = cvGetSize(img);
 	w = (int)(size.width / 2);
 	h = (int)(size.height * 0.1);
-	x = roi->x + (size.width - w) / 2;
-	y = roi->y + (size.height - h) / 2;
+	x = (roi ? roi->x : 0) + (size.width - w) / 2;
+	y = (roi ? roi->y : 0) + (size.height - h) / 2;
 
 	cvSetImageROI(img, cvRect(x, y, w, h));
 
@@ -145,7 +220,7 @@ int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img
 	}
 	#endif
 
-	cvSetImageROI(img, cvRect(orig_roi.x, orig_roi.y, orig_roi.width, orig_roi.height));
+	cvSetImageROI(img, orig_roi);
 
 	if (img->nChannels != 1)
 	{
