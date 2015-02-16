@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "catcierge_util.h"
+#include "catcierge_log.h"
 #include "minunit.h"
 #include "catcierge_test_helpers.h"
 
@@ -30,6 +31,8 @@ char *run_test_catcierge_get_abs_path()
 	res = catcierge_get_abs_path(filename, small_buf, sizeof(small_buf));
 	catcierge_test_STATUS("Small buffer: %s -> %s", filename, res);
 	mu_assert("Expected invalid path with too small buffer", res == NULL);
+
+	log_printc(f, COLOR_NORMAL, "123abc");
 
 	fclose(f);
 
