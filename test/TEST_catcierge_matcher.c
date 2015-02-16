@@ -58,6 +58,15 @@ static char *run_backlight_tests()
 		ret = catcierge_get_back_light_area(grb.matcher, grb.img, &args->roi);
 		mu_assert("Expected ret < 0 for catcierge_get_back_light_area", (ret < 0));
 		catcierge_test_SUCCESS("Failed to find back light as expected\n");
+
+		catcierge_test_STATUS("Testing black image with small back light (too small!)");
+		// Draw a small white rectangle on the black background.
+		cvRectangleR(grb.img, cvRect(40, 40, 40, 40), CV_RGB(255, 255, 255), 1, 8, 0);
+		args->haar.super.min_backlight = 2000;
+		ret = catcierge_get_back_light_area(grb.matcher, grb.img, &args->roi);
+		mu_assert("Expected ret < 0 for catcierge_get_back_light_area", (ret < 0));
+		catcierge_test_SUCCESS("Failed to find back light as expected\n");
+
 		cvReleaseImage(&grb.img);
 
 		catcierge_matcher_destroy(&grb.matcher);

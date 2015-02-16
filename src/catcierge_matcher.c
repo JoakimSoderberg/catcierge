@@ -137,6 +137,9 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 		ret = -1; goto fail;
 	}
 
+	CATLOG("Back light found with area %0.0f (expected at least %d)\n",
+		max_area, ctx->args->min_backlight);
+
 	if (max_area < (double)ctx->args->min_backlight)
 	{
 		CATERR("Failed to find back light!\n");
