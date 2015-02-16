@@ -1498,7 +1498,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 
 			if (catcierge_get_back_light_area(grb->matcher, grb->img, &args->roi))
 			{
-				CATERR("Forcing Exit!\n");m
+				CATERR("Forcing Exit!\n");
 				grb->running = 0;
 				return -1;
 			}
