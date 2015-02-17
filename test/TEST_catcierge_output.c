@@ -637,10 +637,13 @@ static char *run_grow_template_array_test()
 		for (i = 0; i < 20; i++)
 		{
 			catcierge_test_STATUS("Adding template %d", i);
-			catcierge_output_add_template(o, 
+			if (catcierge_output_add_template(o, 
 				"%!event tut\n"
 				"Template contents %time%",
-				"path_%time%");
+				"path_%time%"))
+			{
+				return "Failed to add template";
+			}
 		}
 
 		mu_assert("Expected 20 templates", o->template_count == 20);
