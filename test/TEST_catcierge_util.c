@@ -41,7 +41,14 @@ char *run_test_catcierge_get_abs_path()
 
 static char *run_make_path_tests()
 {
-	#define LONG "loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong"
+	#ifdef _WIN32
+	// Because you cannot use the "\\?\" prefix with a relative path,
+	// relative paths are always limited to a total of MAX_PATH characters.
+	https ://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
+	#define LONG "loooooooooooooooooooooooooooooong"
+	#else
+	#define LONG "loooooooooooooooooooooooooooooooooooooooooooooooooooong"
+	#endif
 	if (catcierge_make_path("%s/%s/%s/%s/%s/path", LONG, LONG, LONG, LONG, LONG))
 	{
 		return "Failed to create long path";

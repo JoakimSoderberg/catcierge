@@ -57,13 +57,13 @@ static char *run_tests()
 	mu_assert("Unexpected millisecond string", atoi(buf) == tv.tv_usec);
 
 	// Test setting the base time.
-	base_time_diff = t;
+	base_time_diff = 500;
 	catcierge_strftime_set_base_diff(base_time_diff);
 	ret = catcierge_strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S.%f", &tm, &tv);
 	mu_assert("Formatting failed with known input", ret >= 0);
 
-	catcierge_test_STATUS("Got: \"%s\" Expected: \"%s\"", buf, "1970-01-01 00:00:00.1215752191");
-	mu_assert("Unexpected millisecond string", !strcmp(buf, "1970-01-01 00:00:00.1215752191"));
+	catcierge_test_STATUS("Got: \"%s\" Expected: \"%s\"", buf, "2014-09-02 13:26:50.1215752191");
+	mu_assert("Unexpected millisecond string", !strcmp(buf, "2014-09-02 13:26:50.1215752191"));
 
 	return NULL;
 }

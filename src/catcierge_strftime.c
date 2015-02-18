@@ -80,7 +80,10 @@ int catcierge_strftime(char *dst, size_t dst_len, const char *fmt, const struct 
 		tv->tv_sec -= catcierge_base_time_diff;
 		t = mktime(&tmp_tm);
 		t -= catcierge_base_time_diff;
-		tm = localtime(&t);
+		if (!(tm = localtime(&t)))
+		{
+			goto fail;
+		}
 	}
 
 	// Add millisecond formatting (uses %f as python).
