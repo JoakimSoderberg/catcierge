@@ -369,7 +369,7 @@ int catcierge_drop_root_privileges(const char *user)
 	#ifdef CATCIERGE_ENABLE_DROP_ROOT_PRIVILEGES
 	struct passwd *pw = getpwnam(user);
 
-	if (pw->pw_uid != 0)
+	if (getuid() != 0)
 	{
 		CATLOG("Not running as root (no privileges to drop).\n");
 		return 0;
