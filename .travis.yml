@@ -33,6 +33,9 @@ script:
   - if [ x$CAT_METHOD == xmemcheck ] && [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xlinux ]; then cd $TRAVIS_BUILD_DIR && mkdir build && cd build && cmake -DRPI=0 -DOpenCV_DIR=/tmp/opencv-2.4.10/build $CMAKE_ARGS .. && make && ctest --output-on-failure; fi
   - if [ x$CAT_METHOD == xmemcheck ] && [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xosx ]; then cd $TRAVIS_BUILD_DIR && mkdir build && cd build && cmake -DRPI=0 -DOpenCV_DIR=/usr/local/Cellar/opencv/2.4.9/build $CMAKE_ARGS .. && make && ctest --output-on-failure; fi
 
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
 addons:
   coverity_scan:
     project:

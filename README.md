@@ -2,7 +2,8 @@
 [![Drone.io Build Status][drone_img]][drone]
 [![Circle CI][circleci_img]][circleci]
 [![Appveyor Build status][appveyor_img]][appveyor]
-[![Coverage Status][coveralls_img]][coveralls]
+[![Coveralls Status][coveralls_img]][coveralls]
+[![Codecov Status][codecov_img]][codecov]
 [![Coverity Scan Build Status][coverity_img]][coverity]
 
 Catcierge
@@ -235,5 +236,7 @@ $ python higgs.py --snout snouts/snout{1,2}.png --output <path/to/output> --nosh
 [appveyor]: https://ci.appveyor.com/project/JoakimSoderberg/catcierge
 [coveralls_img]: https://coveralls.io/repos/JoakimSoderberg/catcierge/badge.png
 [coveralls]: https://coveralls.io/r/JoakimSoderberg/catcierge
+[codecov]: http://codecov.io/github/JoakimSoderberg/catcierge?branch=master
+[codecov_img]: http://codecov.io/github/JoakimSoderberg/catcierge/coverage.svg?branch=master
 [coverity_img]: https://scan.coverity.com/projects/2506/badge.svg
 [coverity]: https://scan.coverity.com/projects/2506)
