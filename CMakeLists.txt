@@ -151,7 +151,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/catcierge_config.h.in ${CMAKE_CUR
 include_directories(
 	${PROJECT_SOURCE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
-	${PROJECT_SOURCE_DIR}/src/sha1)
+	${PROJECT_SOURCE_DIR}/src/sha1
+	${PROJECT_SOURCE_DIR}/src/cargo
+	${PROJECT_SOURCE_DIR}/src/alini)
 
 if (NOT RPI AND NOT OpenCV_DIR)
 message("-----------------------------------------------------------------")

@@ -12,7 +12,8 @@
 #include "catcierge_util.h"
 #include "catcierge_output.h"
 
-#include "alini/alini.h"
+#include "alini.h"
+#include "cargo.h"
 
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"

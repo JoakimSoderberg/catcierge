@@ -4,3 +4,6 @@
 [submodule "rpi_userland"]
 	path = rpi_userland
 	url = https://github.com/raspberrypi/userland.git
+[submodule "src/cargo"]
+	path = src/cargo
+	url = git@github.com:JoakimSoderberg/cargo.git
