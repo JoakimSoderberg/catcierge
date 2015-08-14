@@ -84,3 +84,8 @@ foreach (test_name ${TEST_SRCS_NO_EXT})
 	endif()
 endforeach()
 
+add_executable(cargo_tests ${PROJECT_SOURCE_DIR}/src/cargo/cargo.c)
+set_target_properties(cargo_tests PROPERTIES COMPILE_DEFINITIONS "CARGO_TEST=ON")
+
+add_test(cargo_tests ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/cargo_tests -1)
+

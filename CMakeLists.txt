@@ -310,7 +310,9 @@ set(LIB_SRC
 	${PROJECT_SOURCE_DIR}/src/catcierge_args.c
 	${PROJECT_SOURCE_DIR}/src/catcierge_timer.c
 	${PROJECT_SOURCE_DIR}/src/catcierge_fsm.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_output.c)
+	${PROJECT_SOURCE_DIR}/src/catcierge_output.c
+	${PROJECT_SOURCE_DIR}/src/cargo/cargo.c
+	${PROJECT_SOURCE_DIR}/src/cargo_ini.c)
 
 if (WIN32)
 	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/src/win32/gettimeofday.c)
