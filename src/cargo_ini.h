@@ -21,6 +21,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+#ifndef __CARGO_INI_H__
+#define __CARGO_INI_H__
+
 #include "alini.h"
 #include "cargo.h"
 #include "uthash.h"
@@ -73,4 +77,6 @@ typedef struct conf_ini_args_s
 int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args);
 
 void ini_args_destroy(conf_ini_args_t *args);
+
+#endif // __CARGO_INI_H__
 

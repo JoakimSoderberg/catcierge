@@ -12,6 +12,7 @@
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
 #include "catcierge_types.h"
+#include "cargo_ini.h"
 
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
 #define DEFAULT_MATCH_WAIT 	 0		// How long to wait after a match try before we match again.
@@ -27,6 +28,7 @@
 
 typedef struct catcierge_args_s
 {
+	conf_ini_args_t ini_args;
 	alini_parser_t *parser;
 	char *program_name;
 	int config_failure;
