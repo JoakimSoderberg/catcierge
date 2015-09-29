@@ -44,6 +44,7 @@ option(WITH_TEST_PROGRAMS "Turns on compilation of tester programs" ON)
 option(WITH_UNIT_TESTS "Turn on compilation of unit test" ON)
 option(WITH_ZMQ "Compile ZMQ support" OFF)
 option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
+set(CARGO_DEBUG "" CACHE STRING "Debug level for Cargo command line parser")
 
 # Turn on coverage if we're running coveralls!
 if (CATCIERGE_COVERALLS)
@@ -56,6 +57,11 @@ endif()
 
 if (CATCIERGE_GUI_TESTS)
 	add_definitions(-DCATCIERGE_GUI_TESTS)
+endif()
+
+if (CARGO_DEBUG)
+	message("CARGO_DEBUG=${CARGO_DEBUG}")
+	add_definitions(-DCARGO_DEBUG=${CARGO_DEBUG})
 endif()
 
 # Set some nicer output dirs.
