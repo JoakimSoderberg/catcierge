@@ -21,6 +21,82 @@
 #include "cargo_ini.h"
 #include "catcierge_args.h"
 
+int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, "lockout", "Lockout settings", NULL);
+
+	// TODO: Verify value
+	ret |= cargo_add_option(cargo, 0,
+			"<lockout> --lockout_method",
+			"Defines the method used to decide when to unlock:\n"
+			"[1: Only use the timer, don't care about clear frame.]\n"
+			"2: Wait for clear frame or that the timer has timed out.\n"
+			"3: Wait for clear frame and then start unlock timer.\n",
+			"i", &args->lockout_method);
+
+	ret |= cargo_add_option(cargo, 0,
+			"--show",
+			"Show GUI of the camera feed (X11 only).",
+			"b", &args->show);
+
+	return ret;
+}
+
+int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	// TODO: Add functions for matcher arguments
+
+	ret |= cargo_add_group(cargo, 0, "matcher_opts", "Matcher settings", NULL);
+
+	// TODO: Verify between 0 and MATCH_MAX_COUNT
+	ret |= cargo_add_option(cargo, 0,
+			"<matcher_opts> --ok_matches_needed", NULL,
+			"b", &args->ok_matches_needed);
+	ret |= cargo_set_option_description(cargo,
+			"--ok_matches_needed",
+			"The number of matches out of %d matches "
+			"that need to be OK for the match to be considered "
+			"an over all OK match", MATCH_MAX_COUNT);
+
+	return ret;
+}
+
+static int add_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_option(cargo, 0,
+			"--config -c", "Path to config file",
+			"s", &args->config_path);
+
+	ret |= cargo_add_mutex_group(cargo,
+			CARGO_MUTEXGRP_ONE_REQUIRED |
+			CARGO_MUTEXGRP_GROUP_USAGE, 
+			"matcher", 
+			"Matcher",
+			"The algorithm to use when matching for the cat profile image");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!matcher> --template_matcher",
+			"Template based matching algorithm",
+			"b=", &args->matcher_type, MATCHER_TEMPLATE);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!matcher> --haar_matcher",
+			"Haar feature based matching algorithm (recommended)",
+			"b=", &args->matcher_type, MATCHER_HAAR);
+
+	ret |= add_matcher_options(cargo, args);
+
+	ret |= add_lockout_options(cargo, args);
+
+	return ret;
+}
+
 int parse_cmdargs(int argc, char **argv)
 {
 	int i;
@@ -29,34 +105,18 @@ int parse_cmdargs(int argc, char **argv)
 	catcierge_args_t args;
 
 	memset(&args, 0, sizeof(args));
-	//args_init(&args);
 
-	if (cargo_init(&cargo, CARGO_AUTOCLEAN, argv[0]))
+	if (cargo_init(&cargo, 0, argv[0]))
 	{
 		fprintf(stderr, "Failed to init command line parsing\n");
 		return -1;
 	}
 
 	cargo_set_description(cargo,
-		"Specify a configuration file, and try overriding the values set "
-		"in it using the command line options.");
+		"Catcierge saves you from cleaning the floor!");
 
-	/*
-	// Combine flags using OR.
-	ret |= cargo_add_option(cargo, 0,
-			"--verbose -v", "Verbosity level",
-			"b|", &args.debug, 4, ERROR, WARN, INFO, DEBUG);
+	ret = add_options(cargo, &args);
 
-	ret |= cargo_add_option(cargo, 0,
-			"--config -c", "Path to config file",
-			"s", &args.config_path);
-
-	ret |= cargo_add_group(cargo, 0, "vals", "Values", "Some options to test with.");
-	ret |= cargo_add_option(cargo, 0, "<vals> --alpha -a", "Alpha", "i", &args.a);
-	ret |= cargo_add_option(cargo, 0, "<vals> --beta -b", "Beta", "i", &args.b);
-	ret |= cargo_add_option(cargo, 0, "<vals> --centauri", "Centauri", "i", &args.c);
-	ret |= cargo_add_option(cargo, 0, "<vals> --delta -d", "Delta", "i", &args.d);
-	*/
 	assert(ret == 0);
 
 	// Parse once to get --config value.

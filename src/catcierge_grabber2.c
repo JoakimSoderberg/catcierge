@@ -42,6 +42,8 @@ catcierge_grb_t grb;
 int pid_fd;
 #define PID_PATH "/var/run/catcierge.pid"
 
+#include "catcierge_cargo.h"
+
 int create_pid_file(const char *prog_name, const char *pid_path, int flags)
 {
 	int fd;
@@ -203,6 +205,7 @@ int main(int argc, char **argv)
 	#endif
 	fprintf(stderr, "\n");
 
+	// TODO: Enable specifying pid path on command line.
 	#ifndef _WIN32
 	pid_fd = create_pid_file(argv[0], PID_PATH, FD_CLOEXEC);
 	#endif
