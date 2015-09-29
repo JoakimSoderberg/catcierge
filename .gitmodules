@@ -6,7 +6,7 @@
 	url = https://github.com/raspberrypi/userland.git
 [submodule "src/cargo"]
 	path = src/cargo
-	url = git@github.com:JoakimSoderberg/cargo.git
+	url = https://github.com/JoakimSoderberg/cargo.git
 [submodule "src/alini"]
 	path = src/alini
-	url = git@github.com:JoakimSoderberg/alini.git
+	url = https://github.com/JoakimSoderberg/alini.git
