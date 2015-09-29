@@ -1,7 +1,7 @@
 //
 // This file is part of the Catcierge project.
 //
-// Copyright (c) Joakim Soderberg 2013-2014
+// Copyright (c) Joakim Soderberg 2013-2015
 //
 //    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
