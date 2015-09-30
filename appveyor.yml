@@ -10,6 +10,7 @@ build_script:
   - git submodule update --init
   - md build
   - cd build
+  - cmake --help
   - cmake -DCMAKE_BUILD_TYPE=Release -DOpenCV_DIR=c:\OpenCV249\opencv\build ..
   - cmake --build . --config Release
   - ctest --output-on-failure
