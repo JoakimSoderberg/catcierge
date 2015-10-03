@@ -92,6 +92,7 @@ typedef struct catcierge_args_s
 	char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
 	int nocolor;
 	int noanim;
+	// TODO: Remove the static size of this.
 	char *inputs[MAX_INPUT_TEMPLATES];
 	size_t input_count;
 	CvRect roi;

@@ -216,6 +216,9 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	// TODO: REMOVE ME :)
+	//return parse_cmdargs(argc, argv);
+
 	// Get program settings.
 	{
 		if (catcierge_parse_config(args, argc, argv))

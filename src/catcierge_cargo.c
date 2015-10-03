@@ -109,17 +109,58 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 
 	// TODO: Add functions for matcher arguments
 
-	ret |= cargo_add_group(cargo, 0, "matcher_opts", "Matcher settings", NULL);
+	ret |= cargo_add_group(cargo, 0, "matcher", "Matcher settings", NULL);
 
 	// TODO: Verify between 0 and MATCH_MAX_COUNT
 	ret |= cargo_add_option(cargo, 0,
-			"<matcher_opts> --ok_matches_needed", NULL,
+			"<matcher> --ok_matches_needed", NULL,
 			"b", &args->ok_matches_needed);
 	ret |= cargo_set_option_description(cargo,
 			"--ok_matches_needed",
 			"The number of matches out of %d matches "
 			"that need to be OK for the match to be considered "
 			"an over all OK match", MATCH_MAX_COUNT);
+
+	return ret;
+}
+
+static int add_output_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, "output", "Output settings", 
+			"Note that all the *_path variables below can contain "
+			"variables of the format %%var%%.\n"
+			" See --cmdhelp for available variables.");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --save",
+			"Save match images (both ok and failed).",
+			"b", &args->saveimg);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --save_obstruct",
+			"Save the image that triggered the \"frame obstructed\" event.",
+			"b", &args->save_obstruct_img);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --save_steps",
+			"Save each step of the matching algorithm. "
+			"(--save must also be turned on)",
+			"b", &args->save_obstruct_img);
+	/*
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --template --input",
+			"Path to one or more template files generated on specified events. "
+			"(Not to be confused with the template matcher)",
+			".[s]#", &args->inputs, &args->input_count, MAX_INPUT_TEMPLATES);
+	*/
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --output_path",
+			"Path to where the match images and generated templates "
+			"should be saved.",
+			"b", &args->save_obstruct_img);
 
 	return ret;
 }
@@ -175,6 +216,22 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"--roi",
 			"X Y WIDTH HEIGHT");
 
+	ret |= cargo_add_option(cargo, 0,
+			"--auto_roi",
+			"Automatically crop to the area covered by the backlight. "
+			"This will be done after --startup_delay has ended. "
+			"Overrides --roi.",
+			"b", &args->chuid);
+
+	ret |= cargo_add_option(cargo, 0,
+			"--min_backlight",
+			"If --auto_roi is on, this sets the minimum allowed area the "
+			"backlight is allowed to be before it is considered broken. "
+			"If it is smaller than this, the program will exit. Default 10000.",
+			"b", &args->chuid);
+
+
+
 	ret |= cargo_add_mutex_group(cargo,
 			CARGO_MUTEXGRP_ONE_REQUIRED |
 			CARGO_MUTEXGRP_GROUP_USAGE, 
@@ -197,6 +254,9 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= add_lockout_options(cargo, args);
 
 	ret |= add_presentation_options(cargo, args);
+
+	ret |= add_output_options(cargo, args);
+
 
 	return ret;
 }
