@@ -148,13 +148,12 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 			"Save each step of the matching algorithm. "
 			"(--save must also be turned on)",
 			"b", &args->save_obstruct_img);
-	/*
+
 	ret |= cargo_add_option(cargo, 0,
 			"<output> --template --input",
 			"Path to one or more template files generated on specified events. "
 			"(Not to be confused with the template matcher)",
 			".[s]#", &args->inputs, &args->input_count, MAX_INPUT_TEMPLATES);
-	*/
 
 	ret |= cargo_add_option(cargo, 0,
 			"<output> --output_path",
