@@ -159,7 +159,63 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 			"<output> --output_path",
 			"Path to where the match images and generated templates "
 			"should be saved.",
-			"b", &args->save_obstruct_img);
+			"s", &args->output_path);
+	ret |= cargo_set_metavar(cargo, "--output_path", "PATH");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --match_output_path",
+			"Override --output_path for match images and save them here instead. "
+			"If --new_execute is used, this can be relative to --output_path "
+			"by using %%output_path%% in the path.",
+			"s", &args->match_output_path);
+	ret |= cargo_set_metavar(cargo, "--match_output_path", "PATH");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --steps_output_path",
+			"If --save_steps is enabled, save step images to this path. "
+			"Same as for --match_output_path, overrides --output_path.",
+			"s", &args->steps_output_path);
+	ret |= cargo_set_metavar(cargo, "--steps_output_path", "PATH");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --obstruct_output_path",
+			"Path for the obstruct images. Overrides --output_path.",
+			"s", &args->obstruct_output_path);
+	ret |= cargo_set_metavar(cargo, "--obstruct_output_path", "PATH");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --template_output_path",
+			"Output path for templates (given by --template). "
+			"Overrides --output_path.",
+			"s", &args->template_output_path);
+	ret |= cargo_set_metavar(cargo, "--template_output_path", "PATH");
+
+	#ifdef WITH_ZMQ
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --zmq",
+			"Publish generated output templates to a ZMQ socket. "
+			"If a template contains the setting 'nozmq' it will not be published.",
+			"b", &args->zmq);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --zmq_port",
+			NULL,
+			"i", &args->zmq_port);
+	ret |= cargo_set_option_description(cargo,
+			"--zmq_port",
+			"The TCP port that the ZMQ publisher listens on. Default %d",
+			DEFAULT_ZMQ_PORT);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --zmq_iface",
+			NULL,
+			"s", &args->zmq_iface);
+	ret |= cargo_set_option_description(cargo,
+			"--zmq_iface",
+			"The interface the ZMQ publisher listens on. Default %s",
+			DEFAULT_ZMQ_IFACE);
+
+	#endif // WITH_ZMQ
 
 	return ret;
 }
