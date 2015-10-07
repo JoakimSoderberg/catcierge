@@ -111,15 +111,34 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 
 	ret |= cargo_add_group(cargo, 0, "matcher", "Matcher settings", NULL);
 
+	ret |= cargo_add_mutex_group(cargo,
+			CARGO_MUTEXGRP_ONE_REQUIRED,
+			"matcher_type", 
+			"Matcher type",
+			"The algorithm to use when matching for the cat profile image.");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!matcher_type, matcher> --template_matcher --templ",
+			"Template based matching algorithm.",
+			"b=", &args->matcher_type, MATCHER_TEMPLATE);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!matcher_type, matcher> --haar_matcher --haar",
+			"Haar feature based matching algorithm (recommended).",
+			"b=", &args->matcher_type, MATCHER_HAAR);
+
 	// TODO: Verify between 0 and MATCH_MAX_COUNT
 	ret |= cargo_add_option(cargo, 0,
 			"<matcher> --ok_matches_needed", NULL,
-			"b", &args->ok_matches_needed);
+			"i", &args->ok_matches_needed);
 	ret |= cargo_set_option_description(cargo,
 			"--ok_matches_needed",
 			"The number of matches out of %d matches "
 			"that need to be OK for the match to be considered "
-			"an over all OK match", MATCH_MAX_COUNT);
+			"an over all OK match.", MATCH_MAX_COUNT);
+
+	// TODO: Somehow add matcher specific arguments.
+	ret |= catcierge_haar_matcher_add_options(cargo, &args->haar);
 
 	return ret;
 }
@@ -131,7 +150,7 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= cargo_add_group(cargo, 0, "output", "Output settings", 
 			"Note that all the *_path variables below can contain "
 			"variables of the format %%var%%.\n"
-			" See --cmdhelp for available variables.");
+			"See --cmdhelp for available variables.");
 
 	ret |= cargo_add_option(cargo, 0,
 			"<output> --save",
@@ -284,25 +303,6 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"backlight is allowed to be before it is considered broken. "
 			"If it is smaller than this, the program will exit. Default 10000.",
 			"b", &args->chuid);
-
-
-
-	ret |= cargo_add_mutex_group(cargo,
-			CARGO_MUTEXGRP_ONE_REQUIRED |
-			CARGO_MUTEXGRP_GROUP_USAGE, 
-			"matcher", 
-			"Matcher",
-			"The algorithm to use when matching for the cat profile image");
-
-	ret |= cargo_add_option(cargo, 0,
-			"<!matcher> --template_matcher --templ",
-			"Template based matching algorithm",
-			"b=", &args->matcher_type, MATCHER_TEMPLATE);
-
-	ret |= cargo_add_option(cargo, 0,
-			"<!matcher> --haar_matcher --haar",
-			"Haar feature based matching algorithm (recommended)",
-			"b=", &args->matcher_type, MATCHER_HAAR);
 
 	ret |= add_matcher_options(cargo, args);
 

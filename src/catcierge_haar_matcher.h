@@ -24,6 +24,7 @@
 #include "catcierge_haar_wrapper.h"
 #include "catcierge_types.h"
 #include "catcierge_matcher.h"
+#include "cargo.h"
 
 #define HAAR_FAIL 0.0
 #define HAAR_SUCCESS 1.0
@@ -39,7 +40,7 @@ typedef enum catcierge_haar_prey_method_e
 typedef struct catcierge_haar_matcher_args_s
 {
 	catcierge_matcher_args_t super;
-	const char *cascade;
+	char *cascade;
 	int min_width;
 	int min_height;
 	direction_t in_direction;
@@ -74,6 +75,8 @@ double catcierge_haar_matcher_match(void *ctx, IplImage *img, match_result_t *re
 int catcierge_haar_matcher_decide(void *ctx, match_group_t *mg);
 void catcierge_haar_matcher_set_debug(catcierge_haar_matcher_t *ctx, int debug);
 
+int catcierge_haar_matcher_add_options(cargo_t cargo,
+										catcierge_haar_matcher_args_t *args);
 void catcierge_haar_matcher_usage();
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const char *key, char **values, size_t value_count);
 void catcierge_haar_matcher_args_init(catcierge_haar_matcher_args_t * args);
