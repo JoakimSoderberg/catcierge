@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-dark.css" media="screen">
     <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -34,14 +34,14 @@
           <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/catcierge02.jpg" alt="Catcierge"></p>
 
 <h1>
-<a name="the-short-version" class="anchor" href="#the-short-version"><span class="octicon octicon-link"></span></a>The short version</h1>
+<a id="the-short-version" class="anchor" href="#the-short-version" aria-hidden="true"><span class="octicon octicon-link"></span></a>The short version</h1>
 
 <p>The Catcierge project is an image recognition and cat RFID-chip reader for detecting cat prey and neighbour cats, made to work together with an automated cat door system. Designed for use with the Raspberry Pi including camera board (but can easily be modified to work on other systems as well).</p>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/short06.jpg" alt="Catcierge"></p>
 
 <h1>
-<a name="background" class="anchor" href="#background"><span class="octicon octicon-link"></span></a>Background</h1>
+<a id="background" class="anchor" href="#background" aria-hidden="true"><span class="octicon octicon-link"></span></a>Background</h1>
 
 <p>The Catcierge project came about to solve the problem of our cat bringing home prey through the cat door. Instead of simply not allowing our cat to use the cat door anymore, like a normal person would, I of course set out to find a high-tech solution to solve my perdicament.</p>
 
@@ -50,7 +50,7 @@
 <p>In the process of researching possible solutions I found the <a href="http://www.quantumpicture.com/Flo_Control/flo_control.htm%5D">Flo Control</a> project that instead uses a controlled environment to get a good <strong>profile image</strong> of the cat where the prey easily can be distingusihed. I decided to implement this idea instead.</p>
 
 <h1>
-<a name="development-story" class="anchor" href="#development-story"><span class="octicon octicon-link"></span></a>Development story</h1>
+<a id="development-story" class="anchor" href="#development-story" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development story</h1>
 
 <p>After replacing the window in our basement stairway with a cat door to let our cat Higgs live a more free roaming life, she soon started delivering dead (and some living) rodents and birds. Obviously this is not something we want so I decided to build an automated cat door that will shut her out when she tries to bring them inside.</p>
 
@@ -59,7 +59,7 @@
 <p>I had seen several DIY solutions of RFID readers that require the cat to wear an extra RFID chip on a collar, but that's not what I wanted. So my idea was to find a reader that supports reading the actual <a href="http://en.wikipedia.org/wiki/ISO_11784_%26_11785">ISO 11784/11785, FDX/HDX tags</a> which uses another frequency compared to most generic RFID readers.</p>
 
 <h2>
-<a name="the-rapsberry-pi" class="anchor" href="#the-rapsberry-pi"><span class="octicon octicon-link"></span></a>The <a href="http://www.raspberrypi.org/">Rapsberry Pi</a>
+<a id="the-rapsberry-pi" class="anchor" href="#the-rapsberry-pi" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <a href="http://www.raspberrypi.org/">Rapsberry Pi</a>
 </h2>
 
 <p>When I started thinking of this project the Raspberry Pi had become available, as well as the <a href="http://www.raspberrypi.org/archives/tag/camera-board">camera board</a>. So I quickly decided I will use this for my project. </p>
@@ -67,7 +67,7 @@
 <p>One problem was that <a href="http://opencv.org/">OpenCV</a> does not work natively with the Raspberry Pi camera which interfaces directly via the CPU. Thankfully <a href="https://thinkrpi.wordpress.com/2013/05/22/opencv-and-camera-board-csi/">Pierre Raufast</a> fixed this problem by rewriting the raspistill program to work with OpenCV, and <a href="http://www.robidouille.com/">Emil Valkov</a> simplified this into a library that can easily be used with an API similar to the normal OpenCV camera API.</p>
 
 <h2>
-<a name="building-the-cat-door" class="anchor" href="#building-the-cat-door"><span class="octicon octicon-link"></span></a>Building the cat door</h2>
+<a id="building-the-cat-door" class="anchor" href="#building-the-cat-door" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building the cat door</h2>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/catdoor01.jpg" alt="Cat door">
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/catdoor02.jpg" alt="Cat door"></p>
@@ -106,7 +106,7 @@
 <p>To decide how far away the camera needed to be I persuaded my cat to keep still in front of the camera att different distances (not as easy as it sounds). The optimal distance turned out to be about 30cm. So I decided making the corridor 60cm would be enough to fit everything.</p>
 
 <h2>
-<a name="locking-mechanism" class="anchor" href="#locking-mechanism"><span class="octicon octicon-link"></span></a>Locking mechanism</h2>
+<a id="locking-mechanism" class="anchor" href="#locking-mechanism" aria-hidden="true"><span class="octicon octicon-link"></span></a>Locking mechanism</h2>
 
 <p>The actual cat door I decided to use was a very simple store bought one with some manual plastic locking latches. I was not interested in using these for the actual locking, or buying some fancy expensive cat door with a built-in electronic locking mechanism.</p>
 
@@ -128,7 +128,7 @@
 <p><a href="http://www.youtube.com/watch?v=wViEUI-CRm8">Youtube video</a></p>
 
 <h2>
-<a name="method-of-detecting" class="anchor" href="#method-of-detecting"><span class="octicon octicon-link"></span></a>Method of detecting</h2>
+<a id="method-of-detecting" class="anchor" href="#method-of-detecting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Method of detecting</h2>
 
 <p>Since I had found the <a href="http://www.quantumpicture.com/Flo_Control/flo_control.htm%5D">Flo Control project</a> that had solved the problem with detecting cat prey, I knew a working method in theory for how I could detect the cats face and eventual prey. </p>
 
@@ -137,7 +137,7 @@
 <p>This method is a lot simpler than using more advanced techniques used for pattern matching, such as haar cascades or similar things normally used for facial detection in humans. Keep It Simple Stupid!</p>
 
 <h2>
-<a name="backlight" class="anchor" href="#backlight"><span class="octicon octicon-link"></span></a>Backlight</h2>
+<a id="backlight" class="anchor" href="#backlight" aria-hidden="true"><span class="octicon octicon-link"></span></a>Backlight</h2>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight01.jpg" alt="Backlight"></p>
 
@@ -157,7 +157,7 @@
 <p>Instead I decided to tape a cheap 5m LED light strip bought on ebay on to the back of some plywood to create one big backlight. By placing a piece of acrylic with some paper taped on to it in front of it, I got a more scattered and uniform light source.</p>
 
 <h2>
-<a name="rfid-readers" class="anchor" href="#rfid-readers"><span class="octicon octicon-link"></span></a>RFID readers</h2>
+<a id="rfid-readers" class="anchor" href="#rfid-readers" aria-hidden="true"><span class="octicon octicon-link"></span></a>RFID readers</h2>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/rfid02.jpg" alt="RFID"></p>
 
@@ -182,7 +182,7 @@
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/rfid05.jpg" alt="RFID"></p>
 
 <h2>
-<a name="software" class="anchor" href="#software"><span class="octicon octicon-link"></span></a>Software</h2>
+<a id="software" class="anchor" href="#software" aria-hidden="true"><span class="octicon octicon-link"></span></a>Software</h2>
 
 <p>When creating the matching algorithm as described above, I decided to first develop it as a prototype in the Python version of OpenCV, since this would enable me to use my laptop (a lot faster) instead of the Raspberry Pi.</p>
 
@@ -195,7 +195,7 @@
 <p>I then used frames from this video to create the matching algorithm. Here are the steps that the matching goes through to determine if Higgs has prey in her mouth or not:</p>
 
 <h3>
-<a name="ok" class="anchor" href="#ok"><span class="octicon octicon-link"></span></a>OK</h3>
+<a id="ok" class="anchor" href="#ok" aria-hidden="true"><span class="octicon octicon-link"></span></a>OK</h3>
 
 <p>Original image:</p>
 
@@ -226,7 +226,7 @@
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/ok/higgs02_06final.png" alt="Matching"></p>
 
 <h3>
-<a name="not-ok" class="anchor" href="#not-ok"><span class="octicon octicon-link"></span></a>Not OK</h3>
+<a id="not-ok" class="anchor" href="#not-ok" aria-hidden="true"><span class="octicon octicon-link"></span></a>Not OK</h3>
 
 <p>To determine the threshold for the maximum value to consider a good match, we also need some images with a negative input. That is, an image of Higgs with a mouse or other dead animal in her mouth. Since I didn't have any real input data with this scenario yet, I simply drew a mouse in her mouth in an image.</p>
 
@@ -254,7 +254,7 @@
 <p>From some test with different input images I decided that a good threshold value as mentioned above is 0.8, on the 0.0 to 1.0 scale, where 1.0 would be a perfect match.</p>
 
 <h2>
-<a name="from-python-prototype-to-c-version" class="anchor" href="#from-python-prototype-to-c-version"><span class="octicon octicon-link"></span></a>From Python prototype to C Version</h2>
+<a id="from-python-prototype-to-c-version" class="anchor" href="#from-python-prototype-to-c-version" aria-hidden="true"><span class="octicon octicon-link"></span></a>From Python prototype to C Version</h2>
 
 <p>After creating my prototype in Python and getting it all to work, I then moved on to creating the same algorithm in a C library. I made it a library so that I can easily compile a test program to test only the algorithm on another platform than the Raspberry Pi. And then write a final program that is used for the actual image recognition running on the Raspberry Pi separately.</p>
 
@@ -273,77 +273,76 @@
 
 <p>Here is the usage options of the final (as of writing) program:</p>
 
-<div class="highlight highlight-bash"><pre>Catcierge Grabber v0.2.0 <span class="o">(</span>C<span class="o">)</span> Joakim Soderberg 2013-2014
+<div class="highlight highlight-source-shell"><pre>Catcierge Grabber v0.2.0 (C) Joakim Soderberg 2013-2014
 
-Usage: ./catcierge_grabber <span class="o">[</span>options<span class="o">]</span>
+Usage: ./catcierge_grabber [options]
 
- --snout &lt;paths&gt;        Path to the snout images to use. If more than one path is
+ --snout <span class="pl-k">&lt;</span>paths<span class="pl-k">&gt;</span>        Path to the snout images to use. If more than one path is
                         given, the average match result is used.
- --threshold &lt;float&gt;    Match threshold as a value between 0.0 and 1.0. Default 0.8
- --lockout &lt;seconds&gt;    The <span class="nb">time </span>in seconds a lockout takes. Default 30s
- --lockout_error &lt;n&gt;    Number of lockouts in a row is allowed before we
+ --threshold <span class="pl-k">&lt;</span>float<span class="pl-k">&gt;</span>    Match threshold as a value between 0.0 and 1.0. Default 0.8
+ --lockout <span class="pl-k">&lt;</span>seconds<span class="pl-k">&gt;</span>    The <span class="pl-k">time</span> <span class="pl-k">in</span> seconds a lockout takes. Default 30s
+ --lockout_error <span class="pl-k">&lt;</span>n<span class="pl-k">&gt;</span>    Number of lockouts <span class="pl-k">in</span> a row is allowed before we
                         consider it an error and quit the program.
-                        Default is to never <span class="k">do</span> this.
- --lockout_dummy        Do everything as normal, but don<span class="s1">'t actually lock the door.</span>
-<span class="s1">                        This is useful for testing.</span>
-<span class="s1"> --matchtime &lt;seconds&gt;  The time to wait after a match. Default 0s</span>
-<span class="s1"> --match_flipped &lt;0|1&gt;  Match a flipped version of the snout</span>
-<span class="s1">                        (don'</span>t consider going out a failed match<span class="o">)</span>. Default on.
- --show                 Show GUI of the camera feed <span class="o">(</span>X11 only<span class="o">)</span>.
- --show_fps &lt;0<span class="p">|</span>1&gt;       Show FPS. Default is ON.
- --save                 Save match images <span class="o">(</span>both ok and failed<span class="o">)</span>.
+                        Default is to never <span class="pl-k">do</span> this.
+ --lockout_dummy        Do everything as normal, but don<span class="pl-s"><span class="pl-pds">'</span>t actually lock the door.</span>
+<span class="pl-s">                        This is useful for testing.</span>
+<span class="pl-s"> --matchtime &lt;seconds&gt;  The time to wait after a match. Default 0s</span>
+<span class="pl-s"> --match_flipped &lt;0|1&gt;  Match a flipped version of the snout</span>
+<span class="pl-s">                        (don<span class="pl-pds">'</span></span>t consider going out a failed match). Default on.
+ --show                 Show GUI of the camera feed (X11 only).
+ --show_fps <span class="pl-k">&lt;</span>0<span class="pl-k">|</span><span class="pl-k">1&gt;</span>       Show FPS. Default is ON.
+ --save                 Save match images (both ok and failed).
  --highlight            Highlight the best match on saved images.
- --output &lt;path&gt;        Path to where the match images should be saved.
- --log &lt;path&gt;           Log matches and rfid readings <span class="o">(</span><span class="k">if</span> enabled<span class="o">)</span>.
- --config &lt;path&gt;        Path to config file. Default is ./catcierge.cfg or /etc/catcierge.cfg
+ --output <span class="pl-k">&lt;</span>path<span class="pl-k">&gt;</span>        Path to where the match images should be saved.
+ --log <span class="pl-k">&lt;</span>path<span class="pl-k">&gt;</span>           Log matches and rfid readings (<span class="pl-k">if</span> enabled).
+ --config <span class="pl-k">&lt;</span>path<span class="pl-k">&gt;</span>        Path to config file. Default is ./catcierge.cfg or /etc/catcierge.cfg
                         This is parsed as an INI file. The keys/values are the same as these options.
 
 RFID:
- --rfid_in &lt;path&gt;       Path to inner RFID reader. Example: /dev/ttyUSB0
- --rfid_out &lt;path&gt;      Path to the outter RFID reader.
- --rfid_lock            Lock <span class="k">if</span> no RFID tag present or invalid RFID tag. Default OFF.
- --rfid_time &lt;seconds&gt;  Number of seconds to <span class="nb">wait </span>after a valid match before the
+ --rfid_in <span class="pl-k">&lt;</span>path<span class="pl-k">&gt;</span>       Path to inner RFID reader. Example: /dev/ttyUSB0
+ --rfid_out <span class="pl-k">&lt;</span>path<span class="pl-k">&gt;</span>      Path to the outter RFID reader.
+ --rfid_lock            Lock <span class="pl-k">if</span> no RFID tag present or invalid RFID tag. Default OFF.
+ --rfid_time <span class="pl-k">&lt;</span>seconds<span class="pl-k">&gt;</span>  Number of seconds to <span class="pl-c1">wait</span> after a valid match before the
                         RFID readers are checked.
-                        <span class="o">(</span>This is so that there is enough <span class="nb">time </span><span class="k">for</span> the cat to be <span class="nb">read </span>by both readers<span class="o">)</span>
- --rfid_allowed &lt;list&gt;  A comma separated list of allowed RFID tags. Example: 999_000000001007
+                        (This is so that there is enough <span class="pl-k">time</span> <span class="pl-k">for</span> <span class="pl-smi">the</span> cat to be <span class="pl-c1">read</span> by both readers)
+ --rfid_allowed <span class="pl-k">&lt;</span>list<span class="pl-k">&gt;</span>  A comma separated list of allowed RFID tags. Example: 999_000000001007
 
 Commands:
-   <span class="o">(</span>Note that %0, %1, %2... will be replaced in the input, see --cmdhelp <span class="k">for</span> details<span class="o">)</span>
- --match_cmd &lt;cmd&gt;      Command to run after a match is made.
- --save_img_cmd &lt;cmd&gt;   Command to run at the moment a match image is saved.
- --save_imgs_cmd &lt;cmd&gt;  Command that runs when all match images have been saved to disk.
-                        <span class="o">(</span>This is most likely what you want to use in most cases<span class="o">)</span>
- --match_done_cmd &lt;cmd&gt; Command to run when a match is <span class="k">done</span>.
- --rfid_detect_cmd &lt;cmd&gt; Command to run when one of the RFID readers detects a tag.
- --rfid_match_cmd &lt;cmd&gt; Command that is run when a RFID match is made.
- --do_lockout_cmd &lt;cmd&gt; Command to run when the lockout should be performed.
+   (Note that %0, %1, %2... will be replaced <span class="pl-k">in</span> the input, see --cmdhelp <span class="pl-k">for</span> <span class="pl-smi">details</span>)
+ --match_cmd <span class="pl-k">&lt;</span>cmd<span class="pl-k">&gt;</span>      Command to run after a match is made.
+ --save_img_cmd <span class="pl-k">&lt;</span>cmd<span class="pl-k">&gt;</span>   Command to run at the moment a match image is saved.
+ --save_imgs_cmd <span class="pl-k">&lt;</span>cmd<span class="pl-k">&gt;</span>  Command that runs when all match images have been saved to disk.
+                        (This is most likely what you want to use <span class="pl-k">in</span> most cases)
+ --match_done_cmd <span class="pl-k">&lt;</span>cmd<span class="pl-k">&gt;</span> Command to run when a match is <span class="pl-k">done</span>.
+ --rfid_detect_cmd <span class="pl-k">&lt;</span>cmd<span class="pl-k">&gt;</span> Command to run when one of the RFID readers detects a tag.
+ --rfid_match_cmd <span class="pl-k">&lt;</span>cmd<span class="pl-k">&gt;</span> Command that is run when a RFID match is made.
+ --do_lockout_cmd <span class="pl-k">&lt;</span>cmd<span class="pl-k">&gt;</span> Command to run when the lockout should be performed.
                         This will override the normal lockout method.
- --do_unlock_cmd &lt;cmd&gt;  Command that is run when we should unlock.
+ --do_unlock_cmd <span class="pl-k">&lt;</span>cmd<span class="pl-k">&gt;</span>  Command that is run when we should unlock.
                         This will override the normal unlock method.
 
- --help                 Show this help.
- --cmdhelp              Show extra <span class="nb">command </span>help.
+ --help                 Show this <span class="pl-c1">help</span>.
+ --cmdhelp              Show extra <span class="pl-c1">command</span> <span class="pl-c1">help</span>.
 
 The snout image refers to the image of the cat snout that is matched against.
 This image should be based on a 320x240 resolution image taken by the rpi camera.
-If no path is specified <span class="s2">"snout.png"</span> in the current directory is used.
+If no path is specified <span class="pl-s"><span class="pl-pds">"</span>snout.png<span class="pl-pds">"</span></span> <span class="pl-k">in</span> the current directory is used.
 
 Signals:
-The program can receive signals that can be sent using the <span class="nb">kill </span>command.
- <span class="nv">SIGUSR1</span> <span class="o">=</span> Force the cat door to unlock
- <span class="nv">SIGUSR2</span> <span class="o">=</span> Force the cat door to lock <span class="o">(</span><span class="k">for</span> lock timeout<span class="o">)</span>
-
+The program can receive signals that can be sent using the <span class="pl-c1">kill</span> <span class="pl-c1">command</span>.
+ SIGUSR1 = Force the cat door to unlock
+ SIGUSR2 = Force the cat door to lock (<span class="pl-k">for</span> <span class="pl-smi">lock</span> timeout)
 </pre></div>
 
 <h2>
-<a name="finalizing-the-building" class="anchor" href="#finalizing-the-building"><span class="octicon octicon-link"></span></a>Finalizing the building</h2>
+<a id="finalizing-the-building" class="anchor" href="#finalizing-the-building" aria-hidden="true"><span class="octicon octicon-link"></span></a>Finalizing the building</h2>
 
 <p>After being satisfied with the software and that it works I started building the walls and roof on the cat door corridor.</p>
 
 <p>From start I wanted the entire thing to be light enough for me to lift it around easily, so that I can take it inside if I want to work on it. For this reason I knew that both the walls and roof needed to be removable.</p>
 
 <h2>
-<a name="walls" class="anchor" href="#walls"><span class="octicon octicon-link"></span></a>Walls</h2>
+<a id="walls" class="anchor" href="#walls" aria-hidden="true"><span class="octicon octicon-link"></span></a>Walls</h2>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/wall01.jpg" alt="Final">
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/vinkelbeslag01.jpg" alt="Final"></p>
@@ -365,7 +364,7 @@ The program can receive signals that can be sent using the <span class="nb">kill
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/entrance02.jpg" alt="Final"></p>
 
 <h3>
-<a name="roof" class="anchor" href="#roof"><span class="octicon octicon-link"></span></a>Roof</h3>
+<a id="roof" class="anchor" href="#roof" aria-hidden="true"><span class="octicon octicon-link"></span></a>Roof</h3>
 
 <p>Finally I built the roof out of some plywood. To keep the water out I put some <a href="http://www.byggmax.com/sv-se/byggvaror/isolering/ovrig-isolering/syllpapp-p17065">"syllpapp"</a> on it (I don't know what it's called in English, but it's used as a moisture stop/isolation between concrete and wooden beams).</p>
 
@@ -375,7 +374,7 @@ The program can receive signals that can be sent using the <span class="nb">kill
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/roof04.jpg" alt="Roof"></p>
 
 <h2>
-<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
 
 <p>Finally I could install the corridor. Note that the entire thing is standing on top of some garden tiles to get it a bit off the ground, so that it will stay dry as the snow melts.</p>
 
@@ -385,7 +384,7 @@ The program can receive signals that can be sent using the <span class="nb">kill
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/installation04.jpg" alt="Installation"></p>
 
 <h2>
-<a name="testing-phase" class="anchor" href="#testing-phase"><span class="octicon octicon-link"></span></a>Testing phase</h2>
+<a id="testing-phase" class="anchor" href="#testing-phase" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing phase</h2>
 
 <p>For the first time I was now hoping for Higgs to bring something in so I could verify the cat door was actually detecting correctly.</p>
 
@@ -393,45 +392,45 @@ The program can receive signals that can be sent using the <span class="nb">kill
 
 <p>Here is two frames with the mouse in her mouth:</p>
 
-<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/real/fail01.png" alt="Test phase">
-<img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/real/fail02.png" alt="Test phase"></p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/real/fail01.png" alt="Test phase">
+<img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/real/fail02.png" alt="Test phase"></p>
 
 <p>Here with the best match highlighted, with a match result of <strong>0.844146</strong> and <strong>0.837592</strong> respectivly. Which is well above the threshold of <strong>0.8</strong>.</p>
 
-<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/match_ok__fail01.png" alt="Test phase">
-<img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/match_ok__fail02.png" alt="Test phase"></p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/match_ok__fail01.png" alt="Test phase">
+<img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/match_ok__fail02.png" alt="Test phase"></p>
 
 <p>However, I didn't think the solution was to raise the threshold, since some of the OK matches are not far enough from 0.84. Instead I think a better solution was to change what part of the cat snout is matched against.</p>
 
 <p>The original snout that I used: </p>
 
-<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/snout/snout320x240.png" alt="Snout"></p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/snout/snout320x240.png" alt="Snout"></p>
 
 <p>Instead I changed it to this one that includes some more area below the chin. You may notice it looks a bit squished compared to the first one. That's because I realized that the native image of the camera does not have a 4:3 aspect ratio, but rather 16:9. So my resolution of 320x240 is not really the correct aspect ratio, I should have used 320x180.</p>
 
-<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/snout/snout320x240_02.png" alt="Snout"></p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/snout/snout320x240_02.png" alt="Snout"></p>
 
 <p>Match results for this new snout image with Higgs's victim in her mouth:</p>
 
-<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/match_fail__fail01.png" alt="Snout">
-<img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/match_fail__fail02.png" alt="Snout"></p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/match_fail__fail01.png" alt="Snout">
+<img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/match_fail__fail02.png" alt="Snout"></p>
 
 <p>Here is a comparison of all the good matches since I started testing until Higgs first delivery. As you can see, the new matcher fails in some cases. This is not much of an issue though, because it only happens at the edge pictures anyway. This normally will fail anyway since the snout is most often completely outside the frame anyway.</p>
 
-<p><img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/new_matcher.gif" alt="Snout">
-<img src="https://raw2.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/old_matcher.gif" alt="Snout"></p>
+<p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/new_matcher.gif" alt="Snout">
+<img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/old_matcher.gif" alt="Snout"></p>
 
 <h2>
-<a name="continued-test-phase" class="anchor" href="#continued-test-phase"><span class="octicon octicon-link"></span></a>Continued test phase</h2>
+<a id="continued-test-phase" class="anchor" href="#continued-test-phase" aria-hidden="true"><span class="octicon octicon-link"></span></a>Continued test phase</h2>
 
 <h3>
-<a name="cold" class="anchor" href="#cold"><span class="octicon octicon-link"></span></a>Cold</h3>
+<a id="cold" class="anchor" href="#cold" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cold</h3>
 
 <p>Of course the change mentioned above didn't solve all my problems. All my testing so far had either been done inside, or when the temperature was around -5C... Then when the temperature started going down to around -30C in January I got this:</p>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/coldcam01.png" alt="Cold"></p>
 
-<p>... which resulted in a spam of "lockouts" happening because the program thought something was blocking the frame. I realised what the source of the problem was right away, since the Raspberry Pi camera isn't rated to work in subzero temperatures (The raspbery pi itself had no problems however).</p>
+<p>... which resulted in a spam of "lockouts" happening because the program thought something was blocking the frame. I realised what the source of the problem was right away, since the Raspberry Pi camera isn't rated to work in subzero temperatures (The raspberry pi itself had no problems however).</p>
 
 <p>So I had to find a solution for this. The part of the cat house the camera is in, isn't isolated, so warming all of it was out of the question. Instead I decided to build a small box with a window for the camera, and some power resistors + a thermostat to keep it warm. I bought a really crappy 12V thermostat kit at the local electronics shop that did the job (however I've already bought a new one on ebay that will replace it):</p>
 
@@ -443,24 +442,24 @@ The program can receive signals that can be sent using the <span class="nb">kill
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/termostat01.jpg" alt="Cold"></p>
 
 <h3>
-<a name="darkness" class="anchor" href="#darkness"><span class="octicon octicon-link"></span></a>Darkness</h3>
+<a id="darkness" class="anchor" href="#darkness" aria-hidden="true"><span class="octicon octicon-link"></span></a>Darkness</h3>
 
 <p>After fixing the cold problem, everything worked well for about a week, until suddenly my homemade backlight went dark. When stuff like this happens I'm glad I decided to make everything removable, so I could simply remove the wall and remove the backlight to examine it. </p>
 
-<p>I took it inside and realized that my sharp bends I made in my original backlight had made the waterproofing crack in the cold. At first I thought this was the reason for it going black. Later it turned out it actually was a glitchy wiring job in the cat house itself.... Anyway I remade the thing more properly without bending the led strips and instead soldering them together, and finally hot gluing it all:</p>
+<p>I took it inside and realised that my sharp bends I made in my original backlight had made the waterproofing crack in the cold. At first I thought this was the reason for it going black. Later it turned out it actually was a glitchy wiring job in the cat house itself.... Anyway I remade the thing more properly without bending the led strips and instead soldering them together, and finally hot gluing it all:</p>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/newbacklight01.jpg" alt="Cold">
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/newbacklight02.jpg" alt="Cold"></p>
 
 <h3>
-<a name="bugs-and-other-issues" class="anchor" href="#bugs-and-other-issues"><span class="octicon octicon-link"></span></a>Bugs and other issues</h3>
+<a id="bugs-and-other-issues" class="anchor" href="#bugs-and-other-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bugs and other issues</h3>
 
 <p>There wasn't only hardware problems that gave me problems however. I also had a bunch of software bugs, mostly due to the fact that I hacked this together as I went, and didn't really have a very coherent design from the start. I tried to clean things up a bit at least by creating a state machine diagram to make the transitions made by the program a lot more clear cut:</p>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/doc/catcierge_state.png" alt="state"></p>
 
 <h2>
-<a name="improved-algorithm" class="anchor" href="#improved-algorithm"><span class="octicon octicon-link"></span></a>Improved algorithm</h2>
+<a id="improved-algorithm" class="anchor" href="#improved-algorithm" aria-hidden="true"><span class="octicon octicon-link"></span></a>Improved algorithm</h2>
 
 <p>The algorithm improvements mentioned above only helped so far. I soon realised that simply matching against a single tweaked image of the cat snout wasn't enough, so instead I got the idea of using multiple snout images for the match and deciding on the average of their match result.</p>
 
@@ -474,7 +473,7 @@ The program can receive signals that can be sent using the <span class="nb">kill
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/montage01.jpg" alt="double"></p>
 
 <h1>
-<a name="haar-matcher" class="anchor" href="#haar-matcher"><span class="octicon octicon-link"></span></a>Haar matcher</h1>
+<a id="haar-matcher" class="anchor" href="#haar-matcher" aria-hidden="true"><span class="octicon octicon-link"></span></a>Haar matcher</h1>
 
 <p>So after evaluating and tweaking the template matcher, I decided to try a more advanced method using Haar Cascades (a very common method used for facial recognition).</p>
 
@@ -485,12 +484,12 @@ The program can receive signals that can be sent using the <span class="nb">kill
 <p><img src="https://raw.githubusercontent.com/JoakimSoderberg/catcierge-examples/master/example/haar_matcher/catcierge_haar_steps.png" alt="Haarsteps"></p>
 
 <h1>
-<a name="funny-pictures" class="anchor" href="#funny-pictures"><span class="octicon octicon-link"></span></a>Funny pictures</h1>
+<a id="funny-pictures" class="anchor" href="#funny-pictures" aria-hidden="true"><span class="octicon octicon-link"></span></a>Funny pictures</h1>
 
 <p>If you've read this far you should be rewarded with some funny pictures!</p>
 
 <h2>
-<a name="kamikaze-bird" class="anchor" href="#kamikaze-bird"><span class="octicon octicon-link"></span></a>Kamikaze bird</h2>
+<a id="kamikaze-bird" class="anchor" href="#kamikaze-bird" aria-hidden="true"><span class="octicon octicon-link"></span></a>Kamikaze bird</h2>
 
 <p>This one I really don't understand... Remember that these images are all taken within 1 second. So it looks like the bird is chasing the cat:</p>
 
@@ -505,7 +504,7 @@ The program can receive signals that can be sent using the <span class="nb">kill
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/kamikaze03.jpg" alt="kamikaze"> </p>
 
 <h2>
-<a name="squirrel" class="anchor" href="#squirrel"><span class="octicon octicon-link"></span></a>Squirrel</h2>
+<a id="squirrel" class="anchor" href="#squirrel" aria-hidden="true"><span class="octicon octicon-link"></span></a>Squirrel</h2>
 
 <p>Birds aren't the only curious little creatures investigating the premises:</p>
 
@@ -518,7 +517,7 @@ The program can receive signals that can be sent using the <span class="nb">kill
 
         <footer>
           Catcierge is maintained by <a href="https://github.com/JoakimSoderberg">JoakimSoderberg</a><br>
-          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+          This page was generated by <a href="https://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
         </footer>
 
                   <script type="text/javascript">
