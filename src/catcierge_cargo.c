@@ -137,9 +137,8 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 			"that need to be OK for the match to be considered "
 			"an over all OK match.", MATCH_MAX_COUNT);
 
-	// TODO: Somehow add matcher specific arguments.
 	ret |= catcierge_haar_matcher_add_options(cargo, &args->haar);
-
+	ret |= catcierge_template_matcher_add_options(cargo, &args->templ);
 	return ret;
 }
 

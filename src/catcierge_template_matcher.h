@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include "catcierge_types.h"
 #include "catcierge_matcher.h"
+#include "cargo.h"
 
 #define CATCIERGE_LOW_BINARY_THRESH_DEFAULT 90
 #define CATCIERGE_HIGH_BINARY_THRESH_DEFAULT 255
@@ -78,6 +79,8 @@ int caticerge_template_matcher_decide(void *ctx, match_group_t *mg);
 int catcierge_template_matcher_is_frame_obstructed(catcierge_template_matcher_t *ctx, IplImage *img);
 
 void catcierge_template_matcher_usage();
+int catcierge_template_matcher_add_options(cargo_t cargo,
+										catcierge_template_matcher_args_t *args);
 int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *args, const char *key, char **values, size_t value_count);
 void catcierge_template_matcher_print_settings(catcierge_template_matcher_args_t * args);
 void catcierge_template_matcher_args_init(catcierge_template_matcher_args_t *args);

@@ -395,6 +395,42 @@ double catcierge_template_matcher_match(void *octx,
 	return result->result;
 }
 
+int catcierge_template_matcher_add_options(cargo_t cargo,
+										catcierge_template_matcher_args_t *args)
+{
+	int ret = 0;
+	assert(cargo);
+	assert(args);
+
+	ret |= cargo_add_group(cargo, 0,
+			"templ", "Template matcher settings",
+			"Settings for when --template_matcher is used.\n"
+			"Note that it is recommended you use the --haar_matcher instead.");
+
+	ret |= cargo_add_option(cargo, 0,
+		"<templ> --snout",
+		"Path to the snout images to use. If more than "
+		"one path is given, the average match result is used.",
+		".[s]+", &args->snout_paths, &args->snout_count, MAX_SNOUT_COUNT);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<templ> --threshold",
+			NULL,
+			"f", &args->match_threshold);
+	ret |= cargo_set_option_description(cargo,
+			"--threshold",
+			"Match threshold as a value between 0.0 and 1.0. "
+			"Default %.1f\n", DEFAULT_MATCH_THRESH);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<templ> --match_flipped",
+			"Match a flipped version of the snout "
+			"(don't consider going out a failed match). Default on.",
+			"f", &args->match_threshold);
+
+	return ret;
+}
+
 void catcierge_template_matcher_usage()
 {
 	fprintf(stderr, " --snout <paths>        Path to the snout images to use. If more than \n");

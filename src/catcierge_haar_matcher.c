@@ -732,7 +732,8 @@ int catcierge_haar_matcher_add_options(cargo_t cargo,
 
 	ret |= cargo_add_group(cargo, 0,
 			"haar", "Haar cascade matcher settings",
-			"Settings for when --haar_matcher is used.");
+			"Settings for when --haar_matcher is used.\n"
+			"This is the recommended ");
 
 	ret |= cargo_add_option(cargo, 0,
 			"<haar> --cascade",
