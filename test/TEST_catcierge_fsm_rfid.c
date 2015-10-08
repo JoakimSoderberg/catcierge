@@ -204,8 +204,8 @@ typedef struct rfid_test_conf_s
 {
 	const char *description;
 	int check_rfid;
-	const char *inner_path;
-	const char *outer_path;
+	char *inner_path;
+	char *outer_path;
 	int inner_valid_rfid;
 	int outer_valid_rfid;
 	match_direction_t direction;

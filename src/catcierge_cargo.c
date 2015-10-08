@@ -21,6 +21,10 @@
 #include "cargo_ini.h"
 #include "catcierge_args.h"
 
+#ifdef WITH_RFID
+#include "catcierge_rfid.h"
+#endif // WITH_RFID
+
 static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 {
 	int ret = 0;
@@ -238,6 +242,52 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 	return ret;
 }
 
+#ifdef WITH_RFID
+int add_rfid_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, 
+			"rfid", "RFID settings", 
+			"Settings for using RFID tag readers from "
+			"http://www.priority1design.com.au/");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_in",
+			"Path to inner RFID reader. Example: /dev/ttyUSB0",
+			"s", &args->rfid_inner_path);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_out",
+			"Path to the outter RFID reader.",
+			"s", &args->rfid_outer_path);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_lock",
+			"Lock if no RFID tag present or invalid RFID tag. Default OFF.",
+			"b", &args->lock_on_invalid_rfid);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_time",
+			"Number of seconds to wait after a valid match before the "
+			"RFID readers are checked.\n"
+			"(This is so that there is enough time for the cat to be read "
+			"by both readers)",
+			"i", &args->rfid_lock_time);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_allowed",
+			NULL,
+			"[s]+", &args->rfid_allowed, &args->rfid_allowed_count);
+	ret |= cargo_set_option_description(cargo,
+			"--rfid_allowed",
+			"A comma separated list of allowed RFID tags. Example: %s",
+			EXAMPLE_RFID_STR);
+
+	return ret;
+}
+#endif // WITH_RFID
+
 static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
                                  int argc, char **argv)
 {
@@ -304,13 +354,12 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"b", &args->chuid);
 
 	ret |= add_matcher_options(cargo, args);
-
 	ret |= add_lockout_options(cargo, args);
-
 	ret |= add_presentation_options(cargo, args);
-
 	ret |= add_output_options(cargo, args);
-
+	#ifdef WITH_RFID
+	ret |= add_rfid_options(cargo, args);
+	#endif
 
 	return ret;
 }
