@@ -20,6 +20,7 @@
 #include "cargo.h"
 #include "cargo_ini.h"
 #include "catcierge_args.h"
+#include "catcierge_output.h"
 
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"
@@ -288,6 +289,54 @@ int add_rfid_options(cargo_t cargo, catcierge_args_t *args)
 }
 #endif // WITH_RFID
 
+static int add_command_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, 
+			"cmd", "Command settings", 
+			"These are commands that will be executed when certain events "
+			"occur.\n"
+			"Variables can be passed to these commands such as:\n"
+			"  %%state%%, %%match_success%% and so on.\n"
+			"To see a list of variables use --cmdhelp");
+
+	// We stop parsing when this option is hit,
+	// and we disable any errors on required variables.
+	ret |= cargo_add_option(cargo,
+			CARGO_OPT_STOP | CARGO_OPT_STOP_HARD,
+			"<cmd> --cmdhelp",
+			"Shows command output variable help.",
+			"b", &args->show_cmd_help);
+
+	ret |= cargo_add_group(cargo, CARGO_GROUP_HIDE, 
+			"cmd_help", "Advanced command settings", 
+			"These are commands that will be executed when certain events "
+			"occur.\n"
+			"Variables can be passed to these commands such as:\n"
+			"  %%state%%, %%match_success%% and so on.\n"
+			"To see a list of variables use --cmdhelp");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --old_execute",
+			"Turn on the old execute support.",
+			"b=", &args->new_execute, 0);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --new_execute",
+			"Use the new execute support (default on).",
+			"D");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --frame_obstructed_cmd",
+			"Command to run when the frame becomes obstructed "
+			"and a new match is initiated. (--save_obstruct must be on).",
+			"s", &args->frame_obstructed_cmd);
+	ret |= cargo_set_metavar(cargo, "--frame_obstructed_cmd", "CMD");
+
+	return ret;
+}
+
 static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
                                  int argc, char **argv)
 {
@@ -310,6 +359,8 @@ static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
 static int add_options(cargo_t cargo, catcierge_args_t *args)
 {
 	int ret = 0;
+
+	args->new_execute = 1;
 
 	ret |= cargo_add_option(cargo, 0,
 			"--config -c",
@@ -359,6 +410,7 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= add_output_options(cargo, args);
 	#ifdef WITH_RFID
 	ret |= add_rfid_options(cargo, args);
+	ret |= add_command_options(cargo, args);
 	#endif
 
 	return ret;
@@ -404,6 +456,17 @@ int parse_cmdargs(int argc, char **argv)
 	if (cargo_parse(cargo, 0, 1, argc, argv))
 	{
 		goto fail;
+	}
+
+	if (args.show_cmd_help)
+	{
+		cargo_print_usage(cargo, 0);
+		catcierge_output_print_usage();
+		printf("\n");
+		catcierge_template_output_print_usage();
+		printf("\n");
+		catcierge_haar_output_print_usage();
+		return -1;
 	}
 
 fail:
