@@ -348,12 +348,6 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 
 	ret |= cargo_add_option(cargo, 0,
 			"<cmd> --match_group_done_cmd",
-			"Command to run at the moment a match image is saved.",
-			"s", &args->match_group_done_cmd);
-	ret |= cargo_set_metavar(cargo, "--match_group_done_cmd", "CMD");
-
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --match_group_done_cmd",
 			"Command that runs when all match images have been saved to disk.\n"
 			"(This is most likely what you want to use in most cases).",
 			"s", &args->match_group_done_cmd);
