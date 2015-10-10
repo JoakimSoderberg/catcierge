@@ -334,6 +334,72 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 			"s", &args->frame_obstructed_cmd);
 	ret |= cargo_set_metavar(cargo, "--frame_obstructed_cmd", "CMD");
 
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --match_cmd",
+			"Command to run after a match is made.",
+			"s", &args->match_cmd);
+	ret |= cargo_set_metavar(cargo, "--match_cmd", "CMD");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --save_img_cmd",
+			"Command to run at the moment a match image is saved.",
+			"s", &args->save_img_cmd);
+	ret |= cargo_set_metavar(cargo, "--save_img_cmd", "CMD");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --match_group_done_cmd",
+			"Command to run at the moment a match image is saved.",
+			"s", &args->match_group_done_cmd);
+	ret |= cargo_set_metavar(cargo, "--match_group_done_cmd", "CMD");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --match_group_done_cmd",
+			"Command that runs when all match images have been saved to disk.\n"
+			"(This is most likely what you want to use in most cases).",
+			"s", &args->match_group_done_cmd);
+	ret |= cargo_set_metavar(cargo, "--match_group_done_cmd", "CMD");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --match_done_cmd",
+			"Command to run when a match is done.",
+			"s", &args->match_done_cmd);
+	ret |= cargo_set_metavar(cargo, "--match_done_cmd", "CMD");
+
+	#ifdef WITH_RFID
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --rfid_detect_cmd",
+			"Command to run when one of the RFID readers detects a tag.",
+			"s", &args->rfid_detect_cmd);
+	ret |= cargo_set_metavar(cargo, "--rfid_detect_cmd", "CMD");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --rfid_match_cmd",
+			"Command that is run when a RFID match is made.",
+			"s", &args->rfid_match_cmd);
+	ret |= cargo_set_metavar(cargo, "--rfid_match_cmd", "CMD");
+	#endif // WITH_RFID
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --do_lockout_cmd",
+			"Command to run when the lockout should be performed. "
+			"This will override the normal lockout method.",
+			"s", &args->do_lockout_cmd);
+	ret |= cargo_set_metavar(cargo, "--do_lockout_cmd", "CMD");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --do_unlock_cmd",
+			"Command that is run when we should unlock. "
+			"This will override the normal unlock method.",
+			"s", &args->do_unlock_cmd);
+	ret |= cargo_set_metavar(cargo, "--do_unlock_cmd", "CMD");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --state_change_cmd",
+			"Command to run when the state machine changes state.",
+			"s", &args->state_change_cmd);
+	ret |= cargo_set_metavar(cargo, "--state_change_cmd", "CMD");
+
+
 	return ret;
 }
 
@@ -366,6 +432,13 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"--config -c",
 			"Path to config file",
 			"s", &args->config_path);
+
+	#ifdef WITH_RPI
+	ret |= cargo_add_option(cargo, 0,
+			"--camhelp",
+			"Path to config file",
+			"b", &args->show_camhelp);
+	#endif // WITH_RPI
 
 	ret |= cargo_add_option(cargo, 0,
 			"--chuid",
@@ -410,11 +483,42 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= add_output_options(cargo, args);
 	#ifdef WITH_RFID
 	ret |= add_rfid_options(cargo, args);
-	ret |= add_command_options(cargo, args);
 	#endif
+	ret |= add_command_options(cargo, args);
 
 	return ret;
 }
+
+static void print_cmd_help(cargo_t cargo, catcierge_args_t *args)
+{
+	cargo_print_usage(cargo, 0);
+	catcierge_output_print_usage();
+	printf("\n");
+	catcierge_template_output_print_usage();
+	printf("\n");
+	catcierge_haar_output_print_usage();
+}
+
+#ifdef RPI
+static void print_line(int fd, int length, const char *s);
+{
+	fprintf(fd, "%*s\n", length, "-", s);
+}
+
+static void print_cam_help(cargo_t cargo)
+{
+	int console_width = cargo_get_width(cargo, 0) - 1;
+	print_line(fd, console_width, "-");
+	fprintf(stderr, "Raspberry Pi camera settings:\n");
+	print_line(fd, console_width, "-");
+	raspicamcontrol_display_help();
+	print_line(fd, console_width, "-");
+	fprintf(stderr, "\nNote! To use the above command line parameters\n");
+	fprintf(stderr, "you must prepend them with \"rpi-\".\n");
+	fprintf(stderr, "For example --rpi-ISO\n");
+	print_line(fd, console_width, "-");
+}
+#endif // RPI
 
 int parse_cmdargs(int argc, char **argv)
 {
@@ -460,14 +564,16 @@ int parse_cmdargs(int argc, char **argv)
 
 	if (args.show_cmd_help)
 	{
-		cargo_print_usage(cargo, 0);
-		catcierge_output_print_usage();
-		printf("\n");
-		catcierge_template_output_print_usage();
-		printf("\n");
-		catcierge_haar_output_print_usage();
+		print_cmd_help(cargo, &args);
 		return -1;
 	}
+
+	#ifdef RPI
+	if (args.show_camhelp)
+	{
+		print_cam_help();
+	}
+	#endif // RPI
 
 fail:
 	cargo_destroy(&cargo);

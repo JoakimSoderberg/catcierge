@@ -114,6 +114,7 @@ typedef struct catcierge_args_s
 	#endif // WITH_RFID
 
 	#ifdef RPI
+	int show_camhelp;
 	RASPIVID_SETTINGS rpi_settings;
 	#endif // RPI
 
