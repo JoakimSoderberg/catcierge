@@ -500,7 +500,7 @@ static void print_cmd_help(cargo_t cargo, catcierge_args_t *args)
 }
 
 #ifdef RPI
-static void print_line(int fd, int length, const char *s);
+static void print_line(FILE *fd, int length, const char *s)
 {
 	fprintf(fd, "%*s\n", length, "-", s);
 }
@@ -508,15 +508,15 @@ static void print_line(int fd, int length, const char *s);
 static void print_cam_help(cargo_t cargo)
 {
 	int console_width = cargo_get_width(cargo, 0) - 1;
-	print_line(fd, console_width, "-");
+	print_line(stderr, console_width, "-");
 	fprintf(stderr, "Raspberry Pi camera settings:\n");
-	print_line(fd, console_width, "-");
+	print_line(stderr, console_width, "-");
 	raspicamcontrol_display_help();
-	print_line(fd, console_width, "-");
+	print_line(stderr, console_width, "-");
 	fprintf(stderr, "\nNote! To use the above command line parameters\n");
 	fprintf(stderr, "you must prepend them with \"rpi-\".\n");
 	fprintf(stderr, "For example --rpi-ISO\n");
-	print_line(fd, console_width, "-");
+	print_line(stderr, console_width, "-");
 }
 #endif // RPI
 
@@ -571,7 +571,7 @@ int parse_cmdargs(int argc, char **argv)
 	#ifdef RPI
 	if (args.show_camhelp)
 	{
-		print_cam_help();
+		print_cam_help(cargo);
 	}
 	#endif // RPI
 
