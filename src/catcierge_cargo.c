@@ -512,6 +512,74 @@ static void print_cam_help(cargo_t cargo)
 	fprintf(stderr, "For example --rpi-ISO\n");
 	print_line(stderr, console_width, "-");
 }
+
+static char **parse_rpi_args(int *argc, char **argv, catcierge_args_t *args)
+{
+	int i;
+	int j;
+	int rpi_count = 0;
+	char **nargv;
+	int nargc = 0;
+	assert(argc);
+	assert(argv);
+	assert(args);
+
+	for (i = 0; i < *argc; i++)
+	{
+		if (!strncmp(argv[i], "--rpi-", sizeof("--rpi-")))
+		{
+			rpi_count++;
+		}
+	}
+
+	nargc = *argc - rpi_count;
+
+	if (!(nargv = calloc(nargc, sizeof(char *))))
+	{
+		return NULL;
+	}
+
+	for (i = 0, j = 0; (i < *argc) && (j < nargc); i++)
+	{
+		if (!strncmp(argv[i], "--rpi-", sizeof("--rpi-")))
+		{
+			int rpiret = 0;
+			char *next_arg = NULL;
+			const char *rpikey = argv[i] + sizeof("--rpi");
+
+			if ((i + 1) < *argc)
+			{
+				next_arg = argv[i + 1];
+
+				if (*next_arg == '-')
+				{
+					next_arg = NULL;
+				}
+			}
+
+			if (!raspicamcontrol_parse_cmdline(
+				&args->rpi_settings.camera_parameters,
+				rpikey, next_arg))
+			{
+				goto fail;
+			}
+		}
+		else
+		{
+			nargv[j++] = strdup(argv[i]);
+		}
+	}
+
+	*argc = nargc;
+	printf("argc = %d\n", *argc);
+
+	return nargv;
+fail:
+	if (nargv)
+	{
+		cargo_free_commandline(&nargv, nargc);
+	}
+}
 #endif // RPI
 
 int parse_cmdargs(int argc, char **argv)
@@ -523,7 +591,7 @@ int parse_cmdargs(int argc, char **argv)
 
 	memset(&args, 0, sizeof(args));
 
-	if (cargo_init(&cargo, 0, argv[0]))
+	if (cargo_init(&cargo, 0, "%s", argv[0]))
 	{
 		fprintf(stderr, "Failed to init command line parsing\n");
 		return -1;
@@ -535,6 +603,15 @@ int parse_cmdargs(int argc, char **argv)
 	ret = add_options(cargo, &args);
 
 	assert(ret == 0);
+
+	#ifdef RPI
+	// Let the raspicam software parse any --rpi settings
+	// and remove them from the list of arguments (argv is replaced).
+	if (!(argv = parse_rpi_args(&argc, argv, &args)))
+	{
+		return -1;
+	}
+	#endif // RPI
 
 	// Parse once to get --config value.
 	if (cargo_parse(cargo, 0, 1, argc, argv))
@@ -572,6 +649,9 @@ int parse_cmdargs(int argc, char **argv)
 fail:
 	cargo_destroy(&cargo);
 	ini_args_destroy(&args.ini_args);
+	#ifdef RPI
+	cargo_free_commandline(&argv, argc);
+	#endif // RPI
 
 	return 0;
 }
