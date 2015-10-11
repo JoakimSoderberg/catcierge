@@ -427,13 +427,6 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"Path to config file",
 			"s", &args->config_path);
 
-	#ifdef WITH_RPI
-	ret |= cargo_add_option(cargo, 0,
-			"--camhelp",
-			"Path to config file",
-			"b", &args->show_camhelp);
-	#endif // WITH_RPI
-
 	ret |= cargo_add_option(cargo, 0,
 			"--chuid",
 			"Run the process under this user when dropping root privileges "
@@ -471,6 +464,14 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"If it is smaller than this, the program will exit. Default 10000.",
 			"b", &args->chuid);
 
+	#ifdef RPI
+	ret |= cargo_add_option(cargo,
+			CARGO_OPT_STOP | CARGO_OPT_STOP_HARD,
+			"--camhelp",
+			"Show extra raspberry pi camera help",
+			"b", &args->show_camhelp);
+	#endif // RPI
+
 	ret |= add_matcher_options(cargo, args);
 	ret |= add_lockout_options(cargo, args);
 	ret |= add_presentation_options(cargo, args);
@@ -493,17 +494,21 @@ static void print_cmd_help(cargo_t cargo, catcierge_args_t *args)
 	catcierge_haar_output_print_usage();
 }
 
-#ifdef RPI
 static void print_line(FILE *fd, int length, const char *s)
 {
-	fprintf(fd, "%*s\n", length, "-", s);
+	int i;
+	for (i = 0; i < length; i++)
+		fputc(*s, fd);
+	fprintf(fd, "\n");
 }
 
+#ifdef RPI
 static void print_cam_help(cargo_t cargo)
 {
 	int console_width = cargo_get_width(cargo, 0) - 1;
 	print_line(stderr, console_width, "-");
 	fprintf(stderr, "Raspberry Pi camera settings:\n");
+	fprintf(stderr, "(Prepend these with --rpi. Example: --rpi--saturation or --rpi-sa)\n");
 	print_line(stderr, console_width, "-");
 	raspicamcontrol_display_help();
 	print_line(stderr, console_width, "-");
@@ -520,32 +525,23 @@ static char **parse_rpi_args(int *argc, char **argv, catcierge_args_t *args)
 	int rpi_count = 0;
 	char **nargv;
 	int nargc = 0;
+	int used = 0;
 	assert(argc);
 	assert(argv);
 	assert(args);
 
-	for (i = 0; i < *argc; i++)
-	{
-		if (!strncmp(argv[i], "--rpi-", sizeof("--rpi-")))
-		{
-			rpi_count++;
-		}
-	}
-
-	nargc = *argc - rpi_count;
-
-	if (!(nargv = calloc(nargc, sizeof(char *))))
+	if (!(nargv = calloc(*argc, sizeof(char *))))
 	{
 		return NULL;
 	}
 
-	for (i = 0, j = 0; (i < *argc) && (j < nargc); i++)
+	for (i = 0, j = 0; i < *argc; i++)
 	{
-		if (!strncmp(argv[i], "--rpi-", sizeof("--rpi-")))
+		if (!strncmp(argv[i], "--rpi-", sizeof("--rpi-") - 1))
 		{
 			int rpiret = 0;
 			char *next_arg = NULL;
-			const char *rpikey = argv[i] + sizeof("--rpi");
+			const char *rpikey = argv[i] + sizeof("--rpi") - 1;
 
 			if ((i + 1) < *argc)
 			{
@@ -554,15 +550,19 @@ static char **parse_rpi_args(int *argc, char **argv, catcierge_args_t *args)
 				if (*next_arg == '-')
 				{
 					next_arg = NULL;
+					i++;
 				}
 			}
 
-			if (!raspicamcontrol_parse_cmdline(
+			if ((used = raspicamcontrol_parse_cmdline(
 				&args->rpi_settings.camera_parameters,
-				rpikey, next_arg))
+				rpikey, next_arg)) == 0)
 			{
+				fprintf(stderr, "Error parsing rpi-cam option:\n  %s\n", rpikey);
 				goto fail;
 			}
+
+			rpi_count += used;
 		}
 		else
 		{
@@ -570,8 +570,7 @@ static char **parse_rpi_args(int *argc, char **argv, catcierge_args_t *args)
 		}
 	}
 
-	*argc = nargc;
-	printf("argc = %d\n", *argc);
+	*argc -= rpi_count;
 
 	return nargv;
 fail:
@@ -579,6 +578,8 @@ fail:
 	{
 		cargo_free_commandline(&nargv, nargc);
 	}
+
+	return NULL;
 }
 #endif // RPI
 
@@ -609,6 +610,7 @@ int parse_cmdargs(int argc, char **argv)
 	// and remove them from the list of arguments (argv is replaced).
 	if (!(argv = parse_rpi_args(&argc, argv, &args)))
 	{
+		fprintf(stderr, "Failed to parse Raspberry Pi camera settings. See --camhelp\n");
 		return -1;
 	}
 	#endif // RPI
