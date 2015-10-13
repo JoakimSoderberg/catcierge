@@ -43,11 +43,11 @@
 <h1>
 <a id="background" class="anchor" href="#background" aria-hidden="true"><span class="octicon octicon-link"></span></a>Background</h1>
 
-<p>The Catcierge project came about to solve the problem of our cat bringing home prey through the cat door. Instead of simply not allowing our cat to use the cat door anymore, like a normal person would, I of course set out to find a high-tech solution to solve my perdicament.</p>
+<p>The Catcierge project came about to solve the problem of our cat bringing home prey through the cat door. Instead of simply not allowing our cat to use the cat door anymore, like a normal person would, I of course set out to find a high-tech solution to solve my predicament.</p>
 
 <p>My idea was to somehow use image recognition to lock the cat door if the cat had something in her mouth. My first idea was to use Haar Cascades as is normally used for facial recognition, but instead train it to work on cats.</p>
 
-<p>In the process of researching possible solutions I found the <a href="http://www.quantumpicture.com/Flo_Control/flo_control.htm%5D">Flo Control</a> project that instead uses a controlled environment to get a good <strong>profile image</strong> of the cat where the prey easily can be distingusihed. I decided to implement this idea instead.</p>
+<p>In the process of researching possible solutions I found the <a href="http://www.quantumpicture.com/Flo_Control/flo_control.htm%5D">Flo Control</a> project that instead uses a controlled environment to get a good <strong>profile image</strong> of the cat where the prey easily can be distinguished. I decided to implement this idea instead.</p>
 
 <h1>
 <a id="development-story" class="anchor" href="#development-story" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development story</h1>
@@ -101,9 +101,9 @@
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/corridor05.jpg" alt="Cat corridor"></p>
 
-<p>The walls of the corridor that the cat walks through is made out of acrylic so that the camera can see through it. I made the roof out of plywood and placed it quite low so that shE haS to crouch when going in. This is so that the placement of the head againsT the background will be very consistent when taking the picture to match against. Also making the roof low makes it so her back rubs against the ceiling where the RFID readers will be located (she has the RFID chip in her neck).</p>
+<p>The walls of the corridor that the cat walks through are made out of acrylic so that the camera can see through it. I made the roof out of plywood and placed it quite low so that she has to crouch when going in. This is so that the placement of the head against the background will be very consistent when taking the picture to match against. Also making the roof low makes it so her back rubs against the ceiling where the RFID readers will be located (she has the RFID chip in her neck).</p>
 
-<p>To decide how far away the camera needed to be I persuaded my cat to keep still in front of the camera att different distances (not as easy as it sounds). The optimal distance turned out to be about 30cm. So I decided making the corridor 60cm would be enough to fit everything.</p>
+<p>To decide how far away the camera needed to be I persuaded my cat to keep still in front of the camera at different distances (not as easy as it sounds). The optimal distance turned out to be about 30cm. So I decided making the corridor 60cm would be enough to fit everything.</p>
 
 <h2>
 <a id="locking-mechanism" class="anchor" href="#locking-mechanism" aria-hidden="true"><span class="octicon octicon-link"></span></a>Locking mechanism</h2>
@@ -134,14 +134,14 @@
 
 <p>The basic idea is to make the cat go through a corridor. On one side of the corridor there's a camera, on the other side there's a backlight. This enables us to take a well controlled picture of the cats profile. Since cats keep their prey in the mouth, we can focus on the cats snout when doing the matching. We now use a saved image of the cats snout without any prey in it, and scan the image for that, if we get a good enough match, we can be certain the cat has no prey, if not we lock the door!</p>
 
-<p>This method is a lot simpler than using more advanced techniques used for pattern matching, such as haar cascades or similar things normally used for facial detection in humans. Keep It Simple Stupid!</p>
+<p>This method is a lot simpler than using more advanced techniques used for pattern matching, such as Haar Cascades or similar things normally used for facial detection in humans. Keep It Simple Stupid!</p>
 
 <h2>
 <a id="backlight" class="anchor" href="#backlight" aria-hidden="true"><span class="octicon octicon-link"></span></a>Backlight</h2>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight01.jpg" alt="Backlight"></p>
 
-<p>Since the detection method I choose for this solution requires a backlight, I decided to use a 12V LED light that I then also can connect to the <a href="http://www.piborg.com/picoborg">Picoborg</a> and be able to control it via the RPI GPIO pins. First I tried using a normal LED light for this, but it turned out that the background would not be uniform enough, giving me a bad profile picture.</p>
+<p>Since the detection method I chose for this solution requires a backlight, I decided to use a 12V LED light that I then also can connect to the <a href="http://www.piborg.com/picoborg">Picoborg</a> and be able to control it via the RPI GPIO pins. First I tried using a normal LED light for this, but it turned out that the background would not be uniform enough, giving me a bad profile picture.</p>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight02.jpg" alt="Backlight">
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/backlight03.jpg" alt="Backlight">
@@ -175,7 +175,7 @@
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/rfid04.jpg" alt="RFID"></p>
 
-<p>The RFID readers doesn't come with the antenna soldered on, so I had to do that. Since the antenna wires are really thin, and it would be very easy to break the antenna, I made a small enclosure for them made out of some left over plastics from some blister packaging.</p>
+<p>The RFID readers don't come with the antenna soldered on, so I had to do that. Since the antenna wires are really thin, and it would be very easy to break the antenna, I made a small enclosure for them made out of some left over plastics from some blister packaging.</p>
 
 <p>Here's some tests from reading the RFID tag of my cat:</p>
 
@@ -249,7 +249,7 @@
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/notok/higgsfel02_05tempmatch.png" alt="Matching">
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/ok/higgs02_05tempmatch.png" alt="Matching"></p>
 
-<p>The max value in the second image is lower because since no good match can be found.</p>
+<p>The max value in the second image is lower since no good match can be found.</p>
 
 <p>From some test with different input images I decided that a good threshold value as mentioned above is 0.8, on the 0.0 to 1.0 scale, where 1.0 would be a perfect match.</p>
 
@@ -388,7 +388,7 @@ The program can receive signals that can be sent using the <span class="pl-c1">k
 
 <p>For the first time I was now hoping for Higgs to bring something in so I could verify the cat door was actually detecting correctly.</p>
 
-<p>And finally it happened!... Except that it did not detect the mouse she had brought in successfully. Apparently my hand drawn test image were not realistic enough.</p>
+<p>And finally it happened!... Except that it did not detect the mouse she had brought in successfully. Apparently my hand drawn test image was not realistic enough.</p>
 
 <p>Here is two frames with the mouse in her mouth:</p>
 
@@ -406,7 +406,7 @@ The program can receive signals that can be sent using the <span class="pl-c1">k
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/snout/snout320x240.png" alt="Snout"></p>
 
-<p>Instead I changed it to this one that includes some more area below the chin. You may notice it looks a bit squished compared to the first one. That's because I realized that the native image of the camera does not have a 4:3 aspect ratio, but rather 16:9. So my resolution of 320x240 is not really the correct aspect ratio, I should have used 320x180.</p>
+<p>Instead I changed it to this one that includes some more area below the chin. You may notice it looks a bit squished compared to the first one. That's because I realized that the native image of the camera does not have a 4:3 aspect ratio, but rather 16:9. So my resolution of 320x240 was not really the correct aspect ratio, I should have used 320x180.</p>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/snout/snout320x240_02.png" alt="Snout"></p>
 
@@ -415,7 +415,7 @@ The program can receive signals that can be sent using the <span class="pl-c1">k
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/match_fail__fail01.png" alt="Snout">
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/match_fail__fail02.png" alt="Snout"></p>
 
-<p>Here is a comparison of all the good matches since I started testing until Higgs first delivery. As you can see, the new matcher fails in some cases. This is not much of an issue though, because it only happens at the edge pictures anyway. This normally will fail anyway since the snout is most often completely outside the frame anyway.</p>
+<p>Here is a comparison of all the good matches since I started testing until Higgs first delivery. As you can see, the new matcher fails in some cases. This is not much of an issue though, because it only happens at the edge pictures. This normally will fail anyway since the snout is most often completely outside the frame.</p>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/new_matcher/new_matcher.gif" alt="Snout">
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/example/old_matcher/old_matcher.gif" alt="Snout"></p>
@@ -430,7 +430,7 @@ The program can receive signals that can be sent using the <span class="pl-c1">k
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/coldcam01.png" alt="Cold"></p>
 
-<p>... which resulted in a spam of "lockouts" happening because the program thought something was blocking the frame. I realised what the source of the problem was right away, since the Raspberry Pi camera isn't rated to work in subzero temperatures (The raspberry pi itself had no problems however).</p>
+<p>... which resulted in a spam of "lockouts" happening because the program thought something was blocking the frame. I realised what the source of the problem was right away, since the Raspberry Pi camera isn't rated to work in subzero temperatures (The Raspberry Pi itself had no problems however).</p>
 
 <p>So I had to find a solution for this. The part of the cat house the camera is in, isn't isolated, so warming all of it was out of the question. Instead I decided to build a small box with a window for the camera, and some power resistors + a thermostat to keep it warm. I bought a really crappy 12V thermostat kit at the local electronics shop that did the job (however I've already bought a new one on ebay that will replace it):</p>
 
@@ -446,7 +446,7 @@ The program can receive signals that can be sent using the <span class="pl-c1">k
 
 <p>After fixing the cold problem, everything worked well for about a week, until suddenly my homemade backlight went dark. When stuff like this happens I'm glad I decided to make everything removable, so I could simply remove the wall and remove the backlight to examine it. </p>
 
-<p>I took it inside and realised that my sharp bends I made in my original backlight had made the waterproofing crack in the cold. At first I thought this was the reason for it going black. Later it turned out it actually was a glitchy wiring job in the cat house itself.... Anyway I remade the thing more properly without bending the led strips and instead soldering them together, and finally hot gluing it all:</p>
+<p>I took it inside and realised that the sharp bends I made in my original backlight had made the waterproofing crack in the cold. At first I thought this was the reason for it going black. Later it turned out it actually was a glitchy wiring job in the cat house itself.... Anyway I remade the thing more properly without bending the led strips and instead soldering them together, and finally hot gluing it all:</p>
 
 <p><img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/newbacklight01.jpg" alt="Cold">
 <img src="https://raw.github.com/JoakimSoderberg/catcierge-examples/master/diy/newbacklight02.jpg" alt="Cold"></p>
@@ -477,7 +477,7 @@ The program can receive signals that can be sent using the <span class="pl-c1">k
 
 <p>So after evaluating and tweaking the template matcher, I decided to try a more advanced method using Haar Cascades (a very common method used for facial recognition).</p>
 
-<p>I might go more into the details in the future, but this approach is a lot faster than the template matcher, as well as more successful. The main idea is that the haar cascade is trained to find the cat head in an image. Then after the head has been found, it looks at the lower portion of the cats face, to see if something is "hanging down" below the chin (most likely prey!).</p>
+<p>I might go more into the details in the future, but this approach is a lot faster than the template matcher, as well as more successful. The main idea is that the Haar Cascade is trained to find the cat head in an image. Then after the head has been found, it looks at the lower portion of the cats face, to see if something is "hanging down" below the chin (most likely prey!).</p>
 
 <p>Here's an example of how an image is processed:</p>
 
