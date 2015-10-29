@@ -227,7 +227,7 @@ static int perform_config_parse(cargo_t cargo, const char *config_path,
 
 	if ((cfg_err = alini_parser_create(&args->parser, config_path)) < 0)
 	{
-		cargo_print_usage(cargo, CARGO_USAGE_SHORT_USAGE);
+		cargo_print_usage(cargo, CARGO_USAGE_SHORT);
 		fprintf(stderr, "\nFailed to load config: %s\n", config_path);
 		return -1;
 	}
@@ -276,7 +276,7 @@ int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 	{
 		size_t k = 0;
 
-		cargo_print_usage(cargo, CARGO_USAGE_SHORT_USAGE);
+		cargo_print_usage(cargo, CARGO_USAGE_SHORT);
 
 		fprintf(stderr, "Failed to parse config: %d\n", err);
 		
