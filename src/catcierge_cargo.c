@@ -21,6 +21,7 @@
 #include "cargo_ini.h"
 #include "catcierge_args.h"
 #include "catcierge_output.h"
+#include "catcierge_log.h"
 
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"
@@ -32,7 +33,6 @@ static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 
 	ret |= cargo_add_group(cargo, 0, "lockout", "Lockout settings", NULL);
 
-	// TODO: Verify value
 	ret |= cargo_add_option(cargo, 0,
 			"<lockout> --lockout_method",
 			"Defines the method used to decide when to unlock:\n"
@@ -40,6 +40,9 @@ static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 			"2: Wait for clear frame or that the timer has timed out.\n"
 			"3: Wait for clear frame and then start unlock timer.\n",
 			"i", &args->lockout_method);
+	ret |= cargo_add_validation(cargo, 0, 
+			"--lockout_method",
+			cargo_validate_int_range(1, 3));
 
 	ret |= cargo_add_option(cargo, 0,
 			"<lockout> --lockout",
@@ -59,7 +62,7 @@ static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= cargo_add_option(cargo, 0,
 			"<lockout> --lockout_error_delay",
 			NULL,
-			"i", &args->max_consecutive_lockout_count);
+			"i", &args->consecutive_lockout_delay);
 	ret |= cargo_set_option_description(cargo, "--lockout_error_delay",
 			"The delay in seconds between lockouts that should be "
 			"counted as a consecutive lockout. Default %0.1f.",
@@ -69,7 +72,7 @@ static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 			"<lockout> --lockout_dummy",
 			"Do everything as normal, but don't actually "
 			"lock the door. This is useful for testing.",
-			"i", &args->max_consecutive_lockout_count);
+			"b", &args->lockout_dummy);
 
 	return ret;
 }
@@ -112,8 +115,6 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 	//
 	int ret = 0;
 
-	// TODO: Add functions for matcher arguments
-
 	ret |= cargo_add_group(cargo, 0, "matcher", "Matcher settings", NULL);
 
 	ret |= cargo_add_mutex_group(cargo,
@@ -132,7 +133,6 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 			"Haar feature based matching algorithm (recommended).",
 			"b=", &args->matcher_type, MATCHER_HAAR);
 
-	// TODO: Verify between 0 and MATCH_MAX_COUNT
 	ret |= cargo_add_option(cargo, 0,
 			"<matcher> --ok_matches_needed", NULL,
 			"i", &args->ok_matches_needed);
@@ -141,6 +141,13 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 			"The number of matches out of %d matches "
 			"that need to be OK for the match to be considered "
 			"an over all OK match.", MATCH_MAX_COUNT);
+	ret |= cargo_add_validation(cargo, 0,
+			"--ok_matches_needed",
+			cargo_validate_int_range(0, MATCH_MAX_COUNT));
+
+	ret |= cargo_add_option(cargo, 0,
+			"<matcher> --matchtime", NULL,
+			"i", &args->match_time);
 
 	ret |= catcierge_haar_matcher_add_options(cargo, &args->haar);
 	ret |= catcierge_template_matcher_add_options(cargo, &args->templ);
@@ -419,6 +426,7 @@ static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
 static int add_options(cargo_t cargo, catcierge_args_t *args)
 {
 	int ret = 0;
+	assert(args);
 
 	args->new_execute = 1;
 
@@ -583,77 +591,139 @@ fail:
 }
 #endif // RPI
 
-int parse_cmdargs(int argc, char **argv)
+void catcierge_args_init_vars(catcierge_args_t *args)
 {
-	int i;
-	int ret = 0;
-	cargo_t cargo;
-	catcierge_args_t args;
+	memset(args, 0, sizeof(catcierge_args_t));
 
-	memset(&args, 0, sizeof(args));
+	catcierge_template_matcher_args_init(&args->templ);
+	catcierge_haar_matcher_args_init(&args->haar);
+	args->saveimg = 1;
+	args->save_obstruct_img = 0;
+	args->match_time = DEFAULT_MATCH_WAIT;
+	args->lockout_method = TIMER_ONLY_1;
+	args->lockout_time = DEFAULT_LOCKOUT_TIME;
+	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
+	args->ok_matches_needed = DEFAULT_OK_MATCHES_NEEDED;
+	args->output_path = strdup(".");
+	args->min_backlight = 10000;
 
-	if (cargo_init(&cargo, 0, "%s", argv[0]))
+	#ifdef RPI
 	{
-		fprintf(stderr, "Failed to init command line parsing\n");
+		RASPIVID_SETTINGS *settings = &args->rpi_settings;
+		settings->width = 320;
+		settings->height = 240;
+		settings->bitrate = 500000;
+		settings->framerate = 30;
+		settings->immutableInput = 1;
+		settings->graymode = 1;
+		raspiCamCvSetDefaultCameraParameters(&settings->camera_parameters);
+	}
+	#endif // RPI
+
+	#ifdef WITH_ZMQ
+	args->zmq_port = DEFAULT_ZMQ_PORT;
+	args->zmq_iface = DEFAULT_ZMQ_IFACE;
+	args->zmq_transport = DEFAULT_ZMQ_TRANSPORT;
+	#endif
+}
+
+void catcierge_args_destroy_vars(catcierge_args_t *args)
+{
+	if (args->output_path) free(args->output_path);
+	args->output_path = NULL;
+}
+
+int catcierge_args_init(catcierge_args_t *args, const char *progname)
+{
+	int ret = 0;
+	assert(args);
+
+	catcierge_args_init_vars(args);
+
+	if (cargo_init(&args->cargo, 0, "%s", progname))
+	{
+		CATERR("Failed to init command line parsing\n");
 		return -1;
 	}
 
-	cargo_set_description(cargo,
+	cargo_set_description(args->cargo,
 		"Catcierge saves you from cleaning the floor!");
 
-	ret = add_options(cargo, &args);
+	ret = add_options(args->cargo, args);
 
 	assert(ret == 0);
+
+	return 0;
+}
+
+int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
+{
+	int i;
+	int ret = 0;
+	cargo_t cargo = args->cargo;
+	assert(args);
+
+	//ret = catcierge_args_init(args, argv[0]);
+	//assert(ret == 0);
 
 	#ifdef RPI
 	// Let the raspicam software parse any --rpi settings
 	// and remove them from the list of arguments (argv is replaced).
-	if (!(argv = parse_rpi_args(&argc, argv, &args)))
+	if (!(argv = parse_rpi_args(&argc, argv, args)))
 	{
-		fprintf(stderr, "Failed to parse Raspberry Pi camera settings. See --camhelp\n");
-		return -1;
+		CATERR("Failed to parse Raspberry Pi camera settings. See --camhelp\n");
+		goto fail; ret = -1;
 	}
 	#endif // RPI
 
 	// Parse once to get --config value.
 	if (cargo_parse(cargo, 0, 1, argc, argv))
 	{
-		goto fail;
+		ret = -1; goto fail;
 	}
 
 	// Read ini file and translate that into an argv that cargo can parse.
-	printf("Config path: %s\n", args.config_path);
-	if (args.config_path
-		&& parse_config(cargo, args.config_path, &args.ini_args))
+	if (args->config_path)
 	{
-		goto fail;
+		CATLOG("Config path: %s\n", args->config_path);
+
+		if (parse_config(cargo, args->config_path, &args->ini_args))
+		{
+			ret = -1; goto fail;
+		}
 	}
 
 	// And finally parse the commandline to override config settings.
 	if (cargo_parse(cargo, 0, 1, argc, argv))
 	{
-		goto fail;
+		ret = -1; goto fail;
 	}
 
-	if (args.show_cmd_help)
+	if (args->show_cmd_help)
 	{
-		print_cmd_help(cargo, &args);
-		return -1;
+		print_cmd_help(cargo, args);
+		ret = -1; goto fail;
 	}
 
 	#ifdef RPI
-	if (args.show_camhelp)
+	if (args->show_camhelp)
 	{
 		print_cam_help(cargo);
 	}
 	#endif // RPI
 
 fail:
-	cargo_destroy(&cargo);
-	ini_args_destroy(&args.ini_args);
+	//cargo_destroy(&cargo);
+	//ini_args_destroy(&args->ini_args);
 	#ifdef RPI
 	cargo_free_commandline(&argv, argc);
 	#endif // RPI
 
-	return 0;
+	return ret;
+}
+
+void catcierge_args_destroy(catcierge_args_t *args)
+{
+	cargo_destroy(&args->cargo);
+	ini_args_destroy(&args->ini_args);
 }

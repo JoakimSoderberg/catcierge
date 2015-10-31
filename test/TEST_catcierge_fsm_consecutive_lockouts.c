@@ -10,6 +10,7 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include "catcierge_test_common.h"
+#include "catcierge_cargo.h"
 
 static char *run_consecutive_lockout_abort_tests()
 {
@@ -18,6 +19,7 @@ static char *run_consecutive_lockout_abort_tests()
 	args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 
 	args->saveimg = 0;
 	set_default_test_snouts(args);
@@ -95,6 +97,7 @@ static char *run_consecutive_lockout_abort_tests()
 		(grb.running == 1));
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -108,6 +111,7 @@ static char *run_consecutive_lockout_tests()
 	args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 
 	args->saveimg = 0;
 	set_default_test_snouts(args);
@@ -154,6 +158,7 @@ static char *run_consecutive_lockout_tests()
 		(grb.running == 0));
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

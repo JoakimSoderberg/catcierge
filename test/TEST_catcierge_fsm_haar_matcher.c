@@ -11,6 +11,7 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include "catcierge_test_common.h"
+#include "catcierge_cargo.h"
 
 static char *run_success_tests()
 {
@@ -20,6 +21,7 @@ static char *run_success_tests()
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 0;
@@ -59,6 +61,7 @@ static char *run_success_tests()
 	}
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -72,6 +75,7 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 0;
@@ -122,6 +126,7 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	}
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -133,6 +138,7 @@ static char *run_save_steps_test()
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 
 	args->matcher_type = MATCHER_HAAR;
 	args->ok_matches_needed = 3;
@@ -145,7 +151,9 @@ static char *run_save_steps_test()
 	args->save_steps = 1;
 	args->save_obstruct_img = 1;
 	args->saveimg = 1;
-	args->output_path = "./test_save_steps";
+	free(args->output_path);
+	args->output_path = strdup("./test_save_steps");
+	mu_assert("Out of memory", args->output_path);
 	catcierge_make_path(args->output_path);
 
 	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->haar))
@@ -182,6 +190,7 @@ static char *run_save_steps_test()
 	mu_assert("Expected 10 step images", grb.match_group.matches[3].result.step_img_count == 11);
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

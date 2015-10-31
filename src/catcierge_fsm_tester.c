@@ -29,6 +29,7 @@
 #include "test/catcierge_test_common.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
+#include "catcierge_cargo.h"
 
 #ifdef WITH_ZMQ
 #include <czmq.h>
@@ -156,6 +157,7 @@ int main(int argc, char **argv)
 	memset(&ctx, 0, sizeof(ctx));
 	catcierge_grabber_init(&grb);
 
+	#if 0
 	if (catcierge_parse_config(args, argc, argv))
 	{
 		show_usage(argv[0]);
@@ -163,10 +165,23 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	
 	if (catcierge_parse_cmdargs(args, argc, argv, parse_args_callback, &ctx))
 	{
 		show_usage(argv[0]);
 		ret = -1; goto fail;
+	}
+	#endif
+
+	if (catcierge_args_init(args, argv[0]))
+	{
+		fprintf(stderr, "Failed to init args\n");
+		return -1;
+	}
+
+	if (catcierge_args_parse(args, argc, argv))
+	{
+		return -1;
 	}
 
 	if (ctx.img_count == 0)
@@ -291,6 +306,7 @@ fail:
 	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_output_destroy(&grb.output);
 	catcierge_grabber_destroy(&grb);
+	catcierge_args_destroy(&grb.args);
 
 	return ret;
 }

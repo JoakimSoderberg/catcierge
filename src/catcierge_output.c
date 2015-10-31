@@ -1033,13 +1033,18 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 	char *it;
 	char *output = NULL;
 	char *tmp = NULL;
-	size_t orig_len = strlen(template_str);
+	size_t orig_len = 0;
 	size_t out_len = 2 * orig_len + 1;
 	size_t len;
 	size_t linenum;
 	size_t reslen;
 	assert(ctx);
 	assert(grb);
+
+	if (!template_str)
+		return NULL;
+
+	orig_len = strlen(template_str);
 
 	if (ctx->recursion >= CATCIERGE_OUTPUT_MAX_RECURSION)
 	{

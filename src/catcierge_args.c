@@ -16,12 +16,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <catcierge_config.h>
 #include "catcierge_args.h"
+
 #include "catcierge_log.h"
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"
@@ -35,6 +37,7 @@
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
 #include "catcierge_strftime.h"
+
 
 #ifdef WITH_RFID
 int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char *allowed)
@@ -54,6 +57,7 @@ void catcierge_free_rfid_allowed_list(catcierge_args_t *args)
 }
 #endif // WITH_RFID
 
+#if 0
 int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count)
 {
 	size_t i;
@@ -1147,29 +1151,7 @@ int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
 
 	return 0;
 }
-
-catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
-{
-	catcierge_matcher_args_t *margs = NULL;
-
-	if (args->matcher_type == MATCHER_TEMPLATE)
-	{
-		margs = (catcierge_matcher_args_t *)&args->templ;
-	}
-	else if (args->matcher_type == MATCHER_HAAR)
-	{
-		margs = (catcierge_matcher_args_t *)&args->haar;
-	}
-
-	// TODO: This is an ugly way to pass this on... But whatever for now.
-	if (margs)
-	{
-		margs->roi = &args->roi;
-		margs->min_backlight = args->min_backlight;
-	}
-
-	return margs;
-}
+#endif
 
 void catcierge_print_settings(catcierge_args_t *args)
 {
@@ -1238,6 +1220,30 @@ void catcierge_print_settings(catcierge_args_t *args)
 
 }
 
+catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
+{
+	catcierge_matcher_args_t *margs = NULL;
+
+	if (args->matcher_type == MATCHER_TEMPLATE)
+	{
+		margs = (catcierge_matcher_args_t *)&args->templ;
+	}
+	else if (args->matcher_type == MATCHER_HAAR)
+	{
+		margs = (catcierge_matcher_args_t *)&args->haar;
+	}
+
+	// TODO: This is an ugly way to pass this on... But whatever for now.
+	if (margs)
+	{
+		margs->roi = &args->roi;
+		margs->min_backlight = args->min_backlight;
+	}
+
+	return margs;
+}
+
+#if 0
 int catcierge_args_init(catcierge_args_t *args)
 {
 	memset(args, 0, sizeof(catcierge_args_t));
@@ -1280,7 +1286,7 @@ void catcierge_args_destroy(catcierge_args_t *args)
 {
 	assert(args);
 
-	catcierge_config_free_temp_strings(args);
+	/*catcierge_config_free_temp_strings(args);
 
 	#ifdef WITH_RFID
 	catcierge_free_rfid_allowed_list(args);
@@ -1289,6 +1295,7 @@ void catcierge_args_destroy(catcierge_args_t *args)
 	if (args->parser)
 	{
 		alini_parser_dispose(args->parser);
-	}
+	}*/
 }
+#endif
 

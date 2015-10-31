@@ -29,6 +29,7 @@
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
 #include "catcierge_types.h"
+#include "cargo.h"
 #include "cargo_ini.h"
 
 #define DEFAULT_LOCKOUT_TIME 30		// The default lockout length after a none-match
@@ -45,6 +46,7 @@
 
 typedef struct catcierge_args_s
 {
+	cargo_t cargo;
 	conf_ini_args_t ini_args;
 	alini_parser_t *parser;
 	char *program_name;
@@ -126,6 +128,7 @@ typedef struct catcierge_args_s
 	#endif // WITH_ZMQ
 } catcierge_args_t;
 
+#if 0
 typedef int (*catcierge_parse_args_cb)(catcierge_args_t *, char *key, char **values, size_t value_count, void *user);
 
 int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv);
@@ -134,10 +137,14 @@ void catcierge_show_usage(catcierge_args_t *args, const char *prog);
 void catcierge_print_settings(catcierge_args_t *args);
 int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count);
 int catcierge_validate_settings(catcierge_args_t *args);
+#endif
+void catcierge_print_settings(catcierge_args_t *args);
 catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args);
 
+#if 0
 int catcierge_args_init(catcierge_args_t *args);
 void catcierge_args_destroy(catcierge_args_t *args);
+#endif
 
 #ifdef WITH_RFID
 int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char *allowed);

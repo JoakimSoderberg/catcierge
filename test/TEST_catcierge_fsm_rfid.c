@@ -11,6 +11,7 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include "catcierge_test_common.h"
+#include "catcierge_cargo.h"
 
 #ifdef CATCIERGE_HAVE_PTY_H
 #include <pty.h>
@@ -91,6 +92,7 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 	}
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 	grb.running = 1;
 
 	if (conf->allowed_list)
@@ -194,6 +196,7 @@ cleanup:
 	if (in_slave_name) free(in_slave_name);
 
 	catcierge_template_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return return_message;
@@ -219,6 +222,7 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 	grb.running = 1;
 
 	args->saveimg = 0;
@@ -302,6 +306,7 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	}
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

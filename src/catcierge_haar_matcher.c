@@ -42,17 +42,18 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 	ctx = (catcierge_haar_matcher_t *)*octx;
 
 	ctx->super.type = MATCHER_HAAR;
+	ctx->super.name = "Haar Cascade";
 
 	if (!args->cascade)
 	{
-		CATERR("Haar matcher: No cascade xml specified.\n");
+		CATERR("Haar matcher: No cascade xml specified. Use --cascade\n");
 		return -1;
 	}
 
 	if (!(ctx->cascade = cv2CascadeClassifier_create()))
 	{
 		CATERR("Failed to create cascade classifier.\n");
-		return -1;
+		goto opencv_error;
 	}
 
 	if (cv2CascadeClassifier_load(ctx->cascade, args->cascade))
@@ -63,22 +64,22 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 
 	if (!(ctx->storage = cvCreateMemStorage(0)))
 	{
-		return -1;
+		goto opencv_error;
 	}
 
 	if (!(ctx->kernel2x2 = cvCreateStructuringElementEx(2, 2, 0, 0, CV_SHAPE_RECT, NULL)))
 	{
-		return -1;
+		goto opencv_error;
 	}
 
 	if (!(ctx->kernel3x3 = cvCreateStructuringElementEx(3, 3, 0, 0, CV_SHAPE_RECT, NULL)))
 	{
-		return -1;
+		goto opencv_error;
 	}
 
 	if (!(ctx->kernel5x1 = cvCreateStructuringElementEx(5, 1, 0, 0, CV_SHAPE_RECT, NULL)))
 	{
-		return -1;
+		goto opencv_error;
 	}
 
 	ctx->args = args;
@@ -88,6 +89,9 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 	ctx->super.translate = catcierge_haar_matcher_translate;
 
 	return 0;
+opencv_error:
+	CATERR("OpenCV error\n");
+	return -1;
 }
 
 void catcierge_haar_matcher_destroy(catcierge_matcher_t **octx)

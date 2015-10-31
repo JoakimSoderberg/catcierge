@@ -10,6 +10,7 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include "catcierge_test_common.h"
+#include "catcierge_cargo.h"
 
 // This tests the different lockout strategies.
 static char *run_lockout_tests(catcierge_grb_t *grb, int obstruct,
@@ -154,6 +155,7 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 	grb.running = 1;
 
 	args->saveimg = 0;
@@ -206,6 +208,7 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 	}
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -225,6 +228,7 @@ static char *run_success_tests(int obstruct)
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 	grb.running = 1;
 
 	args->matcher = "template";
@@ -286,6 +290,7 @@ static char *run_success_tests(int obstruct)
 	}
 
 	catcierge_template_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

@@ -19,6 +19,13 @@
 #ifndef __CATCIERGE_CARGO_H__
 #define __CATCIERGE_CARGO_H__
 
-int parse_cmdargs(int argc, char **argv);
+#include "catcierge_args.h"
+
+int catcierge_args_init(catcierge_args_t *args, const char *progname);
+int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv);
+void catcierge_args_destroy(catcierge_args_t *args);
+
+void catcierge_args_init_vars(catcierge_args_t *args);
+void catcierge_args_destroy_vars(catcierge_args_t *args);
 
 #endif // __CATCIERGE_CARGO_H__

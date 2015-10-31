@@ -186,8 +186,7 @@ void short_usage(const char *progname)
 
 int main(int argc, char **argv)
 {
-	catcierge_args_t *args;
-	args = &grb.args;
+	catcierge_args_t *args = &grb.args;
 
 	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR " (" CATCIERGE_GIT_HASH_SHORT "");
 
@@ -216,37 +215,23 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	// TODO: REMOVE ME :)
-	//return parse_cmdargs(argc, argv);
-
-	// Get program settings.
+	if (catcierge_args_init(args, argv[0]))
 	{
-		if (catcierge_parse_config(args, argc, argv))
-		{
-			short_usage(argv[0]);
-			return -1;
-		}
-
-		if (catcierge_parse_cmdargs(args, argc, argv, NULL, NULL))
-		{
-			short_usage(argv[0]);
-			return -1;
-		}
-
-		if (args->nocolor)
-		{
-			catcierge_nocolor = 1;
-		}
-
-		// TODO: Add verify function for settings. Make sure we have everything we need...
-		if (catcierge_validate_settings(args))
-		{
-			short_usage(argv[0]);
-			return -1;
-		}
-
-		catcierge_print_settings(args);
+		fprintf(stderr, "Failed to init args\n");
+		return -1;
 	}
+
+	if (catcierge_args_parse(args, argc, argv))
+	{
+		return -1;
+	}
+
+	if (args->nocolor)
+	{
+		catcierge_nocolor = 1;
+	}
+
+	catcierge_print_settings(args);
 
 	setup_sig_handlers();
 
@@ -273,7 +258,7 @@ int main(int argc, char **argv)
 
 	if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))
 	{
-		CATERR("Failed to init %s matcher\n", grb.args.matcher);
+		CATERR("Failed to init %s matcher\n", grb.matcher->name);
 		return -1;
 	}
 
@@ -343,6 +328,7 @@ int main(int argc, char **argv)
 	catcierge_zmq_destroy(&grb);
 	#endif
 	catcierge_grabber_destroy(&grb);
+	catcierge_args_destroy(&grb.args);
 
 	if (grb.log_file)
 	{

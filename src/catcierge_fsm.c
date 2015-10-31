@@ -1596,11 +1596,12 @@ int catcierge_grabber_init(catcierge_grb_t *grb)
 	assert(grb);
 
 	memset(grb, 0, sizeof(catcierge_grb_t));
-	
+	#if 0
 	if (catcierge_args_init(&grb->args))
 	{
 		return -1;
 	}
+	#endif
 
 	return 0;
 }
@@ -1609,6 +1610,6 @@ void catcierge_grabber_destroy(catcierge_grb_t *grb)
 {
 	// Always make sure we unlock.
 	catcierge_do_unlock(grb);
-	catcierge_args_destroy(&grb->args);
+	//catcierge_args_destroy(&grb->args);
 	catcierge_cleanup_imgs(grb);
 }
