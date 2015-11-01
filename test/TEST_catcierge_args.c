@@ -452,9 +452,34 @@ char *run_parse_config_tests()
 	return NULL;
 }
 
+char *run_catierge_add_options()
+{
+	int ret = 0;
+	catcierge_args_t args;
+	ret = catcierge_args_init(&args, "catcierge");
+	mu_assert("Failed to init catcierge args", ret == 0);
+
+	catcierge_args_destroy(&args);
+
+	return NULL;
+}
+
 int TEST_catcierge_args(int argc, char **argv)
 {
-	return 0;
+	char *e = NULL;
+	int ret = 0;
+
+	CATCIERGE_RUN_TEST((e = run_catierge_add_options()),
+		"Run add options test",
+		"Add options test", &ret);
+
+	if (ret)
+	{
+		catcierge_test_FAILURE("One or more tests failed!");
+	}
+
+	return ret;
+
 	#if 0
 	int ret = 0;
 	int i;
