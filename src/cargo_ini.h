@@ -23,6 +23,7 @@
 #include "alini.h"
 #include "cargo.h"
 #include "uthash.h"
+#include "catcierge_platform.h"
 
 #define MAX_CONFIG_KEY 1024
 #define MAX_CONFIG_VAL 1024
