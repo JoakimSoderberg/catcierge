@@ -93,7 +93,7 @@ int catcierge_template_matcher_init(catcierge_matcher_t **octx,
 	CvSize snout_size;
 	CvSize matchres_size;
 	IplImage *snout_prep = NULL;
-	const char **snout_paths = NULL;
+	char **snout_paths = NULL;
 	int snout_count;
 	catcierge_template_matcher_t *ctx = NULL;
 	catcierge_template_matcher_args_t *args = (catcierge_template_matcher_args_t *)oargs;

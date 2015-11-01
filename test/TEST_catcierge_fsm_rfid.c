@@ -195,6 +195,7 @@ cleanup:
 	if (out_slave_name) free(out_slave_name);
 	if (in_slave_name) free(in_slave_name);
 
+	catcierge_free_rfid_allowed_list(args);
 	catcierge_template_matcher_destroy(&grb.matcher);
 	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);

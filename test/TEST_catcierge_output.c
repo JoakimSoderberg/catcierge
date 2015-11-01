@@ -277,6 +277,7 @@ static char *run_add_and_generate_tests()
 	catcierge_grabber_init(&grb);
 	catcierge_args_init_vars(args);
 	{
+		free(args->output_path);
 		args->output_path = strdup("template_tests");
 		args->templ.snout_paths[0] = strdup(CATCIERGE_SNOUT1_PATH);
 		args->templ.snout_paths[1] = strdup(CATCIERGE_SNOUT2_PATH);
@@ -415,6 +416,10 @@ static char *run_add_and_generate_tests()
 			#endif
 		}
 
+		free(args->output_path);
+		args->output_path = NULL;
+		free(args->templ.snout_paths[0]);
+		free(args->templ.snout_paths[1]);
 		catcierge_output_destroy(o);
 		catcierge_matcher_destroy(&grb.matcher);
 	}
@@ -601,12 +606,12 @@ static char *run_recursion_tests()
 	catcierge_grabber_init(&grb);
 	catcierge_args_init_vars(args);
 	{
-
 		if (catcierge_output_init(o))
 			return "Failed to init output context";
 
 		catcierge_test_STATUS("Try infinite output template recursion");
 		{
+			free(args->output_path);
 			args->output_path = strdup("arne");
 			args->match_output_path = strdup("%output_path%/hej");
 
@@ -639,6 +644,11 @@ static char *run_recursion_tests()
 			catcierge_test_STATUS("Failed on infinite recursion template as expected\n");
 		}
 
+		free(args->output_path);
+		args->output_path = NULL;
+		free(args->match_output_path);
+		free(args->steps_output_path);
+		free(args->obstruct_output_path);
 		catcierge_output_destroy(o);
 	}
 	catcierge_args_destroy_vars(args);

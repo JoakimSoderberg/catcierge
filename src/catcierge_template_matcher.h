@@ -36,7 +36,7 @@
 typedef struct catcierge_template_matcher_args_s
 {
 	catcierge_matcher_args_t super;
-	const char *snout_paths[MAX_SNOUT_COUNT];
+	char *snout_paths[MAX_SNOUT_COUNT];
 	size_t snout_count;
 	double match_threshold;
 	int match_flipped;

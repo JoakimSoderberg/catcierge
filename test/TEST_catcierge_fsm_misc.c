@@ -13,7 +13,6 @@
 
 static char *run_tests()
 {
-	size_t i;
 	catcierge_grb_t grb;
 	catcierge_args_t *args = &grb.args;
 
