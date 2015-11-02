@@ -146,6 +146,14 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 			cargo_validate_int_range(0, MATCH_MAX_COUNT));
 
 	ret |= cargo_add_option(cargo, 0,
+			"<matcher> --no_final_decision",
+			"Normally after all matches in a match group has been made "
+			"the matcher algorithm gets to do a final decision based on "
+			"the entire group of matches which overrides the \"--ok_matches_needed\""
+			"setting. This flag turns this behavior off.",
+			"b", &args->no_final_decision);
+
+	ret |= cargo_add_option(cargo, 0,
 			"<matcher> --matchtime", NULL,
 			"i", &args->match_time);
 
@@ -622,8 +630,8 @@ void catcierge_args_init_vars(catcierge_args_t *args)
 
 	#ifdef WITH_ZMQ
 	args->zmq_port = DEFAULT_ZMQ_PORT;
-	args->zmq_iface = DEFAULT_ZMQ_IFACE;
-	args->zmq_transport = DEFAULT_ZMQ_TRANSPORT;
+	args->zmq_iface = strdup(DEFAULT_ZMQ_IFACE);
+	args->zmq_transport = strdup(DEFAULT_ZMQ_TRANSPORT);
 	#endif
 }
 
@@ -631,6 +639,13 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 {
 	if (args->output_path) free(args->output_path);
 	args->output_path = NULL;
+
+	#ifdef WITH_ZMQ
+	if (args->zmq_iface) free(args->zmq_iface);
+	args->zmq_iface = NULL;
+	if (args->zmq_transport) free(args->zmq_transport);
+	args->zmq_transport = NULL;
+	#endif
 }
 
 int catcierge_args_init(catcierge_args_t *args, const char *progname)
@@ -726,4 +741,5 @@ void catcierge_args_destroy(catcierge_args_t *args)
 {
 	cargo_destroy(&args->cargo);
 	ini_args_destroy(&args->ini_args);
+	catcierge_args_destroy_vars(args);
 }

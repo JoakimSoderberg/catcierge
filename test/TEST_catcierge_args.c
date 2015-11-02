@@ -452,7 +452,7 @@ char *run_parse_config_tests()
 	return NULL;
 }
 
-char *run_catierge_add_options()
+static char *run_catierge_add_options_test()
 {
 	int ret = 0;
 	catcierge_args_t args;
@@ -464,14 +464,93 @@ char *run_catierge_add_options()
 	return NULL;
 }
 
+static char *perform_catcierge_args(int expect, catcierge_args_t *args, int argc, char **argv)
+{
+	int ret = 0;
+
+	ret = catcierge_args_init(args, "catcierge");
+	mu_assert("Failed to init catcierge args", ret == 0);
+
+	ret = catcierge_args_parse(args, argc, argv);
+	mu_assert("Unexpected return value for parse", ret == expect);
+
+	catcierge_args_destroy(args);
+	return NULL;
+}
+
+static char *run_catcierge_parse_test()
+{
+	int ret = 0;
+	catcierge_args_t args;
+	#define PARSE_ARGV(expect, argsp, ...)												\
+		{ 																				\
+			int i; \
+			char *argv[] = { __VA_ARGS__ }; 											\
+			int argc = sizeof(argv) / sizeof(argv[0]); \
+			for (i = 0; i < argc; i++) printf("%s ", argv[i]); \
+			printf("\n"); \
+			perform_catcierge_args(expect, argsp, argc, argv);\
+		}
+
+	memset(&args, 0, sizeof(args));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar");
+	mu_assert("Expected haar matcher", args.matcher_type == MATCHER_HAAR);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--show");
+	mu_assert("show != 1", args.show == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--ok_matches_needed", "2");
+	mu_assert("ok_matches_needed != 2", args.ok_matches_needed == 2);
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--ok_matches_needed");
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--ok_matches_needed", "20");
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--no_final_decision");
+	mu_assert("Expected no_final_decision == 1", args.no_final_decision == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_method", "3");
+	mu_assert("Expected lockout_method == 3", args.lockout_method == OBSTRUCT_OR_TIMER_3);
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_method", "2");
+	mu_assert("Expected lockout_method == 2", args.lockout_method == OBSTRUCT_THEN_TIMER_2);
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_method", "1");
+	mu_assert("Expected lockout_method == 1", args.lockout_method == TIMER_ONLY_1);
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--lockout_method", "0");
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--lockout_method", "4");
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--lockout_method");
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--save");
+	mu_assert("Expected save == 1", args.saveimg == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--save_obstruct");
+	mu_assert("Expected save_obstruct == 1", args.save_obstruct_img == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--new_execute");
+	mu_assert("Expected new_execute == 1", args.new_execute == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--highlight");
+	mu_assert("Expected highlight == 1", args.highlight_match == 1);
+
+	#ifdef WITH_ZMQ
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--zmq");
+	mu_assert("Expected zmq == 1", args.zmq == 1);
+
+	#endif // WITH_ZMQ
+
+	return NULL;
+}
+
 int TEST_catcierge_args(int argc, char **argv)
 {
 	char *e = NULL;
 	int ret = 0;
 
-	CATCIERGE_RUN_TEST((e = run_catierge_add_options()),
+	CATCIERGE_RUN_TEST((e = run_catierge_add_options_test()),
 		"Run add options test",
 		"Add options test", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_catcierge_parse_test()),
+		"Run parse test",
+		"Parse test", &ret);
 
 	if (ret)
 	{
