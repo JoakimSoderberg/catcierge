@@ -464,17 +464,14 @@ static char *run_catierge_add_options_test()
 	return NULL;
 }
 
-static char *perform_catcierge_args(int expect, catcierge_args_t *args, int argc, char **argv)
+static char *perform_catcierge_args(int expect, 
+				catcierge_args_t *args, int argc, char **argv)
 {
 	int ret = 0;
-
-	ret = catcierge_args_init(args, "catcierge");
-	mu_assert("Failed to init catcierge args", ret == 0);
 
 	ret = catcierge_args_parse(args, argc, argv);
 	mu_assert("Unexpected return value for parse", ret == expect);
 
-	catcierge_args_destroy(args);
 	return NULL;
 }
 
@@ -482,17 +479,19 @@ static char *run_catcierge_parse_test()
 {
 	int ret = 0;
 	catcierge_args_t args;
-	#define PARSE_ARGV(expect, argsp, ...)												\
-		{ 																				\
-			int i; \
-			char *argv[] = { __VA_ARGS__ }; 											\
-			int argc = sizeof(argv) / sizeof(argv[0]); \
-			for (i = 0; i < argc; i++) printf("%s ", argv[i]); \
-			printf("\n"); \
-			perform_catcierge_args(expect, argsp, argc, argv);\
+	#define PARSE_ARGV(expect, argsp, ...)						\
+		{ 														\
+			int i; 												\
+			char *argv[] = { __VA_ARGS__ }; 					\
+			int argc = sizeof(argv) / sizeof(argv[0]); 			\
+			for (i = 0; i < argc; i++) printf("%s ", argv[i]); 	\
+			printf("\n"); 										\
+			perform_catcierge_args(expect, argsp, argc, argv); 	\
 		}
 
 	memset(&args, 0, sizeof(args));
+	ret = catcierge_args_init(&args, "catcierge");
+	mu_assert("Failed to init catcierge args", ret == 0);
 
 	PARSE_ARGV(0, &args, "catcierge", "--haar");
 	mu_assert("Expected haar matcher", args.matcher_type == MATCHER_HAAR);
@@ -534,7 +533,32 @@ static char *run_catcierge_parse_test()
 	PARSE_ARGV(0, &args, "catcierge", "--haar", "--zmq");
 	mu_assert("Expected zmq == 1", args.zmq == 1);
 
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--zmq_port", "1234");
+	mu_assert("Expected zmq_port == 1234", args.zmq_port == 1234);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--zmq_iface", "eth1");
+	printf("zmq_iface = %s\n", args.zmq_iface);
+	mu_assert("Expected zmq_iface == eth1",
+		args.zmq_iface && !strcmp(args.zmq_iface, "eth1"));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--zmq_transport", "inproc");
+	printf("zmq_transport = %s\n", args.zmq_transport);
+	mu_assert("Expected zmq_transport == inproc",
+		args.zmq_transport && !strcmp(args.zmq_transport, "inproc"));
 	#endif // WITH_ZMQ
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout", "5");
+	mu_assert("Expected lockout == 5", args.lockout_time == 5);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_error_delay", "5");
+	mu_assert("Expected lockout_error_delay == 5",
+			args.consecutive_lockout_delay == 5);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_error", "20");
+	mu_assert("Expected lockout_error == 20",
+			args.max_consecutive_lockout_count == 20);
+
+	catcierge_args_destroy(&args);
 
 	return NULL;
 }
@@ -558,34 +582,4 @@ int TEST_catcierge_args(int argc, char **argv)
 	}
 
 	return ret;
-
-	#if 0
-	int ret = 0;
-	int i;
-	test_func funcs[] = { run_test2 };
-	#define FUNC_COUNT (sizeof(funcs) / sizeof(test_func))
-	char *e = NULL;
-	catcierge_test_HEADLINE("TEST_catcierge_args");
-
-	CATCIERGE_RUN_TEST((e = run_parse_args_tests()),
-		"Run parse all args test",
-		"Parsed all args test", &ret);
-
-	for (i = 0; i < FUNC_COUNT; i++)
-	{
-		if ((e = funcs[i]())) { catcierge_test_FAILURE("%s", e); ret = -1; }
-		else catcierge_test_SUCCESS("");
-	}
-
-	CATCIERGE_RUN_TEST((e = run_parse_config_tests()),
-		"Run parse config test",
-		"Parse config test", &ret);
-
-	if (ret)
-	{
-		catcierge_test_FAILURE("One or more tests failed!");
-	}
-
-	return ret;
-	#endif
 }

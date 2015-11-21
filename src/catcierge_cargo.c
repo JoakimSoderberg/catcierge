@@ -17,6 +17,7 @@
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "alini.h"
+#include "catcierge_config.h"
 #include "cargo.h"
 #include "cargo_ini.h"
 #include "catcierge_args.h"
@@ -62,7 +63,7 @@ static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= cargo_add_option(cargo, 0,
 			"<lockout> --lockout_error_delay",
 			NULL,
-			"i", &args->consecutive_lockout_delay);
+			"d", &args->consecutive_lockout_delay);
 	ret |= cargo_set_option_description(cargo, "--lockout_error_delay",
 			"The delay in seconds between lockouts that should be "
 			"counted as a consecutive lockout. Default %0.1f.",
@@ -252,6 +253,15 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 			"--zmq_iface",
 			"The interface the ZMQ publisher listens on. Default %s",
 			DEFAULT_ZMQ_IFACE);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --zmq_transport",
+			NULL,
+			"s", &args->zmq_transport);
+	ret |= cargo_set_option_description(cargo,
+			"--zmq_transport",
+			"The ZMQ transport to use. Default %s",
+			DEFAULT_ZMQ_TRANSPORT);
 
 	#endif // WITH_ZMQ
 
