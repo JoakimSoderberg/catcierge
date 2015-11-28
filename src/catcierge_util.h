@@ -39,4 +39,6 @@ void catcierge_run(char *command);
 const char *catcierge_path_sep();
 char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen);
 
+void catcierge_xfree(void *p);
+
 #endif // __CATCIERGE_UTIL_H__

@@ -36,6 +36,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <assert.h>
 #include "catcierge_log.h"
 
 const char *catcierge_path_sep()
@@ -584,6 +585,20 @@ char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
 
 	return buf;
 	#endif // _WIN32
+}
+
+void catcierge_xfree(void *p)
+{
+	void **pp;
+    assert(p);
+
+    pp = (void **)p;
+
+    if (*pp)
+    {
+        free(*pp);
+        *pp = NULL;
+    }
 }
 
 

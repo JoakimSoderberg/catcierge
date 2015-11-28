@@ -558,6 +558,52 @@ static char *run_catcierge_parse_test()
 	mu_assert("Expected lockout_error == 20",
 			args.max_consecutive_lockout_count == 20);
 
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_dummy");
+	mu_assert("Expected lockout_dummy == 1", args.lockout_dummy == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--matchtime");
+	mu_assert("Expected match_time == 1", args.match_time == DEFAULT_MATCH_WAIT);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--output", "/some/output/path");
+	mu_assert("Expected output_path == /some/output/path",
+		args.output_path
+		&& !strcmp(args.output_path, "/some/output/path"));
+
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--match_output_path", "/some/output/path");
+	mu_assert("Expected match_output_path == /some/output/path",
+		args.match_output_path
+		&& !strcmp(args.match_output_path, "/some/output/path"));
+
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--steps_output_path", "/some/output/path");
+	mu_assert("Expected steps_output_path == /some/output/path",
+		args.steps_output_path
+		&& !strcmp(args.steps_output_path, "/some/output/path"));
+
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--obstruct_output_path", "/some/output/path");
+	mu_assert("Expected obstruct_output_path == /some/output/path",
+		args.obstruct_output_path
+		&& !strcmp(args.obstruct_output_path, "/some/output/path"));
+
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--template_output_path", "/some/output/path");
+	mu_assert("Expected template_output_path == /some/output/path",
+		args.template_output_path
+		&& !strcmp(args.template_output_path, "/some/output/path"));
+
+	mu_assert("Expected inputs to be NULL", args.inputs[0] == NULL);
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--input", "/path/to/templ%time%.tmpl", "bla");
+	mu_assert("Expected inputs[0] == /path/to/templ%time%.tmpl",
+		args.inputs[0]
+		&& !strcmp(args.inputs[0], "/path/to/templ%time%.tmpl"));
+	mu_assert("Expected inputs[1] == bla",
+		args.inputs[0]
+		&& !strcmp(args.inputs[1], "bla"));
+	mu_assert("Expected 2 input count", args.input_count == 2);
+
 	catcierge_args_destroy(&args);
 
 	return NULL;

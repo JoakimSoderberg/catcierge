@@ -195,7 +195,7 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 			".[s]+", &args->inputs, &args->input_count, MAX_INPUT_TEMPLATES);
 
 	ret |= cargo_add_option(cargo, 0,
-			"<output> --output_path",
+			"<output> --output_path --output",
 			"Path to where the match images and generated templates "
 			"should be saved.",
 			"s", &args->output_path);
@@ -647,15 +647,26 @@ void catcierge_args_init_vars(catcierge_args_t *args)
 
 void catcierge_args_destroy_vars(catcierge_args_t *args)
 {
-	if (args->output_path) free(args->output_path);
-	args->output_path = NULL;
+	size_t i;
+
+	catcierge_xfree(&args->output_path);
+	catcierge_xfree(&args->match_output_path);
+	catcierge_xfree(&args->steps_output_path);
+	catcierge_xfree(&args->obstruct_output_path);
+	catcierge_xfree(&args->template_output_path);
 
 	#ifdef WITH_ZMQ
-	if (args->zmq_iface) free(args->zmq_iface);
-	args->zmq_iface = NULL;
-	if (args->zmq_transport) free(args->zmq_transport);
-	args->zmq_transport = NULL;
+	catcierge_xfree(&args->zmq_iface);
+	catcierge_xfree(&args->zmq_transport);
 	#endif
+
+	for (i = 0; i < args->input_count; i++)
+	{
+		printf("Free %s, loc %p\n", args->inputs[i], &args->inputs[i]);
+		catcierge_xfree(&args->inputs[i]);
+	}
+
+	args->input_count = 0;
 }
 
 int catcierge_args_init(catcierge_args_t *args, const char *progname)
