@@ -556,7 +556,10 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 
 		if (!args->match_output_path)
 		{
-			args->match_output_path = args->output_path;
+			if (!(args->match_output_path = strdup(args->output_path)))
+			{
+				CATERR("Out of memory");
+			}
 		}
 
 		if (!(match_gen_output_path = catcierge_output_generate(&grb->output, grb, args->match_output_path)))
@@ -592,7 +595,10 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 
 			if (!args->steps_output_path)
 			{
-				args->steps_output_path = args->output_path;
+				if (!(args->steps_output_path = strdup(args->output_path)))
+				{
+					CATERR("Out of memory");
+				}
 			}
 
 			for (j = 0; j < m->result.step_img_count; j++)
@@ -1182,7 +1188,10 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 
 		if (!args->obstruct_output_path)
 		{
-			args->obstruct_output_path = args->output_path;
+			if (!(args->obstruct_output_path = strdup(args->output_path)))
+			{
+				CATERR("Out of memory");
+			}
 		}
 
 		// TODO: Break this out into a function and reuse for all saved images.
