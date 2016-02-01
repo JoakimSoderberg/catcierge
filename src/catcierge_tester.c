@@ -36,7 +36,7 @@ static int parse_arg(catcierge_template_matcher_args_t *args,
 	catcierge_haar_matcher_args_t *hargs, const char *key, char **values, size_t value_count)
 {
 	int res;
-
+	#if 0
 	res = catcierge_template_matcher_parse_args(args, key, values, value_count);
 	if (res < 0)
 	{
@@ -48,6 +48,7 @@ static int parse_arg(catcierge_template_matcher_args_t *args,
 	{
 		return -1;
 	}
+	#endif
 
 	return 0;
 }

@@ -1280,7 +1280,10 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 
 	if (!args->template_output_path)
 	{
-		args->template_output_path = args->output_path;
+		if (!(args->template_output_path = strdup(args->output_path)))
+		{
+			CATERR("Out of memory");
+		}
 	}
 
 	catcierge_output_free_generated_paths(ctx);

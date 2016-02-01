@@ -84,7 +84,7 @@ static char *run_validate_tests()
 		catcierge_output_destroy(o);
 		catcierge_matcher_destroy(&grb.matcher);
 	}
-	free(args->haar.cascade);
+	catcierge_xfree(&args->haar.cascade);
 	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
@@ -260,7 +260,7 @@ static char *run_generate_tests()
 
 		catcierge_matcher_destroy(&grb.matcher);
 	}
-	free(args->haar.cascade);
+	catcierge_xfree(&args->haar.cascade);
 	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
@@ -416,10 +416,10 @@ static char *run_add_and_generate_tests()
 			#endif
 		}
 
-		free(args->output_path);
-		args->output_path = NULL;
-		free(args->templ.snout_paths[0]);
-		free(args->templ.snout_paths[1]);
+		/*
+		catcierge_xfree(&args->output_path);
+		catcierge_xfree(&args->templ.snout_paths[0]);
+		catcierge_xfree(&args->templ.snout_paths[1]);*/
 		catcierge_output_destroy(o);
 		catcierge_matcher_destroy(&grb.matcher);
 	}
@@ -611,12 +611,15 @@ static char *run_recursion_tests()
 
 		catcierge_test_STATUS("Try infinite output template recursion");
 		{
-			free(args->output_path);
+			catcierge_xfree(&args->output_path);
 			args->output_path = strdup("arne");
+			catcierge_xfree(&args->match_output_path);
 			args->match_output_path = strdup("%output_path%/hej");
 
 			// These refer to each other = Recursion...
+			catcierge_xfree(&args->steps_output_path);
 			args->steps_output_path = strdup("%match_output_path%/weise/%obstruct_output_path%");
+			catcierge_xfree(&args->obstruct_output_path);
 			args->obstruct_output_path = strdup("%steps_output_path%/Mera jul!");
 
 			if (catcierge_output_add_template(o,
@@ -644,11 +647,10 @@ static char *run_recursion_tests()
 			catcierge_test_STATUS("Failed on infinite recursion template as expected\n");
 		}
 
-		free(args->output_path);
-		args->output_path = NULL;
-		free(args->match_output_path);
-		free(args->steps_output_path);
-		free(args->obstruct_output_path);
+		catcierge_xfree(&args->output_path);
+		catcierge_xfree(&args->match_output_path);
+		catcierge_xfree(&args->steps_output_path);
+		catcierge_xfree(&args->obstruct_output_path);
 		catcierge_output_destroy(o);
 	}
 	catcierge_args_destroy_vars(args);

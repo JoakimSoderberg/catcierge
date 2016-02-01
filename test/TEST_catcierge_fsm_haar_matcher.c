@@ -27,7 +27,7 @@ static char *run_success_tests()
 	args->saveimg = 0;
 	args->matcher = "haar"; 
 	args->matcher_type = MATCHER_HAAR;
-	args->haar.cascade = CATCIERGE_CASCADE;
+	args->haar.cascade = strdup(CATCIERGE_CASCADE);
 
 	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->haar))
 	{
@@ -86,7 +86,7 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 
 	args->haar.prey_method = prey_method;
 	args->haar.prey_steps = 2;
-	args->haar.cascade = CATCIERGE_CASCADE;
+	args->haar.cascade = strdup(CATCIERGE_CASCADE);
 
 	#ifdef CATCIERGE_GUI_TESTS
 	args->show = 1;
@@ -146,7 +146,7 @@ static char *run_save_steps_test()
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->haar.prey_method = PREY_METHOD_ADAPTIVE;
 	args->haar.prey_steps = 2;
-	args->haar.cascade = CATCIERGE_CASCADE;
+	args->haar.cascade = strdup(CATCIERGE_CASCADE);
 
 	args->save_steps = 1;
 	args->save_obstruct_img = 1;

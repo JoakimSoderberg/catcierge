@@ -593,7 +593,6 @@ static char *run_catcierge_parse_test()
 		args.template_output_path
 		&& !strcmp(args.template_output_path, "/some/output/path"));
 
-	mu_assert("Expected inputs to be NULL", args.inputs[0] == NULL);
 	PARSE_ARGV(0, &args,
 		"catcierge", "--haar", "--input", "/path/to/templ%time%.tmpl", "bla");
 	mu_assert("Expected inputs[0] == /path/to/templ%time%.tmpl",

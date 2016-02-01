@@ -192,7 +192,7 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 			"<output> --template --input",
 			"Path to one or more template files generated on specified events. "
 			"(Not to be confused with the template matcher)",
-			".[s]+", &args->inputs, &args->input_count, MAX_INPUT_TEMPLATES);
+			"[s]+", &args->inputs, &args->input_count);
 
 	ret |= cargo_add_option(cargo, 0,
 			"<output> --output_path --output",
@@ -649,6 +649,8 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 {
 	size_t i;
 
+	catcierge_xfree(&args->program_name);
+
 	catcierge_xfree(&args->output_path);
 	catcierge_xfree(&args->match_output_path);
 	catcierge_xfree(&args->steps_output_path);
@@ -662,11 +664,44 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 
 	for (i = 0; i < args->input_count; i++)
 	{
-		printf("Free %s, loc %p\n", args->inputs[i], &args->inputs[i]);
 		catcierge_xfree(&args->inputs[i]);
 	}
 
 	args->input_count = 0;
+	catcierge_xfree(&args->inputs);
+
+	catcierge_xfree(&args->log_path);
+	catcierge_xfree(&args->match_cmd);
+	catcierge_xfree(&args->save_img_cmd);
+	catcierge_xfree(&args->match_group_done_cmd);
+	catcierge_xfree(&args->match_done_cmd);
+	catcierge_xfree(&args->do_lockout_cmd);
+	catcierge_xfree(&args->do_unlock_cmd);
+	catcierge_xfree(&args->frame_obstructed_cmd);
+	catcierge_xfree(&args->state_change_cmd);
+	catcierge_xfree(&args->config_path);
+	catcierge_xfree(&args->chuid);
+
+	for (i = 0; i < args->temp_config_count; i++)
+	{
+		catcierge_xfree(&args->temp_config_values[i]);
+	}
+
+	catcierge_xfree(&args->base_time);
+
+	#ifdef WITH_RFID
+	catcierge_xfree(&args->rfid_detect_cmd);
+	catcierge_xfree(&args->rfid_match_cmd);
+	catcierge_xfree(&args->rfid_inner_path);
+	catcierge_xfree(&args->rfid_outer_path);
+
+	for (i = 0; i < args->rfid_allowed_count; i++)
+	{
+		catcierge_xfree(&args->rfid_allowed[i]);
+	}
+	#endif // WITH_RFID
+
+	catcierge_haar_matcher_destroy_args(&args->haar);
 }
 
 int catcierge_args_init(catcierge_args_t *args, const char *progname)
@@ -698,9 +733,6 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	int ret = 0;
 	cargo_t cargo = args->cargo;
 	assert(args);
-
-	//ret = catcierge_args_init(args, argv[0]);
-	//assert(ret == 0);
 
 	#ifdef RPI
 	// Let the raspicam software parse any --rpi settings
@@ -749,8 +781,6 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	#endif // RPI
 
 fail:
-	//cargo_destroy(&cargo);
-	//ini_args_destroy(&args->ini_args);
 	#ifdef RPI
 	cargo_free_commandline(&argv, argc);
 	#endif // RPI

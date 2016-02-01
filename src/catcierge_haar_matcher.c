@@ -727,6 +727,11 @@ static int parse_prey_method(cargo_t ctx, void *user, const char *optname,
 	return 1;
 }
 
+int catcierge_haar_matcher_destroy_args(catcierge_haar_matcher_args_t *args)
+{
+	catcierge_xfree(&args->cascade);
+}
+
 int catcierge_haar_matcher_add_options(cargo_t cargo,
 										catcierge_haar_matcher_args_t *args)
 {
@@ -790,6 +795,7 @@ int catcierge_haar_matcher_add_options(cargo_t cargo,
 	return ret;
 }
 
+#if 0
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args,
 		const char *key, char **values, size_t value_count)
 {
@@ -916,6 +922,7 @@ int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args,
 
 	return 1;
 }
+#endif
 
 void catcierge_haar_matcher_usage()
 {

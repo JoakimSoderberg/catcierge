@@ -77,7 +77,9 @@ void catcierge_haar_matcher_set_debug(catcierge_haar_matcher_t *ctx, int debug);
 
 int catcierge_haar_matcher_add_options(cargo_t cargo,
 										catcierge_haar_matcher_args_t *args);
+
 void catcierge_haar_matcher_usage();
+int catcierge_haar_matcher_destroy_args(catcierge_haar_matcher_args_t *args);
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args, const char *key, char **values, size_t value_count);
 void catcierge_haar_matcher_args_init(catcierge_haar_matcher_args_t * args);
 void catcierge_haar_matcher_print_settings(catcierge_haar_matcher_args_t *args);
