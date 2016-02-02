@@ -14,28 +14,38 @@
 
 static char *run_consecutive_lockout_abort_tests()
 {
+	int ret = 0;
+	char *return_message = NULL;
 	catcierge_grb_t grb;
 	catcierge_args_t *args;
 	args = &grb.args;
 
 	catcierge_grabber_init(&grb);
-	catcierge_args_init_vars(args);
+	catcierge_args_init(args, "catcierge");
 
-	args->saveimg = 0;
-	set_default_test_snouts(args);
-	args->matcher = "template";
-	args->matcher_type = MATCHER_TEMPLATE;
+	{
+		char *argv[256] =
+		{
+			"catcierge",
+			"--lockout_method", "1",
+			"--lockout_error", "3",
+			// It's important we change this from the default 3 seconds.
+			// Since when the tests run under valgrind they are much slower
+			// we need to extend the time that is counted as consecutive tests
+			// otherwise the consecutive count will become invalid.
+			"--lockout_error_delay", "10",
+			"--lockout", "0",
+			"--templ",
+			"--match_flipped",
+			"--threshold", "0.8",
+			"--snout", CATCIERGE_SNOUT1_PATH, CATCIERGE_SNOUT2_PATH,
+			NULL
+		};
+		int argc = get_argc(argv);
 
-	args->templ.match_flipped = 1;
-	args->templ.match_threshold = 0.8;
-	args->lockout_method = TIMER_ONLY_1;
-	args->max_consecutive_lockout_count = 3;
-	// It's important we change this from the default 3 seconds.
-	// Since when the tests run under valgrind they are much slower
-	// we need to extend the time that is counted as consecutive tests
-	// otherwise the consecutive count will become invalid.
-	args->consecutive_lockout_delay = 10;
-	args->lockout_time = 0;
+		ret = catcierge_args_parse(args, argc, argv);
+		mu_assertf("Failed to parse command line", ret == 0);
+	}
 
 	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
 	{
@@ -56,7 +66,7 @@ static char *run_consecutive_lockout_abort_tests()
 		load_test_image_and_run(&grb, 1, 4);
 		catcierge_run_state(&grb);
 		catcierge_test_STATUS("Consecutive lockout %d", grb.consecutive_lockout_count);
-		mu_assert("Expected 1 consecutive lockout count", (grb.consecutive_lockout_count == 1));
+		mu_assertf("Expected 1 consecutive lockout count", (grb.consecutive_lockout_count == 1));
 
 		load_test_image_and_run(&grb, 1, 2); // Obstruct.
 		load_test_image_and_run(&grb, 1, 2); // Pass 4 images (invalid).
@@ -65,7 +75,7 @@ static char *run_consecutive_lockout_abort_tests()
 		load_test_image_and_run(&grb, 1, 4);
 		catcierge_run_state(&grb);
 		catcierge_test_STATUS("Consecutive lockout %d", grb.consecutive_lockout_count);
-		mu_assert("Expected 2 consecutive lockout count", (grb.consecutive_lockout_count == 2));
+		mu_assertf("Expected 2 consecutive lockout count", (grb.consecutive_lockout_count == 2));
 
 		// Here we expect the lockout count to be reset.
 		// Note that we must sleep at least args->consecutive_lockout_delay seconds
@@ -90,40 +100,56 @@ static char *run_consecutive_lockout_abort_tests()
 		catcierge_run_state(&grb);
 		
 		catcierge_test_STATUS("Consecutive lockout %d", grb.consecutive_lockout_count);
-		mu_assert("Expected 0 lockout count", (grb.consecutive_lockout_count == 0));
+		mu_assertf("Expected 0 lockout count", (grb.consecutive_lockout_count == 0));
 	}
 
 	mu_assert("Expected program to be in running state after consecutive lockout count is aborted",
 		(grb.running == 1));
 
+cleanup:
 	catcierge_matcher_destroy(&grb.matcher);
-	catcierge_args_destroy_vars(args);
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
-	return NULL;
+	return return_message;
 }
 
 static char *run_consecutive_lockout_tests()
 {
 	int i;
+	int ret = 0;
 	catcierge_grb_t grb;
 	catcierge_args_t *args;
 	args = &grb.args;
+	char *return_message = NULL;
 
 	catcierge_grabber_init(&grb);
-	catcierge_args_init_vars(args);
+	catcierge_args_init(args, "catcierge");
 
-	args->saveimg = 0;
-	set_default_test_snouts(args);
-	args->matcher = "template"; 
-	args->matcher_type = MATCHER_TEMPLATE;
+	// TODO: Exact same command line as other test, make function.
+	{
+		char *argv[256] =
+		{
+			"catcierge",
+			"--lockout_method", "1",
+			"--lockout_error", "3",
+			// It's important we change this from the default 3 seconds.
+			// Since when the tests run under valgrind they are much slower
+			// we need to extend the time that is counted as consecutive tests
+			// otherwise the consecutive count will become invalid.
+			"--lockout_error_delay", "10",
+			"--lockout", "0",
+			"--templ",
+			"--match_flipped",
+			"--threshold", "0.8",
+			"--snout", CATCIERGE_SNOUT1_PATH, CATCIERGE_SNOUT2_PATH,
+			NULL
+		};
+		int argc = get_argc(argv);
 
-	args->templ.match_flipped = 1;
-	args->templ.match_threshold = 0.8;
-	args->lockout_method = TIMER_ONLY_1;
-	args->max_consecutive_lockout_count = 3;
-	args->consecutive_lockout_delay = 10;
-	args->lockout_time = 0;
+		ret = catcierge_args_parse(args, argc, argv);
+		mu_assertf("Failed to parse command line", ret == 0);
+	}
 
 	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
 	{
@@ -151,17 +177,18 @@ static char *run_consecutive_lockout_tests()
 		catcierge_run_state(&grb);
 		catcierge_test_STATUS("Consecutive lockout: %d, Expecting: %d, Running: %d",
 			grb.consecutive_lockout_count, i+1, grb.running);
-		mu_assert("Unexpected consecutive lockout count", (grb.consecutive_lockout_count == (i+1)));
+		mu_assertf("Unexpected consecutive lockout count", (grb.consecutive_lockout_count == (i+1)));
 	}
 
-	mu_assert("Expected program to be in non-running state after max_consecutive_lockout_count",
+	mu_assertf("Expected program to be in non-running state after max_consecutive_lockout_count",
 		(grb.running == 0));
 
+cleanup:
 	catcierge_matcher_destroy(&grb.matcher);
-	catcierge_args_destroy_vars(args);
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
-	return NULL;
+	return return_message;
 }
 
 int TEST_catcierge_fsm_consecutive_lockouts(int argc, char **argv)
