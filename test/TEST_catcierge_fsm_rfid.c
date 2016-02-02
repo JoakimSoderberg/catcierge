@@ -53,14 +53,6 @@ typedef struct rfid_pseudo_test_conf_s
 	match_direction_t dir;
 } rfid_pseudo_test_conf_t;
 
-static int get_argc(char **argv)
-{
-	int i = 0;
-	while (argv[i] != NULL) i++;
-
-	return i;
-}
-
 static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 {
 	size_t i;

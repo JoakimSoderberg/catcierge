@@ -12,5 +12,6 @@ void free_test_image(catcierge_grb_t *grb);
 int load_test_image_and_run(catcierge_grb_t *grb, int series, int i);
 
 int load_black_test_image_and_run(catcierge_grb_t *grb);
+int get_argc(char **argv);
 
 #endif // __CATCIERGE_TEST_COMMON_H__
