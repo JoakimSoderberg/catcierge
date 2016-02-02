@@ -51,17 +51,6 @@ IplImage *open_test_image(int series, int i)
 	return img;
 }
 
-#if 1
-void set_default_test_snouts(catcierge_args_t *args)
-{
-	assert(args);
-	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
-	args->templ.snout_count++;
-	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
-	args->templ.snout_count++;
-}
-#endif
-
 void free_test_image(catcierge_grb_t *grb)
 {
 	cvReleaseImage(&grb->img);
