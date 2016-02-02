@@ -727,7 +727,7 @@ static int parse_prey_method(cargo_t ctx, void *user, const char *optname,
 	return 1;
 }
 
-int catcierge_haar_matcher_destroy_args(catcierge_haar_matcher_args_t *args)
+int catcierge_haar_matcher_args_destroy(catcierge_haar_matcher_args_t *args)
 {
 	catcierge_xfree(&args->cascade);
 }

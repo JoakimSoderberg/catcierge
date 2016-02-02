@@ -396,6 +396,20 @@ double catcierge_template_matcher_match(void *octx,
 	return result->result;
 }
 
+void catcierge_template_matcher_args_destroy(catcierge_template_matcher_args_t *args)
+{
+	int i;
+	assert(args);
+
+	for (i = 0; i < args->snout_count; i++)
+	{
+		catcierge_xfree(&args->snout_paths[i]);
+	}
+
+	catcierge_xfree(&args->snout_paths);
+	args->snout_count = 0;
+}
+
 int catcierge_template_matcher_add_options(cargo_t cargo,
 										catcierge_template_matcher_args_t *args)
 {
@@ -412,7 +426,7 @@ int catcierge_template_matcher_add_options(cargo_t cargo,
 		"<templ> --snout",
 		"Path to the snout images to use. If more than "
 		"one path is given, the average match result is used.",
-		".[s]+", &args->snout_paths, &args->snout_count, MAX_SNOUT_COUNT);
+		"[s]+", &args->snout_paths, &args->snout_count);
 
 	ret |= cargo_add_option(cargo, 0,
 			"<templ> --threshold",
@@ -427,7 +441,7 @@ int catcierge_template_matcher_add_options(cargo_t cargo,
 			"<templ> --match_flipped",
 			"Match a flipped version of the snout "
 			"(don't consider going out a failed match). Default on.",
-			"f", &args->match_threshold);
+			"b", &args->match_flipped);
 
 	return ret;
 }

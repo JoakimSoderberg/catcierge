@@ -46,12 +46,20 @@ static char *write_rfid_master(int master, const char *buf)
 typedef struct rfid_pseudo_test_conf_s
 {
 	const char *description;
-	const char *allowed_list;
+	char *allowed_list;
 	const char *outer_tag;
 	const char *inner_tag;
 	catcierge_state_func_t state;
 	match_direction_t dir;
 } rfid_pseudo_test_conf_t;
+
+static int get_argc(char **argv)
+{
+	int i = 0;
+	while (argv[i] != NULL) i++;
+
+	return i;
+}
 
 static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 {
@@ -92,49 +100,55 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 	}
 
 	catcierge_grabber_init(&grb);
-	catcierge_args_init_vars(args);
+	catcierge_args_init(args, "catcierge");
 	grb.running = 1;
 
-	if (conf->allowed_list)
 	{
-		catcierge_create_rfid_allowed_list(args, conf->allowed_list);
-	}
+		char *argv[256] =
+		{
+			"catcierge",
+			"--matchtime", "1", // Set this so that the RFID check is triggered.
+			"--rfid_lock",
+			"--rfid_in", in_slave_name,
+			"--rfid_out", out_slave_name,
+			"--templ",
+			"--match_flipped",
+			"--threshold", "0.8",
+			"--snout", CATCIERGE_SNOUT1_PATH, CATCIERGE_SNOUT2_PATH,
+			NULL
+		};
+		int argc = get_argc(argv);
 
-	args->saveimg = 0;
-	args->match_time = 1; // Set this so that the RFID check is triggered.
-	args->lock_on_invalid_rfid = 1;
-	args->rfid_inner_path = in_slave_name;
-	args->rfid_outer_path = out_slave_name;
-	args->matcher = "template";
-	args->matcher_type = MATCHER_TEMPLATE;
-	args->templ.match_flipped = 1;
-	args->templ.match_threshold = 0.8;
-	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
-	args->templ.snout_count++;
-	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
-	args->templ.snout_count++;
+		if (conf->allowed_list)
+		{
+			argv[argc++] = "--rfid_allowed";
+			argv[argc++] = conf->allowed_list;
+			argv[argc] = NULL;
+		}
+
+		ret = catcierge_args_parse(args, argc, argv);
+		mu_assertf("Failed to parse command line", ret == 0);
+	}
 
 	catcierge_init_rfid_readers(&grb);
 
 	// Ensure the RFID readers have been initialized.
 	{
-		if ((e = read_rfid_master(in_master, "Expected RAT from inner", "RAT\r\n")))
-			return e;
+		e = read_rfid_master(in_master, "Expected RAT from inner", "RAT\r\n");
+		mu_assertf(e, e == NULL);
 
 		write_rfid_master(in_master, "OK\r\n");
 
-		if ((e = read_rfid_master(out_master, "Expected RAT from outer", "RAT\r\n")))
-			return e;
+		e = read_rfid_master(out_master, "Expected RAT from outer", "RAT\r\n");
+		mu_assertf(e, e == NULL);
 
 		write_rfid_master(out_master, "OK\r\n");
 	}
 
-	mu_assert("Failed to service RFID", !catcierge_rfid_ctx_service(&grb.rfid_ctx));
+	mu_assertf("Failed to service RFID", !catcierge_rfid_ctx_service(&grb.rfid_ctx));
 
-	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
-	{
-		return "Failed to init catcierge lib!\n";
-	}
+	ret = catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ);
+	mu_assertf("Failed to init catcierge lib", ret == 0);
 
 	catcierge_test_STATUS("Initialized template matcher");
 
@@ -147,19 +161,19 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 		{
 			catcierge_test_STATUS("Emulate outer tag: %s", conf->outer_tag);
 			write_rfid_master(out_master, conf->outer_tag);
-			mu_assert("Failed to service RFID", !catcierge_rfid_ctx_service(&grb.rfid_ctx));
+			mu_assertf("Failed to service RFID", !catcierge_rfid_ctx_service(&grb.rfid_ctx));
 			//sleep(1);
 		}
 
 		load_test_image_and_run(&grb, 1, 1);
-		mu_assert("Expected MATCHING state", (grb.state == catcierge_state_matching));
-	
+		mu_assertf("Expected MATCHING state", (grb.state == catcierge_state_matching));
+
 		// Match against 4 pictures, and decide the lockout status.
 		for (i = 1; i <= 4; i++)
 		{
 			load_test_image_and_run(&grb, 1, i);
 		}
-	
+
 		mu_assert("Expected KEEP OPEN state", (grb.state == catcierge_state_keepopen));
 
 		// Emulate the inner RFID reader detecting a tag.
@@ -167,7 +181,7 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 		{
 			catcierge_test_STATUS("Emulate inner tag: %s", conf->inner_tag);
 			write_rfid_master(in_master, conf->inner_tag);
-			mu_assert("Failed to service RFID", !catcierge_rfid_ctx_service(&grb.rfid_ctx));
+			mu_assertf("Failed to service RFID", !catcierge_rfid_ctx_service(&grb.rfid_ctx));
 		}
 
 		// Give it a clear frame so that it will stop
@@ -178,13 +192,13 @@ static char *run_rfid_pseudo_tests(rfid_pseudo_test_conf_t *conf)
 		catcierge_get_state_string(conf->state),
 		catcierge_get_state_string(grb.state));
 
-	mu_assert("Unexpected state", (grb.state == conf->state));
+	mu_assertf("Unexpected state", (grb.state == conf->state));
 
 	catcierge_test_STATUS("Expection directon \"%s\" got \"%s\"",
 		catcierge_get_direction_str(conf->dir),
 		catcierge_get_direction_str(grb.rfid_direction));
 
-	mu_assert("Unexpected RFID direction", grb.rfid_direction == conf->dir);
+	mu_assertf("Unexpected RFID direction", grb.rfid_direction == conf->dir);
 
 cleanup:
 	if (in_master) close(in_master);
@@ -195,9 +209,8 @@ cleanup:
 	if (out_slave_name) free(out_slave_name);
 	if (in_slave_name) free(in_slave_name);
 
-	catcierge_free_rfid_allowed_list(args);
 	catcierge_template_matcher_destroy(&grb.matcher);
-	catcierge_args_destroy_vars(args);
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
 	return return_message;
@@ -218,35 +231,58 @@ typedef struct rfid_test_conf_s
 static char* run_rfid_tests(rfid_test_conf_t *conf)
 {
 	int i;
+	int ret = 0;
 	catcierge_grb_t grb;
 	catcierge_args_t *args;
 	args = &grb.args;
 
 	catcierge_grabber_init(&grb);
-	catcierge_args_init_vars(args);
+	catcierge_args_init(args, "catcierge");
 	grb.running = 1;
 
-	args->saveimg = 0;
-	args->match_time = 1; // Set this so that the RFID check is triggered.
-	args->lock_on_invalid_rfid = conf->check_rfid;
-	args->rfid_inner_path = conf->inner_path;
-	args->rfid_outer_path = conf->outer_path;
+	{
+		char *argv[256] =
+		{
+			"catcierge",
+			"--matchtime", "1", // Set this so that the RFID check is triggered.
+			"--templ",
+			"--match_flipped",
+			"--threshold", "0.8",
+			"--snout", CATCIERGE_SNOUT1_PATH, CATCIERGE_SNOUT2_PATH,
+			NULL
+		};
+		int argc = get_argc(argv);
+
+		if (conf->check_rfid)
+		{
+			argv[argc++] = "--rfid_lock";
+		}
+
+		if (conf->inner_path)
+		{
+			argv[argc++] = "--rfid_in";
+			argv[argc++] = conf->inner_path;
+		}
+
+		if (conf->outer_path)
+		{
+			argv[argc++] =  "--rfid_out";
+			argv[argc++] = conf->outer_path;
+		}
+
+		ret = catcierge_args_parse(args, argc, argv);
+		mu_assert("Failed to parse command line", ret == 0);
+	}
+
 	grb.rfid_in_match.is_allowed = conf->inner_valid_rfid;
 	grb.rfid_out_match.is_allowed = conf->outer_valid_rfid;
 	grb.rfid_direction = conf->direction;
+
 	if (conf->direction != MATCH_DIR_UNKNOWN)
 	{
 		grb.rfid_in_match.triggered = 1;
 		grb.rfid_out_match.triggered = 1;
 	}
-	args->matcher = "template";
-	args->matcher_type = MATCHER_TEMPLATE;
-	args->templ.match_flipped = 1;
-	args->templ.match_threshold = 0.8;
-	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
-	args->templ.snout_count++;
-	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
-	args->templ.snout_count++;
 
 	// Note! We don't want to init the RFID readers for real.
 	// Instead we simply set the result structs manually to test
@@ -307,7 +343,7 @@ static char* run_rfid_tests(rfid_test_conf_t *conf)
 	}
 
 	catcierge_matcher_destroy(&grb.matcher);
-	catcierge_args_destroy_vars(args);
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

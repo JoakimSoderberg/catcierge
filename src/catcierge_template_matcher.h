@@ -36,7 +36,7 @@
 typedef struct catcierge_template_matcher_args_s
 {
 	catcierge_matcher_args_t super;
-	char *snout_paths[MAX_SNOUT_COUNT];
+	char **snout_paths;
 	size_t snout_count;
 	double match_threshold;
 	int match_flipped;
@@ -82,6 +82,7 @@ void catcierge_template_matcher_usage();
 int catcierge_template_matcher_add_options(cargo_t cargo,
 										catcierge_template_matcher_args_t *args);
 int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *args, const char *key, char **values, size_t value_count);
+void catcierge_template_matcher_args_destroy(catcierge_template_matcher_args_t *args);
 void catcierge_template_matcher_print_settings(catcierge_template_matcher_args_t * args);
 void catcierge_template_matcher_args_init(catcierge_template_matcher_args_t *args);
 

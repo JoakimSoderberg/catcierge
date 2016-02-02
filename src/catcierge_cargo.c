@@ -687,6 +687,9 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 		catcierge_xfree(&args->temp_config_values[i]);
 	}
 
+	catcierge_xfree(&args->temp_config_values);
+	args->temp_config_count = 0;
+
 	catcierge_xfree(&args->base_time);
 
 	#ifdef WITH_RFID
@@ -699,9 +702,13 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 	{
 		catcierge_xfree(&args->rfid_allowed[i]);
 	}
+
+	catcierge_xfree(&args->rfid_allowed);
+	args->rfid_allowed_count = 0;
 	#endif // WITH_RFID
 
-	catcierge_haar_matcher_destroy_args(&args->haar);
+	catcierge_haar_matcher_args_destroy(&args->haar);
+	catcierge_template_matcher_args_destroy(&args->templ);
 }
 
 int catcierge_args_init(catcierge_args_t *args, const char *progname)
