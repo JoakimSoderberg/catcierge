@@ -186,7 +186,7 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 			"<output> --save_steps",
 			"Save each step of the matching algorithm. "
 			"(--save must also be turned on)",
-			"b", &args->save_obstruct_img);
+			"b", &args->save_steps);
 
 	ret |= cargo_add_option(cargo, 0,
 			"<output> --template --input",
@@ -299,7 +299,7 @@ int add_rfid_options(cargo_t cargo, catcierge_args_t *args)
 			"RFID readers are checked.\n"
 			"(This is so that there is enough time for the cat to be read "
 			"by both readers)",
-			"i", &args->rfid_lock_time);
+			"d", &args->rfid_lock_time);
 
 	ret |= cargo_add_option(cargo, 0,
 			"<rfid> --rfid_allowed",
@@ -423,7 +423,7 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 }
 
 static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
-                                 int argc, char **argv)
+                        int argc, char **argv)
 {
 	CvRect *rect = (CvRect *)user;
 
@@ -440,6 +440,56 @@ static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
 
 	return argc;
 }
+
+// TODO: Add windows support.
+#ifndef _WIN32
+static int parse_base_time(cargo_t ctx, void *user, const char *optname,
+                      	   int argc, char **argv)
+{
+	struct tm base_time_tm;
+	time_t base_time_t;
+	struct timeval base_time_now;
+	long base_time_diff;
+	char **base_time_str = (char **)user;
+
+	memset(&base_time_tm, 0, sizeof(base_time_tm));
+	memset(&base_time_now, 0, sizeof(base_time_now));
+
+	if (argc != 1)
+	{
+		cargo_set_error(ctx, 0, "%s expected 1 argument got %d", optname, argc);
+		return -1;
+	}
+
+	if (!(*base_time_str = strdup(argv[0])))
+	{
+		goto fail;
+	}
+
+	if (!strptime(*base_time_str, "%Y-%m-%dT%H:%M:%S", &base_time_tm))
+	{
+		goto fail;
+	}
+
+	if ((base_time_t = mktime(&base_time_tm)) == -1)
+	{
+		goto fail;
+	}
+
+	gettimeofday(&base_time_now, NULL);
+	base_time_diff = base_time_now.tv_sec - base_time_t;
+
+	catcierge_strftime_set_base_diff(base_time_diff);
+
+	return 0;
+
+fail:
+	cargo_set_error(ctx, 0,
+		"Failed to parse timestamp for %s, expected format: YYYY-mm-ddTHH:MM:SS",
+		optname);
+	return -1;
+}
+#endif // _WIN32
 
 static int add_options(cargo_t cargo, catcierge_args_t *args)
 {
@@ -489,6 +539,16 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"backlight is allowed to be before it is considered broken. "
 			"If it is smaller than this, the program will exit. Default 10000.",
 			"b", &args->chuid);
+
+	// Meant for the fsm_tester
+	#ifndef _WIN32
+	ret |= cargo_add_option(cargo, 0,
+			"--base_time",
+			"The base date time we should use instead of the current time. "
+			"Only meant to be used when testing the code to have a repeatable "
+			"time for replaying events.",
+			"c", parse_base_time, &args->base_time);
+	#endif // _WIN32
 
 	#ifdef RPI
 	ret |= cargo_add_option(cargo,
