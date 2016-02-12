@@ -19,7 +19,7 @@
 #include <util.h>
 #endif
 
-#ifndef _WIN32
+#ifdef WITH_RFID
 
 char *run_pseudo_console_tests()
 {
@@ -247,7 +247,7 @@ cleanup:
 	return return_message;	
 }
 
-#endif // !_WIN32
+#endif // WITH_RFID
 
 int TEST_catcierge_rfid(int argc, char **argv)
 {
@@ -256,7 +256,7 @@ int TEST_catcierge_rfid(int argc, char **argv)
 	
 	catcierge_test_HEADLINE("TEST_catcierge_rfid");
 
-	#ifndef _WIN32
+	#ifdef WITH_RFID
 
 	CATCIERGE_RUN_TEST((e = run_pseudo_console_tests()),
 		"Run pseudo console tests",
@@ -277,8 +277,8 @@ int TEST_catcierge_rfid(int argc, char **argv)
 		"RFID double tests", &ret);
 
 	#else
-	catcierge_test_SKIPPED("RFID not supported on windows!\n");
-	#endif // !_WIN32
+	catcierge_test_SKIPPED("RFID support turned off!\n");
+	#endif // !WITH_RFID
 
 	return ret;
 }

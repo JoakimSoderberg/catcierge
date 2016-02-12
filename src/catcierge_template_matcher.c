@@ -431,7 +431,7 @@ int catcierge_template_matcher_add_options(cargo_t cargo,
 	ret |= cargo_add_option(cargo, 0,
 			"<templ> --threshold",
 			NULL,
-			"f", &args->match_threshold);
+			"d", &args->match_threshold);
 	ret |= cargo_set_option_description(cargo,
 			"--threshold",
 			"Match threshold as a value between 0.0 and 1.0. "

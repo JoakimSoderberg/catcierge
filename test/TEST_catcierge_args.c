@@ -603,6 +603,93 @@ static char *run_catcierge_parse_test()
 		&& !strcmp(args.inputs[1], "bla"));
 	mu_assert("Expected 2 input count", args.input_count == 2);
 
+
+	#ifdef WITH_RFID
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--rfid_in", "/some/rfid/path");
+	mu_assert("Expected rfid_inner_path == /some/rfid/path",
+		args.rfid_inner_path
+		&& !strcmp(args.rfid_inner_path, "/some/rfid/path"));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--rfid_out", "/some/rfid/path");
+	mu_assert("Expected rfid_outer_path == /some/rfid/path",
+		args.rfid_outer_path
+		&& !strcmp(args.rfid_outer_path, "/some/rfid/path"));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--rfid_allowed", "1", "2", "3");
+	mu_assert("Unexpected rfid_allowed values",
+		args.rfid_allowed[0] && !strcmp(args.rfid_allowed[0], "1") &&
+		args.rfid_allowed[1] && !strcmp(args.rfid_allowed[1], "2") &&
+		args.rfid_allowed[2] && !strcmp(args.rfid_allowed[2], "3") &&
+		(args.rfid_allowed_count == 3));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--rfid_time", "3.5");
+	mu_assert("Expected rfid_lock_time == 3.5",
+		(args.rfid_lock_time == 3.5));
+
+	#else
+	catcierge_test_SKIPPED("Skipping RFID args (not compiled)");
+	#endif // WITH_RFID
+
+
+	#define PARSE_CMD_SETTING(cmd)									\
+		PARSE_ARGV(0, &args,										\
+			"catcierge", "--haar", "--"#cmd, "awesome_cmd.sh");			\
+		mu_assert("Expected "#cmd" == awesome_cmd.sh",				\
+			args.cmd && !strcmp(args.cmd, "awesome_cmd.sh"))
+
+	PARSE_CMD_SETTING(match_cmd);
+	PARSE_CMD_SETTING(save_img_cmd);
+	PARSE_CMD_SETTING(match_group_done_cmd);
+	PARSE_CMD_SETTING(frame_obstructed_cmd);
+	PARSE_CMD_SETTING(state_change_cmd);
+	PARSE_CMD_SETTING(match_done_cmd);
+	PARSE_CMD_SETTING(do_lockout_cmd);
+	PARSE_CMD_SETTING(do_unlock_cmd);
+	#ifdef WITH_RFID
+	PARSE_CMD_SETTING(rfid_detect_cmd);
+	PARSE_CMD_SETTING(rfid_match_cmd);
+	#endif // WITH_RFID
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--nocolor");
+	mu_assert("Expected nocolor == 1", (args.nocolor == 1));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--noanim");
+	mu_assert("Expected noanim == 1", (args.noanim == 1));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--save_steps");
+	mu_assert("Expected save_steps == 1", (args.save_steps == 1));
+
+	#ifndef _WIN32
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--base_time", "2014-10-26T14:00:22");
+	mu_assert("Expected base_time == 2014-10-26T14:00:22",
+		args.base_time && !strcmp(args.base_time, "2014-10-26T14:00:22"));
+	PARSE_ARGV(1, &args, "catcierge", "--haar", "--base_time");
+	#endif // _WIN32
+
+	// Template matcher setings.
+	{
+		PARSE_ARGV(0, &args, "catcierge", "--templ",
+			"--snout", "/the/snout/path/snout.png");
+		mu_assert("Unexpected snout path",
+			args.templ.snout_count == 1 &&
+			args.templ.snout_paths[0] &&
+			!strcmp(args.templ.snout_paths[0], "/the/snout/path/snout.png"));
+
+		PARSE_ARGV(1, &args, "catcierge", "--templ", "--snout");
+
+		PARSE_ARGV(0, &args, "catcierge", "--templ", "--match_flipped");
+		mu_assert("Expected match_flipped == 1", args.templ.match_flipped == 1);
+
+		PARSE_ARGV(0, &args, "catcierge", "--templ", "--threshold", "0.7");
+		catcierge_test_STATUS("%f", args.templ.match_threshold);
+		mu_assert("Expected threshold == 0.7", args.templ.match_threshold == 0.7);
+	}
+
+	// Haar matcher settings.
+	{
+	}
+
 	catcierge_args_destroy(&args);
 
 	return NULL;
