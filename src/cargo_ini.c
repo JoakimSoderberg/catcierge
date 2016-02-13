@@ -116,8 +116,12 @@ cargo_type_t guess_expanded_name(cargo_t cargo, conf_arg_t *it,
 	cargo_type_t type;
 	int i = 1;
 
-	// TODO: Maybe cargo should simply have a function that gets this
+	// TODO: Maybe cargo should simply have a function that can find this for us...
+
 	// Hack to figure out what prefix to use, "-", "--", and so on...
+	// In the ini file, we are given the option name without a prefix "delta"
+	// Take this keyname and try "-delta", "--delta"
+	// and so on until a match is found in a hackish way...
 	do
 	{
 		snprintf(tmpkey, tmpkey_len, "%*.*s%s", i, i, "------", it->key);
@@ -142,8 +146,6 @@ int build_config_commandline(cargo_t cargo, conf_ini_args_t *args)
 
 	HASH_ITER(hh, args->config_args, it, tmp)
 	{
-		// Take a keyname, for instance "delta" and try "-delta", "--delta"
-		// and so on until a match is found in a hackish way...
 		it->type = guess_expanded_name(cargo, it,
 						it->expanded_key, sizeof(it->expanded_key) - 1);
 
