@@ -686,7 +686,7 @@ static int parse_width_height(cargo_t ctx, void *user, const char *optname,
 	if ((sret == EOF) || (sret != 2))
 	{
 		cargo_set_error(ctx, 0,
-			"Invalid format for %s \"%s\"\n", optname, argv[0]);
+			"Cannot parse %s value \"%s\" expected format: WxH\n", optname, argv[0]);
 		return -1;
 	}
 
@@ -774,12 +774,16 @@ int catcierge_haar_matcher_add_options(cargo_t cargo,
 			"the haar cascade detection step.",
 			"b", &args->eq_histogram);
 
-	// TODO: Validate range 1-2
 	ret |= cargo_add_option(cargo, 0,
 			"<haar> --prey_steps",
 			"Only applicable for normal prey mode. 2 means a secondary "
 			"search should be made if no prey is found initially.",
 			"i", &args->prey_steps);
+	ret |= cargo_set_metavar(cargo,
+			"--prey_steps",
+			"1|2");
+	ret |= cargo_add_validation(cargo, 0, "--prey_steps",
+								cargo_validate_int_range(1, 2));
 
 	ret |= cargo_add_option(cargo, 0,
 			"<haar> --prey_method",
@@ -966,7 +970,7 @@ void catcierge_haar_output_print_usage()
 
 	for (i = 0; i < sizeof(haar_vars) / sizeof(haar_vars[0]); i++)
 	{
-		fprintf(stderr, "%20s   %s\n", haar_vars[i].name, haar_vars[i].description);
+		fprintf(stderr, "%30s   %s\n", haar_vars[i].name, haar_vars[i].description);
 	}
 }
 

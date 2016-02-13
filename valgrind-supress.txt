@@ -269,4 +269,10 @@
    obj:/usr/lib/x86_64-linux-gnu/libopencv_highgui.so.2.4.8
 }
 
-
+{
+   imgproc_false_positive
+   Memcheck:Leak
+   #match-leak-kinds: possible
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libopencv_imgproc.so.2.4.8
+}

@@ -521,7 +521,7 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"that is turned on at startup, it has time to turn on, otherwise "
 			"the program will think something is obstructing the image and "
 			"start trying to match.",
-			"i", &args->startup_delay);
+			"d", &args->startup_delay);
 
 	ret |= cargo_add_option(cargo, 0,
 			"--roi",
@@ -536,14 +536,14 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"Automatically crop to the area covered by the backlight. "
 			"This will be done after --startup_delay has ended. "
 			"Overrides --roi.",
-			"b", &args->chuid);
+			"b", &args->auto_roi);
 
 	ret |= cargo_add_option(cargo, 0,
 			"--min_backlight",
 			"If --auto_roi is on, this sets the minimum allowed area the "
 			"backlight is allowed to be before it is considered broken. "
 			"If it is smaller than this, the program will exit. Default 10000.",
-			"b", &args->chuid);
+			"i", &args->min_backlight);
 
 	// Meant for the fsm_tester
 	#ifndef _WIN32
@@ -792,6 +792,12 @@ int catcierge_args_init(catcierge_args_t *args, const char *progname)
 
 	cargo_set_description(args->cargo,
 		"Catcierge saves you from cleaning the floor!");
+
+	cargo_set_epilog(args->cargo,
+		"Signals:\n"
+		"The program can receive signals that can be sent using the kill command.\n"
+		" SIGUSR1 = Force the cat door to unlock\n"
+		" SIGUSR2 = Force the cat door to lock (for lock timeout)\n");
 
 	ret = add_options(args->cargo, args);
 

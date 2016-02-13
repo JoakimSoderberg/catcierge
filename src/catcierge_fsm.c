@@ -945,7 +945,7 @@ double catcierge_do_match(catcierge_grb_t *grb)
 
 	if ((match_res = grb->matcher->match(grb->matcher, grb->img, result, args->save_steps)) < 0.0)
 	{
-		CATERR("%s matcher: Error when matching frame!\n", grb->args.matcher);
+		CATERR("%s matcher: Error when matching frame!\n", grb->matcher->name);
 	}
 
 	return match_res;

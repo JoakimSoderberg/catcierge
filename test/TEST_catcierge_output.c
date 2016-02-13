@@ -35,7 +35,6 @@ static char *do_init_matcher(catcierge_grb_t *grb, catcierge_matcher_type_t type
 			argv[argc++] = "--haar";
 			argv[argc++] = "--cascade";
 			argv[argc++] = CATCIERGE_CASCADE;
-			args->matcher = "haar";
 		}
 		else
 		{
@@ -45,7 +44,6 @@ static char *do_init_matcher(catcierge_grb_t *grb, catcierge_matcher_type_t type
 			argv[argc++] = "--snout";
 			argv[argc++] = CATCIERGE_SNOUT1_PATH;
 			argv[argc++] = CATCIERGE_SNOUT2_PATH;
-			args->matcher = "template";
 		}
 
 		ret = catcierge_args_parse(args, argc, argv);

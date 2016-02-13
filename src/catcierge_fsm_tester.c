@@ -191,9 +191,15 @@ int main(int argc, char **argv)
 		ret = -1; goto fail;
 	}
 
+	if (args->base_time)
+	{
+		printf("Setting basetime to: %s\n", args->base_time);
+		catcierge_strftime_set_base_diff(args->base_time_diff);
+	}
+
 	if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))
 	{
-		fprintf(stderr, "\n\nFailed to %s init matcher\n\n", grb.args.matcher);
+		fprintf(stderr, "\n\nFailed to %s init matcher\n\n", grb.matcher->name);
 		return -1;
 	}
 

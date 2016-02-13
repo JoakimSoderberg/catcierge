@@ -25,7 +25,6 @@ static char *run_success_tests()
 
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 0;
-	args->matcher = "haar"; 
 	args->matcher_type = MATCHER_HAAR;
 	args->haar.cascade = strdup(CATCIERGE_CASCADE);
 
@@ -79,7 +78,6 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 0;
-	args->matcher = "haar"; 
 	args->matcher_type = MATCHER_HAAR;
 	args->ok_matches_needed = 3;
 	args->lockout_method = OBSTRUCT_OR_TIMER_3;

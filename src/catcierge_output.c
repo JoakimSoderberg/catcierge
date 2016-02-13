@@ -115,7 +115,7 @@ void catcierge_output_print_usage()
 
 	for (i = 0; i < sizeof(vars) / sizeof(vars[0]); i++)
 	{
-		fprintf(stderr, "%20s   %s\n", vars[i].name, vars[i].description);
+		fprintf(stderr, "%30s   %s\n", vars[i].name, vars[i].description);
 	}
 }
 
@@ -676,7 +676,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strcmp(var, "matcher"))
 	{
-		return grb->args.matcher;
+		return grb->matcher->name;
 	}
 
 	if (grb->matcher && (matcher_val = grb->matcher->translate(grb->matcher, var, buf, bufsize)))

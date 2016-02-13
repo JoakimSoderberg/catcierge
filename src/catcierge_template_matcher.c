@@ -474,7 +474,7 @@ void catcierge_template_output_print_usage()
 
 	for (i = 0; i < sizeof(templ_vars) / sizeof(templ_vars[0]); i++)
 	{
-		fprintf(stderr, "%20s   %s\n", templ_vars[i].name, templ_vars[i].description);
+		fprintf(stderr, "%30s   %s\n", templ_vars[i].name, templ_vars[i].description);
 	}
 }
 

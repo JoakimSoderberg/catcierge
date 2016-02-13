@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	int j;
 	int show = 0;
 	int save = 0;
-	char *output_path = "output";
+	char *output_path = "output"; // TODO: Fix this for cargo
 	double match_threshold = 0.8;
 	int success_count = 0;
 	int preload = 0;
