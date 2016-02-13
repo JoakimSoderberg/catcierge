@@ -449,8 +449,7 @@ static int parse_base_time(cargo_t ctx, void *user, const char *optname,
 	struct tm base_time_tm;
 	time_t base_time_t;
 	struct timeval base_time_now;
-	long base_time_diff;
-	char **base_time_str = (char **)user;
+	catcierge_args_t *args = (catcierge_args_t *)user;
 
 	memset(&base_time_tm, 0, sizeof(base_time_tm));
 	memset(&base_time_now, 0, sizeof(base_time_now));
@@ -461,12 +460,14 @@ static int parse_base_time(cargo_t ctx, void *user, const char *optname,
 		return -1;
 	}
 
-	if (!(*base_time_str = strdup(argv[0])))
+	catcierge_xfree(&args->base_time);
+
+	if (!(args->base_time = strdup(argv[0])))
 	{
 		goto fail;
 	}
 
-	if (!strptime(*base_time_str, "%Y-%m-%dT%H:%M:%S", &base_time_tm))
+	if (!strptime(args->base_time, "%Y-%m-%dT%H:%M:%S", &base_time_tm))
 	{
 		goto fail;
 	}
@@ -477,16 +478,15 @@ static int parse_base_time(cargo_t ctx, void *user, const char *optname,
 	}
 
 	gettimeofday(&base_time_now, NULL);
-	base_time_diff = base_time_now.tv_sec - base_time_t;
-
-	catcierge_strftime_set_base_diff(base_time_diff);
+	args->base_time_diff = base_time_now.tv_sec - base_time_t;
 
 	return 0;
 
 fail:
+	catcierge_xfree(&args->base_time);
 	cargo_set_error(ctx, 0,
-		"Failed to parse timestamp for %s, expected format: YYYY-mm-ddTHH:MM:SS",
-		optname);
+		"Failed to parse timestamp \"%s\" for %s, expected format: YYYY-mm-ddTHH:MM:SS",
+		argv[0], optname);
 	return -1;
 }
 #endif // _WIN32
@@ -547,7 +547,7 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"The base date time we should use instead of the current time. "
 			"Only meant to be used when testing the code to have a repeatable "
 			"time for replaying events.",
-			"c", parse_base_time, &args->base_time);
+			"c", parse_base_time, args);
 	#endif // _WIN32
 
 	#ifdef RPI

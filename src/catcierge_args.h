@@ -102,6 +102,7 @@ typedef struct catcierge_args_s
 	double startup_delay;
 
 	char *base_time;
+	long base_time_diff;
 
 	#ifdef WITH_RFID
 	char *rfid_detect_cmd;
