@@ -225,30 +225,61 @@ int build_config_commandline(cargo_t cargo, conf_ini_args_t *args)
 static int perform_config_parse(cargo_t cargo, const char *config_path,
 								conf_ini_args_t *args)
 {
+	int ret = 0;
 	int cfg_err = 0;
 
-	if ((cfg_err = alini_parser_create(&args->parser, config_path)) < 0)
+	cfg_err = alini_parser_create(&args->parser, config_path);
+
+	if (cfg_err < 0)
 	{
 		cargo_print_usage(cargo, CARGO_USAGE_SHORT);
-		fprintf(stderr, "\nFailed to load config: %s\n", config_path);
+		fprintf(stderr, "\nFailed to create config parser for: %s\n", config_path);
 		return -1;
+	}
+	else if (cfg_err > 0)
+	{
+		// Missing file, positive return value.
+		ret = 1; goto fail;
 	}
 
 	alini_parser_setcallback_foundkvpair(args->parser, alini_cb);
 	alini_parser_set_context(args->parser, args);
-	alini_parser_start(args->parser);
 
-	return 0;
+	if (alini_parser_start(args->parser))
+	{
+		fprintf(stderr, "\nFailed to parse %s\n", config_path);
+		ret = -1; goto fail;
+	}
+
+fail:
+	alini_parser_dispose(args->parser);
+	args->parser = NULL;
+
+	return ret;
 }
 
 int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 {
+	int ret;
 	cargo_parse_result_t err = 0;
 
+	// No config file to parse.
+	if (!config_path)
+	{
+		return 0;
+	}
+
 	// Parse the ini-file and store contents in a hash table.
-	if (perform_config_parse(cargo, config_path, args))
+	ret = perform_config_parse(cargo, config_path, args);
+	
+	if (ret < 0)
 	{
 		return -1;
+	}
+	else if (ret == 1)
+	{
+		// File does not exist.
+		return 1;
 	}
 
 	// Build an "argv" string from the hashtable contents:
@@ -262,12 +293,13 @@ int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 		return -1;
 	}
 
-	/*
+	#if 0
 	if (args->debug)
 	{
 		print_hash(args->ini_args.config_args);
 		print_commandline(&args->ini_args);
-	}*/
+	}
+	#endif
 
 	// Parse the "fake" command line using cargo. We turn off the
 	// internal error output, so the errors are more in the context

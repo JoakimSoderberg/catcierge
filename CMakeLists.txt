@@ -45,6 +45,7 @@ option(WITH_UNIT_TESTS "Turn on compilation of unit test" ON)
 option(WITH_ZMQ "Compile ZMQ support" OFF)
 option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
 set(CARGO_DEBUG "" CACHE STRING "Debug level for Cargo command line parser")
+set(CATCIERGE_CONF_PATH "/etc/catcierge.cfg" CACHE STRING "The default location for the config file")
 
 # Turn on coverage if we're running coveralls!
 if (CATCIERGE_COVERALLS)

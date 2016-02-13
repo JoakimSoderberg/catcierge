@@ -498,7 +498,12 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 
 	args->new_execute = 1;
 
-	ret |= cargo_add_option(cargo, 0,
+	// If a config is specified, we stop parsing any other arguments.
+	// In this way we can use two parse passes. First one to read the
+	// config path, then read the config. And finally overwrite any settings
+	// from the config by re-parsing the command line.
+	ret |= cargo_add_option(cargo,
+			CARGO_OPT_UNIQUE | CARGO_OPT_STOP | CARGO_OPT_STOP_HARD,
 			"--config -c",
 			"Path to config file",
 			"s", &args->config_path);
@@ -675,6 +680,7 @@ void catcierge_args_init_vars(catcierge_args_t *args)
 
 	catcierge_template_matcher_args_init(&args->templ);
 	catcierge_haar_matcher_args_init(&args->haar);
+	args->config_path = strdup(CATCIERGE_CONF_PATH);
 	args->saveimg = 1;
 	args->save_obstruct_img = 0;
 	args->match_time = DEFAULT_MATCH_WAIT;
@@ -817,14 +823,24 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 		ret = -1; goto fail;
 	}
 
-	// Read ini file and translate that into an argv that cargo can parse.
+	// Parse config (if it is set).
 	if (args->config_path)
 	{
+		int confret = 0;
+		int is_default_config = !strcmp(args->config_path, CATCIERGE_CONF_PATH);
+
 		CATLOG("Config path: %s\n", args->config_path);
 
-		if (parse_config(cargo, args->config_path, &args->ini_args))
+		// Read ini file and translate that into an argv that cargo can parse.
+		confret = parse_config(cargo, args->config_path, &args->ini_args);
+
+		if (confret < 0)
 		{
 			ret = -1; goto fail;
+		}
+		else if ((confret == 1) && !is_default_config)
+		{
+			CATERR("WARNING: Specified config %s does not exist", args->config_path);
 		}
 	}
 
@@ -844,6 +860,7 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	if (args->show_camhelp)
 	{
 		print_cam_help(cargo);
+		ret -1; goto fail;
 	}
 	#endif // RPI
 

@@ -41,5 +41,7 @@
 
 #cmakedefine CATCIERGE_GUI_TESTS 1
 
+#cmakedefine CATCIERGE_CONF_PATH "@CATCIERGE_CONF_PATH@"
+
 #endif // __CATCIERGE_CONFIG_H__
 
