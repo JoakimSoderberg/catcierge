@@ -82,7 +82,11 @@ static char *run_catierge_add_options_test()
 	ret = catcierge_args_init(&args, "catcierge");
 	mu_assert("Failed to init catcierge args", ret == 0);
 
+	catcierge_print_settings(args);
+	print_line(stdout, 10, "-");
+
 	catcierge_args_destroy(&args);
+
 
 	return NULL;
 }
@@ -313,6 +317,7 @@ static char *run_catcierge_parse_test()
 	mu_assert("Expected base_time == 2014-10-26T14:00:22",
 		args.base_time && !strcmp(args.base_time, "2014-10-26T14:00:22"));
 	PARSE_ARGV(1, &args, "catcierge", "--haar", "--base_time");
+	PARSE_ARGV(1, &args, "catcierge", "--haar", "--base_time", "notatimestamp");
 	#endif // _WIN32
 
 	// Template matcher setings.

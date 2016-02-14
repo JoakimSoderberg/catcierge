@@ -304,9 +304,7 @@ int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 	// Parse the "fake" command line using cargo. We turn off the
 	// internal error output, so the errors are more in the context
 	// of a config file.
-	if ((err = cargo_parse(cargo, CARGO_NOERR_OUTPUT,
-							0, args->config_argc,
-							args->config_argv)))
+	if ((err = cargo_parse(cargo, 0, 0, args->config_argc, args->config_argv)))
 	{
 		size_t k = 0;
 
