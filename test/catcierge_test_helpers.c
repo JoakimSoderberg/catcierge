@@ -159,11 +159,11 @@ void catcierge_test_FAILURE(const char *fmt, ...)
 	// of a long test!
 	va_list args;
 	va_start(args, fmt);
-	catcierge_test_printf(stderr, COLOR_BRIGHT, "[");
-	catcierge_test_printf(stderr, COLOR_RED, "FAILURE");
-	catcierge_test_printf(stderr, COLOR_BRIGHT, "] ");
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	catcierge_test_printf(stdout, COLOR_BRIGHT, "[");
+	catcierge_test_printf(stdout, COLOR_RED, "FAILURE");
+	catcierge_test_printf(stdout, COLOR_BRIGHT, "] ");
+	vfprintf(stdout, fmt, args);
+	fprintf(stdout, "\n");
 
 	va_end(args);
 }
@@ -194,11 +194,11 @@ void catcierge_test_SKIPPED(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	
-	catcierge_test_printf(stderr, COLOR_BRIGHT, "[");
-	catcierge_test_printf(stderr, COLOR_YELLOW, "SKIPPED");
-	catcierge_test_printf(stderr, COLOR_BRIGHT, "] ");
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	catcierge_test_printf(stdout, COLOR_BRIGHT, "[");
+	catcierge_test_printf(stdout, COLOR_YELLOW, "SKIPPED");
+	catcierge_test_printf(stdout, COLOR_BRIGHT, "] ");
+	vfprintf(stdout, fmt, args);
+	fprintf(stdout, "\n");
 
 	va_end(args);
 }

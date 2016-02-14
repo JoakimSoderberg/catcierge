@@ -73,7 +73,6 @@ typedef struct catcierge_args_s
 	int save_steps;
 	int no_final_decision;
 
-	const char *matcher;
 	catcierge_matcher_type_t matcher_type;
 	catcierge_template_matcher_args_t templ;
 	catcierge_haar_matcher_args_t haar;

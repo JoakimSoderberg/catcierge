@@ -676,7 +676,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strcmp(var, "matcher"))
 	{
-		return grb->matcher->name;
+		return grb->matcher->short_name;
 	}
 
 	if (grb->matcher && (matcher_val = grb->matcher->translate(grb->matcher, var, buf, bufsize)))

@@ -113,6 +113,7 @@ int catcierge_template_matcher_init(catcierge_matcher_t **octx,
 
 	ctx->super.type = MATCHER_TEMPLATE;
 	ctx->super.name = "Template";
+	ctx->super.short_name = "template";
 	ctx->args = args;
 
 	snout_paths = args->snout_paths;

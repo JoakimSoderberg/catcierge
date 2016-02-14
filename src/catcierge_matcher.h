@@ -47,6 +47,7 @@ typedef struct catcierge_matcher_s
 {
 	catcierge_matcher_type_t type;
 	char *name;
+	char *short_name;
 	int debug;
 	catcierge_match_func_t match;
 	catcierge_decide_func_t decide;

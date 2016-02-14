@@ -43,6 +43,7 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 
 	ctx->super.type = MATCHER_HAAR;
 	ctx->super.name = "Haar Cascade";
+	ctx->super.short_name = "haar";
 
 	if (!args->cascade)
 	{
