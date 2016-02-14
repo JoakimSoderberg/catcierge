@@ -45,13 +45,12 @@ char *run_test2()
 	
 }
 
-char *run_parse_config_tests()
+char *perform_config_test(char *test_cfg)
 {
 	int ret;
 	FILE *f;
 	catcierge_args_t args;
 	#define TEST_CONFIG_PATH "______test.cfg"
-	char test_cfg[] = "template_matcher=1\n";
 	char *argv[] = { "program", "--config", TEST_CONFIG_PATH };
 	int argc = sizeof(argv) / sizeof(argv[0]);
 
@@ -59,7 +58,7 @@ char *run_parse_config_tests()
 	f = fopen(TEST_CONFIG_PATH, "w");
 	mu_assert("Failed to open test config", f);
 
-	fwrite(test_cfg, 1, sizeof(test_cfg), f);
+	fwrite(test_cfg, 1, strlen(test_cfg), f);
 	fclose(f);
 
 	// Init parser.
@@ -75,6 +74,11 @@ char *run_parse_config_tests()
 	return NULL;
 }
 
+char *run_parse_config_tests()
+{
+	mu_assert("Failed config", perform_config_test("template_matcher=1\n"));
+}
+
 static char *run_catierge_add_options_test()
 {
 	int ret = 0;
@@ -82,8 +86,7 @@ static char *run_catierge_add_options_test()
 	ret = catcierge_args_init(&args, "catcierge");
 	mu_assert("Failed to init catcierge args", ret == 0);
 
-	catcierge_print_settings(args);
-	print_line(stdout, 10, "-");
+	catcierge_print_settings(&args);
 
 	catcierge_args_destroy(&args);
 
