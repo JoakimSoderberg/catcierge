@@ -584,7 +584,7 @@ void catcierge_template_matcher_print_settings(catcierge_template_matcher_args_t
 	assert(args);
 
 	printf("Template Matcher:\n");
-	printf(" Snout image(s): %s\n", args->snout_paths[0]);
+	printf(" Snout image(s): %s\n", (args->snout_count > 0) ? args->snout_paths[0] : "not set");
 	for (i = 1; i < args->snout_count; i++)
 	{
 		printf("                 %s\n", args->snout_paths[i]);

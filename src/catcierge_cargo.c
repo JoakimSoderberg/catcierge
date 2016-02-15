@@ -884,9 +884,9 @@ void catcierge_print_settings(catcierge_args_t *args)
 	size_t i;
 	#endif
 
-	printf("--------------------------------------------------------------------------------\n");
+	print_line(stdout, 80, "-");
 	printf("Settings:\n");
-	printf("--------------------------------------------------------------------------------\n");
+	print_line(stdout, 80, "-");
 	printf("General:\n");
 	printf("       Startup delay: %0.1f seconds\n", args->startup_delay);
 	printf("            Auto ROI: %d\n", args->auto_roi);
@@ -946,8 +946,7 @@ void catcierge_print_settings(catcierge_args_t *args)
 		printf("                 %s\n", args->rfid_allowed[i]);
 	}
 	#endif // WITH_RFID
-	printf("--------------------------------------------------------------------------------\n");
-
+	print_line(stdout, 80, "-");
 }
 
 catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)

@@ -76,7 +76,7 @@ char *perform_config_test(char *test_cfg)
 
 char *run_parse_config_tests()
 {
-	mu_assert("Failed config", perform_config_test("template_matcher=1\n"));
+	mu_assert("Failed config", perform_config_test("template_matcher=1\n") == NULL);
 }
 
 static char *run_catierge_add_options_test()
