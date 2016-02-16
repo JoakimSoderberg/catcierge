@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <errno.h>
 #include "cargo_ini.h"
 
 static void alini_cb(alini_parser_t *parser,
@@ -75,6 +76,7 @@ void ini_args_destroy(conf_ini_args_t *args)
 	cargo_free_commandline(&args->config_argv, args->config_argc);
 }
 
+#if 0
 void print_hash(conf_arg_t *config_args)
 {
 	size_t i = 0;
@@ -109,6 +111,7 @@ void print_commandline(conf_ini_args_t *args)
 
 	printf("\n");
 }
+#endif
 
 cargo_type_t guess_expanded_name(cargo_t cargo, conf_arg_t *it,
 								 char *tmpkey, size_t tmpkey_len)
@@ -144,6 +147,11 @@ int build_config_commandline(cargo_t cargo, conf_ini_args_t *args)
 	
 	args->config_argc = 0;
 
+	// The ini file has been parsed, and each key=value has been put
+	// in the hash table. We know want to create a command line from
+	// this, that is "argv" that then cargo can parse.
+
+	// Cunt how many args there will be (argc).
 	HASH_ITER(hh, args->config_args, it, tmp)
 	{
 		it->type = guess_expanded_name(cargo, it,
@@ -155,22 +163,36 @@ int build_config_commandline(cargo_t cargo, conf_ini_args_t *args)
 		{
 			if (it->key_count != 1)
 			{
-				fprintf(stderr, "Error, multiple occurances of '%s' found. "
+				fprintf(stderr,
+					"Config error: Multiple occurances of '%s' found. "
 					"To repeat a flag please use '%s=%lu' instead.\n",
 					it->key, it->key, it->key_count);
 				return -1;
 			}
 
-			// TODO: Get rid of atoi use....
 			if (strlen(it->vals[0]) == 0)
 			{
-				fprintf(stderr, "Error, please supply an integer value to "
+				fprintf(stderr,
+					"Config error: Please supply an integer value to "
 					"the '%s' flag\n", it->key);
 				return -1;
 			}
 			else
 			{
-				it->args_count = atoi(it->vals[0]);
+				char *end = NULL;
+				errno = 0;
+				it->args_count = strtol(it->vals[0], &end, 10);
+
+				if (errno == ERANGE)
+				{
+					fprintf(stderr, "Integer out of range \"%s\"\n", it->vals[0]);
+					return -1;
+				}
+
+				if (end == it->vals[0])
+				{
+					fprintf(stderr, "Not a valid integer \"%s\"\n", it->vals[0]);
+				}
 			}
 		}
 		else
@@ -187,6 +209,7 @@ int build_config_commandline(cargo_t cargo, conf_ini_args_t *args)
 		exit(-1);
 	}
 
+	// Now populate the argv.
 	HASH_ITER(hh, args->config_args, it, tmp)
 	{
 		if (it->type == CARGO_BOOL)
@@ -304,12 +327,9 @@ int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 	// Parse the "fake" command line using cargo. We turn off the
 	// internal error output, so the errors are more in the context
 	// of a config file.
-	if ((err = cargo_parse(cargo, 0, 0, args->config_argc, args->config_argv)))
+	if ((err = cargo_parse(cargo, CARGO_NOERR_USAGE, 0, args->config_argc, args->config_argv)))
 	{
 		size_t k = 0;
-
-		cargo_print_usage(cargo, CARGO_USAGE_SHORT);
-
 		fprintf(stderr, "Failed to parse config: %d\n", err);
 		
 		switch (err)
@@ -320,7 +340,7 @@ int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 				size_t unknown_count = 0;
 				const char **unknowns = cargo_get_unknown(cargo, &unknown_count);
 
-				fprintf(stderr, "Unknown options:\n");
+				fprintf(stderr, "Unknown config options:\n");
 
 				for (k = 0; k < unknown_count; k++)
 				{

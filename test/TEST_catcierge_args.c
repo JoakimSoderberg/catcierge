@@ -45,11 +45,11 @@ char *run_test2()
 	
 }
 
-char *perform_config_test(char *test_cfg)
+char *perform_config_test(int expected_ret, char *test_cfg, catcierge_args_t *args)
 {
 	int ret;
 	FILE *f;
-	catcierge_args_t args;
+	//catcierge_args_t args;
 	#define TEST_CONFIG_PATH "______test.cfg"
 	char *argv[] = { "program", "--config", TEST_CONFIG_PATH };
 	int argc = sizeof(argv) / sizeof(argv[0]);
@@ -62,21 +62,62 @@ char *perform_config_test(char *test_cfg)
 	fclose(f);
 
 	// Init parser.
-	memset(&args, 0, sizeof(args));
-	ret = catcierge_args_init(&args, "catcierge");
+	memset(args, 0, sizeof(catcierge_args_t));
+	ret = catcierge_args_init(args, "catcierge");
 	mu_assert("Failed to init catcierge args", ret == 0);
 
-	ret = catcierge_args_parse(&args, argc, argv);
-	mu_assert("Failed to parse", ret == 0);
+	ret = catcierge_args_parse(args, argc, argv);
+	mu_assert("Parse status not expected", (!!ret) == expected_ret);
 
-	catcierge_args_destroy(&args);
+	//catcierge_args_destroy(args);
 
 	return NULL;
 }
 
 char *run_parse_config_tests()
 {
-	mu_assert("Failed config", perform_config_test("template_matcher=1\n") == NULL);
+	#define ASSERT_CONFIG_START(EXPECT_RET, CONF) 						\
+	do 																	\
+	{																	\
+		catcierge_args_t args;											\
+		catcierge_test_STATUS("\nConfig:\n%s", CONF);					\
+		mu_assert("Failed config:\n"CONF"\n",							\
+			perform_config_test(EXPECT_RET, CONF, &args) == NULL)
+	
+
+	#define ASSERT_CONFIG_END()											\
+		catcierge_args_destroy(&args);									\
+	} while (0)
+
+
+
+	ASSERT_CONFIG_START(0,
+		"template_matcher=1\n");
+	mu_assert("Unexpected matcher", args.matcher_type == MATCHER_TEMPLATE);
+	ASSERT_CONFIG_END();
+
+	// This only gives a warning that the options is specified twice.
+	ASSERT_CONFIG_START(0,
+		"template_matcher=2\n");
+	mu_assert("Unexpected matcher",args.matcher_type == MATCHER_TEMPLATE);
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1,
+		"template_matcher=\n");
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1,
+		"template_matcher=1\n"
+		"template_matcher=1\n");
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(0,
+		"haar=1\n");
+	mu_assert("Unexpected matcher", args.matcher_type == MATCHER_HAAR);
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1, "haar=broken\n");
+	ASSERT_CONFIG_END();
 
 	return NULL;
 }
