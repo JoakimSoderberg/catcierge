@@ -41,6 +41,7 @@ static void alini_cb(alini_parser_t *parser,
 			exit(-1);
 		}
 
+		it->linenumber = alini_parser_get_linenumber(parser);
 		strncpy(it->key, key, MAX_CONFIG_KEY - 1);
 		HASH_ADD_STR(args->config_args, key, it);
 	}
@@ -136,7 +137,7 @@ cargo_type_t guess_expanded_name(cargo_t cargo, conf_arg_t *it,
 	return (i < CARGO_NAME_COUNT) ? type : -1;
 }
 
-int build_config_commandline(cargo_t cargo, conf_ini_args_t *args)
+int build_config_commandline(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 {
 	size_t j = 0;
 	int i = 0;
@@ -164,8 +165,10 @@ int build_config_commandline(cargo_t cargo, conf_ini_args_t *args)
 			if (it->key_count != 1)
 			{
 				fprintf(stderr,
-					"Config error: Multiple occurances of '%s' found. "
+					"%s:%d Error:\n"
+					"Multiple occurances of '%s' found. "
 					"To repeat a flag please use '%s=%lu' instead.\n",
+					config_path, it->linenumber,
 					it->key, it->key, it->key_count);
 				return -1;
 			}
@@ -173,8 +176,9 @@ int build_config_commandline(cargo_t cargo, conf_ini_args_t *args)
 			if (strlen(it->vals[0]) == 0)
 			{
 				fprintf(stderr,
-					"Config error: Please supply an integer value to "
-					"the '%s' flag\n", it->key);
+					"%s:%d Error:\n"
+					"Please supply an integer value to the '%s' flag\n",
+					config_path, it->linenumber, it->key);
 				return -1;
 			}
 			else
@@ -185,13 +189,19 @@ int build_config_commandline(cargo_t cargo, conf_ini_args_t *args)
 
 				if (errno == ERANGE)
 				{
-					fprintf(stderr, "Integer out of range \"%s\"\n", it->vals[0]);
+					fprintf(stderr,
+						"%s:%d Error:\n"
+						"Integer out of range \"%s\"\n",
+						config_path, it->linenumber, it->vals[0]);
 					return -1;
 				}
 
 				if (end == it->vals[0])
 				{
-					fprintf(stderr, "Not a valid integer \"%s\"\n", it->vals[0]);
+					fprintf(stderr,
+						"%s:%d Error:\n"
+						"Not a valid integer \"%s\"\n",
+						config_path, it->linenumber, it->vals[0]);
 				}
 			}
 		}
@@ -311,7 +321,7 @@ int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 	//   key2 = 789
 	// Becomes:
 	//   --key1 123 456 --key2 789
-	if (build_config_commandline(cargo, args))
+	if (build_config_commandline(cargo, config_path, args))
 	{
 		return -1;
 	}

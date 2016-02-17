@@ -49,6 +49,8 @@ typedef struct conf_arg_s
 	char *vals[MAX_CONFIG_VAL];
 	size_t val_count;
 
+	int linenumber;
+
 	// Final count of arguments to generate for key
 	// (different for booleans).
 	size_t args_count; 
