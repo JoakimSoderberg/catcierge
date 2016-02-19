@@ -125,7 +125,7 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 			"The algorithm to use when matching for the cat profile image.");
 
 	ret |= cargo_add_option(cargo, 0,
-			"<!matcher_type, matcher> --template_matcher --templ",
+			"<!matcher_type, matcher> --template_matcher --template --templ",
 			"Template based matching algorithm.",
 			"b=", &args->matcher_type, MATCHER_TEMPLATE);
 
@@ -189,7 +189,7 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 			"b", &args->save_steps);
 
 	ret |= cargo_add_option(cargo, 0,
-			"<output> --template --input",
+			"<output> --input",
 			"Path to one or more template files generated on specified events. "
 			"(Not to be confused with the template matcher)",
 			"[s]+", &args->inputs, &args->input_count);

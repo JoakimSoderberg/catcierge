@@ -69,8 +69,6 @@ char *perform_config_test(int expected_ret, char *test_cfg, catcierge_args_t *ar
 	ret = catcierge_args_parse(args, argc, argv);
 	mu_assert("Parse status not expected", (!!ret) == expected_ret);
 
-	//catcierge_args_destroy(args);
-
 	return NULL;
 }
 
@@ -96,10 +94,15 @@ char *run_parse_config_tests()
 	mu_assert("Unexpected matcher", args.matcher_type == MATCHER_TEMPLATE);
 	ASSERT_CONFIG_END();
 
+	ASSERT_CONFIG_START(0,
+		"   template_matcher    =   1   \n");
+	mu_assert("Unexpected matcher", args.matcher_type == MATCHER_TEMPLATE);
+	ASSERT_CONFIG_END();
+
 	// This only gives a warning that the options is specified twice.
 	ASSERT_CONFIG_START(0,
 		"template_matcher=2\n");
-	mu_assert("Unexpected matcher",args.matcher_type == MATCHER_TEMPLATE);
+	mu_assert("Unexpected matcher", args.matcher_type == MATCHER_TEMPLATE);
 	ASSERT_CONFIG_END();
 
 	ASSERT_CONFIG_START(1,
@@ -118,6 +121,23 @@ char *run_parse_config_tests()
 
 	ASSERT_CONFIG_START(1, "haar=broken\n");
 	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1, "haar=1\n"
+						   "template=1\n");
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(0, "haar=1\n"
+						   "ok_matches_needed=4\n");
+	printf("ok_matches_needed = %d\n", args.ok_matches_needed);
+	mu_assert("Unexpected ok_matches_needed", args.ok_matches_needed == 4);
+	ASSERT_CONFIG_END();
+
+	#ifndef _WIN32
+	ASSERT_CONFIG_START(0, "haar=1\n"
+						   "base_time=2016-01-23T22:11:03\n");
+	mu_assert("Unexpected base_time", !strcmp(args.base_time, "2016-01-23T22:11:03"));
+	ASSERT_CONFIG_END();
+	#endif
 
 	return NULL;
 }

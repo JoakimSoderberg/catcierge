@@ -143,7 +143,6 @@ int build_config_commandline(cargo_t cargo, const char *config_path, conf_ini_ar
 	int i = 0;
 	conf_arg_t *it = NULL;
 	conf_arg_t *tmp = NULL;
-	char tmpkey[1024];
 	cargo_type_t type;
 	
 	args->config_argc = 0;
@@ -235,7 +234,7 @@ int build_config_commandline(cargo_t cargo, const char *config_path, conf_ini_ar
 		}
 		else
 		{
-			if (!(args->config_argv[i++] = strdup(tmpkey)))
+			if (!(args->config_argv[i++] = strdup(it->expanded_key)))
 			{
 				fprintf(stderr, "Out of memory!\n");
 				exit(-1);
