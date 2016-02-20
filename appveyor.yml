@@ -3,7 +3,7 @@ branches:
     - gh-pages
 
 install:
-  - cinst OpenCV
+  - cinst OpenCV -version 2.4.9.20140518
 build:
 
 build_script:
