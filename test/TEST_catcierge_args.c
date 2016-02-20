@@ -122,19 +122,22 @@ char *run_parse_config_tests()
 	ASSERT_CONFIG_START(1, "haar=broken\n");
 	ASSERT_CONFIG_END();
 
-	ASSERT_CONFIG_START(1, "haar=1\n"
-						   "template=1\n");
+	ASSERT_CONFIG_START(1,
+		"haar=1\n"
+		"template=1\n");
 	ASSERT_CONFIG_END();
 
-	ASSERT_CONFIG_START(0, "haar=1\n"
-						   "ok_matches_needed=4\n");
+	ASSERT_CONFIG_START(0,
+		"haar=1\n"
+		"ok_matches_needed=4\n");
 	printf("ok_matches_needed = %d\n", args.ok_matches_needed);
 	mu_assert("Unexpected ok_matches_needed", args.ok_matches_needed == 4);
 	ASSERT_CONFIG_END();
 
 	#ifndef _WIN32
-	ASSERT_CONFIG_START(0, "haar=1\n"
-						   "base_time=2016-01-23T22:11:03\n");
+	ASSERT_CONFIG_START(0,
+		"haar=1\n"
+		"base_time=2016-01-23T22:11:03\n");
 	mu_assert("Unexpected base_time", !strcmp(args.base_time, "2016-01-23T22:11:03"));
 	ASSERT_CONFIG_END();
 	#endif

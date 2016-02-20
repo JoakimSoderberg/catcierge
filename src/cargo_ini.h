@@ -69,7 +69,7 @@ typedef struct conf_ini_args_s
 
 	// Used in the ini parsing stage to store the variables.
 	conf_arg_t *config_args;
-	size_t config_args_count;
+	//size_t config_args_count;
 } conf_ini_args_t;
 
 int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args);
