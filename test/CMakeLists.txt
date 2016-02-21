@@ -95,7 +95,7 @@ foreach (test_name ${TEST_SRCS_NO_EXT})
 		if (WIN32)
 			# TODO: This is hard coded to bin/Debug for now... Possible fix:
 			# http://stackoverflow.com/questions/9467510/how-to-pass-ctest-configuration-type-using-add-test-in-cmake
-			add_test(${test_name}_memchk ${DRMEMORY_PROGRAM} -batch -show_reachable -exit_code_if_errors 5 -- ${DRMEMORY_PROGRAM} -batch -exit_code_if_errors 5 -- ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/${CATCIERGE_TEST_DRIVER} ${test_name})
+			add_test(${test_name}_memchk ${DRMEMORY_PROGRAM} -batch -exit_code_if_errors 5 -- ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/${CATCIERGE_TEST_DRIVER} ${test_name})
 		else()
 			add_test(${test_name}_memchk ${VALGRIND_PROGRAM} --gen-suppressions=all --error-exitcode=5 --leak-check=full --suppressions=${PROJECT_SOURCE_DIR}/valgrind-supress.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CATCIERGE_TEST_DRIVER} ${test_name})
 		endif()
