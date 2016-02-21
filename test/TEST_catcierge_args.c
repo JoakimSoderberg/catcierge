@@ -142,6 +142,12 @@ char *run_parse_config_tests()
 	ASSERT_CONFIG_END();
 	#endif
 
+	ASSERT_CONFIG_START(1,
+		"haar=1\n"
+		"does=not exist\n"
+		"what=is this\n");
+	ASSERT_CONFIG_END();
+
 	return NULL;
 }
 

@@ -64,23 +64,44 @@ if (CATCIERGE_COVERAGE)
 endif()
 
 if (CATCIERGE_WITH_MEMCHECK AND UNIX)
-	find_program(VALGRIND_PROGRAM NAMES valgrind)
+	if (WIN32)
+		cmake_policy(PUSH)
+		#cmake_policy(SET CMP0053 OLD) # Allow () in the var
+		find_program(DRMEMORY_PROGRAM NAMES drmemory.exe PATHS "$ENV{ProgramFiles(x86)}/Dr. Memory/bin")
+		cmake_policy(POP)
 
-	if (NOT EXISTS ${VALGRIND_PROGRAM})
-		message(WARNING "Valgrind not found! Tests will be run without memory check. Turn this warning off by installing valgrind or settings -DCATCIERGE_WITH_MEMCHECK=0")
-		set(CATCIERGE_WITH_MEMCHECK 0)
+		if (NOT EXISTS ${DRMEMORY_PROGRAM})
+			message(WARNING "Dr. Memory not found! Tests will be run without memory check. Turn this warning off by installing Dr. Memory or settings -DCATCIERGE_WITH_MEMCHECK=OFF")
+			set(CATCIERGE_WITH_MEMCHECK OFF)
+		else()
+			message("Found Dr. Memory: ${VALGRIND_PROGRAM}")
+		endif()
 	else()
-		message("Found valgrind: ${VALGRIND_PROGRAM}")
-	endif()	
+		find_program(VALGRIND_PROGRAM NAMES valgrind)
+
+		if (NOT EXISTS ${VALGRIND_PROGRAM})
+			message(WARNING "Valgrind not found! Tests will be run without memory check. Turn this warning off by installing valgrind or settings -DCATCIERGE_WITH_MEMCHECK=0")
+			set(CATCIERGE_WITH_MEMCHECK OFF)
+		else()
+			message("Found valgrind: ${VALGRIND_PROGRAM}")
+		endif()
+	endif()
 endif()
 
 foreach (test_name ${TEST_SRCS_NO_EXT})
 	# Add a test with the filename we just got
 	# And call the driver with the test as an argument.
-	if (NOT CATCIERGE_WITH_MEMCHECK)
-		add_test(${test_name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CATCIERGE_TEST_DRIVER} ${test_name})
+	if (CATCIERGE_WITH_MEMCHECK)
+		if (WIN32)
+			# TODO: This is hard coded to bin/Debug for now... Possible fix:
+			# http://stackoverflow.com/questions/9467510/how-to-pass-ctest-configuration-type-using-add-test-in-cmake
+			add_test(${test_name}_memchk ${DRMEMORY_PROGRAM} -batch -show_reachable -exit_code_if_errors 5 -- ${DRMEMORY_PROGRAM} -batch -exit_code_if_errors 5 -- ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/${CATCIERGE_TEST_DRIVER} ${test_name})
+		else()
+			add_test(${test_name}_memchk ${VALGRIND_PROGRAM} --gen-suppressions=all --error-exitcode=5 --leak-check=full --suppressions=${PROJECT_SOURCE_DIR}/valgrind-supress.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CATCIERGE_TEST_DRIVER} ${test_name})
+		endif()
 	else()
-		add_test(${test_name}_memchk ${VALGRIND_PROGRAM} --gen-suppressions=all --error-exitcode=5 --leak-check=full --suppressions=${PROJECT_SOURCE_DIR}/valgrind-supress.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CATCIERGE_TEST_DRIVER} ${test_name})
+		# No memcheck.
+		add_test(${test_name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CATCIERGE_TEST_DRIVER} ${test_name})
 	endif()
 endforeach()
 
