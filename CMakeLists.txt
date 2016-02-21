@@ -29,9 +29,9 @@ set(CATCIERGE_VERSION_PATCH 0)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
+option(CATCIERGE_WITH_MEMCHECK "Run tests with memory check using valgrind" ON)
 
 if (UNIX)
-	option(CATCIERGE_WITH_MEMCHECK "Run tests with memory check using valgrind" ON)
 	option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
 	option(RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." ON)
 	option(CATCIERGE_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" OFF)
