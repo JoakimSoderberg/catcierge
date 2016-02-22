@@ -1,5 +1,5 @@
 function (CHECK_IS_RASPBERRY_PI IS_RPI MODEL)
-    if (UNIX)
+    if (UNIX AND NOT APPLE)
         file(READ /proc/cpuinfo CPUINFO)
 
         # Example of what we're looking for:
