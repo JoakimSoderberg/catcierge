@@ -187,77 +187,25 @@ message("This file can be found in the build tree of OpenCV")
 message("-----------------------------------------------------------------")
 endif()
 
-# Lazy solution for linking against OpenCV on Raspbian.
-# Simply hard code the paths to the libs...
 #
 # This can be overridden by specifying your own OpenCV build
 # using -DOpenCV_DIR=<path>
 # Where <path> is the directory containing OpenCVConfig.cmake
 # 
-if (RPI AND NOT OpenCV_DIR)
-	# NOTE! The order below is important!
-	set(OpenCV_LIBS
-		/usr/lib/libopencv_highgui.a
-		/usr/lib/libopencv_objdetect.a
-		/usr/lib/libopencv_imgproc.a
-		/usr/lib/libopencv_core.a
-		/usr/lib/libopencv_calib3d.a
-		/usr/lib/libopencv_features2d.a
-		/usr/lib/libopencv_ml.a
-		/usr/lib/libopencv_contrib.a
-		/usr/lib/libopencv_flann.a
-		#/usr/lib/libopencv_gpu.a
-		/usr/lib/libopencv_legacy.a
-		/usr/lib/libopencv_video.a
-		)
+if (WIN32)
+	# We link statically on windows so we don't have to copy DLLs around.
+	option(LINK_STATIC "Link eveything static such as OpenCV. Will produce a single exe (big since it contains OpenCV and more). Default on" ON)
 
-	set(OPENEXR_LIBRARIES
-		/usr/lib/libIlmImf.a
-		/usr/lib/libIlmImf.so
-		/usr/lib/libHalf.so.6
-		)
-
-	set(JASPER_LIBRARIES
-		/usr/lib/arm-linux-gnueabihf/libjasper.a
-		/usr/lib/arm-linux-gnueabihf/libjasper.so
-		/usr/lib/arm-linux-gnueabihf/libjasper.so.1
-		)
-
-	find_package(ZLIB)
-	find_package(JPEG)
-	find_package(TIFF)
-	find_package(GTK2)
-	find_package(PNG)
-	find_package(Threads)
-
-	set(LIBS 
-		${JASPER_LIBRARIES}
-		${OPENEXR_LIBRARIES}
-		${GTK2_LIBRARIES}
-		${TIFF_LIBRARIES}
-		${JPEG_LIBRARIES}
-		${ZLIB_LIBRARIES}
-		${PNG_LIBRARIES}
-		${OpenCV_LIBS}
-		stdc++ 
-		rt
-		${CMAKE_THREAD_LIBS_INIT}
-		)
-else()
-	if (WIN32)
-		# We link statically on windows so we don't have to copy DLLs around.
-		option(LINK_STATIC "Link eveything static such as OpenCV. Will produce a single exe (big since it contains OpenCV and more). Default on" ON)
-
-		if (LINK_STATIC)
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-			set(OpenCV_STATIC ON)
-		endif()
+	if (LINK_STATIC)
+		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+		set(OpenCV_STATIC ON)
 	endif()
-
-	find_package(OpenCV REQUIRED)
-	set(LIBS ${OpenCV_LIBS})
 endif()
+
+find_package(Threads)
+find_package(OpenCV REQUIRED)
+set(LIBS ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 # Raspicam lib.
 if (RPI)
