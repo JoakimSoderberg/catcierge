@@ -37,8 +37,7 @@ static void alini_cb(alini_parser_t *parser,
 		// Or add a new config argument.
 		if (!(it = calloc(1, sizeof(conf_arg_t))))
 		{
-			fprintf(stderr, "Out of memory\n");
-			exit(-1);
+			fprintf(stderr, "Out of memory\n"); exit(-1);
 		}
 
 		it->linenumber = alini_parser_get_linenumber(parser);
@@ -50,8 +49,7 @@ static void alini_cb(alini_parser_t *parser,
 	
 	if (!(it->vals[it->val_count++] = strdup(value)))
 	{
-		fprintf(stderr, "Out of memory\n");
-		exit(-1);
+		fprintf(stderr, "Out of memory\n"); exit(-1);
 	}
 }
 
@@ -214,8 +212,7 @@ int build_config_commandline(cargo_t cargo, const char *config_path, conf_ini_ar
 
 	if (!(args->config_argv = calloc(args->config_argc, sizeof(char *))))
 	{
-		fprintf(stderr, "Out of memory!\n");
-		exit(-1);
+		fprintf(stderr, "Out of memory!\n"); exit(-1);
 	}
 
 	// Now populate the argv.
@@ -227,8 +224,7 @@ int build_config_commandline(cargo_t cargo, const char *config_path, conf_ini_ar
 			{
 				if (!(args->config_argv[i++] = strdup(it->expanded_key)))
 				{
-					fprintf(stderr, "Out of memory!\n");
-					exit(-1);
+					fprintf(stderr, "Out of memory!\n"); exit(-1);
 				}
 			}
 		}
@@ -236,16 +232,14 @@ int build_config_commandline(cargo_t cargo, const char *config_path, conf_ini_ar
 		{
 			if (!(args->config_argv[i++] = strdup(it->expanded_key)))
 			{
-				fprintf(stderr, "Out of memory!\n");
-				exit(-1);
+				fprintf(stderr, "Out of memory!\n"); exit(-1);
 			}
 
 			for (j = 0; j < it->val_count; j++)
 			{
 				if (!(args->config_argv[i++] = strdup(it->vals[j])))
 				{
-					fprintf(stderr, "Out of memory!\n");
-					exit(-1);
+					fprintf(stderr, "Out of memory!\n"); exit(-1);
 				}
 			}
 		}

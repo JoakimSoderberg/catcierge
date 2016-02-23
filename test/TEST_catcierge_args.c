@@ -7,43 +7,6 @@
 #include "catcierge_test_helpers.h"
 #include "catcierge_config.h"
 
-typedef char *(*test_func)();
-
-#if 0
-char *run_test1()
-{
-	catcierge_args_t args;
-
-	char *test1[] = 
-	{
-		"catcierge",
-		"--snout", "abc.png", "def.png",
-		"--show"
-	};
-	#define TEST1_COUNT (sizeof(test1) / sizeof(char *))
-
-	catcierge_args_init(&args, "catcierge");
-
-	// Parse command line arguments.
-	//mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1, NULL, NULL));
-	mu_assert("Failed to parse args", !catcierge_args_parse(&args, TEST1_COUNT, test1));
-
-	mu_assert("Expected show to be set", args.show);
-	catcierge_test_STATUS("Snout count %lu", args.templ.snout_count);
-	mu_assert("Expected snout count to be 2", args.templ.snout_count == 2);
-	mu_assert("Unexpected snout", !strcmp(test1[2], args.templ.snout_paths[0]));
-	
-	catcierge_args_destroy(&args);
-
-	return NULL;
-}
-#endif
-
-char *run_test2()
-{
-	
-}
-
 char *perform_config_test(int expected_ret, char *test_cfg, catcierge_args_t *args)
 {
 	int ret;
@@ -146,6 +109,12 @@ char *run_parse_config_tests()
 		"does=not exist\n"
 		"what=is this\n");
 	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1,
+		"haar=1\n"
+		"lockout_dummy=2502585298529831909139090259050229328998329823");
+	ASSERT_CONFIG_END();
+
 
 	return NULL;
 }
