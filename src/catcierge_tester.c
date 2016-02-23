@@ -25,6 +25,7 @@
 #include "catcierge_haar_matcher.h"
 #include "catcierge_util.h"
 #include "catcierge_types.h"
+#include "catcierge_cargo.h"
 #ifdef _WIN32
 #include <process.h>
 #else
@@ -53,220 +54,148 @@ static int parse_arg(catcierge_template_matcher_args_t *args,
 	return 0;
 }
 
+typedef struct tester_ctx_s
+{
+	char **img_paths;
+	size_t img_count;
+	IplImage **imgs;
+
+	int save;
+	char *output_path;
+
+	int show;
+	int test_matchable;
+	int debug;
+	int preload;
+} tester_ctx_t;
+
+tester_ctx_t ctx;
+
+static int add_options(catcierge_args_t *args)
+{
+	int ret = 0;
+	cargo_t cargo = args->cargo;
+
+	ret |= cargo_add_group(cargo, 0, 
+			"test", "Test Settings",
+			"Settings for testing inputing a set of images to the catcierge matcher.");
+
+	ret |= cargo_add_option(cargo, CARGO_OPT_REQUIRED,
+			"<test> --images",
+			"Input images that are passed to catcierge.",
+			"[s]+", &ctx.img_paths, &ctx.img_count);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<test> --test_save",
+			"Save the match result images.",
+			"b", &ctx.save);
+
+	ctx.output_path = strdup("output");
+	ret |= cargo_add_option(cargo, 0,
+			"<test> --test_output",
+			"Path were to save the output when using --save.",
+			"s", &ctx.output_path);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<test> --test_show",
+			"Show the images being matched in a window.",
+			"b", &ctx.show);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<test> --test_obstructed",
+			"Test if the image causes what catcierge considers to be an obstruction "
+			"which is what catcierge uses to decide when to start to match.",
+			"b", &ctx.test_matchable);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<test> --debug",
+			"Turn on internal debugging in the matcher.",
+			"b", &ctx.debug);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<test> --preload",
+			"Preload the images before we start any tests, "
+			"so the speed is not affected by disk IO at the time of the matching.",
+			"b", &ctx.preload);
+
+	return ret;
+}
+
 int main(int argc, char **argv)
 {
 	int ret = 0;
 	catcierge_matcher_t *matcher = NULL;
-	char *img_paths[4096];
-	IplImage *imgs[4096];
-	size_t img_count = 0;
 	IplImage *img = NULL;
 	CvSize img_size;
 	CvScalar match_color;
 	int match_success = 0;
 	double match_res = 0;
-	int debug = 0;
 	int i;
 	int j;
-	int show = 0;
-	int save = 0;
-	char *output_path = "output"; // TODO: Fix this for cargo
-	double match_threshold = 0.8;
 	int success_count = 0;
-	int preload = 0;
-	int test_matchable = 0;
-	const char *matcher_str = NULL;
 	match_result_t result;
 
 	clock_t start;
 	clock_t end;
-	catcierge_template_matcher_args_t args;
-	catcierge_haar_matcher_args_t hargs;
 	char *key = NULL;
 	char *values[4096];
 	size_t value_count = 0;
+	catcierge_args_t args;
 	memset(&args, 0, sizeof(args));
 	memset(&result, 0, sizeof(result));
 
-	fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2014\n");
+	fprintf(stderr, "Catcierge Image match Tester (C) Joakim Soderberg 2013-2016\n");
 
-	if (argc < 4)
+	if (catcierge_args_init(&args, argv[0]))
 	{
-		fprintf(stderr, "Usage: %s\n"
-						"          [--output [path]]\n"
-						"          [--debug]\n"
-						"          [--show]\n"
-						"          [--match_flipped <0|1>]\n"
-						"          [--threshold]\n"
-						"          [--preload]\n"
-						"          [--test_matchable]\n"
-						"          [--snout <snout images for template matching>]\n"
-						"          [--cascade <haar cascade xml>]\n"
-						"           --images <input images>\n"
-						"           --matcher <template|haar>\n", argv[0]);
+		fprintf(stderr, "Failed to init args\n");
 		return -1;
 	}
 
-	catcierge_haar_matcher_args_init(&hargs);
-	catcierge_template_matcher_args_init(&args);
-
-	for (i = 1; i < argc; i++)
+	if (add_options(&args))
 	{
-		if (!strcmp(argv[i], "--show"))
-		{
-			show = 1;
-			continue;
-		}
-		else if (!strcmp(argv[i], "--output"))
-		{
-			save = 1;
-
-			if ((i + 1) < argc)
-			{
-				if (strncmp(argv[i+1], "--", 2))
-				{
-					i++;
-					output_path = argv[i];
-				}
-			}
-			continue;
-		}
-		else if (!strcmp(argv[i], "--test_matchable")
-				|| !strcmp(argv[i], "--test_obstructed"))
-		{
-			test_matchable = 1;
-			preload = 1;
-		}
-		else if (!strcmp(argv[i], "--debug"))
-		{
-			debug = 1;
-		}
-		else if (!strcmp(argv[i], "--images"))
-		{
-			while (((i + 1) < argc) 
-				&& strncmp(argv[i+1], "--", 2))
-			{
-				i++;
-				img_paths[img_count] = argv[i];
-				img_count++;
-			}
-		}
-		else if (!strcmp(argv[i], "--preload"))
-		{
-			if ((i + 1) < argc)
-			{
-				i++;
-				preload = 1;
-				continue;
-			}
-		}
-		else if (!strcmp(argv[i], "--matcher"))
-		{
-			if ((i + 1) < argc)
-			{
-				if (strncmp(argv[i+1], "--", 2))
-				{
-					i++;
-					matcher_str = argv[i];
-
-					if (strcmp(matcher_str, "template") && strcmp(matcher_str, "haar"))
-					{
-						fprintf(stderr, "Invalid matcher type \"%s\"\n", matcher_str);
-						return -1;
-					}
-				}
-			}
-			continue;
-		}
-		else if (!strncmp(argv[i], "--", 2))
-		{
-			int j = i + 1;
-			key = &argv[i][2];
-			memset(values, 0, value_count * sizeof(char *));
-			value_count = 0;
-
-			// Look for values for the option.
-			// Continue fetching values until we get another option
-			// or there are no more options.
-			while ((j < argc) && strncmp(argv[j], "--", 2))
-			{
-				values[value_count] = argv[j];
-				value_count++;
-				i++;
-				j = i + 1;
-			}
-
-			if ((ret = parse_arg(&args, &hargs, key, values, value_count)) < 0)
-			{
-				fprintf(stderr, "Failed to parse command line arguments for \"%s\"\n", key);
-				return ret;
-			}
-		}
-		else
-		{
-			fprintf(stderr, "Unknown command line argument \"%s\"\n", argv[i]);
-			return -1;
-		}
+		fprintf(stderr, "Failed to init tester args\n");
+		ret = -1; goto fail;
 	}
 
-	if (!matcher_str)
+	if (catcierge_args_parse(&args, argc, argv))
 	{
-		fprintf(stderr, "You must specify a matcher type\n");
-		return -1;
-	}
-
-	if (!strcmp(matcher_str, "template") && (args.snout_count == 0))
-	{
-		fprintf(stderr, "No snout image specified\n");
-		return -1;
-	}
-
-	if (!strcmp(matcher_str, "haar") && !hargs.cascade)
-	{
-		fprintf(stderr, "No haar cascade specified\n");
-		return -1;
-	}
-
-	if (img_count == 0)
-	{
-		fprintf(stderr, "No input image specified\n");
-		return -1;
+		ret = -1; goto fail;
 	}
 
 	// Create output directory.
-	if (save)
+	if (ctx.save)
 	{
-		catcierge_make_path("%s", output_path);
+		catcierge_make_path("%s", ctx.output_path);
 	}
 
-	args.super.type = MATCHER_TEMPLATE;
-	hargs.super.type = MATCHER_HAAR;
-
-	if (catcierge_matcher_init(&matcher,
-		(!strcmp(matcher_str, "template")
-		? (catcierge_matcher_args_t *)&args
-		: (catcierge_matcher_args_t *)&hargs)))
+	if (catcierge_matcher_init(&matcher, catcierge_get_matcher_args(&args)))
 	{
-		fprintf(stderr, "Failed to init %s matcher.\n", matcher_str);
-			return -1;
+		fprintf(stderr, "\n\nFailed to %s init matcher\n\n", matcher->name);
+		return -1;
 	}
 
-	matcher->debug = debug;
-	if (!matcher->is_obstructed)
-		matcher->is_obstructed = catcierge_is_frame_obstructed;
-	//catcierge_set_binary_thresholds(&ctx, 90, 200);
+	matcher->debug = ctx.debug;
 
+	if (!(ctx.imgs = calloc(ctx.img_count, sizeof(IplImage *))))
+	{
+		fprintf(stderr, "Out of memory!\n");
+		ret = -1;
+		goto fail;
+	}
+
+	// TODO: Move to function
 	// If we should preload the images or not
 	// (Don't let file IO screw with benchmark)
-	if (preload)
+	if (ctx.preload)
 	{
-		for (i = 0; i < (int)img_count; i++)
+		for (i = 0; i < (int)ctx.img_count; i++)
 		{
-			printf("Preload image %s\n", img_paths[i]);
+			printf("Preload image %s\n", ctx.img_paths[i]);
 
-			if (!(imgs[i] = cvLoadImage(img_paths[i], 1)))
+			if (!(ctx.imgs[i] = cvLoadImage(ctx.img_paths[i], 1)))
 			{
-				fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
+				fprintf(stderr, "Failed to load match image: %s\n", ctx.img_paths[i]);
 				ret = -1;
 				goto fail;
 			}
@@ -275,47 +204,47 @@ int main(int argc, char **argv)
 
 	start = clock();
 
-	if (test_matchable)
+	if (ctx.test_matchable)
 	{
-		for (i = 0; i < (int)img_count; i++)
+		for (i = 0; i < (int)ctx.img_count; i++)
 		{
 			// This tests if an image frame is clear or not (matchable).
 			int frame_obstructed;
 
-			if ((frame_obstructed = matcher->is_obstructed(matcher, imgs[i])) < 0)
+			if ((frame_obstructed = matcher->is_obstructed(matcher, ctx.imgs[i])) < 0)
 			{
 				fprintf(stderr, "Failed to detect check for matchability frame\n");
 				return -1;
 			}
 
 			printf("%s: Frame obstructed = %d\n",
-				img_paths[i], frame_obstructed);
+				ctx.img_paths[i], frame_obstructed);
 
-			if (show)
+			if (ctx.show)
 			{
-				cvShowImage("image", imgs[i]);
+				cvShowImage("image", ctx.imgs[i]);
 				cvWaitKey(0);
 			}
 		}
 	}
 	else
 	{
-		for (i = 0; i < (int)img_count; i++)
+		for (i = 0; i < (int)ctx.img_count; i++)
 		{
 			match_success = 0;
 
 			printf("---------------------------------------------------\n");
-			printf("%s:\n", img_paths[i]);
+			printf("%s:\n", ctx.img_paths[i]);
 
-			if (preload)
+			if (ctx.preload)
 			{
-				img = imgs[i];
+				img = ctx.imgs[i];
 			}
 			else
 			{
-				if (!(img = cvLoadImage(img_paths[i], 1)))
+				if (!(img = cvLoadImage(ctx.img_paths[i], 1)))
 				{
-					fprintf(stderr, "Failed to load match image: %s\n", img_paths[i]);
+					fprintf(stderr, "Failed to load match image: %s\n", ctx.img_paths[i]);
 					goto fail;
 				}
 			}
@@ -327,12 +256,12 @@ int main(int argc, char **argv)
 
 			if ((match_res = matcher->match(matcher, img, &result, 0)) < 0)
 			{
-				fprintf(stderr, "Something went wrong when matching image: %s\n", img_paths[i]);
+				fprintf(stderr, "Something went wrong when matching image: %s\n", ctx.img_paths[i]);
 				catcierge_matcher_destroy(&matcher);
 				return -1;
 			}
 
-			match_success = (match_res >= match_threshold);
+			match_success = (match_res >= args.templ.match_threshold);
 
 			if (match_success)
 			{
@@ -346,7 +275,7 @@ int main(int argc, char **argv)
 				match_color = CV_RGB(255, 0, 0);
 			}
 
-			if (show || save)
+			if (ctx.show || ctx.save)
 			{
 				for (j = 0; j < (int)result.rect_count; j++)
 				{
@@ -357,13 +286,13 @@ int main(int argc, char **argv)
 					cvRectangleR(img, result.match_rects[j], match_color, 1, 8, 0);
 				}
 
-				if (show)
+				if (ctx.show)
 				{
 					cvShowImage("image", img);
 					cvWaitKey(0);
 				}
 
-				if (save)
+				if (ctx.save)
 				{
 					char out_file[PATH_MAX]; 
 					char tmp[PATH_MAX];
@@ -372,7 +301,7 @@ int main(int argc, char **argv)
 					char *start;
 
 					// Get the extension.
-					strncpy(tmp, img_paths[i], sizeof(tmp));
+					strncpy(tmp, ctx.img_paths[i], sizeof(tmp));
 					ext = strrchr(tmp, '.');
 					*ext = '\0';
 					ext++;
@@ -385,7 +314,7 @@ int main(int argc, char **argv)
 					filename++;
 
 					snprintf(out_file, sizeof(out_file) - 1, "%s/match_%s__%s.%s", 
-							output_path, match_success ? "ok" : "fail", filename, ext);
+							ctx.output_path, match_success ? "ok" : "fail", filename, ext);
 
 					printf("Saving image \"%s\"\n", out_file);
 
@@ -399,11 +328,14 @@ int main(int argc, char **argv)
 
 	end = clock();
 
-	if (!test_matchable)
+	if (!ctx.test_matchable)
 	{
-		printf("Note that this time isn't useful with --show\n");
+		if (ctx.show)
+		{
+			printf("Note that the duration is affected by using --show\n");
+		}
 		printf("%d of %d successful! (%f seconds)\n",
-			success_count, (int)img_count, (float)(end - start) / CLOCKS_PER_SEC);
+			success_count, (int)ctx.img_count, (float)(end - start) / CLOCKS_PER_SEC);
 	}
 
 fail:
