@@ -49,7 +49,7 @@ set(CATCIERGE_CONF_PATH "/etc/catcierge.cfg" CACHE STRING "The default location 
 
 # Turn on coverage if we're running coveralls!
 if (CATCIERGE_COVERALLS)
-	if (NOT "$ENV{TRAVIS}" STREQUAL "true")
+	if (NOT "$ENV{TRAVIS}" STREQUAL "true" AND CATCIERGE_COVERALLS_UPLOAD)
 		message(WARNING "CATCIERGE_COVERALLS turned on but not running on Travis-CI. Upload will fail! Set CATCIERGE_COVERALLS_UPLOAD=OFF to turn off this warning")
 	endif()
 
@@ -300,7 +300,7 @@ endif()
 add_library(catcierge ${LIB_SRC})
 target_link_libraries(catcierge ${LIBS})
 
-set(CATCIERGE_PROGRAMS catcierge_grabber2)
+set(CATCIERGE_PROGRAMS catcierge_grabber)
 
 if (WITH_TEST_PROGRAMS)
 	list(APPEND CATCIERGE_PROGRAMS
