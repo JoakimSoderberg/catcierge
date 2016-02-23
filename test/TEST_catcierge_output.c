@@ -9,7 +9,6 @@
 #include "catcierge_types.h"
 #include "catcierge_test_common.h"
 #include "catcierge_output.h"
-#include "catcierge_cargo.h"
 
 typedef struct output_test_s
 {

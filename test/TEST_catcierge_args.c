@@ -6,7 +6,6 @@
 #include "minunit.h"
 #include "catcierge_test_helpers.h"
 #include "catcierge_config.h"
-#include "catcierge_cargo.h"
 
 typedef char *(*test_func)();
 

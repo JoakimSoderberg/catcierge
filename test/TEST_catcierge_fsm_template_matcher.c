@@ -10,7 +10,6 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include "catcierge_test_common.h"
-#include "catcierge_cargo.h"
 
 // This tests the different lockout strategies.
 static char *run_lockout_tests(catcierge_grb_t *grb, int obstruct,

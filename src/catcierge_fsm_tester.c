@@ -29,7 +29,6 @@
 #include "test/catcierge_test_common.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
-#include "catcierge_cargo.h"
 
 #ifdef WITH_ZMQ
 #include <czmq.h>

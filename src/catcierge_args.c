@@ -16,1150 +16,671 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <catcierge_config.h>
+#include "alini.h"
+#include "catcierge_config.h"
+#include "cargo.h"
+#include "cargo_ini.h"
 #include "catcierge_args.h"
-
+#include "catcierge_output.h"
 #include "catcierge_log.h"
+
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"
 #endif // WITH_RFID
-#include "catcierge_util.h"
-#include "catcierge_output.h"
 
-#include "alini.h"
-#include "cargo.h"
-
-#include "catcierge_template_matcher.h"
-#include "catcierge_haar_matcher.h"
-#include "catcierge_strftime.h"
-
-
-#ifdef WITH_RFID
-int catcierge_create_rfid_allowed_list(catcierge_args_t *args, const char *allowed)
+static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 {
-	if (!(args->rfid_allowed = catcierge_parse_list(allowed, &args->rfid_allowed_count, 1)))
-	{
-		return -1;
-	}
+	int ret = 0;
 
-	return 0;
+	ret |= cargo_add_group(cargo, 0, "lockout", "Lockout settings", NULL);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<lockout> --lockout_method",
+			"Defines the method used to decide when to unlock:\n"
+			"[1: Only use the timer, don't care about clear frame.]\n"
+			"2: Wait for clear frame or that the timer has timed out.\n"
+			"3: Wait for clear frame and then start unlock timer.\n",
+			"i", &args->lockout_method);
+	ret |= cargo_add_validation(cargo, 0, 
+			"--lockout_method",
+			cargo_validate_int_range(1, 3));
+
+	ret |= cargo_add_option(cargo, 0,
+			"<lockout> --lockout",
+			NULL,
+			"i", &args->lockout_time);
+	ret |= cargo_set_option_description(cargo, "--lockout",
+			"The time in seconds a lockout takes. Default %d seconds.",
+			DEFAULT_LOCKOUT_TIME);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<lockout> --lockout_error",
+			"Number of lockouts in a row that's allowed before we "
+			"consider it an error and quit the program. "
+			"Default is to never do this.",
+			"i", &args->max_consecutive_lockout_count);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<lockout> --lockout_error_delay",
+			NULL,
+			"d", &args->consecutive_lockout_delay);
+	ret |= cargo_set_option_description(cargo, "--lockout_error_delay",
+			"The delay in seconds between lockouts that should be "
+			"counted as a consecutive lockout. Default %0.1f.",
+			DEFAULT_CONSECUTIVE_LOCKOUT_DELAY);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<lockout> --lockout_dummy",
+			"Do everything as normal, but don't actually "
+			"lock the door. This is useful for testing.",
+			"b", &args->lockout_dummy);
+
+	return ret;
 }
 
-void catcierge_free_rfid_allowed_list(catcierge_args_t *args)
+static int add_presentation_options(cargo_t cargo, catcierge_args_t *args)
 {
-	catcierge_free_list(args->rfid_allowed, args->rfid_allowed_count);
-	args->rfid_allowed_count = 0;
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, "pres", "Presentation settings", NULL);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<pres> --show",
+			"Show GUI of the camera feed (X11 only).",
+			"b", &args->show);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<pres> --highlight",
+			"Highlight the best match on saved images. "
+			"(Only ever use for debugging purposes, "
+			"since it writes on the original image)",
+			"b", &args->highlight_match);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<pres> --nocolor",
+			"Turn off all color output in the console.",
+			"b", &args->nocolor);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<pres> --noanim",
+			"Turn off animations in the console.",
+			"b", &args->noanim);
+
+	return ret;
+}
+
+static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
+{
+	//
+	// Adds options meant for the matcher algorithm chosen.
+	//
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, "matcher", "Matcher settings", NULL);
+
+	ret |= cargo_add_mutex_group(cargo,
+			CARGO_MUTEXGRP_ONE_REQUIRED,
+			"matcher_type", 
+			"Matcher type",
+			"The algorithm to use when matching for the cat profile image.");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!matcher_type, matcher> --template_matcher --template --templ",
+			"Template based matching algorithm.",
+			"b=", &args->matcher_type, MATCHER_TEMPLATE);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!matcher_type, matcher> --haar_matcher --haar",
+			"Haar feature based matching algorithm (recommended).",
+			"b=", &args->matcher_type, MATCHER_HAAR);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<matcher> --ok_matches_needed", NULL,
+			"i", &args->ok_matches_needed);
+	ret |= cargo_set_option_description(cargo,
+			"--ok_matches_needed",
+			"The number of matches out of %d matches "
+			"that need to be OK for the match to be considered "
+			"an over all OK match.", MATCH_MAX_COUNT);
+	ret |= cargo_add_validation(cargo, 0,
+			"--ok_matches_needed",
+			cargo_validate_int_range(0, MATCH_MAX_COUNT));
+
+	ret |= cargo_add_option(cargo, 0,
+			"<matcher> --no_final_decision",
+			"Normally after all matches in a match group has been made "
+			"the matcher algorithm gets to do a final decision based on "
+			"the entire group of matches which overrides the \"--ok_matches_needed\""
+			"setting. This flag turns this behavior off.",
+			"b", &args->no_final_decision);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<matcher> --matchtime", NULL,
+			"i", &args->match_time);
+
+	ret |= catcierge_haar_matcher_add_options(cargo, &args->haar);
+	ret |= catcierge_template_matcher_add_options(cargo, &args->templ);
+	return ret;
+}
+
+static int add_output_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, "output", "Output settings", 
+			"Note that all the *_path variables below can contain "
+			"variables of the format %%var%%.\n"
+			"See --cmdhelp for available variables.");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --save",
+			"Save match images (both ok and failed).",
+			"b", &args->saveimg);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --save_obstruct",
+			"Save the image that triggered the \"frame obstructed\" event.",
+			"b", &args->save_obstruct_img);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --save_steps",
+			"Save each step of the matching algorithm. "
+			"(--save must also be turned on)",
+			"b", &args->save_steps);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --input",
+			"Path to one or more template files generated on specified events. "
+			"(Not to be confused with the template matcher)",
+			"[s]+", &args->inputs, &args->input_count);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --output_path --output",
+			"Path to where the match images and generated templates "
+			"should be saved.",
+			"s", &args->output_path);
+	ret |= cargo_set_metavar(cargo, "--output_path", "PATH");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --match_output_path",
+			"Override --output_path for match images and save them here instead. "
+			"If --new_execute is used, this can be relative to --output_path "
+			"by using %%output_path%% in the path.",
+			"s", &args->match_output_path);
+	ret |= cargo_set_metavar(cargo, "--match_output_path", "PATH");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --steps_output_path",
+			"If --save_steps is enabled, save step images to this path. "
+			"Same as for --match_output_path, overrides --output_path.",
+			"s", &args->steps_output_path);
+	ret |= cargo_set_metavar(cargo, "--steps_output_path", "PATH");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --obstruct_output_path",
+			"Path for the obstruct images. Overrides --output_path.",
+			"s", &args->obstruct_output_path);
+	ret |= cargo_set_metavar(cargo, "--obstruct_output_path", "PATH");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --template_output_path",
+			"Output path for templates (given by --template). "
+			"Overrides --output_path.",
+			"s", &args->template_output_path);
+	ret |= cargo_set_metavar(cargo, "--template_output_path", "PATH");
+
+	#ifdef WITH_ZMQ
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --zmq",
+			"Publish generated output templates to a ZMQ socket. "
+			"If a template contains the setting 'nozmq' it will not be published.",
+			"b", &args->zmq);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --zmq_port",
+			NULL,
+			"i", &args->zmq_port);
+	ret |= cargo_set_option_description(cargo,
+			"--zmq_port",
+			"The TCP port that the ZMQ publisher listens on. Default %d",
+			DEFAULT_ZMQ_PORT);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --zmq_iface",
+			NULL,
+			"s", &args->zmq_iface);
+	ret |= cargo_set_option_description(cargo,
+			"--zmq_iface",
+			"The interface the ZMQ publisher listens on. Default %s",
+			DEFAULT_ZMQ_IFACE);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<output> --zmq_transport",
+			NULL,
+			"s", &args->zmq_transport);
+	ret |= cargo_set_option_description(cargo,
+			"--zmq_transport",
+			"The ZMQ transport to use. Default %s",
+			DEFAULT_ZMQ_TRANSPORT);
+
+	#endif // WITH_ZMQ
+
+	return ret;
+}
+
+#ifdef WITH_RFID
+int add_rfid_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, 
+			"rfid", "RFID settings", 
+			"Settings for using RFID tag readers from "
+			"http://www.priority1design.com.au/");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_in",
+			"Path to inner RFID reader. Example: /dev/ttyUSB0",
+			"s", &args->rfid_inner_path);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_out",
+			"Path to the outter RFID reader.",
+			"s", &args->rfid_outer_path);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_lock",
+			"Lock if no RFID tag present or invalid RFID tag. Default OFF.",
+			"b", &args->lock_on_invalid_rfid);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_time",
+			"Number of seconds to wait after a valid match before the "
+			"RFID readers are checked.\n"
+			"(This is so that there is enough time for the cat to be read "
+			"by both readers)",
+			"d", &args->rfid_lock_time);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<rfid> --rfid_allowed",
+			NULL,
+			"[s]+", &args->rfid_allowed, &args->rfid_allowed_count);
+	ret |= cargo_set_option_description(cargo,
+			"--rfid_allowed",
+			"A comma separated list of allowed RFID tags. Example: %s",
+			EXAMPLE_RFID_STR);
+
+	return ret;
 }
 #endif // WITH_RFID
 
-#if 0
-int catcierge_parse_setting(catcierge_args_t *args, const char *key, char **values, size_t value_count)
+static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 {
-	size_t i;
-	int ret;
-	assert(args);
-	assert(key);
+	int ret = 0;
 
-	if (!strcmp(key, "matcher"))
-	{
-		if (value_count == 1)
-		{
-			args->matcher = values[0];
-			if (strcmp(args->matcher, "template")
-				&& strcmp(args->matcher, "haar"))
-			{
-				fprintf(stderr, "Invalid matcher type for --matcher, \"%s\". Must be \"template\" or \"haar\"\n", args->matcher);
-				return -1;
-			}
+	ret |= cargo_add_group(cargo, 0, 
+			"cmd", "Command settings", 
+			"These are commands that will be executed when certain events "
+			"occur.\n"
+			"Variables can be passed to these commands such as:\n"
+			"  %%state%%, %%match_success%% and so on.\n"
+			"To see a list of variables use --cmdhelp");
 
-			args->matcher_type = !strcmp(args->matcher, "template")
-				? MATCHER_TEMPLATE : MATCHER_HAAR;
+	// We stop parsing when this option is hit,
+	// and we disable any errors on required variables.
+	ret |= cargo_add_option(cargo,
+			CARGO_OPT_STOP | CARGO_OPT_STOP_HARD,
+			"<cmd> --cmdhelp",
+			"Shows command output variable help.",
+			"b", &args->show_cmd_help);
 
-			return 0;
-		}
-		else
-		{
-			fprintf(stderr, "Missing value for --matcher\n");
-			return -1;
-		}
+	ret |= cargo_add_group(cargo, CARGO_GROUP_HIDE, 
+			"cmd_help", "Advanced command settings", 
+			"These are commands that will be executed when certain events "
+			"occur.\n"
+			"Variables can be passed to these commands such as:\n"
+			"  %%state%%, %%match_success%% and so on.\n"
+			"To see a list of variables use --cmdhelp");
 
-		return 0;
-	}
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --old_execute",
+			"Turn on the old execute support.",
+			"b=", &args->new_execute, 0);
 
-	ret = catcierge_haar_matcher_parse_args(&args->haar, key, values, value_count);
-	if (ret < 0) return -1;
-	else if (!ret) return 0;
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --new_execute",
+			"Use the new execute support (default on).",
+			"D");
 
-	ret = catcierge_template_matcher_parse_args(&args->templ, key, values, value_count);
-	if (ret < 0) return -1;
-	else if (!ret) return 0;
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --frame_obstructed_cmd",
+			"Command to run when the frame becomes obstructed "
+			"and a new match is initiated. (--save_obstruct must be on).",
+			"s", &args->frame_obstructed_cmd);
+	ret |= cargo_set_metavar(cargo, "--frame_obstructed_cmd", "CMD");
 
-	if (!strcmp(key, "show"))
-	{
-		args->show = 1;
-		if (value_count == 1) args->show = atoi(values[0]);
-		return 0;
-	}
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --match_cmd",
+			"Command to run after a match is made.",
+			"s", &args->match_cmd);
+	ret |= cargo_set_metavar(cargo, "--match_cmd", "CMD");
 
-	if (!strcmp(key, "ok_matches_needed"))
-	{
-		if (value_count == 1)
-		{
-			args->ok_matches_needed = atoi(values[0]);
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --save_img_cmd",
+			"Command to run at the moment a match image is saved.",
+			"s", &args->save_img_cmd);
+	ret |= cargo_set_metavar(cargo, "--save_img_cmd", "CMD");
 
-			if ((args->ok_matches_needed < 0)
-				|| (args->ok_matches_needed > MATCH_MAX_COUNT))
-			{
-				fprintf(stderr, "--ok_matches_needed must be between 0 and %d\n", MATCH_MAX_COUNT);
-				return -1;
-			}
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --match_group_done_cmd",
+			"Command that runs when all match images have been saved to disk.\n"
+			"(This is most likely what you want to use in most cases).",
+			"s", &args->match_group_done_cmd);
+	ret |= cargo_set_metavar(cargo, "--match_group_done_cmd", "CMD");
 
-			return 0;
-		}
-
-		fprintf(stderr, "--ok_matches_needed missing an integer value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "lockout_method"))
-	{
-		if (value_count == 1)
-		{
-			args->lockout_method = atoi(values[0]);
-
-			if ((args->lockout_method < TIMER_ONLY_1)
-			 || (args->lockout_method > OBSTRUCT_OR_TIMER_3))
-			{
-				fprintf(stderr, "--lockout_method needs a value between %d and %d\n",
-					TIMER_ONLY_1, OBSTRUCT_OR_TIMER_3);
-				return -1;
-			}
-
-			return 0;
-		}
-
-		fprintf(stderr, "--lockout_method missing an integer value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "save"))
-	{
-		args->saveimg = 1;
-		if (value_count == 1) args->saveimg = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "save_obstruct"))
-	{
-		args->save_obstruct_img = 1;
-		if (value_count == 1) args->save_obstruct_img = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "new_execute"))
-	{
-		args->new_execute = 1;
-		if (value_count == 1) args->new_execute = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "highlight"))
-	{
-		args->highlight_match = 1;
-		if (value_count == 1) args->highlight_match = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "lockout"))
-	{
-		args->lockout_time = DEFAULT_LOCKOUT_TIME;
-		if (value_count == 1) args->lockout_time = atoi(values[0]);
-
-		return 0;
-	}
-
-	if (!strcmp(key, "lockout_error_delay"))
-	{
-		if (value_count == 1)
-		{
-			args->consecutive_lockout_delay = atof(values[0]);
-			return 0;
-		}
-
-		fprintf(stderr, "--lockout_error_delay missing a seconds value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "lockout_error"))
-	{
-		if (value_count == 1)
-		{
-			args->max_consecutive_lockout_count = atoi(values[0]);
-			return 0;
-		}
-
-		fprintf(stderr, "--lockout_error missing a value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "lockout_dummy"))
-	{
-		args->lockout_dummy = 1;
-		if (value_count == 1) args->lockout_dummy = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "matchtime"))
-	{
-		args->match_time = DEFAULT_MATCH_WAIT;
-		if (value_count == 1) args->match_time = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "no_final_decision"))
-	{
-		args->no_final_decision = 1;
-		if (value_count == 1) args->no_final_decision = atoi(values[0]);
-		return 0;
-	}
-
-	#ifdef WITH_ZMQ
-	if (!strcmp(key, "zmq"))
-	{
-		args->zmq = 1;
-		if (value_count == 1) args->zmq = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "zmq_port"))
-	{
-		args->zmq_port = DEFAULT_ZMQ_PORT;
-
-		if (value_count < 1)
-		{
-			fprintf(stderr, "--zmq_port missing value\n");
-			return -1;
-		}
-
-		args->zmq_port = atoi(values[0]);
-
-		return 0;
-	}
-
-	if (!strcmp(key, "zmq_iface"))
-	{
-		if (value_count < 1)
-		{
-			fprintf(stderr, "--zmq_iface missing interface name\n");
-			return -1;
-		}
-
-		args->zmq_iface = values[0];
-
-		return 0;
-	}
-
-	if (!strcmp(key, "zmq_transport"))
-	{
-		if (value_count != 1)
-		{
-			fprintf(stderr, "--zmq_transport missing value\n");
-			return -1;
-		}
-
-		args->zmq_transport = values[0];
-
-		return 0;
-	}
-	#endif // WITH_ZMQ
-
-	if (!strcmp(key, "output") || !strcmp(key, "output_path"))
-	{
-		if (value_count == 1)
-		{
-			args->output_path = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--output_path missing path value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "match_output_path"))
-	{
-		if (value_count == 1)
-		{
-			args->match_output_path = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--match_output_path missing path value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "steps_output_path"))
-	{
-		if (value_count == 1)
-		{
-			args->steps_output_path = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--steps_output_path missing path value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "obstruct_output_path"))
-	{
-		if (value_count == 1)
-		{
-			args->obstruct_output_path = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--obstruct_output_path missing path value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "template_output_path"))
-	{
-		if (value_count == 1)
-		{
-			args->template_output_path = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--template_output_path missing path value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "input") || !strcmp(key, "template"))
-	{
-		if (value_count == 0)
-		{
-			fprintf(stderr, "--template missing value\n");
-			return -1;
-		}
-
-		for (i = 0; i < value_count; i++)
-		{
-			if (args->input_count >= MAX_INPUT_TEMPLATES)
-			{
-				fprintf(stderr, "Max template input reached %d\n", MAX_INPUT_TEMPLATES);
-				return -1;
-			}
-			args->inputs[args->input_count] = values[i];
-			args->input_count++;
-		}
-
-		return 0;
-	}
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --match_done_cmd",
+			"Command to run when a match is done.",
+			"s", &args->match_done_cmd);
+	ret |= cargo_set_metavar(cargo, "--match_done_cmd", "CMD");
 
 	#ifdef WITH_RFID
-	if (!strcmp(key, "rfid_in"))
-	{
-		if (value_count == 1)
-		{
-			args->rfid_inner_path = values[0];
-			return 0;
-		}
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --rfid_detect_cmd",
+			"Command to run when one of the RFID readers detects a tag.",
+			"s", &args->rfid_detect_cmd);
+	ret |= cargo_set_metavar(cargo, "--rfid_detect_cmd", "CMD");
 
-		fprintf(stderr, "--rfid_in missing path value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "rfid_out"))
-	{
-		if (value_count == 1)
-		{
-			args->rfid_outer_path = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--rfid_out missing path value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "rfid_allowed"))
-	{
-		if (value_count == 1)
-		{
-			if (catcierge_create_rfid_allowed_list(args, values[0]))
-			{
-				CATERR("Failed to create RFID allowed list\n");
-				return -1;
-			}
-
-			return 0;
-		}
-
-		fprintf(stderr, "--rfid_allowed missing comma separated list of values\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "rfid_time"))
-	{
-		if (value_count == 1)
-		{
-			args->rfid_lock_time = (double)atof(values[0]);
-			return 0;
-		}
-
-		fprintf(stderr, "--rfid_time missing seconds value (float)\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "rfid_lock"))
-	{
-		args->lock_on_invalid_rfid = 1;
-		if (value_count == 1) args->lock_on_invalid_rfid = atoi(values[0]);
-		return 0;
-	}
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --rfid_match_cmd",
+			"Command that is run when a RFID match is made.",
+			"s", &args->rfid_match_cmd);
+	ret |= cargo_set_metavar(cargo, "--rfid_match_cmd", "CMD");
 	#endif // WITH_RFID
 
-	if (!strcmp(key, "log"))
-	{
-		if (value_count == 1)
-		{
-			args->log_path = values[0];
-			return 0;
-		}
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --do_lockout_cmd",
+			"Command to run when the lockout should be performed. "
+			"This will override the normal lockout method.",
+			"s", &args->do_lockout_cmd);
+	ret |= cargo_set_metavar(cargo, "--do_lockout_cmd", "CMD");
 
-		fprintf(stderr, "--log missing path value\n");
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --do_unlock_cmd",
+			"Command that is run when we should unlock. "
+			"This will override the normal unlock method.",
+			"s", &args->do_unlock_cmd);
+	ret |= cargo_set_metavar(cargo, "--do_unlock_cmd", "CMD");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --state_change_cmd",
+			"Command to run when the state machine changes state.",
+			"s", &args->state_change_cmd);
+	ret |= cargo_set_metavar(cargo, "--state_change_cmd", "CMD");
+
+
+	return ret;
+}
+
+static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
+                        int argc, char **argv)
+{
+	CvRect *rect = (CvRect *)user;
+
+	if (argc != 4)
+	{
+		cargo_set_error(ctx, 0,
+			"Not enough arguments for %s, expected (x, y, width, height) "
+			"but only got %d values",
+			optname, argc);
 		return -1;
 	}
 
-	if (!strcmp(key, "match_cmd"))
-	{
-		if (value_count == 1)
-		{
-			args->match_cmd = values[0];
-			return 0;
-		}
+	*rect = cvRect(atoi(argv[0]), atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
 
-		fprintf(stderr, "--match_cmd missing value\n");
+	return argc;
+}
+
+// TODO: Add windows support.
+#ifndef _WIN32
+static int parse_base_time(cargo_t ctx, void *user, const char *optname,
+                      	   int argc, char **argv)
+{
+	struct tm base_time_tm;
+	time_t base_time_t;
+	struct timeval base_time_now;
+	catcierge_args_t *args = (catcierge_args_t *)user;
+
+	memset(&base_time_tm, 0, sizeof(base_time_tm));
+	memset(&base_time_now, 0, sizeof(base_time_now));
+
+	if (argc != 1)
+	{
+		cargo_set_error(ctx, 0, "%s expected 1 argument got %d", optname, argc);
 		return -1;
 	}
 
-	if (!strcmp(key, "save_img_cmd"))
-	{
-		if (value_count == 1)
-		{
-			args->save_img_cmd = values[0];
-			return 0;
-		}
+	catcierge_xfree(&args->base_time);
 
-		fprintf(stderr, "--save_img_cmd missing value\n");
-		return -1;
+	if (!(args->base_time = strdup(argv[0])))
+	{
+		goto fail;
 	}
 
-	if (!strcmp(key, "frame_obstructed_cmd"))
+	if (!strptime(args->base_time, "%Y-%m-%dT%H:%M:%S", &base_time_tm))
 	{
-		if (value_count == 1)
-		{
-			args->frame_obstructed_cmd = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--frame_obstructed_cmd missing value\n");
-		return -1;
+		goto fail;
 	}
 
-	if (!strcmp(key, "save_imgs_cmd") || !strcmp(key, "match_group_done_cmd"))
+	if ((base_time_t = mktime(&base_time_tm)) == -1)
 	{
-		if (value_count == 1)
-		{
-			args->match_group_done_cmd = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--match_group_done_cmd missing value\n");
-		return -1;
+		goto fail;
 	}
 
-	if (!strcmp(key, "match_done_cmd"))
-	{
-		if (value_count == 1)
-		{
-			args->match_done_cmd = values[0];
-			return 0;
-		}
+	gettimeofday(&base_time_now, NULL);
+	args->base_time_diff = base_time_now.tv_sec - base_time_t;
 
-		fprintf(stderr, "--match_done_cmd missing value\n");
-		return -1;
-	}
+	return 0;
 
-	if (!strcmp(key, "do_lockout_cmd"))
-	{
-		if (value_count == 1)
-		{
-			args->do_lockout_cmd = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--do_lockout_cmd missing value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "do_unlock_cmd"))
-	{
-		if (value_count == 1)
-		{
-			args->do_unlock_cmd = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--do_unlock cmd missing value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "state_change_cmd"))
-	{
-		if (value_count == 1)
-		{
-			args->state_change_cmd = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--state_change_cmd cmd missing value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "nocolor"))
-	{
-		args->nocolor = 1;
-		if (value_count == 1) args->nocolor = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "noanim"))
-	{
-		args->noanim = 1;
-		if (value_count == 1) args->noanim = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "save_steps"))
-	{
-		args->save_steps = 1;
-		if (value_count == 1) args->save_steps = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "chuid"))
-	{
-		if (value_count == 1)
-		{
-			args->chuid = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--chuid missing value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "roi"))
-	{
-		if (value_count == 4)
-		{
-			args->roi = cvRect(atoi(values[0]),
-								atoi(values[1]),
-								atoi(values[2]),
-								atoi(values[3]));
-			return 0;
-		}
-
-		fprintf(stderr, "--roi expecting 4 values (x, y, w, h) only got %lu\n", value_count);
-		return -1;
-	}
-
-	if (!strcmp(key, "auto_roi"))
-	{
-		args->auto_roi = 1;
-
-		if (value_count == 1)
-		{
-			args->auto_roi = atoi(values[0]);
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(key, "min_backlight"))
-	{
-		if (value_count == 1)
-		{
-			args->min_backlight = atoi(values[0]);
-			return 0;
-		}
-
-		fprintf(stderr, "--min_backlight missing value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "startup_delay"))
-	{
-		if (value_count == 1)
-		{
-			args->startup_delay = (double)atof(values[0]);
-			return 0;
-		}
-
-		fprintf(stderr, "--startup_delay missing value\n");
-		return -1;
-	}
-
-	#ifdef WITH_RFID
-	if (!strcmp(key, "rfid_detect_cmd"))
-	{
-		if (value_count == 1)
-		{
-			args->rfid_detect_cmd = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--rfid_detect_cmd missing value\n");
-		return -1;
-	}
-
-	if (!strcmp(key, "rfid_match_cmd"))
-	{
-		if (value_count == 1)
-		{
-			args->rfid_match_cmd = values[0];
-			return 0;
-		}
-
-		fprintf(stderr, "--rfid_match_cmd missing value\n");
-		return -1;
-	}
-	#endif // WITH_RFID
-
-	#ifndef _WIN32
-	// TODO: Support this on windows.
-	if (!strcmp(key, "base_time"))
-	{
-		if (value_count == 1)
-		{
-			struct tm base_time_tm;
-			time_t base_time_t;
-			struct timeval base_time_now;
-			long base_time_diff;
-
-			memset(&base_time_tm, 0, sizeof(base_time_tm));
-			memset(&base_time_now, 0, sizeof(base_time_now));
-
-			args->base_time = values[0];
-
-			if (!strptime(args->base_time, "%Y-%m-%dT%H:%M:%S", &base_time_tm))
-			{
-				goto fail_base_time;
-			}
-
-			if ((base_time_t = mktime(&base_time_tm)) == -1)
-			{
-				goto fail_base_time;
-			}
-
-			gettimeofday(&base_time_now, NULL);
-			base_time_diff = base_time_now.tv_sec - base_time_t;
-
-			catcierge_strftime_set_base_diff(base_time_diff);
-
-			return 0;
-
-		fail_base_time:
-			fprintf(stderr, "Failed to parse --base_time %s\n", values[0]);
-			return -1;
-		}
-
-		fprintf(stderr, "--base_time missing value\n");
-		return -1;
-	}
-	#endif // _WIN32
-
-	#ifdef RPI
-	if (!strncmp(key, "rpi-", 4))
-	{
-		int rpiret = 0;
-		const char *rpikey = key + strlen("rpi");
-
-		if (!raspicamcontrol_parse_cmdline(&args->rpi_settings.camera_parameters,
-			rpikey, (value_count == 1) ? values[0] : NULL))
-		{
-			return -1;
-		}
-		return 0;
-	}
-	#endif // RPI
-
+fail:
+	catcierge_xfree(&args->base_time);
+	cargo_set_error(ctx, 0,
+		"Failed to parse timestamp \"%s\" for %s, expected format: YYYY-mm-ddTHH:MM:SS",
+		argv[0], optname);
 	return -1;
 }
+#endif // _WIN32
 
-int catcierge_validate_settings(catcierge_args_t *args)
+static int add_options(cargo_t cargo, catcierge_args_t *args)
 {
-	if (!args->matcher)
-	{
-		fprintf(stderr, "--matcher not specified!\n");
-		return -1;
-	}
+	int ret = 0;
+	assert(args);
 
-	// TODO: Put this in the matcher code just as for parsing arguments.
-	if (args->matcher_type == MATCHER_HAAR)
-	{
-		if (!args->haar.cascade)
-		{
-			fprintf(stderr, "Missing --cascade for the haar matcher\n");
-			return -1;
-		}
-	}
+	args->new_execute = 1;
 
-	// TODO: Add more checks here.
-	return 0;
+	// If a config is specified, we stop parsing any other arguments.
+	// In this way we can use two parse passes. First one to read the
+	// config path, then read the config. And finally overwrite any settings
+	// from the config by re-parsing the command line.
+	ret |= cargo_add_option(cargo,
+			CARGO_OPT_UNIQUE | CARGO_OPT_STOP | CARGO_OPT_STOP_HARD,
+			"--config -c",
+			"Path to config file",
+			"s", &args->config_path);
+
+	ret |= cargo_add_option(cargo, 0,
+			"--chuid",
+			"Run the process under this user when dropping root privileges "
+			"which are needed for setting GPIO pins on the Raspberry Pi.",
+			"s", &args->chuid);
+
+	ret |= cargo_add_option(cargo, 0,
+			"--startup_delay",
+			"Number of seconds to wait after starting before starting "
+			"to capture anything. This is so that if you have a back light "
+			"that is turned on at startup, it has time to turn on, otherwise "
+			"the program will think something is obstructing the image and "
+			"start trying to match.",
+			"d", &args->startup_delay);
+
+	ret |= cargo_add_option(cargo, 0,
+			"--roi",
+			"Crop all input image to this region of interest.",
+			"[c]#", parse_CvRect, &args->roi, NULL, 4);
+	ret |= cargo_set_metavar(cargo,
+			"--roi",
+			"X Y WIDTH HEIGHT");
+
+	ret |= cargo_add_option(cargo, 0,
+			"--auto_roi",
+			"Automatically crop to the area covered by the backlight. "
+			"This will be done after --startup_delay has ended. "
+			"Overrides --roi.",
+			"b", &args->auto_roi);
+
+	ret |= cargo_add_option(cargo, 0,
+			"--min_backlight",
+			"If --auto_roi is on, this sets the minimum allowed area the "
+			"backlight is allowed to be before it is considered broken. "
+			"If it is smaller than this, the program will exit. Default 10000.",
+			"i", &args->min_backlight);
+
+	// Meant for the fsm_tester
+	#ifndef _WIN32
+	ret |= cargo_add_option(cargo, 0,
+			"--base_time",
+			"The base date time we should use instead of the current time. "
+			"Only meant to be used when testing the code to have a repeatable "
+			"time for replaying events.",
+			"c", parse_base_time, args);
+	#endif // _WIN32
+
+	#ifdef RPI
+	ret |= cargo_add_option(cargo,
+			CARGO_OPT_STOP | CARGO_OPT_STOP_HARD,
+			"--camhelp",
+			"Show extra raspberry pi camera help",
+			"b", &args->show_camhelp);
+	#endif // RPI
+
+	ret |= add_matcher_options(cargo, args);
+	ret |= add_lockout_options(cargo, args);
+	ret |= add_presentation_options(cargo, args);
+	ret |= add_output_options(cargo, args);
+	#ifdef WITH_RFID
+	ret |= add_rfid_options(cargo, args);
+	#endif
+	ret |= add_command_options(cargo, args);
+
+	return ret;
 }
 
-int temp_config_count = 0;
-#define MAX_TEMP_CONFIG_VALUES 128
-char *temp_config_values[MAX_TEMP_CONFIG_VALUES];
-
-static void alini_cb(alini_parser_t *parser, char *section, char *key, char *value)
+static void print_cmd_help(cargo_t cargo, catcierge_args_t *args)
 {
-	char *value_cpy = NULL;
-	catcierge_args_t *args = (catcierge_args_t *)alini_parser_get_context(parser);
-
-	// We must make a copy of the string and keep it so that
-	// it won't dissapear after the parser has done its thing.
-	if (temp_config_count >= MAX_TEMP_CONFIG_VALUES)
-	{
-		fprintf(stderr, "Max %d config file values allowed.\n", MAX_TEMP_CONFIG_VALUES);
-		return;
-	}
-
-	if (!(value_cpy = strdup(value)))
-	{
-		fprintf(stderr, "Out of memory\n");
-		exit(1);
-	}
-
-	temp_config_values[temp_config_count] = value_cpy;
-
-	if (catcierge_parse_setting(args, key, &temp_config_values[temp_config_count], 1) < 0)
-	{
-		fprintf(stderr, "Failed to parse setting in config: \"%s\"\n", key);
-		args->config_failure = -1;
-	}
-
-	temp_config_count++;
+	cargo_print_usage(cargo, 0);
+	catcierge_output_print_usage();
+	printf("\n");
+	catcierge_template_output_print_usage();
+	printf("\n");
+	catcierge_haar_output_print_usage();
 }
 
-static void catcierge_config_free_temp_strings(catcierge_args_t *args)
+static void print_line(FILE *fd, int length, const char *s)
 {
 	int i;
-
-	for (i = 0; i < args->temp_config_count; i++)
-	{
-		free(args->temp_config_values[i]);
-		args->temp_config_values[i] = NULL;
-	}
-}
-
-void catcierge_show_usage(catcierge_args_t *args, const char *prog)
-{
-	fprintf(stderr, "Usage: %s [options]\n\n", prog);
-	fprintf(stderr, " --config <path>        Path to config file. Default is ./catcierge.cfg\n");
-	fprintf(stderr, "                        or /etc/catcierge.cfg\n");
-	fprintf(stderr, "                        This is parsed as an INI file. The keys/values are\n");
-	fprintf(stderr, "                        the same as these options.\n");
-	fprintf(stderr, " --chuid <uid>          Run process under this uid.\n");
-	fprintf(stderr, " --startup_delay <n>    Number of seconds to wait after starting before starting\n");
-	fprintf(stderr, "                        to capture anything. This is so that if you have a back light\n");
-	fprintf(stderr, "                        that is turned on at startup, it has time to turn on, otherwise\n");
-	fprintf(stderr, "                        the program will think something is obstructing the image and start\n");
-	fprintf(stderr, "                        trying to match.\n");
-	fprintf(stderr, " --roi <x y w h>        Crop all input image to this region of interest.\n");
-	fprintf(stderr, " --auto_roi             Automatically crop to the area covered by the backlight.\n");
-	fprintf(stderr, "                        This will be done after --startup_delay has ended.\n");
-	fprintf(stderr, "                        This will override --roi.\n");
-	fprintf(stderr, " --min_backlight        If --auto_roi is on, this sets the minimum allowed area the\n");
-	fprintf(stderr, "                        backlight is allowed to be before it is considered broken.\n");
-	fprintf(stderr, "                        If it is smaller than this, the program will exit. Default 10000\n");
-	fprintf(stderr, "Lockout settings:\n");
-	fprintf(stderr, "-----------------\n");
-	fprintf(stderr, " --lockout_method <1|2|3>\n");
-	fprintf(stderr, "                        Defines the method used to decide when to unlock:\n");
-	fprintf(stderr, "                        [1: Only use the timer, don't care about clear frame.]\n");
-	fprintf(stderr, "                         2: Wait for clear frame or that the timer has timed out.\n");
-	fprintf(stderr, "                         3: Wait for clear frame and then start unlock timer.\n");
-	fprintf(stderr, " --lockout <seconds>    The time in seconds a lockout takes. Default %d seconds.\n", DEFAULT_LOCKOUT_TIME);
-	fprintf(stderr, " --lockout_error <n>    Number of lockouts in a row that's allowed before we\n");
-	fprintf(stderr, "                        consider it an error and quit the program. \n");
-	fprintf(stderr, "                        Default is to never do this.\n");
-	fprintf(stderr, " --lockout_error_delay <seconds>\n");
-	fprintf(stderr, "                        The delay in seconds between lockouts that should be\n");
-	fprintf(stderr, "                        counted as a consecutive lockout. Default %0.1f\n", DEFAULT_CONSECUTIVE_LOCKOUT_DELAY);
-	fprintf(stderr, " --lockout_dummy        Do everything as normal, but don't actually\n");
-	fprintf(stderr, "                        lock the door. This is useful for testing.\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Presentation settings:\n");
-	fprintf(stderr, "----------------------\n");
-	fprintf(stderr, " --show                 Show GUI of the camera feed (X11 only).\n");
-	fprintf(stderr, " --highlight            Highlight the best match on saved images.\n");
-	fprintf(stderr, " --nocolor              Turn off all color output.\n");
-	fprintf(stderr, " --noanim               Turn off any animation.\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Output settings:\n");
-	fprintf(stderr, "----------------\n");
-	fprintf(stderr, " --save                 Save match images (both ok and failed).\n");
-	fprintf(stderr, " --save_obstruct        Save the image that triggered the \"frame obstructed\" event.\n");
-	fprintf(stderr, " --save_steps           Save each step of the matching algorithm.\n");
-	fprintf(stderr, "                        (--save must also be turned on)\n");
-	fprintf(stderr, " --template <path>      Path to one or more template files generated on specified events.\n");
-	fprintf(stderr, "                        (Not to be confused with the template matcher)\n");
-	fprintf(stderr, " --output_path <path>   Path to where the match images and generated templates should be saved.\n");
-	fprintf(stderr, "                        Note that this path can contain variables of the format %%var%%\n");
-	fprintf(stderr, "                        when --new_execute is used. See --cmdhelp for available variables.\n");
-	fprintf(stderr, "   --match_output_path <path>\n");
-	fprintf(stderr, "                        Override --output_path for match images and save them here instead.\n");
-	fprintf(stderr, "                        If --new_execute is used, this can be relative to --output_path\n");
-	fprintf(stderr, "                        by using %%output_path%% in the path.\n");
-	fprintf(stderr, "   --steps_output_path <path>\n");
-	fprintf(stderr, "                        If --save_steps is enabled, save step images to this path.\n");
-	fprintf(stderr, "                        Same as for --match_output_path, overrides --output_path.\n");
-	fprintf(stderr, "   --obstruct_output_path <path>\n");
-	fprintf(stderr, "                        Path for the obstruct images. Overrides --output_path.\n");
-	fprintf(stderr, "   --template_output_path <path>\n");
-	fprintf(stderr, "                        Output path for templates. Overrides --output_path.\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, " --log <path>           Log matches and rfid readings (if enabled).\n");
-	#ifdef WITH_ZMQ
-	fprintf(stderr, " --zmq                  Publish generated output templates to a ZMQ socket.\n");
-	fprintf(stderr, "                        If a template contains the setting 'nozmq' it will not be published.\n");
-	fprintf(stderr, " --zmq_port             The TCP port that the ZMQ publisher listens on. Default %d\n", DEFAULT_ZMQ_PORT);
-	fprintf(stderr, " --zmq_iface            The interface the ZMQ publisher listens on. Default %s\n", DEFAULT_ZMQ_IFACE);
-	#endif // WITH_ZMQ
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Matcher settings:\n");
-	fprintf(stderr, "-----------------\n");
-	fprintf(stderr, " --ok_matches_needed <number>\n");
-	fprintf(stderr, "                        The number of matches out of %d matches\n", MATCH_MAX_COUNT);
-	fprintf(stderr, "                        that need to be OK for the match to be considered\n");
-	fprintf(stderr, "                        an over all OK match.\n");
-	fprintf(stderr, " --matchtime <seconds>  The time to wait after a match. Default %d seconds.\n", DEFAULT_MATCH_WAIT);
-	fprintf(stderr, " --matcher <template|haar>\n");
-	fprintf(stderr, "                        The type of matcher to use. Haar cascade is more\n");
-	fprintf(stderr, "                        accurate if a well trained cascade exists for your cat.\n");
-	fprintf(stderr, "                        Template matcher is simpler, but doesn't require a trained cascade\n");
-	fprintf(stderr, "                        this is useful while gathering enough data to train the cascade.\n");
-	fprintf(stderr, " --no_final_decision    Normally after all matches in a match group has been made\n");
-	fprintf(stderr, "                        the matcher algorithm gets to do a final decision based on\n");
-	fprintf(stderr, "                        the entire group of matches which overrides the \"--ok_matches_needed\"\n");
-	fprintf(stderr, "                        setting. This flag turns this behavior off.\n");
-	fprintf(stderr, "Haar cascade matcher:\n");
-	fprintf(stderr, "---------------------\n");
-	catcierge_haar_matcher_usage();
-	fprintf(stderr, "Template matcher:\n");
-	fprintf(stderr, "-----------------\n");
-	fprintf(stderr, "\nThe snout image refers to the image of the cat snout that is matched against.\n");
-	fprintf(stderr, "This image should be based on a 320x240 resolution image taken by the rpi camera.\n");
-	fprintf(stderr, "If no path is specified \"snout.png\" in the current directory is used.\n");
-	fprintf(stderr, "\n");
-	catcierge_template_matcher_usage();
-	#ifdef WITH_RFID
-	fprintf(stderr, "\n");
-	fprintf(stderr, "RFID settings:\n");
-	fprintf(stderr, "-----\n");
-	fprintf(stderr, " --rfid_in <path>       Path to inner RFID reader. Example: /dev/ttyUSB0\n");
-	fprintf(stderr, " --rfid_out <path>      Path to the outter RFID reader.\n");
-	fprintf(stderr, " --rfid_lock            Lock if no RFID tag present or invalid RFID tag. Default OFF.\n");
-	fprintf(stderr, " --rfid_time <seconds>  Number of seconds to wait after a valid match before the\n");
-	fprintf(stderr, "                        RFID readers are checked.\n");
-	fprintf(stderr, "                        (This is so that there is enough time for the cat to be read by both readers)\n");
-	fprintf(stderr, " --rfid_allowed <list>  A comma separated list of allowed RFID tags. Example: %s\n", EXAMPLE_RFID_STR);
-	#endif // WITH_RFID
-	fprintf(stderr, "\n");
-	#define EPRINT_CMD_HELP(fmt, ...) if (args->show_cmd_help) fprintf(stderr, fmt, ##__VA_ARGS__);
-	fprintf(stderr, "Commands (new):\n");
-	fprintf(stderr, "---------------\n");
-	fprintf(stderr, "This is enabled using --new_execute. %%0, %%1... are deprecated, instead variable names are used.\n");
-	fprintf(stderr, "For example: %%state%%, %%match_success%% and so on.\n");
-	fprintf(stderr, "See --cmdhelp for a list of variables. Otherwise this uses the same\n");
-	fprintf(stderr, "command line arguments as the old commands section below.\n");
-	if (args->show_cmd_help) catcierge_output_print_usage();
-	if (args->show_cmd_help) catcierge_template_output_print_usage();
-	if (args->show_cmd_help) catcierge_haar_output_print_usage();	
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Commands (old):\n");
-	fprintf(stderr, "---------------\n");
-	fprintf(stderr, "(Note that %%0, %%1, ... will be replaced in the input, see --cmdhelp for details)\n");
-	EPRINT_CMD_HELP("\n");
-	EPRINT_CMD_HELP("   General: %%cwd will output the current working directory for this program.\n");
-	EPRINT_CMD_HELP("            Any paths returned are relative to this.\n");
-	EPRINT_CMD_HELP("            %%%% Produces a literal %% sign.\n");
-	EPRINT_CMD_HELP("\n");
-	fprintf(stderr, " --frame_obstructed_cmd <cmd>\n");
-	EPRINT_CMD_HELP("                        Command to run when the frame becomes obstructed\n");
-	EPRINT_CMD_HELP("                        and a new match is initiated. (--save_obstruct must be on).\n");
-	EPRINT_CMD_HELP("                         %%0 = [path]  Path to the image that obstructed the frame.\n");
-	fprintf(stderr, " --match_cmd <cmd>      Command to run after a match is made.\n");
-	EPRINT_CMD_HELP("                         %%0 = [float] Match result.\n");
-	EPRINT_CMD_HELP("                         %%1 = [0/1]   Success or failure.\n");
-	EPRINT_CMD_HELP("                         %%2 = [path]  Path to where image will be saved\n");
-	EPRINT_CMD_HELP("                                       (Not saved yet!)\n");
-	EPRINT_CMD_HELP("\n");
-	fprintf(stderr, " --save_img_cmd <cmd>   Command to run at the moment a match image is saved.\n");
-	EPRINT_CMD_HELP("                         %%0 = [float]  Match result, 0.0-1.0\n");
-	EPRINT_CMD_HELP("                         %%1 = [0/1]    Match success.\n");
-	EPRINT_CMD_HELP("                         %%2 = [string] Image path (Image is saved to disk).\n");
-	EPRINT_CMD_HELP("\n");
-	fprintf(stderr, " --match_group_done_cmd <cmd>  Command that runs when all match images have been saved\n");
-	fprintf(stderr, "                        to disk.\n");
-	fprintf(stderr, "                        (This is most likely what you want to use in most cases)\n");
-	EPRINT_CMD_HELP("                         %%0 = [0/1]    Match success.\n");
-	EPRINT_CMD_HELP("                         %%1 = [string] Image path for first match.\n");
-	EPRINT_CMD_HELP("                         %%2 = [string] Image path for second match.\n");
-	EPRINT_CMD_HELP("                         %%3 = [string] Image path for third match.\n");
-	EPRINT_CMD_HELP("                         %%4 = [string] Image path for fourth match.\n");
-	EPRINT_CMD_HELP("                         %%5 = [float]  First image result.\n");
-	EPRINT_CMD_HELP("                         %%6 = [float]  Second image result.\n");
-	EPRINT_CMD_HELP("                         %%7 = [float]  Third image result.\n");
-	EPRINT_CMD_HELP("                         %%8 = [float]  Fourth image result.\n");
-	EPRINT_CMD_HELP("\n");
-	fprintf(stderr, " --match_done_cmd <cmd> Command to run when a match is done.\n");
-	EPRINT_CMD_HELP("                         %%0 = [0/1]    Match success.\n");
-	EPRINT_CMD_HELP("                         %%1 = [int]    Successful match count.\n");
-	EPRINT_CMD_HELP("                         %%2 = [int]    Max matches.\n");
-	EPRINT_CMD_HELP("\n");
-	#ifdef WITH_RFID
-	fprintf(stderr, " --rfid_detect_cmd <cmd> Command to run when one of the RFID readers detects a tag.\n");
-	EPRINT_CMD_HELP("                         %%0 = [string] RFID reader name.\n");
-	EPRINT_CMD_HELP("                         %%1 = [string] RFID path.\n");
-	EPRINT_CMD_HELP("                         %%2 = [0/1]    Is allowed.\n");
-	EPRINT_CMD_HELP("                         %%3 = [0/1]    Is data incomplete.\n");
-	EPRINT_CMD_HELP("                         %%4 = [string] Tag data.\n");
-	EPRINT_CMD_HELP("                         %%5 = [0/1]    Other reader triggered.\n");
-	EPRINT_CMD_HELP("                         %%6 = [string] Direction (in, out or uknown).\n");
-	EPRINT_CMD_HELP("\n");
-	fprintf(stderr, " --rfid_match_cmd <cmd> Command that is run when a RFID match is made.\n");
-	EPRINT_CMD_HELP("                         %%0 = Match success.\n");
-	EPRINT_CMD_HELP("                         %%1 = RFID inner in use.\n");
-	EPRINT_CMD_HELP("                         %%2 = RFID outer in use.\n");
-	EPRINT_CMD_HELP("                         %%3 = RFID inner success.\n");
-	EPRINT_CMD_HELP("                         %%4 = RFID outer success.\n");
-	EPRINT_CMD_HELP("                         %%5 = RFID inner data.\n");
-	EPRINT_CMD_HELP("                         %%6 = RFID outer data.\n");
-	EPRINT_CMD_HELP("\n");
-	fprintf(stderr, " --do_lockout_cmd <cmd> Command to run when the lockout should be performed.\n");
-	fprintf(stderr, "                        This will override the normal lockout method.\n");
-	fprintf(stderr, " --do_unlock_cmd <cmd>  Command that is run when we should unlock.\n");
-	fprintf(stderr, "                        This will override the normal unlock method.\n");
-	fprintf(stderr, " --state_change_cmd <cmd>\n");
-	fprintf(stderr, "                        Command to run when the state machine changes state.\n");
-	fprintf(stderr, "                         %%0 = Previous state.\n");
-	fprintf(stderr, "                         %%1 = New state.\n");
-	fprintf(stderr, "\n");
-	#endif // WITH_RFID
-	fprintf(stderr, " --help                 Show this help.\n");
-	fprintf(stderr, " --cmdhelp              Show extra command help.\n");
-	#ifdef RPI
-	fprintf(stderr, " --camhelp              Show extra Raspberry pi camera settings help.\n");
-	fprintf(stderr, "                        Note that all these settings must be prepended\n");
-	fprintf(stderr, "                        with \"rpi-\"\n");
-	#endif
-	#ifndef _WIN32
-	fprintf(stderr, "Signals:\n");
-	fprintf(stderr, "The program can receive signals that can be sent using the kill command.\n");
-	fprintf(stderr, " SIGUSR1 = Force the cat door to unlock\n");
-	fprintf(stderr, " SIGUSR2 = Force the cat door to lock (for lock timeout)\n");
-	fprintf(stderr, "\n");
-	#endif // _WIN32
+	for (i = 0; i < length; i++)
+		fputc(*s, fd);
+	fprintf(fd, "\n");
 }
 
 #ifdef RPI
-static void catcierge_show_cam_help()
+static void print_cam_help(cargo_t cargo)
 {
-	fprintf(stderr, "--------------------------------------------------------------------------------\n");
+	int console_width = cargo_get_width(cargo, 0) - 1;
+	print_line(stderr, console_width, "-");
 	fprintf(stderr, "Raspberry Pi camera settings:\n");
-	fprintf(stderr, "--------------------------------------------------------------------------------\n");
+	fprintf(stderr, "(Prepend these with --rpi. Example: --rpi--saturation or --rpi-sa)\n");
+	print_line(stderr, console_width, "-");
 	raspicamcontrol_display_help();
-	fprintf(stderr, "--------------------------------------------------------------------------------\n");
+	print_line(stderr, console_width, "-");
 	fprintf(stderr, "\nNote! To use the above command line parameters\n");
 	fprintf(stderr, "you must prepend them with \"rpi-\".\n");
 	fprintf(stderr, "For example --rpi-ISO\n");
-	fprintf(stderr, "--------------------------------------------------------------------------------\n");
+	print_line(stderr, console_width, "-");
+}
+
+static char **parse_rpi_args(int *argc, char **argv, catcierge_args_t *args)
+{
+	int i;
+	int j;
+	int rpi_count = 0;
+	char **nargv;
+	int nargc = 0;
+	int used = 0;
+	assert(argc);
+	assert(argv);
+	assert(args);
+
+	if (!(nargv = calloc(*argc, sizeof(char *))))
+	{
+		return NULL;
+	}
+
+	for (i = 0, j = 0; i < *argc; i++)
+	{
+		if (!strncmp(argv[i], "--rpi-", sizeof("--rpi-") - 1))
+		{
+			int rpiret = 0;
+			char *next_arg = NULL;
+			const char *rpikey = argv[i] + sizeof("--rpi") - 1;
+
+			if ((i + 1) < *argc)
+			{
+				next_arg = argv[i + 1];
+
+				if (*next_arg == '-')
+				{
+					next_arg = NULL;
+					i++;
+				}
+			}
+
+			if ((used = raspicamcontrol_parse_cmdline(
+				&args->rpi_settings.camera_parameters,
+				rpikey, next_arg)) == 0)
+			{
+				fprintf(stderr, "Error parsing rpi-cam option:\n  %s\n", rpikey);
+				goto fail;
+			}
+
+			rpi_count += used;
+		}
+		else
+		{
+			nargv[j++] = strdup(argv[i]);
+		}
+	}
+
+	*argc -= rpi_count;
+
+	return nargv;
+fail:
+	if (nargv)
+	{
+		cargo_free_commandline(&nargv, nargc);
+	}
+
+	return NULL;
 }
 #endif // RPI
 
-int catcierge_parse_cmdargs(catcierge_args_t *args, int argc, char **argv, catcierge_parse_args_cb cb, void *user)
-{
-	int ret = 0;
-	int i;
-	char *key = NULL;
-	char **values = (char **)calloc(argc, sizeof(char *));
-	size_t value_count = 0;
-
-	args->program_name = argv[0];
-
-	if (!values)
-	{
-		fprintf(stderr, "Out of memory!\n");
-		return -1;
-	}
-
-	for (i = 1; i < argc; i++)
-	{
-		// These are command line specific.
-		if (!strcmp(argv[i], "--cmdhelp"))
-		{
-			args->show_cmd_help = 1;
-			catcierge_show_usage(args, argv[0]);
-			if (cb) cb(args, &argv[i][2], NULL, 0, user);
-			exit(1);
-		}
-
-		#ifdef RPI
-		if (!strcmp(argv[i], "--camhelp"))
-		{
-			catcierge_show_cam_help();
-			if (cb) cb(args, &argv[i][2], NULL, 0, user);
-			exit(1);
-		}
-		#endif // RPI
-
-		if (!strcmp(argv[i], "--help"))
-		{
-			catcierge_show_usage(args, argv[0]);
-			if (cb) cb(args, &argv[i][2], NULL, 0, user);
-			exit(1);
-		}
-
-		if (!strcmp(argv[i], "--config"))
-		{
-			// This isn't handled here, but don't treat it as an error.
-			// (This is parsed in catcierge_parse_config).
-			continue;
-		}
-
-		// Normal options. These can be parsed from the
-		// config file as well.
-		if (!strncmp(argv[i], "--", 2))
-		{
-			int j = i + 1;
-			key = &argv[i][2];
-			memset(values, 0, value_count * sizeof(char *));
-			value_count = 0;
-
-			// Look for values for the option.
-			// Continue fetching values until we get another option
-			// or there are no more options.
-			while ((j < argc) && strncmp(argv[j], "--", 2))
-			{
-				values[value_count] = argv[j];
-				value_count++;
-				i++;
-				j = i + 1;
-			}
-
-			if ((ret = catcierge_parse_setting(args, key, values, value_count)) < 0)
-			{
-				if (cb)
-				{
-					if (!cb(args, key, values, value_count, user))
-					{
-						continue;
-					}
-				}
-
-				fprintf(stderr, "Failed to parse command line arguments for \"%s\"\n", key);
-
-				if (values)
-					free(values);
-
-				return ret;
-			}
-		}
-	}
-
-	free(values);
-
-	return 0;
-}
-
-int catcierge_parse_config(catcierge_args_t *args, int argc, char **argv)
-{
-	int i;
-	int cfg_err = 0;
-	assert(args);
-
-	// If the user has supplied us with a config use that.
-	for (i = 1; i < argc; i++)
-	{
-		if (!strcmp(argv[i], "--config"))
-		{
-			if (argc >= (i + 1))
-			{
-				i++;
-				args->config_path = argv[i];
-				continue;
-			}
-			else
-			{
-				fprintf(stderr, "No config path specified\n");
-				return -1;
-			}
-		}
-	}
-
-	if (args->config_path)
-	{
-		printf("Using config: %s\n", args->config_path);
-
-		if ((cfg_err = alini_parser_create(&args->parser, args->config_path)) < 0)
-		{
-			fprintf(stderr, "Failed to load config %s\n", args->config_path);
-			return -1;
-		}
-	}
-	else
-	{
-		// Use default.
-		if ((cfg_err = alini_parser_create(&args->parser, "catcierge.cfg")) < 0)
-		{
-			cfg_err = alini_parser_create(&args->parser, "/etc/catcierge.cfg");
-		}
-	}
-
-	if (!cfg_err)
-	{
-		alini_parser_setcallback_foundkvpair(args->parser, alini_cb);
-		alini_parser_set_context(args->parser, args);
-		alini_parser_start(args->parser);
-
-		if (args->config_failure)
-		{
-			return -1;
-		}
-	}
-	else
-	{
-		fprintf(stderr, "No config file found\n");
-	}
-
-	return 0;
-}
-#endif
-
-#if 0
-int catcierge_args_init(catcierge_args_t *args)
+void catcierge_args_init_vars(catcierge_args_t *args)
 {
 	memset(args, 0, sizeof(catcierge_args_t));
 
 	catcierge_template_matcher_args_init(&args->templ);
 	catcierge_haar_matcher_args_init(&args->haar);
+	args->config_path = strdup(CATCIERGE_CONF_PATH);
 	args->saveimg = 1;
 	args->save_obstruct_img = 0;
 	args->match_time = DEFAULT_MATCH_WAIT;
@@ -1167,7 +688,7 @@ int catcierge_args_init(catcierge_args_t *args)
 	args->lockout_time = DEFAULT_LOCKOUT_TIME;
 	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
 	args->ok_matches_needed = DEFAULT_OK_MATCHES_NEEDED;
-	args->output_path = ".";
+	args->output_path = strdup(".");
 	args->min_backlight = 10000;
 
 	#ifdef RPI
@@ -1185,27 +706,275 @@ int catcierge_args_init(catcierge_args_t *args)
 
 	#ifdef WITH_ZMQ
 	args->zmq_port = DEFAULT_ZMQ_PORT;
-	args->zmq_iface = DEFAULT_ZMQ_IFACE;
-	args->zmq_transport = DEFAULT_ZMQ_TRANSPORT;
+	args->zmq_iface = strdup(DEFAULT_ZMQ_IFACE);
+	args->zmq_transport = strdup(DEFAULT_ZMQ_TRANSPORT);
 	#endif
+}
+
+void catcierge_args_destroy_vars(catcierge_args_t *args)
+{
+	size_t i;
+
+	catcierge_xfree(&args->program_name);
+
+	catcierge_xfree(&args->output_path);
+	catcierge_xfree(&args->match_output_path);
+	catcierge_xfree(&args->steps_output_path);
+	catcierge_xfree(&args->obstruct_output_path);
+	catcierge_xfree(&args->template_output_path);
+
+	#ifdef WITH_ZMQ
+	catcierge_xfree(&args->zmq_iface);
+	catcierge_xfree(&args->zmq_transport);
+	#endif
+
+	for (i = 0; i < args->input_count; i++)
+	{
+		catcierge_xfree(&args->inputs[i]);
+	}
+
+	args->input_count = 0;
+	catcierge_xfree(&args->inputs);
+
+	catcierge_xfree(&args->log_path);
+	catcierge_xfree(&args->match_cmd);
+	catcierge_xfree(&args->save_img_cmd);
+	catcierge_xfree(&args->match_group_done_cmd);
+	catcierge_xfree(&args->match_done_cmd);
+	catcierge_xfree(&args->do_lockout_cmd);
+	catcierge_xfree(&args->do_unlock_cmd);
+	catcierge_xfree(&args->frame_obstructed_cmd);
+	catcierge_xfree(&args->state_change_cmd);
+	catcierge_xfree(&args->config_path);
+	catcierge_xfree(&args->chuid);
+
+	for (i = 0; i < args->temp_config_count; i++)
+	{
+		catcierge_xfree(&args->temp_config_values[i]);
+	}
+
+	catcierge_xfree(&args->temp_config_values);
+	args->temp_config_count = 0;
+
+	catcierge_xfree(&args->base_time);
+
+	#ifdef WITH_RFID
+	catcierge_xfree(&args->rfid_detect_cmd);
+	catcierge_xfree(&args->rfid_match_cmd);
+	catcierge_xfree(&args->rfid_inner_path);
+	catcierge_xfree(&args->rfid_outer_path);
+
+	for (i = 0; i < args->rfid_allowed_count; i++)
+	{
+		catcierge_xfree(&args->rfid_allowed[i]);
+	}
+
+	catcierge_xfree(&args->rfid_allowed);
+	args->rfid_allowed_count = 0;
+	#endif // WITH_RFID
+
+	catcierge_haar_matcher_args_destroy(&args->haar);
+	catcierge_template_matcher_args_destroy(&args->templ);
+}
+
+int catcierge_args_init(catcierge_args_t *args, const char *progname)
+{
+	int ret = 0;
+	assert(args);
+
+	catcierge_args_init_vars(args);
+
+	if (cargo_init(&args->cargo, 0, "%s", progname))
+	{
+		CATERR("Failed to init command line parsing\n");
+		return -1;
+	}
+
+	cargo_set_description(args->cargo,
+		"Catcierge saves you from cleaning the floor!");
+
+	cargo_set_epilog(args->cargo,
+		"Signals:\n"
+		"The program can receive signals that can be sent using the kill command.\n"
+		" SIGUSR1 = Force the cat door to unlock\n"
+		" SIGUSR2 = Force the cat door to lock (for lock timeout)\n");
+
+	ret = add_options(args->cargo, args);
+
+	assert(ret == 0);
 
 	return 0;
 }
 
-void catcierge_args_destroy(catcierge_args_t *args)
+int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 {
+	int i;
+	int ret = 0;
+	cargo_t cargo = args->cargo;
 	assert(args);
 
-	/*catcierge_config_free_temp_strings(args);
+	#ifdef RPI
+	// Let the raspicam software parse any --rpi settings
+	// and remove them from the list of arguments (argv is replaced).
+	if (!(argv = parse_rpi_args(&argc, argv, args)))
+	{
+		CATERR("Failed to parse Raspberry Pi camera settings. See --camhelp\n");
+		goto fail; ret = -1;
+	}
+	#endif // RPI
 
+	// Parse once to get --config value.
+	if (cargo_parse(cargo, 0, 1, argc, argv))
+	{
+		ret = -1; goto fail;
+	}
+
+	// Parse config (if it is set).
+	if (args->config_path)
+	{
+		int confret = 0;
+		int is_default_config = !strcmp(args->config_path, CATCIERGE_CONF_PATH);
+
+		CATLOG("Config path: %s\n", args->config_path);
+
+		// Read ini file and translate that into an argv that cargo can parse.
+		confret = parse_config(cargo, args->config_path, &args->ini_args);
+
+		if (confret < 0)
+		{
+			ret = -1; goto fail;
+		}
+		else if ((confret == 1) && !is_default_config)
+		{
+			CATERR("WARNING: Specified config %s does not exist", args->config_path);
+		}
+	}
+
+	// And finally parse the commandline to override config settings.
+	if (cargo_parse(cargo, 0, 1, argc, argv))
+	{
+		ret = -1; goto fail;
+	}
+
+	if (args->show_cmd_help)
+	{
+		print_cmd_help(cargo, args);
+		ret = -1; goto fail;
+	}
+
+	#ifdef RPI
+	if (args->show_camhelp)
+	{
+		print_cam_help(cargo);
+		ret -1; goto fail;
+	}
+	#endif // RPI
+
+fail:
+	#ifdef RPI
+	cargo_free_commandline(&argv, argc);
+	#endif // RPI
+
+	return ret;
+}
+
+void catcierge_print_settings(catcierge_args_t *args)
+{
 	#ifdef WITH_RFID
-	catcierge_free_rfid_allowed_list(args);
+	size_t i;
 	#endif
 
-	if (args->parser)
+	print_line(stdout, 80, "-");
+	printf("Settings:\n");
+	print_line(stdout, 80, "-");
+	printf("General:\n");
+	printf("       Startup delay: %0.1f seconds\n", args->startup_delay);
+	printf("            Auto ROI: %d\n", args->auto_roi);
+	if (args->auto_roi)
+	printf(" Min. backlight area: %d\n", args->min_backlight);
+	printf("          Show video: %d\n", args->show);
+	printf("        Save matches: %d\n", args->saveimg);
+	printf("       Save obstruct: %d\n", args->save_obstruct_img);
+	printf("          Save steps: %d\n", args->save_steps);
+	printf("     Highlight match: %d\n", args->highlight_match);
+	printf("       Lockout dummy: %d\n", args->lockout_dummy);
+	printf("      Lockout method: %d\n", args->lockout_method);
+	printf("           Lock time: %d seconds\n", args->lockout_time);
+	printf("       Lockout error: %d %s\n", args->max_consecutive_lockout_count,
+							(args->max_consecutive_lockout_count == 0) ? "(off)" : "");
+	printf("   Lockout err delay: %0.1f\n", args->consecutive_lockout_delay);
+	printf("       Match timeout: %d seconds\n", args->match_time);
+	printf("            Log file: %s\n", args->log_path ? args->log_path : "-");
+	printf("            No color: %d\n", args->nocolor);
+	printf("        No animation: %d\n", args->noanim);
+	printf("   Ok matches needed: %d\n", args->ok_matches_needed);
+	printf("         Output path: %s\n", args->output_path);
+	if (args->match_output_path && strcmp(args->output_path, args->match_output_path))
+	printf("   Match output path: %s\n", args->match_output_path);
+	if (args->steps_output_path && strcmp(args->output_path, args->steps_output_path))
+	printf("   Steps output path: %s\n", args->steps_output_path);
+	if (args->obstruct_output_path && strcmp(args->output_path, args->obstruct_output_path))
+	printf("Obstruct output path: %s\n", args->obstruct_output_path);
+	if (args->template_output_path && strcmp(args->output_path, args->template_output_path))
+	printf("Template output path: %s\n", args->template_output_path);
+	#ifdef WITH_ZMQ
+	printf("       ZMQ publisher: %d\n", args->zmq);
+	printf("            ZMQ port: %d\n", args->zmq_port);
+	printf("       ZMQ interface: %s\n", args->zmq_iface);
+	printf("       ZMQ transport: %s\n", args->zmq_transport);
+	#endif // WITH_ZMQ
+	printf("\n"); 
+	if (args->matcher_type == MATCHER_TEMPLATE)
 	{
-		alini_parser_dispose(args->parser);
-	}*/
+		printf("        Matcher type: template\n");
+		catcierge_template_matcher_print_settings(&args->templ);
+	}
+	else
+	{
+		printf("        Matcher type: haar\n");
+		catcierge_haar_matcher_print_settings(&args->haar);
+	}
+	#ifdef WITH_RFID
+	printf("RFID:\n");
+	printf("          Inner RFID: %s\n", args->rfid_inner_path ? args->rfid_inner_path : "-");
+	printf("          Outer RFID: %s\n", args->rfid_outer_path ? args->rfid_outer_path : "-");
+	printf("     Lock on no RFID: %d\n", args->lock_on_invalid_rfid);
+	printf("      RFID lock time: %.2f seconds\n", args->rfid_lock_time);
+	printf("        Allowed RFID: %s\n", (args->rfid_allowed_count <= 0) ? "-" : args->rfid_allowed[0]);
+	for (i = 1; i < args->rfid_allowed_count; i++)
+	{
+		printf("                 %s\n", args->rfid_allowed[i]);
+	}
+	#endif // WITH_RFID
+	print_line(stdout, 80, "-");
 }
-#endif
 
+catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
+{
+	catcierge_matcher_args_t *margs = NULL;
+
+	if (args->matcher_type == MATCHER_TEMPLATE)
+	{
+		margs = (catcierge_matcher_args_t *)&args->templ;
+	}
+	else if (args->matcher_type == MATCHER_HAAR)
+	{
+		margs = (catcierge_matcher_args_t *)&args->haar;
+	}
+
+	// TODO: This is an ugly way to pass this on... But whatever for now.
+	if (margs)
+	{
+		margs->roi = &args->roi;
+		margs->min_backlight = args->min_backlight;
+	}
+
+	return margs;
+}
+
+void catcierge_args_destroy(catcierge_args_t *args)
+{
+	cargo_destroy(&args->cargo);
+	ini_args_destroy(&args->ini_args);
+	catcierge_args_destroy_vars(args);
+}

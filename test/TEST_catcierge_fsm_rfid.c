@@ -11,7 +11,6 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include "catcierge_test_common.h"
-#include "catcierge_cargo.h"
 
 #ifdef CATCIERGE_HAVE_PTY_H
 #include <pty.h>

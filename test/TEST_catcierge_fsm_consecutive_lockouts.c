@@ -10,7 +10,6 @@
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 #include "catcierge_test_common.h"
-#include "catcierge_cargo.h"
 
 static char *run_consecutive_lockout_abort_tests()
 {

@@ -25,34 +25,13 @@
 #include "catcierge_haar_matcher.h"
 #include "catcierge_util.h"
 #include "catcierge_types.h"
-#include "catcierge_cargo.h"
+#include "catcierge_args.h"
 #ifdef _WIN32
 #include <process.h>
 #else
 #include <limits.h>
 #endif
 #include <time.h>
-
-static int parse_arg(catcierge_template_matcher_args_t *args,
-	catcierge_haar_matcher_args_t *hargs, const char *key, char **values, size_t value_count)
-{
-	int res;
-	#if 0
-	res = catcierge_template_matcher_parse_args(args, key, values, value_count);
-	if (res < 0)
-	{
-		return -1;
-	}
-
-	res = catcierge_haar_matcher_parse_args(hargs, key, values, value_count);
-	if (res < 0)
-	{
-		return -1;
-	}
-	#endif
-
-	return 0;
-}
 
 typedef struct tester_ctx_s
 {
