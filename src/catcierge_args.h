@@ -114,6 +114,10 @@ typedef struct catcierge_args_s
 	size_t rfid_allowed_count;
 	#endif // WITH_RFID
 
+	int lockout_gpio_pin;
+	int backlight_gpio_pin;
+	int backlight_enable;
+
 	#ifdef RPI
 	int show_camhelp;
 	RASPIVID_SETTINGS rpi_settings;

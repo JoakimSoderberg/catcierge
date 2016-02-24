@@ -40,19 +40,6 @@
 #include <czmq.h>
 #endif
 
-//
-// Piborg Picoborg pins.
-// (For turning on Solenoids and other 12V-20V appliances.)
-// http://www.piborg.com/picoborg
-//
-#define PIBORG1	4
-#define PIBORG2	18
-#define PIBORG3	8
-#define PIBORG4	7
-
-#define DOOR_PIN		PIBORG1		// Pin for the solenoid that locks the door.
-#define BACKLIGHT_PIN	PIBORG2		// Pin that turns on the backlight.
-
 // TODO: Move this to catcierge_types.h instead
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"

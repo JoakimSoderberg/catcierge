@@ -45,7 +45,23 @@ option(WITH_UNIT_TESTS "Turn on compilation of unit test" ON)
 option(WITH_ZMQ "Compile ZMQ support" OFF)
 option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
 set(CARGO_DEBUG "" CACHE STRING "Debug level for Cargo command line parser")
-set(CATCIERGE_CONF_PATH "/etc/catcierge.cfg" CACHE STRING "The default location for the config file")
+set(CATCIERGE_CONF_PATH "/etc/catcierge.cfg" CACHE FILEPATH "The default location for the config file")
+
+#
+# Piborg Picoborg pins.
+# (For turning on Solenoids and other 12V-20V appliances.)
+# http://www.piborg.com/picoborg
+#
+# Picoborg pin 1 => GPIO4
+# Picoborg pin 2 => GPIO18
+# Picoborg pin 3 => GPIO8
+# Picoborg pin 4 => GPIO7
+#
+set(CATCIERGE_LOCKOUT_GPIO "4" CACHE STRING "The default GPIO pin to use for lockout")
+set(CATCIERGE_BACKLIGHT_GPIO "18" CACHE STRING "The default GPIO pin to use for turning on the backlight")
+
+add_definitions(-DCATCIERGE_LOCKOUT_GPIO=${CATCIERGE_LOCKOUT_GPIO})
+add_definitions(-DCATCIERGE_BACKLIGHT_GPIO=${CATCIERGE_BACKLIGHT_GPIO})
 
 # Turn on coverage if we're running coveralls!
 if (CATCIERGE_COVERALLS)

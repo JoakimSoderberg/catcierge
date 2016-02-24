@@ -32,7 +32,8 @@ static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 {
 	int ret = 0;
 
-	ret |= cargo_add_group(cargo, 0, "lockout", "Lockout settings", NULL);
+	ret |= cargo_add_group(cargo, 0, "lockout", "Lockout settings",
+			"These settings control how the cat door will be locked.");
 
 	ret |= cargo_add_option(cargo, 0,
 			"<lockout> --lockout_method",
@@ -77,6 +78,50 @@ static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 
 	return ret;
 }
+
+#ifdef RPI
+static int add_gpio_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, "gpio", "Raspberry Pi GPIO settings",
+			"Settings for changing the GPIO pins used on the "
+			"Raspberry Pi.\n\n"
+			"Note that if you change these, you will need to set the same pin in the init "
+			"script so the pin gets the correct state at boot. "
+			"For permanently changing this, it's instead recommended "
+			"that you change the default pin when compiling.");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<gpio> --lockout_gpio_pin",
+			NULL,
+			"i", &args->lockout_gpio_pin);
+	ret |= cargo_set_option_description(cargo, "--lockout_gpio_pin",
+			"Change the Raspberry Pi GPIO pin used for triggering "
+			"the lockout of the cat door.\n"
+			"The default GPIO pin used: %d", CATCIERGE_LOCKOUT_GPIO);
+	ret |= cargo_set_metavar(cargo, "--lockout_gpio_pin", "GPIO");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<gpio> --backlight_gpio_pin",
+			NULL,
+			"i", &args->backlight_gpio_pin);
+	ret |= cargo_set_option_description(cargo, "--backlight_gpio_pin",
+			"Change the Raspberry Pi GPIO pin used for turning on the "
+			"backlight (if backlight control is enabled --backlight_enable).\n"
+			"The default GPIO pin used: %d", CATCIERGE_BACKLIGHT_GPIO);
+	ret |= cargo_set_metavar(cargo, "--backlight_gpio_pin", "GPIO");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<gpio> --backlight_enable",
+			"Control the backlight via a GPIO pin? This will then always "
+			"turn it on at startup. If you instead have the backlight wired "
+			"to always be on, this is not needed.",
+			"b", &args->backlight_enable);
+
+	return ret;
+}
+#endif // PRI
 
 static int add_presentation_options(cargo_t cargo, catcierge_args_t *args)
 {
@@ -565,6 +610,9 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 
 	ret |= add_matcher_options(cargo, args);
 	ret |= add_lockout_options(cargo, args);
+	#ifdef RPI
+	ret |= add_gpio_options(cargo, args);
+	#endif
 	ret |= add_presentation_options(cargo, args);
 	ret |= add_output_options(cargo, args);
 	#ifdef WITH_RFID

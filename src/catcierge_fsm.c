@@ -272,8 +272,12 @@ void catcierge_do_lockout(catcierge_grb_t *grb)
 	else
 	{
 		#ifdef RPI
-		gpio_write(DOOR_PIN, 1);
-		gpio_write(BACKLIGHT_PIN, 1);
+		gpio_write(CATCIERGE_LOCKOUT_GPIO, 1);
+
+		if (args->backlight_enable)
+		{
+			gpio_write(CATCIERGE_BACKLIGHT_GPIO, 1);
+		}
 		#endif // RPI
 	}
 }
@@ -298,8 +302,12 @@ void catcierge_do_unlock(catcierge_grb_t *grb)
 	else
 	{
 		#ifdef RPI
-		gpio_write(DOOR_PIN, 0);
-		gpio_write(BACKLIGHT_PIN, 1);
+		gpio_write(CATCIERGE_LOCKOUT_GPIO, 0);
+		
+		if (args->backlight_enable)
+		{
+			gpio_write(CATCIERGE_BACKLIGHT_GPIO, 1);
+		}
 		#endif // RPI
 	}
 }
@@ -413,22 +421,35 @@ int catcierge_setup_gpio(catcierge_grb_t *grb)
 	catcierge_args_t *args = &grb->args;
 	int ret = 0;
 
+	if (args->do_lockout_cmd)
+	{
+		CATLOG("Skipping GPIO setup since a custom lockout command is set:");
+		CATLOG("  %s", args->do_lockout_cmd);
+		return 0;
+	}
+
 	// Set export for pins.
-	if (gpio_export(DOOR_PIN) || gpio_set_direction(DOOR_PIN, OUT))
+	if (gpio_export(CATCIERGE_LOCKOUT_GPIO)
+	 || gpio_set_direction(CATCIERGE_LOCKOUT_GPIO, OUT))
 	{
 		CATERR("Failed to export and set direction for door pin\n");
 		ret = -1; goto fail;
 	}
 
-	if (gpio_export(BACKLIGHT_PIN) || gpio_set_direction(BACKLIGHT_PIN, OUT))
-	{
-		CATERR("Failed to export and set direction for backlight pin\n");
-		ret = -1; goto fail;
-	}
-
 	// Start with the door open and light on.
-	gpio_write(DOOR_PIN, 0);
-	gpio_write(BACKLIGHT_PIN, 1);
+	gpio_write(CATCIERGE_LOCKOUT_GPIO, 0);
+
+	if (args->backlight_enable)
+	{
+		if (gpio_export(CATCIERGE_BACKLIGHT_GPIO)
+		 || gpio_set_direction(CATCIERGE_BACKLIGHT_GPIO, OUT))
+		{
+			CATERR("Failed to export and set direction for backlight pin\n");
+			ret = -1; goto fail;
+		}
+	
+		gpio_write(CATCIERGE_BACKLIGHT_GPIO, 1);
+	}
 
 fail:
 	if (ret)
