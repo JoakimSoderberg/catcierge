@@ -99,6 +99,7 @@ typedef struct catcierge_args_s
 	int auto_roi;
 	int min_backlight;
 	double startup_delay;
+	int no_default_config;
 
 	char *base_time;
 	long base_time_diff;

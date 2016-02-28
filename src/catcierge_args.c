@@ -554,6 +554,15 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"s", &args->config_path);
 
 	ret |= cargo_add_option(cargo, 0,
+			"--no_default_config",
+			NULL,
+			"b", &args->no_default_config);
+	ret |= cargo_set_option_description(cargo,
+			"--no_default_config",
+			"Do not load the default config (%s) if none is specified using --config",
+			CATCIERGE_CONF_PATH);
+
+	ret |= cargo_add_option(cargo, 0,
 			"--chuid",
 			"Run the process under this user when dropping root privileges "
 			"which are needed for setting GPIO pins on the Raspberry Pi.",
@@ -749,6 +758,10 @@ void catcierge_args_init_vars(catcierge_args_t *args)
 		settings->immutableInput = 1;
 		settings->graymode = 1;
 		raspiCamCvSetDefaultCameraParameters(&settings->camera_parameters);
+	
+		args->lockout_gpio_pin = CATCIERGE_LOCKOUT_GPIO;
+		args->backlight_gpio_pin = CATCIERGE_BACKLIGHT_GPIO;
+		args->backlight_enable = 0;
 	}
 	#endif // RPI
 
@@ -883,18 +896,25 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 		int confret = 0;
 		int is_default_config = !strcmp(args->config_path, CATCIERGE_CONF_PATH);
 
-		CATLOG("Config path: %s\n", args->config_path);
-
-		// Read ini file and translate that into an argv that cargo can parse.
-		confret = parse_config(cargo, args->config_path, &args->ini_args);
-
-		if (confret < 0)
+		if (is_default_config && args->no_default_config)
 		{
-			ret = -1; goto fail;
+			CATLOG("Default config turned off, ignoring: %s\n", CATCIERGE_CONF_PATH);
 		}
-		else if ((confret == 1) && !is_default_config)
+		else
 		{
-			CATERR("WARNING: Specified config %s does not exist", args->config_path);
+			CATLOG("Config path: %s\n", args->config_path);
+
+			// Read ini file and translate that into an argv that cargo can parse.
+			confret = parse_config(cargo, args->config_path, &args->ini_args);
+
+			if (confret < 0)
+			{
+				ret = -1; goto fail;
+			}
+			else if ((confret == 1) && !is_default_config)
+			{
+				CATERR("WARNING: Specified config %s does not exist", args->config_path);
+			}
 		}
 	}
 
