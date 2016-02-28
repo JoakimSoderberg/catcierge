@@ -38,6 +38,7 @@ if (UNIX)
 	option(CATCIERGE_COVERALLS "Turn on generating coverage data for http://coveralls.io/. This only works when run on Travis-CI." OFF)
 	option(CATCIERGE_COVERALLS_UPLOAD "If CATCIERGE_COVERALLS is set, upload the generated JSON." ON)
 	set(RPI_USERLAND "${PROJECT_SOURCE_DIR}/rpi_userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
+	option(CATCIERGE_GIT_HASH_INSTALL "Include the git hash in the installer name" ON)
 endif()
 
 option(WITH_TEST_PROGRAMS "Turns on compilation of tester programs" ON)
@@ -59,9 +60,6 @@ set(CATCIERGE_CONF_PATH "/etc/catcierge.cfg" CACHE FILEPATH "The default locatio
 #
 set(CATCIERGE_LOCKOUT_GPIO "4" CACHE STRING "The default GPIO pin to use for lockout")
 set(CATCIERGE_BACKLIGHT_GPIO "18" CACHE STRING "The default GPIO pin to use for turning on the backlight")
-
-add_definitions(-DCATCIERGE_LOCKOUT_GPIO=${CATCIERGE_LOCKOUT_GPIO})
-add_definitions(-DCATCIERGE_BACKLIGHT_GPIO=${CATCIERGE_BACKLIGHT_GPIO})
 
 # Turn on coverage if we're running coveralls!
 if (CATCIERGE_COVERALLS)
@@ -344,6 +342,112 @@ foreach (PROGRAM_NAME ${CATCIERGE_PROGRAMS})
 	endif()
 endforeach()
 
+#
+# Generate systemd init files.
+#
+set(CATCIERGE_SERVICE_AFTER "")
+if (RPI)
+	set(CATCIERGE_GPIO_SCRIPT_PATH "${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.sh")
+	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge_rpi_gpio.sh.in"
+				   "${CATCIERGE_GPIO_SCRIPT_PATH}")
+
+	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge_rpi_gpio.service.in"
+				   "${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.service")
+
+	# This is used in catcierge.service.in so that the gpio is always
+	# setup before the catcierge service on RPI.
+	set(CATCIERGE_SERVICE_AFTER "After=catcierge_rpi_gpio")
+endif()
+
+configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge.service.in"
+			   "${PROJECT_BINARY_DIR}/catcierge.service")
+
+#
+# Install targets
+#
+set(CATCIERGE_EXTRA_DIR "share/catcierge")
+set(SYSTEMD_CONFIG_DIR "/lib/systemd/system")
+
+install(TARGETS ${CATCIERGE_PROGRAMS}
+		RUNTIME DESTINATION "bin/" COMPONENT Runtime)
+
+install(FILES
+		"${PROJECT_SOURCE_DIR}/extra/catcierge.xml"
+		"${PROJECT_SOURCE_DIR}/extra/catcierge-twitter.py"
+		DESTINATION "${CATCIERGE_EXTRA_DIR}/" COMPONENT Runtime)
+
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/extra/templates/"
+		DESTINATION "${CATCIERGE_EXTRA_DIR}/templates/" COMPONENT Runtime
+		FILES_MATCHING PATTERN "*.json")
+
+install(FILES
+		"${PROJECT_BINARY_DIR}/catcierge.service"
+		DESTINATION "${SYSTEMD_CONFIG_DIR}/" COMPONENT Runtime)
+
+if (RPI)
+	install(FILES
+		"${CATCIERGE_GPIO_SCRIPT_PATH}"
+		DESTINATION "${CATCIERGE_EXTRA_DIR}/" COMPONENT Runtime)
+
+	install(FILES
+		"${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.service"
+		DESTINATION "${SYSTEMD_CONFIG_DIR}/" COMPONENT Runtime)
+endif()
+
+#
+# Packaging details.
+#
+if (UNIX)
+	set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE.md")
+
+	set(CPACK_PACKAGE_VERSION_MAJOR "${CATCIERGE_VERSION_MAJOR}")
+	set(CPACK_PACKAGE_VERSION_MINOR "${CATCIERGE_VERSION_MINOR}")
+	set(CPACK_PACKAGE_VERSION_PATCH "${CATCIERGE_VERSION_PATCH}")
+	set(CPACK_PACKAGE_VENDOR "Joakim Soderberg")
+	set(CPACK_PACKAGE_CONTACT "https://github.com/JoakimSoderberg/catcierge")
+	set(CPACK_GENERATOR DEB;TGZ)
+
+	set(CPACK_PACKAGE_NAME "catcierge")
+	set(LINUX_PACKAGE_DESCRIPTION "Catcierge, intelligent cat door. https://github.com/JoakimSoderberg/catcierge")
+
+	set(CPACK_PACKAGE_FILE_NAME "catcierge_${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
+
+	if (CATCIERGE_GIT_HASH_INSTALL AND GIT_HASH_SHORT)
+		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${GIT_HASH_SHORT}")
+	endif()
+
+	set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+	set(CPACK_SET_DESTDIR ON)
+
+	if (LINUX)
+		# Find the correct package architecture based on the platform we're building on.
+		find_program(DPKG_CMD dpkg)
+		if(NOT DPKG_CMD)
+			message(WARNING "Debian architecture: Can not find dpkg in your path, default to i386.")
+			set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE i386)
+		else()
+			execute_process(COMMAND "${DPKG_CMD}" --print-architecture
+				OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_ARCHITECTURE
+				OUTPUT_STRIP_TRAILING_WHITESPACE
+			)
+		endif()
+
+		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
+
+		set(CPACK_DEBIAN_PACKAGE_DEPENDS "libopencv-dev libopenexr-dev")
+		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "joakim.soderberg@netrounds.com")
+		set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${LINUX_PACKAGE_DESCRIPTION}")
+		set(CPACK_DEBIAN_PACKAGE_SECTION "unknown")
+		set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
+	else()
+		# Non Linux targets use the system processor instead of the debian architecture in the filename.
+		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CMAKE_SYSTEM_PROCESSOR}")
+	endif()
+
+	# Needs to be last.
+	include(CPack)
+endif()
+
 ################################## Tests ##################################
 if (WITH_UNIT_TESTS)
 	set(REGRESS_SRC ${LIB_SRC})
@@ -374,5 +478,4 @@ message("-----------------------------------------------------------------")
 if (GIT_STATUS)
 	message(WARNING "\nWarning build made from uncommited changes!\n'${GIT_STATUS_OUTPUT}'")
 endif()
-
 
