@@ -1,3 +1,21 @@
+//
+// This file is part of the Catcierge project.
+//
+// Copyright (c) Joakim Soderberg 2013-2015
+//
+//    Catcierge is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    Catcierge is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
+//
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,14 +34,19 @@
 #include <czmq.h>
 #endif
 
+#define MAX_IMG_PATHS 4
+
 typedef struct fsm_tester_ctx_s
 {
-	char *img_paths[4];
+	char *img_paths[MAX_IMG_PATHS];
 	size_t img_count;
 	double delay;
 	int keep_running;
 	int keep_obstructing;
 } fsm_tester_ctx_t;
+
+fsm_tester_ctx_t ctx;
+catcierge_grb_t grb;
 
 static IplImage *load_image(catcierge_grb_t *grb, const char *path)
 {
@@ -38,79 +61,49 @@ static IplImage *load_image(catcierge_grb_t *grb, const char *path)
 	return img;
 }
 
-static void show_usage(const char *progname)
+static int add_fsm_tester_args(catcierge_args_t *args)
 {
-	fprintf(stderr, "Usage: %s [options] --images <4 images>\n", progname);
-	fprintf(stderr, "\n");
-	fprintf(stderr, "[options] includes the arguments supported by the catcierge grabber as well.\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Catcierge FSM tester arguments:\n");
-	fprintf(stderr, "-------------------------------\n");
-	fprintf(stderr, " --help                     Show this help (including full catcierge help).\n");
-	fprintf(stderr, " --images <4 input images>  Input images that are passed to catcierge.\n");
-	fprintf(stderr, " --delay <seconds>          Delay this long before passing the images.\n");
-	fprintf(stderr, " --base_time <date>         The base date time we should use instead of the current time.\n");
-	fprintf(stderr, "                            In the format YYYY-mm-ddTHH:MM:SS.\n");
-	fprintf(stderr, " --keep_running             Keep running after matching.\n");
-	fprintf(stderr, " --keep_obstructing         When --keep_running is turned on, don't clear the frame.\n");
-	fprintf(stderr, "                            To clear the frame do Ctrl+C (then to break do it again).\n");
+	int ret = 0;
+	cargo_t cargo = args->cargo;
+
+	ret |= cargo_add_group(cargo, 0, 
+			"fsm", "Finite State Machine Tester Settings",
+			"Use these settings to pass a set of images you want to test "
+			"as if they were detected by catcierge, including all events "
+			"that would be triggered by the state machine.\n");
+
+	ret |= cargo_add_option(cargo, CARGO_OPT_REQUIRED,
+			"<fsm> --images",
+			"Input images that are passed to catcierge.",
+			".[s]#", &ctx.img_paths, &ctx.img_count, MAX_IMG_PATHS);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<fsm> --delay",
+			"Initial delay before passing the images to catcierge.",
+			"i", &ctx.delay);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<fsm> --keep_running",
+			"Keeps the catcierge state matchine running also after matching. "
+			"This can be useful to test things such as lockout times and so on. "
+			"If this is not used, immediately after the match is complete and all "
+			"events have run, the program will terminate.",
+			"b", &ctx.keep_running);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<fsm> --keep_obstructing",
+			"When --keep_running is turned on, don't clear the frame as usual. "
+			"This is meant to enable simulating that the cat stays in front of "
+			"the cat door, trying to get it open."
+			"To clear the frame do Ctrl+C (and to terminate do it again).",
+			"b", &ctx.keep_obstructing);
+
+	// This option is defined in the catcierge lib instead, since it
+	// uses variables internal to that. But we still group it with these settings.
+	ret |= cargo_group_add_option(cargo, "fsm", "--base_time");
+
+	return ret;
 }
-
-int parse_args_callback(catcierge_args_t *args,
-		char *key, char **values, size_t value_count, void *user)
-{
-	size_t i;
-	fsm_tester_ctx_t *ctx = (fsm_tester_ctx_t *)user;
-	printf("Parse FSM tester arguments callback\n");
-
-	if (!strcmp(key, "images"))
-	{
-		if (value_count != 4)
-		{
-			fprintf(stderr, "Need %d images but got %d\n", 4, (int)value_count);
-			return -1;
-		}
-
-		for (i = 0; i < value_count; i++)
-		{
-			ctx->img_paths[i] = values[i];
-			ctx->img_count++;
-		}
-
-		return 0;
-	}
-	else if (!strcmp(key, "delay"))
-	{
-		if (value_count != 1)
-		{
-			fprintf(stderr, "Invalid argument for --delay, need an integer!\n");
-			return -1;
-		}
-
-		ctx->delay = atof(values[0]);
-		return 0;
-	}
-	else if (!strcmp(key, "help"))
-	{
-		fprintf(stderr, "\n###############################################################################\n\n");
-		show_usage(args->program_name);
-	}
-	else if (!strcmp(key, "keep_running"))
-	{
-		ctx->keep_running = 1;
-		return 0;
-	}
-	else if (!strcmp(key, "keep_obstructing"))
-	{
-		ctx->keep_obstructing = 1;
-		return 0;
-	}
-
-	return -1;
-}
-
-fsm_tester_ctx_t ctx;
-catcierge_grb_t grb;
 
 static void sig_handler(int signo)
 {
@@ -138,29 +131,39 @@ int main(int argc, char **argv)
 	memset(&ctx, 0, sizeof(ctx));
 	catcierge_grabber_init(&grb);
 
-	if (catcierge_parse_config(args, argc, argv))
+	if (catcierge_args_init(args, argv[0]))
 	{
-		show_usage(argv[0]);
-		fprintf(stderr, "\n\nFailed to parse config file\n\n");
+		fprintf(stderr, "Failed to init args\n");
 		return -1;
 	}
 
-	if (catcierge_parse_cmdargs(args, argc, argv, parse_args_callback, &ctx))
+	if (add_fsm_tester_args(args))
 	{
-		show_usage(argv[0]);
-		ret = -1; goto fail;
+		fprintf(stderr, "Failed to init fsm tester args\n");
+		return -1;
+	}
+
+	if (catcierge_args_parse(args, argc, argv))
+	{
+		return -1;
 	}
 
 	if (ctx.img_count == 0)
 	{
-		show_usage(argv[0]);
+		cargo_print_usage(args->cargo, 0);
 		fprintf(stderr, "\nNo input images specified!\n\n");
 		ret = -1; goto fail;
 	}
 
+	if (args->base_time)
+	{
+		printf("Setting basetime to: %s\n", args->base_time);
+		catcierge_strftime_set_base_diff(args->base_time_diff);
+	}
+
 	if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))
 	{
-		fprintf(stderr, "\n\nFailed to %s init matcher\n\n", grb.args.matcher);
+		fprintf(stderr, "\n\nFailed to %s init matcher\n\n", grb.matcher->name);
 		return -1;
 	}
 
@@ -273,6 +276,7 @@ fail:
 	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_output_destroy(&grb.output);
 	catcierge_grabber_destroy(&grb);
+	catcierge_args_destroy(&grb.args);
 
 	return ret;
 }

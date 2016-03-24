@@ -51,15 +51,6 @@ IplImage *open_test_image(int series, int i)
 	return img;
 }
 
-void set_default_test_snouts(catcierge_args_t *args)
-{
-	assert(args);
-	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
-	args->templ.snout_count++;
-	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
-	args->templ.snout_count++;
-}
-
 void free_test_image(catcierge_grb_t *grb)
 {
 	cvReleaseImage(&grb->img);
@@ -91,5 +82,13 @@ int load_black_test_image_and_run(catcierge_grb_t *grb)
 	catcierge_run_state(grb);
 	free_test_image(grb);
 	return 0;
+}
+
+int get_argc(char **argv)
+{
+	int i = 0;
+	while (argv[i] != NULL) i++;
+
+	return i;
 }
 

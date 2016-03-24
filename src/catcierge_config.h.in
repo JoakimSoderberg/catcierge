@@ -1,7 +1,7 @@
 //
 // This file is part of the Catcierge project.
 //
-// Copyright (c) Joakim Soderberg 2013-2014
+// Copyright (c) Joakim Soderberg 2013-2015
 //
 //    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -40,6 +40,10 @@
 #endif
 
 #cmakedefine CATCIERGE_GUI_TESTS 1
+
+#define CATCIERGE_CONF_PATH "@CATCIERGE_CONF_PATH@"
+#define CATCIERGE_LOCKOUT_GPIO @CATCIERGE_LOCKOUT_GPIO@
+#define CATCIERGE_BACKLIGHT_GPIO @CATCIERGE_BACKLIGHT_GPIO@
 
 #endif // __CATCIERGE_CONFIG_H__
 

@@ -1,7 +1,7 @@
 //
 // This file is part of the Catcierge project.
 //
-// Copyright (c) Joakim Soderberg 2013-2014
+// Copyright (c) Joakim Soderberg 2013-2015
 //
 //    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include "catcierge_types.h"
 #include "catcierge_matcher.h"
+#include "cargo.h"
 
 #define CATCIERGE_LOW_BINARY_THRESH_DEFAULT 90
 #define CATCIERGE_HIGH_BINARY_THRESH_DEFAULT 255
@@ -35,7 +36,7 @@
 typedef struct catcierge_template_matcher_args_s
 {
 	catcierge_matcher_args_t super;
-	const char *snout_paths[MAX_SNOUT_COUNT];
+	char **snout_paths;
 	size_t snout_count;
 	double match_threshold;
 	int match_flipped;
@@ -78,7 +79,10 @@ int caticerge_template_matcher_decide(void *ctx, match_group_t *mg);
 int catcierge_template_matcher_is_frame_obstructed(catcierge_template_matcher_t *ctx, IplImage *img);
 
 void catcierge_template_matcher_usage();
+int catcierge_template_matcher_add_options(cargo_t cargo,
+										catcierge_template_matcher_args_t *args);
 int catcierge_template_matcher_parse_args(catcierge_template_matcher_args_t *args, const char *key, char **values, size_t value_count);
+void catcierge_template_matcher_args_destroy(catcierge_template_matcher_args_t *args);
 void catcierge_template_matcher_print_settings(catcierge_template_matcher_args_t * args);
 void catcierge_template_matcher_args_init(catcierge_template_matcher_args_t *args);
 

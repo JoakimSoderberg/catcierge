@@ -7,422 +7,12 @@
 #include "catcierge_test_helpers.h"
 #include "catcierge_config.h"
 
-typedef char *(*test_func)();
-
-char *run_test1()
-{
-	catcierge_args_t args;
-
-	char *test1[] = 
-	{
-		"catcierge",
-		"--snout", "abc.png", "def.png",
-		"--show"
-	};
-	#define TEST1_COUNT (sizeof(test1) / sizeof(char *))
-
-	catcierge_args_init(&args);
-
-	// Parse command line arguments.
-	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1, NULL, NULL));
-
-	mu_assert("Expected show to be set", args.show);
-	catcierge_test_STATUS("Snout count %lu", args.templ.snout_count);
-	mu_assert("Expected snout count to be 2", args.templ.snout_count == 2);
-	mu_assert("Unexpected snout", !strcmp(test1[2], args.templ.snout_paths[0]));
-	
-	catcierge_args_destroy(&args);
-
-	return NULL;
-}
-
-char *run_test2()
-{
-	catcierge_args_t args;
-
-	char *test1[] = 
-	{
-		"catcierge",
-		"--show",
-		"--save",
-		"--highlight",
-		"--lockout", "5",
-		"--lockout_error", "3",
-		"--lockout_dummy",
-		"--matchtime", "10"
-		#ifdef WITH_RFID
-		,"--rfid_allowed", "444,555,3333"
-		#endif
-	};
-	#define TEST1_COUNT (sizeof(test1) / sizeof(char *))
-
-	catcierge_args_init(&args);
-
-	// Parse command line arguments.
-	mu_assert("Failed to parse args", !catcierge_parse_cmdargs(&args, TEST1_COUNT, test1, NULL, NULL));
-	
-	#ifdef WITH_RFID
-	mu_assert("Expected RFID allowed to be 3", args.rfid_allowed_count == 3);
-	#endif // WITH_RFID
-
-	catcierge_show_usage(&args, "catcierge");
-	catcierge_print_settings(&args);
-	
-	catcierge_args_destroy(&args);
-
-	return NULL;
-}
-
-static void free_values(char **values, size_t value_count)
-{
-	size_t i;
-
-	for (i = 0; i < value_count; i++)
-	{
-		if (values[i])
-			free(values[i]);
-		values[i] = NULL;
-	}
-}
-
-char *run_parse_args_tests()
-{
-	catcierge_args_t args;
-	char *key = NULL;
-	char *values[4096];
-	char *pch = NULL;
-	int ret = 0;
-	size_t value_count = 0;
-
-	memset(values, 0, sizeof(values));
-
-	catcierge_args_init(&args);
-
-	#define xstr(a) str(a)
-	#define str(a) #a
-
-	// TODO: This doesn't work with quoted strings.
-	#define GET_KEY_VALUES(str) \
-		do \
-		{ \
-			char *s = strdup(str); \
-			value_count = 0; \
-			pch = strtok(s, " "); \
-			key = strdup(pch); \
-			while (pch != NULL) \
-			{ \
-				pch = strtok(NULL, " "); \
-				if (pch) values[value_count++] = strdup(pch); \
-			} \
-			free(s); \
-		} while(0)
-
-	#define PARSE_SETTING(str, expect, assert_stmt) \
-		GET_KEY_VALUES(str); \
-		ret = catcierge_parse_setting(&args, key, values, value_count); \
-		catcierge_test_STATUS(str ". Assert: %d <= " #assert_stmt, assert_stmt); \
-		mu_assert(expect, assert_stmt); \
-		catcierge_test_SUCCESS("  Parsed: \"%s\"", str); \
-		free(key); \
-		key = NULL; \
-		free_values(values, value_count)
-
-	// Helper macro for a single setting that can either be set using:
-	// "--hello" or "--hello 2".
-	// Example: PARSE_SINGLE_SETTING("hello", args.hello, 2, "Expected")
-	#define PARSE_SINGLE_SETTING(setting_str, setting, val) \
-		PARSE_SETTING(setting_str " " str(val), "Expected valid parse.", \
-			(ret == 0) && (setting == val)); \
-		PARSE_SETTING(setting_str, "Expected valid parse.", \
-			(ret == 0) && (setting == val))
-
-
-
-	PARSE_SETTING("matcher", "Expected failure for missing input value", (ret == -1));
-	PARSE_SETTING("matcher bla", "Expected failure for invalid input value", (ret == -1));
-	PARSE_SETTING("matcher haar", "Expected haar matcher",
-		(ret == 0) &&
-		!strcmp(args.matcher, "haar") &&
-		(args.matcher_type == MATCHER_HAAR));
-	PARSE_SETTING("matcher template", "Expected template matcher",
-		(ret == 0) &&
-		!strcmp(args.matcher, "template") &&
-		(args.matcher_type == MATCHER_TEMPLATE));
-
-	PARSE_SINGLE_SETTING("show", args.show, 1);
-
-	PARSE_SETTING("ok_matches_needed 2", "Expected valid parse",
-		(ret == 0) && (args.ok_matches_needed == 2));
-	PARSE_SETTING("ok_matches_needed 20", "Expected too big value",
-		(ret == -1));
-	PARSE_SETTING("ok_matches_needed", "Expected value for input",
-		(ret == -1));
-	PARSE_SINGLE_SETTING("no_final_decision", args.no_final_decision, 1);
-
-	PARSE_SETTING("lockout_method 3", "Expected valid parse OBSTRUCT_OR_TIMER_3",
-		(ret == 0) && (args.lockout_method == OBSTRUCT_OR_TIMER_3));
-	PARSE_SETTING("lockout_method 2", "Expected valid parse OBSTRUCT_THEN_TIMER_2",
-		(ret == 0) && (args.lockout_method == OBSTRUCT_THEN_TIMER_2));
-	PARSE_SETTING("lockout_method 1", "Expected valid parse TIMER_ONLY_1",
-		(ret == 0) && (args.lockout_method == TIMER_ONLY_1));
-	PARSE_SETTING("lockout_method 0", "Expected invalid parse for out of bounds",
-		(ret == -1));
-	PARSE_SETTING("lockout_method 4", "Expected invalid parse for out of bounds",
-		(ret == -1));
-	PARSE_SETTING("lockout_method", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SINGLE_SETTING("save", args.saveimg, 1);
-
-	PARSE_SINGLE_SETTING("save_obstruct", args.save_obstruct_img, 1);
-
-	PARSE_SINGLE_SETTING("new_execute", args.new_execute, 1);
-
-	PARSE_SINGLE_SETTING("highlight", args.highlight_match, 1);
-
-	#ifdef WITH_ZMQ
-	PARSE_SINGLE_SETTING("zmq", args.zmq, 1);
-
-	PARSE_SETTING("zmq_port 1234", "Expected a valid parse", 
-		(ret == 0) && (args.zmq_port == 1234));
-
-	PARSE_SETTING("zmq_iface eth1", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.zmq_iface, "eth1"));
-
-	PARSE_SETTING("zmq_transport inproc", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.zmq_transport, "inproc"));
-
-	#endif
-
-	PARSE_SETTING("lockout 5", "Expected a valid parse",
-		(ret == 0) && (args.lockout_time == 5));
-	PARSE_SETTING("lockout", "Expected a valid parse for missing value",
-		(ret == 0));
-
-	PARSE_SETTING("lockout_error_delay 5", "Expected a valid parse",
-		(ret == 0) && (args.consecutive_lockout_delay == 5));
-	PARSE_SETTING("lockout_error_delay", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("lockout_error 20", "Expected a valid parse",
-		(ret == 0) && (args.max_consecutive_lockout_count == 20));
-	PARSE_SETTING("lockout_error", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SINGLE_SETTING("lockout_dummy", args.lockout_dummy, 1);
-
-	PARSE_SINGLE_SETTING("matchtime", args.match_time, DEFAULT_MATCH_WAIT);
-
-	PARSE_SETTING("output /some/output/path", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.output_path, "/some/output/path"));
-	PARSE_SETTING("output", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("output_path /some/output/path", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.output_path, "/some/output/path"));
-	PARSE_SETTING("output_path", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("match_output_path /some/output/path", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.match_output_path, "/some/output/path"));
-	PARSE_SETTING("match_output_path", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("steps_output_path /some/output/path", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.steps_output_path, "/some/output/path"));
-	PARSE_SETTING("steps_output_path", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("obstruct_output_path /some/output/path", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.obstruct_output_path, "/some/output/path"));
-	PARSE_SETTING("obstruct_output_path", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("template_output_path /some/output/path", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.template_output_path, "/some/output/path"));
-	PARSE_SETTING("template_output_path", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	{
-		size_t i;
-
-		PARSE_SETTING("input /path/to/templ%time%.tmpl", "Expected a valid parse",
-			(ret == 0) && !strcmp(args.inputs[0], "/path/to/templ%time%.tmpl"));
-		PARSE_SETTING("input", "Expected invalid parse for missing value",
-			(ret == -1));
-
-		for (i = 1; i < MAX_INPUT_TEMPLATES; i++)
-		{
-			PARSE_SETTING("input /path/to/last", "Expected a valid parse",
-				(ret == 0) && !strcmp(args.inputs[i], "/path/to/last"));
-		}
-
-		PARSE_SETTING("input /path/to/templ%time%.tmpl",
-			"Expected failure when exceeding MAX_INPUT_TEMPLATES",
-			(ret == -1));
-	}
-
-	#ifdef WITH_RFID
-	PARSE_SETTING("rfid_in /some/rfid/path", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.rfid_inner_path, "/some/rfid/path"));
-	PARSE_SETTING("rfid_in", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("rfid_out /some/rfid/path", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.rfid_outer_path, "/some/rfid/path"));
-	PARSE_SETTING("rfid_out", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("rfid_allowed 1,2,3", "Expected a valid parse",
-		(ret == 0) &&
-		!strcmp(args.rfid_allowed[0], "1") &&
-		!strcmp(args.rfid_allowed[1], "2") &&
-		!strcmp(args.rfid_allowed[2], "3") &&
-		(args.rfid_allowed_count == 3));
-	PARSE_SETTING("rfid_allowed", "Expected invalid parse for missing value",
-		(ret == -1));
-	catcierge_free_rfid_allowed_list(&args);
-	
-	PARSE_SETTING("rfid_time 3.5", "Expected a valid parse",
-		(ret == 0) && (args.rfid_lock_time == 3.5));
-	PARSE_SETTING("rfid_time", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SINGLE_SETTING("rfid_lock", args.lock_on_invalid_rfid, 1);
-	#else
-	catcierge_test_SKIPPED("Skipping RFID args (not compiled)");
-	#endif // WITH_RFID
-
-	PARSE_SETTING("log /log/path", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.log_path, "/log/path"));
-	PARSE_SETTING("log", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	{
-		#define PARSE_CMD_SETTING(cmd) \
-			PARSE_SETTING(#cmd " awesome_cmd.sh", "Expected a valid parse", \
-				(ret == 0) && !strcmp(args.cmd, "awesome_cmd.sh")); \
-			PARSE_SETTING(#cmd, "Expected invalid parse for missing value", \
-				(ret == -1)) \
-
-		PARSE_CMD_SETTING(match_cmd);
-		PARSE_CMD_SETTING(save_img_cmd);
-		PARSE_CMD_SETTING(match_group_done_cmd);
-		PARSE_CMD_SETTING(frame_obstructed_cmd);
-		PARSE_CMD_SETTING(state_change_cmd);
-		PARSE_CMD_SETTING(match_done_cmd);
-		PARSE_CMD_SETTING(do_lockout_cmd);
-		PARSE_CMD_SETTING(do_unlock_cmd);
-		#ifdef WITH_RFID
-		PARSE_CMD_SETTING(rfid_detect_cmd);
-		PARSE_CMD_SETTING(rfid_match_cmd);
-		#endif // WITH_RFID
-	}
-
-	PARSE_SINGLE_SETTING("nocolor", args.nocolor, 1);
-
-	PARSE_SINGLE_SETTING("noanim", args.noanim, 1);
-
-	PARSE_SINGLE_SETTING("save_steps", args.save_steps, 1);
-
-	PARSE_SINGLE_SETTING("auto_roi", args.auto_roi, 1);
-
-	PARSE_SETTING("min_backlight 25000", "Expected a valid parse",
-		(ret == 0) && (args.min_backlight == 25000));
-	PARSE_SETTING("min_backlight", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("startup_delay 5.0", "Expected a valid parse",
-		(ret == 0) && (args.startup_delay == 5.0));
-	PARSE_SETTING("startup_delay", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("roi 1 2 3 4", "Expected a valid parse",
-		(ret == 0) 
-		&& (args.roi.x == 1) && (args.roi.y == 2)
-		&& (args.roi.width == 3) && (args.roi.height == 4));
-	PARSE_SETTING("roi", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	PARSE_SETTING("chuid userid", "Expected a valid parse",
-		(ret == 0) && !strcmp(args.chuid, "userid"));
-	PARSE_SETTING("chuid", "Expected invalid parse for missing value",
-		(ret == -1));
-
-	#ifndef _WIN32
-	{
-		char *k = "base_time";
-		char *vls[] = { "2014-10-26T14:00:22" };
-		ret = catcierge_parse_setting(&args, k, vls, 1);
-		catcierge_test_STATUS("ret == %d base_time == %s", ret, args.base_time);
-		assert((ret == 0) && !strcmp(args.base_time, "2014-10-26T14:00:22"));
-
-		PARSE_SETTING("base_time", "Expected invalid parse for missing value",
-			(ret == -1));
-
-	}
-	#endif // _WIN32
-
-	// Template matcher settings.
-	{
-		PARSE_SINGLE_SETTING("match_flipped", args.templ.match_flipped, 1);
-
-		PARSE_SETTING("snout /the/snout/path/snout.png", "Expected parse success",
-			(ret == 0) &&
-			!strcmp(args.templ.snout_paths[0], "/the/snout/path/snout.png") &&
-			args.templ.snout_count == 1);
-		PARSE_SETTING("snout", "Expected failure for missing value.", (ret == -1));
-
-		PARSE_SINGLE_SETTING("threshold", args.templ.match_threshold, DEFAULT_MATCH_THRESH);
-	}
-
-	// Haar matcher settings.
-	{
-		PARSE_SETTING("cascade /path/to/catcierge.xml", "Expected valid cascade path",
-			(ret == 0) && !strcmp(args.haar.cascade, "/path/to/catcierge.xml"));
-		PARSE_SETTING("cascade", "Expected failure for missing value.", (ret == -1));
-
-		PARSE_SETTING("min_size 12x34", "Expected valid min size.",
-			(ret == 0) && (args.haar.min_width == 12) && (args.haar.min_height == 34));
-		PARSE_SETTING("min_size", "Expected failure for missing value.", (ret == -1));
-		PARSE_SETTING("min_size kakaxpoop", "Expected failure for invalid value.", (ret == -1));
-
-		PARSE_SETTING("prey_steps 5", "Expected valid min size.",
-			(ret == 0) && (args.haar.prey_steps == 5));
-		PARSE_SETTING("prey_steps", "Expected min size value.", (ret == -1));
-	
-		PARSE_SINGLE_SETTING("no_match_is_fail", args.haar.no_match_is_fail, 1);
-		PARSE_SINGLE_SETTING("equalize_historgram", args.haar.eq_histogram, 1);
-
-		PARSE_SETTING("in_direction left", "Expected left direction",
-			(ret == 0) && (args.haar.in_direction == DIR_LEFT));
-		PARSE_SETTING("in_direction right", "Expected right direction",
-			(ret == 0) && (args.haar.in_direction == DIR_RIGHT));
-		PARSE_SETTING("in_direction bla", "Expected failure for invalid input",
-			(ret == -1));
-		PARSE_SETTING("in_direction", "Expected failure for missing input",
-			(ret == -1));
-
-		PARSE_SETTING("prey_method adaptive", "Expected adaptive prey method",
-			(ret == 0) && (args.haar.prey_method == PREY_METHOD_ADAPTIVE));
-		PARSE_SETTING("prey_method normal", "Expected normal prey method",
-			(ret == 0) && (args.haar.prey_method == PREY_METHOD_NORMAL));
-		PARSE_SETTING("prey_method blarg", "Expected invalid prey method",
-			(ret == -1));
-		PARSE_SETTING("prey_method", "Expected failure for missing value",
-			(ret == -1));
-	}
-
-	return NULL;
-}
-
-char *run_parse_config_tests()
+char *perform_config_test(int expected_ret, char *test_cfg, catcierge_args_t *args)
 {
 	int ret;
 	FILE *f;
-	catcierge_args_t args;
+	//catcierge_args_t args;
 	#define TEST_CONFIG_PATH "______test.cfg"
-	char test_cfg[] = "matcher=template\n";
 	char *argv[] = { "program", "--config", TEST_CONFIG_PATH };
 	int argc = sizeof(argv) / sizeof(argv[0]);
 
@@ -430,37 +20,440 @@ char *run_parse_config_tests()
 	f = fopen(TEST_CONFIG_PATH, "w");
 	mu_assert("Failed to open test config", f);
 
-	fwrite(test_cfg, 1, sizeof(test_cfg), f);
+	fwrite(test_cfg, 1, strlen(test_cfg), f);
 	fclose(f);
 
-	catcierge_args_init(&args);
+	// Init parser.
+	memset(args, 0, sizeof(catcierge_args_t));
+	ret = catcierge_args_init(args, "catcierge");
+	mu_assert("Failed to init catcierge args", ret == 0);
 
-	ret = catcierge_parse_config(&args, argc, argv);
-	mu_assert("Expected matcher = template after parsing config",
-		!strcmp(args.matcher, "template"));
+	ret = catcierge_args_parse(args, argc, argv);
+	mu_assert("Parse status not expected", (!!ret) == expected_ret);
+
+	return NULL;
+}
+
+char *run_parse_config_tests()
+{
+	#define ASSERT_CONFIG_START(EXPECT_RET, CONF) 						\
+	do 																	\
+	{																	\
+		catcierge_args_t args;											\
+		catcierge_test_STATUS("\nConfig:\n%s", CONF);					\
+		mu_assert("Failed config:\n"CONF"\n",							\
+			perform_config_test(EXPECT_RET, CONF, &args) == NULL)
+	
+
+	#define ASSERT_CONFIG_END()											\
+		catcierge_args_destroy(&args);									\
+	} while (0)
+
+
+
+	ASSERT_CONFIG_START(0,
+		"template_matcher=1\n");
+	mu_assert("Unexpected matcher", args.matcher_type == MATCHER_TEMPLATE);
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(0,
+		"   template_matcher    =   1   \n");
+	mu_assert("Unexpected matcher", args.matcher_type == MATCHER_TEMPLATE);
+	ASSERT_CONFIG_END();
+
+	// This only gives a warning that the options is specified twice.
+	ASSERT_CONFIG_START(0,
+		"template_matcher=2\n");
+	mu_assert("Unexpected matcher", args.matcher_type == MATCHER_TEMPLATE);
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1,
+		"template_matcher=\n");
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1,
+		"template_matcher=1\n"
+		"template_matcher=1\n");
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(0,
+		"haar=1\n");
+	mu_assert("Unexpected matcher", args.matcher_type == MATCHER_HAAR);
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1, "haar=broken\n");
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1,
+		"haar=1\n"
+		"template=1\n");
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(0,
+		"haar=1\n"
+		"ok_matches_needed=4\n");
+	printf("ok_matches_needed = %d\n", args.ok_matches_needed);
+	mu_assert("Unexpected ok_matches_needed", args.ok_matches_needed == 4);
+	ASSERT_CONFIG_END();
+
+	#ifndef _WIN32
+	ASSERT_CONFIG_START(0,
+		"haar=1\n"
+		"base_time=2016-01-23T22:11:03\n");
+	mu_assert("Unexpected base_time", !strcmp(args.base_time, "2016-01-23T22:11:03"));
+	ASSERT_CONFIG_END();
+	#endif
+
+	ASSERT_CONFIG_START(1,
+		"haar=1\n"
+		"does=not exist\n"
+		"what=is this\n");
+	ASSERT_CONFIG_END();
+
+	ASSERT_CONFIG_START(1,
+		"haar=1\n"
+		"lockout_dummy=2502585298529831909139090259050229328998329823");
+	ASSERT_CONFIG_END();
+
+
+	return NULL;
+}
+
+static char *run_catierge_add_options_test()
+{
+	int ret = 0;
+	catcierge_args_t args;
+	ret = catcierge_args_init(&args, "catcierge");
+	mu_assert("Failed to init catcierge args", ret == 0);
+
+	catcierge_print_settings(&args);
 
 	catcierge_args_destroy(&args);
+
+
+	return NULL;
+}
+
+static char *perform_catcierge_args(int expect, 
+				catcierge_args_t *args, int argc, char **argv)
+{
+	int ret = 0;
+
+	ret = catcierge_args_parse(args, argc, argv);
+	mu_assert("Unexpected return value for parse", ret == expect);
+
+	return NULL;
+}
+
+static char *run_catcierge_parse_test()
+{
+	int ret = 0;
+	catcierge_args_t args;
+	#define PARSE_ARGV(expect, argsp, ...)						\
+		{ 														\
+			int i; 												\
+			char *argv[] = { __VA_ARGS__ }; 					\
+			int argc = sizeof(argv) / sizeof(argv[0]); 			\
+			for (i = 0; i < argc; i++) printf("%s ", argv[i]); 	\
+			printf("\n"); 										\
+			perform_catcierge_args(expect, argsp, argc, argv); 	\
+		}
+
+	memset(&args, 0, sizeof(args));
+	ret = catcierge_args_init(&args, "catcierge");
+	mu_assert("Failed to init catcierge args", ret == 0);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar");
+	mu_assert("Expected haar matcher", args.matcher_type == MATCHER_HAAR);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--show");
+	mu_assert("show != 1", args.show == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--ok_matches_needed", "2");
+	mu_assert("ok_matches_needed != 2", args.ok_matches_needed == 2);
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--ok_matches_needed");
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--ok_matches_needed", "20");
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--no_final_decision");
+	mu_assert("Expected no_final_decision == 1", args.no_final_decision == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_method", "3");
+	mu_assert("Expected lockout_method == 3", args.lockout_method == OBSTRUCT_OR_TIMER_3);
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_method", "2");
+	mu_assert("Expected lockout_method == 2", args.lockout_method == OBSTRUCT_THEN_TIMER_2);
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_method", "1");
+	mu_assert("Expected lockout_method == 1", args.lockout_method == TIMER_ONLY_1);
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--lockout_method", "0");
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--lockout_method", "4");
+	PARSE_ARGV(-1, &args, "catcierge", "--haar", "--lockout_method");
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--save");
+	mu_assert("Expected save == 1", args.saveimg == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--save_obstruct");
+	mu_assert("Expected save_obstruct == 1", args.save_obstruct_img == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--new_execute");
+	mu_assert("Expected new_execute == 1", args.new_execute == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--highlight");
+	mu_assert("Expected highlight == 1", args.highlight_match == 1);
+
+	#ifdef WITH_ZMQ
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--zmq");
+	mu_assert("Expected zmq == 1", args.zmq == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--zmq_port", "1234");
+	mu_assert("Expected zmq_port == 1234", args.zmq_port == 1234);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--zmq_iface", "eth1");
+	printf("zmq_iface = %s\n", args.zmq_iface);
+	mu_assert("Expected zmq_iface == eth1",
+		args.zmq_iface && !strcmp(args.zmq_iface, "eth1"));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--zmq_transport", "inproc");
+	printf("zmq_transport = %s\n", args.zmq_transport);
+	mu_assert("Expected zmq_transport == inproc",
+		args.zmq_transport && !strcmp(args.zmq_transport, "inproc"));
+	#endif // WITH_ZMQ
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout", "5");
+	mu_assert("Expected lockout == 5", args.lockout_time == 5);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_error_delay", "5");
+	mu_assert("Expected lockout_error_delay == 5",
+			args.consecutive_lockout_delay == 5);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_error", "20");
+	mu_assert("Expected lockout_error == 20",
+			args.max_consecutive_lockout_count == 20);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--lockout_dummy");
+	mu_assert("Expected lockout_dummy == 1", args.lockout_dummy == 1);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--matchtime");
+	mu_assert("Expected match_time == 1", args.match_time == DEFAULT_MATCH_WAIT);
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--output", "/some/output/path");
+	mu_assert("Expected output_path == /some/output/path",
+		args.output_path
+		&& !strcmp(args.output_path, "/some/output/path"));
+
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--match_output_path", "/some/output/path");
+	mu_assert("Expected match_output_path == /some/output/path",
+		args.match_output_path
+		&& !strcmp(args.match_output_path, "/some/output/path"));
+
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--steps_output_path", "/some/output/path");
+	mu_assert("Expected steps_output_path == /some/output/path",
+		args.steps_output_path
+		&& !strcmp(args.steps_output_path, "/some/output/path"));
+
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--obstruct_output_path", "/some/output/path");
+	mu_assert("Expected obstruct_output_path == /some/output/path",
+		args.obstruct_output_path
+		&& !strcmp(args.obstruct_output_path, "/some/output/path"));
+
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--template_output_path", "/some/output/path");
+	mu_assert("Expected template_output_path == /some/output/path",
+		args.template_output_path
+		&& !strcmp(args.template_output_path, "/some/output/path"));
+
+	PARSE_ARGV(0, &args,
+		"catcierge", "--haar", "--input", "/path/to/templ%time%.tmpl", "bla");
+	mu_assert("Expected inputs[0] == /path/to/templ%time%.tmpl",
+		args.inputs[0]
+		&& !strcmp(args.inputs[0], "/path/to/templ%time%.tmpl"));
+	mu_assert("Expected inputs[1] == bla",
+		args.inputs[0]
+		&& !strcmp(args.inputs[1], "bla"));
+	mu_assert("Expected 2 input count", args.input_count == 2);
+
+
+	#ifdef WITH_RFID
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--rfid_in", "/some/rfid/path");
+	mu_assert("Expected rfid_inner_path == /some/rfid/path",
+		args.rfid_inner_path
+		&& !strcmp(args.rfid_inner_path, "/some/rfid/path"));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--rfid_out", "/some/rfid/path");
+	mu_assert("Expected rfid_outer_path == /some/rfid/path",
+		args.rfid_outer_path
+		&& !strcmp(args.rfid_outer_path, "/some/rfid/path"));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--rfid_allowed", "1", "2", "3");
+	mu_assert("Unexpected rfid_allowed values",
+		args.rfid_allowed[0] && !strcmp(args.rfid_allowed[0], "1") &&
+		args.rfid_allowed[1] && !strcmp(args.rfid_allowed[1], "2") &&
+		args.rfid_allowed[2] && !strcmp(args.rfid_allowed[2], "3") &&
+		(args.rfid_allowed_count == 3));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--rfid_time", "3.5");
+	mu_assert("Expected rfid_lock_time == 3.5",
+		(args.rfid_lock_time == 3.5));
+
+	#else
+	catcierge_test_SKIPPED("Skipping RFID args (not compiled)");
+	#endif // WITH_RFID
+
+
+	#define PARSE_CMD_SETTING(cmd)									\
+		PARSE_ARGV(0, &args,										\
+			"catcierge", "--haar", "--"#cmd, "awesome_cmd.sh");			\
+		mu_assert("Expected "#cmd" == awesome_cmd.sh",				\
+			args.cmd && !strcmp(args.cmd, "awesome_cmd.sh"))
+
+	PARSE_CMD_SETTING(match_cmd);
+	PARSE_CMD_SETTING(save_img_cmd);
+	PARSE_CMD_SETTING(match_group_done_cmd);
+	PARSE_CMD_SETTING(frame_obstructed_cmd);
+	PARSE_CMD_SETTING(state_change_cmd);
+	PARSE_CMD_SETTING(match_done_cmd);
+	PARSE_CMD_SETTING(do_lockout_cmd);
+	PARSE_CMD_SETTING(do_unlock_cmd);
+	#ifdef WITH_RFID
+	PARSE_CMD_SETTING(rfid_detect_cmd);
+	PARSE_CMD_SETTING(rfid_match_cmd);
+	#endif // WITH_RFID
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--nocolor");
+	mu_assert("Expected nocolor == 1", (args.nocolor == 1));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--noanim");
+	mu_assert("Expected noanim == 1", (args.noanim == 1));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--save_steps");
+	mu_assert("Expected save_steps == 1", (args.save_steps == 1));
+
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--auto_roi");
+	mu_assert("Expected auto_roi == 1", (args.auto_roi == 1));
+	
+	PARSE_ARGV(1, &args, "catcierge", "--haar", "--min_backlight");
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--min_backlight", "25000");
+	mu_assert("Expected auto_roi == 1", (args.min_backlight == 25000));
+
+	PARSE_ARGV(1, &args, "catcierge", "--haar", "--startup_delay");
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--startup_delay", "5.0");
+	mu_assert("Expected startup_delay == 1", (args.startup_delay == 5.0));
+
+	PARSE_ARGV(1, &args, "catcierge", "--haar", "--roi");
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--roi", "1", "2", "3", "4");
+	mu_assert("Expected valid roi",
+		(args.roi.x == 1) &&
+		(args.roi.y == 2) &&
+		(args.roi.width == 3) &&
+		(args.roi.height == 4));
+
+	PARSE_ARGV(1, &args, "catcierge", "--haar", "--chuid");
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--chuid", "arne");
+	mu_assert("Expected chuid == arne",
+		args.chuid && !strcmp(args.chuid, "arne"));
+
+	#ifndef _WIN32
+	PARSE_ARGV(0, &args, "catcierge", "--haar", "--base_time", "2014-10-26T14:00:22");
+	catcierge_test_STATUS("%s", args.base_time);
+	mu_assert("Expected base_time == 2014-10-26T14:00:22",
+		args.base_time && !strcmp(args.base_time, "2014-10-26T14:00:22"));
+	PARSE_ARGV(1, &args, "catcierge", "--haar", "--base_time");
+	PARSE_ARGV(1, &args, "catcierge", "--haar", "--base_time", "notatimestamp");
+	#endif // _WIN32
+
+	// Template matcher setings.
+	{
+		PARSE_ARGV(0, &args, "catcierge", "--templ",
+			"--snout", "/the/snout/path/snout.png");
+		mu_assert("Unexpected snout path",
+			args.templ.snout_count == 1 &&
+			args.templ.snout_paths[0] &&
+			!strcmp(args.templ.snout_paths[0], "/the/snout/path/snout.png"));
+		PARSE_ARGV(1, &args, "catcierge", "--templ", "--snout");
+
+		PARSE_ARGV(0, &args, "catcierge", "--templ", "--match_flipped");
+		mu_assert("Expected match_flipped == 1", args.templ.match_flipped == 1);
+
+		PARSE_ARGV(0, &args, "catcierge", "--templ", "--threshold", "0.7");
+		mu_assert("Expected threshold == 0.7", args.templ.match_threshold == 0.7);
+		PARSE_ARGV(1, &args, "catcierge", "--templ", "--threshold");
+	}
+
+	// Haar matcher settings.
+	{
+		PARSE_ARGV(0, &args, "catcierge", "--haar",
+			"--cascade", "/path/to/catcierge.xml");
+		mu_assert("Expected cascade == /path/to/catcierge.xml",
+			args.haar.cascade &&
+			!strcmp(args.haar.cascade, "/path/to/catcierge.xml"));
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--cascade");
+
+		PARSE_ARGV(0, &args, "catcierge", "--haar",
+			"--min_size", "12x34");
+		mu_assert("Expected valid min size",
+			(args.haar.min_width == 12) && (args.haar.min_height == 34));
+
+		PARSE_ARGV(0, &args, "catcierge", "--haar",
+			"--min_size", "12x34");
+		mu_assert("Expected valid min size",
+			(args.haar.min_width == 12) && (args.haar.min_height == 34));
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--min_size");
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--min_size", "gaeokea");
+
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--prey_steps", "0");
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--prey_steps", "3");
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--prey_steps");
+		PARSE_ARGV(0, &args, "catcierge", "--haar", "--prey_steps", "2");
+		mu_assert("Expected prey_steps == 2", args.haar.prey_steps == 2);
+
+		PARSE_ARGV(0, &args, "catcierge", "--haar", "--no_match_is_fail");
+		mu_assert("Expected no_match_is_fail == 1",
+			args.haar.no_match_is_fail == 1);
+
+		PARSE_ARGV(0, &args, "catcierge", "--haar", "--equalize_histogram");
+		mu_assert("Expected equalize_histogram == 1",
+			args.haar.eq_histogram == 1);
+
+		PARSE_ARGV(0, &args, "catcierge", "--haar", "--in_direction", "left");
+		mu_assert("Expected in_direction == LEFT",
+			args.haar.in_direction == DIR_LEFT);
+		PARSE_ARGV(0, &args, "catcierge", "--haar", "--in_direction", "right");
+		mu_assert("Expected in_direction == RIGHT",
+			args.haar.in_direction == DIR_RIGHT);
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--in_direction", "bla");
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--in_direction");
+
+		PARSE_ARGV(0, &args, "catcierge", "--haar", "--prey_method", "adaptive");
+		mu_assert("Expected prey_method == PREY_METHOD_ADAPTIVE",
+			args.haar.prey_method == PREY_METHOD_ADAPTIVE);
+		PARSE_ARGV(0, &args, "catcierge", "--haar", "--prey_method", "normal");
+		mu_assert("Expected prey_method == PREY_METHOD_NORMAL",
+			args.haar.prey_method == PREY_METHOD_NORMAL);
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--prey_method", "bla");
+		PARSE_ARGV(1, &args, "catcierge", "--haar", "--prey_method");
+	}
+
+	PARSE_ARGV(1, &args, "catcierge", "--cmdhelp");
+
+	catcierge_args_destroy(&args);
+
 	return NULL;
 }
 
 int TEST_catcierge_args(int argc, char **argv)
 {
-	int ret = 0;
-	int i;
-	test_func funcs[] = { run_test1, run_test2 };
-	#define FUNC_COUNT (sizeof(funcs) / sizeof(test_func))
 	char *e = NULL;
-	catcierge_test_HEADLINE("TEST_catcierge_args");
+	int ret = 0;
 
-	CATCIERGE_RUN_TEST((e = run_parse_args_tests()),
-		"Run parse all args test",
-		"Parsed all args test", &ret);
+	CATCIERGE_RUN_TEST((e = run_catierge_add_options_test()),
+		"Run add options test",
+		"Add options test", &ret);
 
-	for (i = 0; i < FUNC_COUNT; i++)
-	{
-		if ((e = funcs[i]())) { catcierge_test_FAILURE("%s", e); ret = -1; }
-		else catcierge_test_SUCCESS("");
-	}
+	CATCIERGE_RUN_TEST((e = run_catcierge_parse_test()),
+		"Run parse test",
+		"Parse test", &ret);
 
 	CATCIERGE_RUN_TEST((e = run_parse_config_tests()),
 		"Run parse config test",

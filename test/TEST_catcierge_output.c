@@ -16,20 +16,46 @@ typedef struct output_test_s
 	const char *expected;
 } output_test_t;
 
-static int do_init_matcher(catcierge_grb_t *grb, const char *type)
+static char *do_init_matcher(catcierge_grb_t *grb, catcierge_matcher_type_t type)
 {
+	int ret = 0;
 	catcierge_args_t *args = &grb->args;
 
-	args->haar.cascade = CATCIERGE_CASCADE;
-	args->matcher = type;
-	args->matcher_type = !strcmp(type, "haar") ? MATCHER_HAAR : MATCHER_TEMPLATE;
+	{
+		char *argv[256] =
+		{
+			"catcierge",
+			NULL
+		};
+		int argc = get_argc(argv);
+
+		if (type == MATCHER_HAAR)
+		{
+			argv[argc++] = "--haar";
+			argv[argc++] = "--cascade";
+			argv[argc++] = CATCIERGE_CASCADE;
+		}
+		else
+		{
+			argv[argc++] = "--templ";
+			argv[argc++] = "--output";
+			argv[argc++] = "template_tests";
+			argv[argc++] = "--snout";
+			argv[argc++] = CATCIERGE_SNOUT1_PATH;
+			argv[argc++] = CATCIERGE_SNOUT2_PATH;
+		}
+
+		ret = catcierge_args_parse(args, argc, argv);
+		mu_assert("Failed to parse command line", ret == 0);
+	}
+
 
 	if (catcierge_matcher_init(&grb->matcher, catcierge_get_matcher_args(args)))
 	{
-		return -1;
+		return "Failed to init matcher";
 	}
 
-	return 0;
+	return NULL;
 }
 
 static char *run_validate_tests()
@@ -39,8 +65,11 @@ static char *run_validate_tests()
 	catcierge_args_t *args = &grb.args;
 	size_t i;
 	int ret;
+	char *e = NULL;
+	char *return_message = NULL;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
 	{
 		char *tests[] =
 		{
@@ -48,35 +77,34 @@ static char *run_validate_tests()
 			"Not terminated %match_success% after a valid %match1_path"
 		};
 
-		if (catcierge_output_init(o))
-		{
-			return "Failed to init output context";
-		}
+		ret = catcierge_output_init(o);
+		mu_assertf("Failed to init output context", ret == 0);
 
-		if (do_init_matcher(&grb, "haar"))
-		{
-			return "Failed to init matcher";
-		}
+		e = do_init_matcher(&grb, MATCHER_HAAR);
+		mu_assertf(e, !e);
 
 		for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
 		{
 			catcierge_test_STATUS("Test invalid template: \"%s\"", tests[i]);
 			ret = catcierge_output_validate(o, &grb, tests[i]);
 			catcierge_test_STATUS("Ret %d", ret);
-			mu_assert("Failed to invalidate template", ret == 0);
+			mu_assertf("Failed to invalidate template", ret == 0);
 			catcierge_test_SUCCESS("Success!");
 		}
 
+cleanup:
 		catcierge_output_destroy(o);
 		catcierge_matcher_destroy(&grb.matcher);
 	}
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
-	return NULL;
+	return return_message;
 }
 
 static char *run_generate_tests()
 {
+	int ret = 0;
 	catcierge_output_t o;
 	catcierge_grb_t grb;
 	catcierge_args_t *args = &grb.args;
@@ -84,6 +112,7 @@ static char *run_generate_tests()
 	char *str = NULL;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
 	{
 		#define _XSTR(s) _STR(s)
 		#define _STR(s) #s
@@ -157,7 +186,7 @@ static char *run_generate_tests()
 			{ "%match_group_id:-4%", NULL }
 		};
 
-		if (do_init_matcher(&grb, "haar"))
+		if (do_init_matcher(&grb, MATCHER_HAAR))
 		{
 			return "Failed to init matcher";
 		}
@@ -169,6 +198,7 @@ static char *run_generate_tests()
 		grb.args.ok_matches_needed = 4;
 		grb.args.max_consecutive_lockout_count = 20;
 		grb.args.consecutive_lockout_delay = 2.44;
+
 		strcpy(grb.match_group.matches[0].result.steps[0].path, "some/step/path");
 		grb.match_group.success_count = 3;
 		grb.match_group.final_decision = 1;
@@ -204,10 +234,8 @@ static char *run_generate_tests()
 
 		for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
 		{
-			if (catcierge_output_init(&o))
-			{
-				return "Failed to init output context";
-			}
+			ret = catcierge_output_init(&o);
+			mu_assert("Failed to init output context", !ret);
 			
 			str = catcierge_output_generate(&o, &grb, tests[i].input);
 			
@@ -224,10 +252,8 @@ static char *run_generate_tests()
 
 		for (i = 0; i < sizeof(fail_tests) / sizeof(fail_tests[0]); i++)
 		{
-			if (catcierge_output_init(&o))
-			{
-				return "Failed to init output context";
-			}
+			ret = catcierge_output_init(&o);
+			mu_assert("Failed to init output context", !ret);
 
 			str = catcierge_output_generate(&o, &grb, fail_tests[i].input);
 
@@ -243,6 +269,8 @@ static char *run_generate_tests()
 
 		catcierge_matcher_destroy(&grb.matcher);
 	}
+	catcierge_xfree(&args->haar.cascade);
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -256,13 +284,9 @@ static char *run_add_and_generate_tests()
 	memset(&grb.args, 0, sizeof(grb.args));
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
 	{
-		args->output_path = "template_tests";
-		args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
-		args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
-		args->templ.snout_count = 2;
-		
-		if (do_init_matcher(&grb, "template"))
+		if (do_init_matcher(&grb, MATCHER_TEMPLATE))
 		{
 			return "Failed to init matcher";
 		}
@@ -398,6 +422,7 @@ static char *run_add_and_generate_tests()
 		catcierge_output_destroy(o);
 		catcierge_matcher_destroy(&grb.matcher);
 	}
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -407,8 +432,10 @@ static char *run_load_templates_test()
 {
 	catcierge_output_t o;
 	catcierge_grb_t grb;
+	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
 	{
 		size_t i;
 		FILE *f;
@@ -564,6 +591,7 @@ static char *run_load_templates_test()
 
 		catcierge_output_destroy(&o);
 	}
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -576,19 +604,23 @@ static char *run_recursion_tests()
 	catcierge_args_t *args = &grb.args; 
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
 	{
-
 		if (catcierge_output_init(o))
 			return "Failed to init output context";
 
 		catcierge_test_STATUS("Try infinite output template recursion");
 		{
-			args->output_path = "arne";
-			args->match_output_path = "%output_path%/hej";
+			catcierge_xfree(&args->output_path);
+			args->output_path = strdup("arne");
+			catcierge_xfree(&args->match_output_path);
+			args->match_output_path = strdup("%output_path%/hej");
 
 			// These refer to each other = Recursion...
-			args->steps_output_path = "%match_output_path%/weise/%obstruct_output_path%";
-			args->obstruct_output_path = "%steps_output_path%/Mera jul!";
+			catcierge_xfree(&args->steps_output_path);
+			args->steps_output_path = strdup("%match_output_path%/weise/%obstruct_output_path%");
+			catcierge_xfree(&args->obstruct_output_path);
+			args->obstruct_output_path = strdup("%steps_output_path%/Mera jul!");
 
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
@@ -615,8 +647,13 @@ static char *run_recursion_tests()
 			catcierge_test_STATUS("Failed on infinite recursion template as expected\n");
 		}
 
+		catcierge_xfree(&args->output_path);
+		catcierge_xfree(&args->match_output_path);
+		catcierge_xfree(&args->steps_output_path);
+		catcierge_xfree(&args->obstruct_output_path);
 		catcierge_output_destroy(o);
 	}
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -630,6 +667,7 @@ static char *run_grow_template_array_test()
 	catcierge_args_t *args = &grb.args; 
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
 	{
 		if (catcierge_output_init(o))
 			return "Failed to init output context";
@@ -650,6 +688,7 @@ static char *run_grow_template_array_test()
 
 		catcierge_output_destroy(o);
 	}
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

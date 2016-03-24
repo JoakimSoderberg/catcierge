@@ -150,20 +150,31 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 {
 	char *e = NULL;
 	size_t i;
+	int ret = 0;
 	catcierge_grb_t grb;
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
 	grb.running = 1;
 
-	args->saveimg = 0;
+	{
+		char *argv[256] =
+		{
+			"catcierge",
+			"--lockout", "2",
+			"--templ",
+			"--match_flipped",
+			"--threshold", "0.8",
+			"--snout", CATCIERGE_SNOUT1_PATH, CATCIERGE_SNOUT2_PATH,
+			NULL
+		};
+		int argc = get_argc(argv);
+
+		ret = catcierge_args_parse(args, argc, argv);
+		mu_assert("Failed to parse command line", ret == 0);
+	}
 	args->lockout_method = lockout_method;
-	args->lockout_time = 2;
-	args->matcher = "template";
-	args->matcher_type = MATCHER_TEMPLATE;
-	args->templ.match_flipped = 1;
-	args->templ.match_threshold = 0.8;
-	set_default_test_snouts(args);
 
 	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
 	{
@@ -206,6 +217,7 @@ static char *run_failure_tests(int obstruct, catcierge_lockout_method_t lockout_
 	}
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -221,21 +233,29 @@ static char *run_success_tests(int obstruct)
 {
 	int i;
 	int j;
+	int ret = 0;
 	catcierge_grb_t grb;
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
 	grb.running = 1;
 
-	args->matcher = "template";
-	args->matcher_type = MATCHER_TEMPLATE;
-	args->saveimg = 0;
-	args->templ.match_flipped = 1;
-	args->templ.match_threshold = 0.8;
-	args->templ.snout_paths[0] = CATCIERGE_SNOUT1_PATH;
-	args->templ.snout_count++;
-	args->templ.snout_paths[1] = CATCIERGE_SNOUT2_PATH;
-	args->templ.snout_count++;
+	{
+		char *argv[256] =
+		{
+			"catcierge",
+			"--templ",
+			"--match_flipped",
+			"--threshold", "0.8",
+			"--snout", CATCIERGE_SNOUT1_PATH, CATCIERGE_SNOUT2_PATH,
+			NULL
+		};
+		int argc = get_argc(argv);
+
+		ret = catcierge_args_parse(args, argc, argv);
+		mu_assert("Failed to parse command line", ret == 0);
+	}
 
 	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->templ))
 	{
@@ -286,6 +306,7 @@ static char *run_success_tests(int obstruct)
 	}
 
 	catcierge_template_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

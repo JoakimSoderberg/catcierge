@@ -1,7 +1,7 @@
 //
 // This file is part of the Catcierge project.
 //
-// Copyright (c) Joakim Soderberg 2013-2014
+// Copyright (c) Joakim Soderberg 2013-2015
 //
 //    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -46,6 +46,8 @@ typedef struct catcierge_matcher_args_s
 typedef struct catcierge_matcher_s
 {
 	catcierge_matcher_type_t type;
+	char *name;
+	char *short_name;
 	int debug;
 	catcierge_match_func_t match;
 	catcierge_decide_func_t decide;

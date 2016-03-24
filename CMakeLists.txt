@@ -29,25 +29,41 @@ set(CATCIERGE_VERSION_PATCH 0)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
+option(CATCIERGE_WITH_MEMCHECK "Run tests with memory check using valgrind" ON)
 
 if (UNIX)
-	option(CATCIERGE_WITH_MEMCHECK "Run tests with memory check using valgrind" ON)
 	option(WITH_RFID "Build support for the serial port communication with RFID readers" ON)
-	option(RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." ON)
+	option(FORCE_RPI "Build stuff for raspberry parts. Otherwise only the catcierge stuff is built." OFF)
 	option(CATCIERGE_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" OFF)
 	option(CATCIERGE_COVERALLS "Turn on generating coverage data for http://coveralls.io/. This only works when run on Travis-CI." OFF)
 	option(CATCIERGE_COVERALLS_UPLOAD "If CATCIERGE_COVERALLS is set, upload the generated JSON." ON)
 	set(RPI_USERLAND "${PROJECT_SOURCE_DIR}/rpi_userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
+	option(CATCIERGE_GIT_HASH_INSTALL "Include the git hash in the installer name" ON)
 endif()
 
 option(WITH_TEST_PROGRAMS "Turns on compilation of tester programs" ON)
 option(WITH_UNIT_TESTS "Turn on compilation of unit test" ON)
 option(WITH_ZMQ "Compile ZMQ support" OFF)
 option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
+set(CARGO_DEBUG "" CACHE STRING "Debug level for Cargo command line parser")
+set(CATCIERGE_CONF_PATH "/etc/catcierge.cfg" CACHE FILEPATH "The default location for the config file")
+
+#
+# Piborg Picoborg pins.
+# (For turning on Solenoids and other 12V-20V appliances.)
+# http://www.piborg.com/picoborg
+#
+# Picoborg pin 1 => GPIO4
+# Picoborg pin 2 => GPIO18
+# Picoborg pin 3 => GPIO8
+# Picoborg pin 4 => GPIO7
+#
+set(CATCIERGE_LOCKOUT_GPIO "4" CACHE STRING "The default GPIO pin to use for lockout")
+set(CATCIERGE_BACKLIGHT_GPIO "18" CACHE STRING "The default GPIO pin to use for turning on the backlight")
 
 # Turn on coverage if we're running coveralls!
 if (CATCIERGE_COVERALLS)
-	if (NOT "$ENV{TRAVIS}" STREQUAL "true")
+	if (NOT "$ENV{TRAVIS}" STREQUAL "true" AND CATCIERGE_COVERALLS_UPLOAD)
 		message(WARNING "CATCIERGE_COVERALLS turned on but not running on Travis-CI. Upload will fail! Set CATCIERGE_COVERALLS_UPLOAD=OFF to turn off this warning")
 	endif()
 
@@ -58,10 +74,29 @@ if (CATCIERGE_GUI_TESTS)
 	add_definitions(-DCATCIERGE_GUI_TESTS)
 endif()
 
+if (CARGO_DEBUG)
+	message("CARGO_DEBUG=${CARGO_DEBUG}")
+	add_definitions(-DCARGO_DEBUG=${CARGO_DEBUG})
+endif()
+
 # Set some nicer output dirs.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+
+include(FindRaspberryPi)
+CHECK_IS_RASPBERRY_PI(RPI RPI_MODEL)
+
+if (RPI)
+	message("Detected ${RPI_MODEL}")
+else()
+	if (FORCE_RPI)
+		message("Raspberry Pi compilation FORCED")
+		set(RPI 1)
+	else()
+		message("Not a Raspberry Pi")
+	endif()
+endif()
 
 find_package(Git)
 
@@ -151,7 +186,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/catcierge_config.h.in ${CMAKE_CUR
 include_directories(
 	${PROJECT_SOURCE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
-	${PROJECT_SOURCE_DIR}/src/sha1)
+	${PROJECT_SOURCE_DIR}/src/sha1
+	${PROJECT_SOURCE_DIR}/src/cargo
+	${PROJECT_SOURCE_DIR}/src/alini)
 
 if (NOT RPI AND NOT OpenCV_DIR)
 message("-----------------------------------------------------------------")
@@ -164,77 +201,25 @@ message("This file can be found in the build tree of OpenCV")
 message("-----------------------------------------------------------------")
 endif()
 
-# Lazy solution for linking against OpenCV on Raspbian.
-# Simply hard code the paths to the libs...
 #
 # This can be overridden by specifying your own OpenCV build
 # using -DOpenCV_DIR=<path>
 # Where <path> is the directory containing OpenCVConfig.cmake
 # 
-if (RPI AND NOT OpenCV_DIR)
-	# NOTE! The order below is important!
-	set(OpenCV_LIBS
-		/usr/lib/libopencv_highgui.a
-		/usr/lib/libopencv_objdetect.a
-		/usr/lib/libopencv_imgproc.a
-		/usr/lib/libopencv_core.a
-		/usr/lib/libopencv_calib3d.a
-		/usr/lib/libopencv_features2d.a
-		/usr/lib/libopencv_ml.a
-		/usr/lib/libopencv_contrib.a
-		/usr/lib/libopencv_flann.a
-		#/usr/lib/libopencv_gpu.a
-		/usr/lib/libopencv_legacy.a
-		/usr/lib/libopencv_video.a
-		)
+if (WIN32)
+	# We link statically on windows so we don't have to copy DLLs around.
+	option(LINK_STATIC "Link eveything static such as OpenCV. Will produce a single exe (big since it contains OpenCV and more). Default on" ON)
 
-	set(OPENEXR_LIBRARIES
-		/usr/lib/libIlmImf.a
-		/usr/lib/libIlmImf.so
-		/usr/lib/libHalf.so.6
-		)
-
-	set(JASPER_LIBRARIES
-		/usr/lib/arm-linux-gnueabihf/libjasper.a
-		/usr/lib/arm-linux-gnueabihf/libjasper.so
-		/usr/lib/arm-linux-gnueabihf/libjasper.so.1
-		)
-
-	find_package(ZLIB)
-	find_package(JPEG)
-	find_package(TIFF)
-	find_package(GTK2)
-	find_package(PNG)
-	find_package(Threads)
-
-	set(LIBS 
-		${JASPER_LIBRARIES}
-		${OPENEXR_LIBRARIES}
-		${GTK2_LIBRARIES}
-		${TIFF_LIBRARIES}
-		${JPEG_LIBRARIES}
-		${ZLIB_LIBRARIES}
-		${PNG_LIBRARIES}
-		${OpenCV_LIBS}
-		stdc++ 
-		rt
-		${CMAKE_THREAD_LIBS_INIT}
-		)
-else()
-	if (WIN32)
-		# We link statically on windows so we don't have to copy DLLs around.
-		option(LINK_STATIC "Link eveything static such as OpenCV. Will produce a single exe (big since it contains OpenCV and more). Default on" ON)
-
-		if (LINK_STATIC)
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-			set(OpenCV_STATIC ON)
-		endif()
+	if (LINK_STATIC)
+		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+		set(OpenCV_STATIC ON)
 	endif()
-
-	find_package(OpenCV REQUIRED)
-	set(LIBS ${OpenCV_LIBS})
 endif()
+
+find_package(Threads)
+find_package(OpenCV REQUIRED)
+set(LIBS ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 # Raspicam lib.
 if (RPI)
@@ -308,7 +293,9 @@ set(LIB_SRC
 	${PROJECT_SOURCE_DIR}/src/catcierge_args.c
 	${PROJECT_SOURCE_DIR}/src/catcierge_timer.c
 	${PROJECT_SOURCE_DIR}/src/catcierge_fsm.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_output.c)
+	${PROJECT_SOURCE_DIR}/src/catcierge_output.c
+	${PROJECT_SOURCE_DIR}/src/cargo/cargo.c
+	${PROJECT_SOURCE_DIR}/src/cargo_ini.c)
 
 if (WIN32)
 	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/src/win32/gettimeofday.c)
@@ -326,7 +313,7 @@ endif()
 add_library(catcierge ${LIB_SRC})
 target_link_libraries(catcierge ${LIBS})
 
-set(CATCIERGE_PROGRAMS catcierge_grabber2)
+set(CATCIERGE_PROGRAMS catcierge_grabber)
 
 if (WITH_TEST_PROGRAMS)
 	list(APPEND CATCIERGE_PROGRAMS
@@ -355,6 +342,112 @@ foreach (PROGRAM_NAME ${CATCIERGE_PROGRAMS})
 	endif()
 endforeach()
 
+#
+# Generate systemd init files.
+#
+set(CATCIERGE_SERVICE_AFTER "")
+if (RPI)
+	set(CATCIERGE_GPIO_SCRIPT_PATH "${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.sh")
+	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge_rpi_gpio.sh.in"
+				   "${CATCIERGE_GPIO_SCRIPT_PATH}")
+
+	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge_rpi_gpio.service.in"
+				   "${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.service")
+
+	# This is used in catcierge.service.in so that the gpio is always
+	# setup before the catcierge service on RPI.
+	set(CATCIERGE_SERVICE_AFTER "After=catcierge_rpi_gpio")
+endif()
+
+configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge.service.in"
+			   "${PROJECT_BINARY_DIR}/catcierge.service")
+
+#
+# Install targets
+#
+set(CATCIERGE_EXTRA_DIR "share/catcierge")
+set(SYSTEMD_CONFIG_DIR "/lib/systemd/system")
+
+install(TARGETS ${CATCIERGE_PROGRAMS}
+		RUNTIME DESTINATION "bin/" COMPONENT Runtime)
+
+install(FILES
+		"${PROJECT_SOURCE_DIR}/extra/catcierge.xml"
+		"${PROJECT_SOURCE_DIR}/extra/catcierge-twitter.py"
+		DESTINATION "${CATCIERGE_EXTRA_DIR}/" COMPONENT Runtime)
+
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/extra/templates/"
+		DESTINATION "${CATCIERGE_EXTRA_DIR}/templates/" COMPONENT Runtime
+		FILES_MATCHING PATTERN "*.json")
+
+install(FILES
+		"${PROJECT_BINARY_DIR}/catcierge.service"
+		DESTINATION "${SYSTEMD_CONFIG_DIR}/" COMPONENT Runtime)
+
+if (RPI)
+	install(FILES
+		"${CATCIERGE_GPIO_SCRIPT_PATH}"
+		DESTINATION "${CATCIERGE_EXTRA_DIR}/" COMPONENT Runtime)
+
+	install(FILES
+		"${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.service"
+		DESTINATION "${SYSTEMD_CONFIG_DIR}/" COMPONENT Runtime)
+endif()
+
+#
+# Packaging details.
+#
+if (UNIX)
+	set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE.md")
+
+	set(CPACK_PACKAGE_VERSION_MAJOR "${CATCIERGE_VERSION_MAJOR}")
+	set(CPACK_PACKAGE_VERSION_MINOR "${CATCIERGE_VERSION_MINOR}")
+	set(CPACK_PACKAGE_VERSION_PATCH "${CATCIERGE_VERSION_PATCH}")
+	set(CPACK_PACKAGE_VENDOR "Joakim Soderberg")
+	set(CPACK_PACKAGE_CONTACT "https://github.com/JoakimSoderberg/catcierge")
+	set(CPACK_GENERATOR DEB;TGZ)
+
+	set(CPACK_PACKAGE_NAME "catcierge")
+	set(LINUX_PACKAGE_DESCRIPTION "Catcierge, intelligent cat door. https://github.com/JoakimSoderberg/catcierge")
+
+	set(CPACK_PACKAGE_FILE_NAME "catcierge_${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
+
+	if (CATCIERGE_GIT_HASH_INSTALL AND GIT_HASH_SHORT)
+		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${GIT_HASH_SHORT}")
+	endif()
+
+	set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+	set(CPACK_SET_DESTDIR ON)
+
+	if (LINUX)
+		# Find the correct package architecture based on the platform we're building on.
+		find_program(DPKG_CMD dpkg)
+		if(NOT DPKG_CMD)
+			message(WARNING "Debian architecture: Can not find dpkg in your path, default to i386.")
+			set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE i386)
+		else()
+			execute_process(COMMAND "${DPKG_CMD}" --print-architecture
+				OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_ARCHITECTURE
+				OUTPUT_STRIP_TRAILING_WHITESPACE
+			)
+		endif()
+
+		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
+
+		set(CPACK_DEBIAN_PACKAGE_DEPENDS "libopencv-dev libopenexr-dev")
+		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "joakim.soderberg@netrounds.com")
+		set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${LINUX_PACKAGE_DESCRIPTION}")
+		set(CPACK_DEBIAN_PACKAGE_SECTION "unknown")
+		set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
+	else()
+		# Non Linux targets use the system processor instead of the debian architecture in the filename.
+		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CMAKE_SYSTEM_PROCESSOR}")
+	endif()
+
+	# Needs to be last.
+	include(CPack)
+endif()
+
 ################################## Tests ##################################
 if (WITH_UNIT_TESTS)
 	set(REGRESS_SRC ${LIB_SRC})
@@ -368,7 +461,7 @@ message("------------------------------------------------------------------")
 message(" Settings:")
 message("------------------------------------------------------------------")
 message("                                 Version: v${CATCIERGE_VERSION_STR}")
-message("          Built for Raspberry pi (-DRPI): ${RPI}")
+message("                  Built for Raspberry pi: ${RPI}")
 message("  Raspberry pi userland (-DRPI_USERLAND): ${RPI_USERLAND}")
 message("              RFID support (-DWITH_RFID): ${WITH_RFID}")
 message("          Run valgrind memcheck on tests ")
@@ -384,11 +477,5 @@ message("-----------------------------------------------------------------")
 
 if (GIT_STATUS)
 	message(WARNING "\nWarning build made from uncommited changes!\n'${GIT_STATUS_OUTPUT}'")
-endif()
-
-if (RPI)
-message(" If compiling on another platform than raspberry pi, make sure ")
-message(" you add -DRPI=OFF to the command line !!!")
-message("-----------------------------------------------------------------")
 endif()
 

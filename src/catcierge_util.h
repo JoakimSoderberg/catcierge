@@ -1,7 +1,7 @@
 //
 // This file is part of the Catcierge project.
 //
-// Copyright (c) Joakim Soderberg 2013-2014
+// Copyright (c) Joakim Soderberg 2013-2015
 //
 //    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -38,5 +38,7 @@ void catcierge_free_list(char **list, size_t count);
 void catcierge_run(char *command);
 const char *catcierge_path_sep();
 char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen);
+
+void catcierge_xfree(void *p);
 
 #endif // __CATCIERGE_UTIL_H__

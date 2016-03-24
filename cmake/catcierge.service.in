@@ -1,0 +1,10 @@
+[Unit]
+Description=Catcierge automatic cat door awesomeness
+@CATCIERGE_SERVICE_AFTER@
+
+[Service]
+ExecStart=@CMAKE_INSTALL_PREFIX@/bin/catcierge_grabber
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

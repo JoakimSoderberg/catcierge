@@ -13,11 +13,16 @@
 
 static char *run_tests()
 {
-	size_t i;
+	int ret = 0;
 	catcierge_grb_t grb;
 	catcierge_args_t *args = &grb.args;
 
-	catcierge_grabber_init(&grb);
+	ret = catcierge_grabber_init(&grb);
+	mu_assert("Grabber init failed", ret == 0);
+
+	ret = catcierge_args_init(args, "testing");
+	mu_assert("Args init failed", ret == 0);
+
 	catcierge_setup_camera(&grb);
 	#ifdef WITH_ZMQ
 	catcierge_zmq_init(&grb);
@@ -50,8 +55,8 @@ static char *run_tests()
 	sleep(1);
 	catcierge_print_spinner(&grb);
 
-	args->do_lockout_cmd = "";
-	args->do_unlock_cmd = "";
+	args->do_lockout_cmd = strdup("");
+	args->do_unlock_cmd = strdup("");
 	catcierge_do_lockout(&grb);
 	catcierge_do_unlock(&grb);
 	args->new_execute = 1;
@@ -69,6 +74,7 @@ static char *run_tests()
 	#ifdef WITH_ZMQ
 	catcierge_zmq_destroy(&grb);
 	#endif
+	catcierge_args_destroy(&grb.args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

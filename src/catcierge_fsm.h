@@ -1,4 +1,21 @@
-
+//
+// This file is part of the Catcierge project.
+//
+// Copyright (c) Joakim Soderberg 2013-2015
+//
+//    Catcierge is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    Catcierge is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
+//
 #ifndef __CATCIERGE_FSM_H__
 #define __CATCIERGE_FSM_H__
 
@@ -22,19 +39,6 @@
 #ifdef WITH_ZMQ
 #include <czmq.h>
 #endif
-
-//
-// Piborg Picoborg pins.
-// (For turning on Solenoids and other 12V-20V appliances.)
-// http://www.piborg.com/picoborg
-//
-#define PIBORG1	4
-#define PIBORG2	18
-#define PIBORG3	8
-#define PIBORG4	7
-
-#define DOOR_PIN		PIBORG1		// Pin for the solenoid that locks the door.
-#define BACKLIGHT_PIN	PIBORG2		// Pin that turns on the backlight.
 
 // TODO: Move this to catcierge_types.h instead
 #ifdef WITH_RFID

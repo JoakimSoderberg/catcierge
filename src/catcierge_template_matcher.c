@@ -1,7 +1,7 @@
 //
 // This file is part of the Catcierge project.
 //
-// Copyright (c) Joakim Soderberg 2013-2014
+// Copyright (c) Joakim Soderberg 2013-2015
 //
 //    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ int catcierge_template_matcher_init(catcierge_matcher_t **octx,
 	CvSize snout_size;
 	CvSize matchres_size;
 	IplImage *snout_prep = NULL;
-	const char **snout_paths = NULL;
+	char **snout_paths = NULL;
 	int snout_count;
 	catcierge_template_matcher_t *ctx = NULL;
 	catcierge_template_matcher_args_t *args = (catcierge_template_matcher_args_t *)oargs;
@@ -112,6 +112,8 @@ int catcierge_template_matcher_init(catcierge_matcher_t **octx,
 		return -1;
 
 	ctx->super.type = MATCHER_TEMPLATE;
+	ctx->super.name = "Template";
+	ctx->super.short_name = "template";
 	ctx->args = args;
 
 	snout_paths = args->snout_paths;
@@ -395,6 +397,56 @@ double catcierge_template_matcher_match(void *octx,
 	return result->result;
 }
 
+void catcierge_template_matcher_args_destroy(catcierge_template_matcher_args_t *args)
+{
+	int i;
+	assert(args);
+
+	for (i = 0; i < args->snout_count; i++)
+	{
+		catcierge_xfree(&args->snout_paths[i]);
+	}
+
+	catcierge_xfree(&args->snout_paths);
+	args->snout_count = 0;
+}
+
+int catcierge_template_matcher_add_options(cargo_t cargo,
+										catcierge_template_matcher_args_t *args)
+{
+	int ret = 0;
+	assert(cargo);
+	assert(args);
+
+	ret |= cargo_add_group(cargo, 0,
+			"templ", "Template matcher settings",
+			"Settings for when --template_matcher is used.\n"
+			"Note that it is recommended you use the --haar_matcher instead.");
+
+	ret |= cargo_add_option(cargo, 0,
+		"<templ> --snout",
+		"Path to the snout images to use. If more than "
+		"one path is given, the average match result is used.",
+		"[s]+", &args->snout_paths, &args->snout_count);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<templ> --threshold",
+			NULL,
+			"d", &args->match_threshold);
+	ret |= cargo_set_option_description(cargo,
+			"--threshold",
+			"Match threshold as a value between 0.0 and 1.0. "
+			"Default %.1f\n", DEFAULT_MATCH_THRESH);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<templ> --match_flipped",
+			"Match a flipped version of the snout "
+			"(don't consider going out a failed match). Default on.",
+			"b", &args->match_flipped);
+
+	return ret;
+}
+
 void catcierge_template_matcher_usage()
 {
 	fprintf(stderr, " --snout <paths>        Path to the snout images to use. If more than \n");
@@ -423,7 +475,7 @@ void catcierge_template_output_print_usage()
 
 	for (i = 0; i < sizeof(templ_vars) / sizeof(templ_vars[0]); i++)
 	{
-		fprintf(stderr, "%20s   %s\n", templ_vars[i].name, templ_vars[i].description);
+		fprintf(stderr, "%30s   %s\n", templ_vars[i].name, templ_vars[i].description);
 	}
 }
 
@@ -532,7 +584,7 @@ void catcierge_template_matcher_print_settings(catcierge_template_matcher_args_t
 	assert(args);
 
 	printf("Template Matcher:\n");
-	printf(" Snout image(s): %s\n", args->snout_paths[0]);
+	printf(" Snout image(s): %s\n", (args->snout_count > 0) ? args->snout_paths[0] : "not set");
 	for (i = 1; i < args->snout_count; i++)
 	{
 		printf("                 %s\n", args->snout_paths[i]);

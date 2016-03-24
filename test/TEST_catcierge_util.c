@@ -44,7 +44,7 @@ static char *run_make_path_tests()
 	#ifdef _WIN32
 	// Because you cannot use the "\\?\" prefix with a relative path,
 	// relative paths are always limited to a total of MAX_PATH characters.
-	https ://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
 	#define LONG "loooooooooooooooooooooooooooooong"
 	#else
 	#define LONG "loooooooooooooooooooooooooooooooooooooooooooooooooooong"

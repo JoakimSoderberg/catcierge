@@ -1,4 +1,21 @@
-
+//
+// This file is part of the Catcierge project.
+//
+// Copyright (c) Joakim Soderberg 2013-2015
+//
+//    Catcierge is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    Catcierge is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
+//
 #include <signal.h>
 #include "catcierge_config.h"
 #include "catcierge_args.h"
@@ -167,8 +184,7 @@ void short_usage(const char *progname)
 
 int main(int argc, char **argv)
 {
-	catcierge_args_t *args;
-	args = &grb.args;
+	catcierge_args_t *args = &grb.args;
 
 	fprintf(stderr, "\nCatcierge Grabber v" CATCIERGE_VERSION_STR " (" CATCIERGE_GIT_HASH_SHORT "");
 
@@ -186,6 +202,7 @@ int main(int argc, char **argv)
 	#endif
 	fprintf(stderr, "\n");
 
+	// TODO: Enable specifying pid path on command line.
 	#ifndef _WIN32
 	pid_fd = create_pid_file(argv[0], PID_PATH, FD_CLOEXEC);
 	#endif
@@ -196,34 +213,23 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	// Get program settings.
+	if (catcierge_args_init(args, argv[0]))
 	{
-		if (catcierge_parse_config(args, argc, argv))
-		{
-			short_usage(argv[0]);
-			return -1;
-		}
-
-		if (catcierge_parse_cmdargs(args, argc, argv, NULL, NULL))
-		{
-			short_usage(argv[0]);
-			return -1;
-		}
-
-		if (args->nocolor)
-		{
-			catcierge_nocolor = 1;
-		}
-
-		// TODO: Add verify function for settings. Make sure we have everything we need...
-		if (catcierge_validate_settings(args))
-		{
-			short_usage(argv[0]);
-			return -1;
-		}
-
-		catcierge_print_settings(args);
+		fprintf(stderr, "Failed to init args\n");
+		return -1;
 	}
+
+	if (catcierge_args_parse(args, argc, argv))
+	{
+		return -1;
+	}
+
+	if (args->nocolor)
+	{
+		catcierge_nocolor = 1;
+	}
+
+	catcierge_print_settings(args);
 
 	setup_sig_handlers();
 
@@ -250,7 +256,7 @@ int main(int argc, char **argv)
 
 	if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))
 	{
-		CATERR("Failed to init %s matcher\n", grb.args.matcher);
+		CATERR("Failed to init %s matcher\n", grb.matcher->name);
 		return -1;
 	}
 
@@ -320,6 +326,7 @@ int main(int argc, char **argv)
 	catcierge_zmq_destroy(&grb);
 	#endif
 	catcierge_grabber_destroy(&grb);
+	catcierge_args_destroy(&grb.args);
 
 	if (grb.log_file)
 	{

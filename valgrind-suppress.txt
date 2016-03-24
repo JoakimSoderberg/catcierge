@@ -208,3 +208,71 @@
    fun:_ZN2cv9thresholdERKNS_11_InputArrayERKNS_12_OutputArrayEddi
    fun:cvThreshold
 }
+
+{
+   libtbb_false_positive4
+   Memcheck:Leak
+   #match-leak-kinds: possible
+   fun:_Znam
+   obj:/usr/lib/libtbb.so.2
+   obj:/usr/lib/libtbb.so.2
+   obj:/usr/lib/libtbb.so.2
+   obj:/usr/lib/libtbb.so.2
+   fun:_ZNK3tbb8internal32allocate_root_with_context_proxy8allocateEm
+   fun:_ZN2cv13parallel_for_ERKNS_5RangeERKNS_16ParallelLoopBodyEd
+   fun:_ZN2cv12CvtColorLoopINS_8RGB2GrayIhEEEEvRKNS_3MatERS3_RKT_
+   fun:_ZN2cv8cvtColorERKNS_11_InputArrayERKNS_12_OutputArrayEii
+   fun:cvCvtColor
+}
+
+{
+   libtbb_false_positive5
+   Memcheck:Leak
+   #match-leak-kinds: possible
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_2.2.5
+   obj:/usr/lib/libtbb.so.2
+   obj:/usr/lib/libtbb.so.2
+   obj:/usr/lib/x86_64-linux-gnu/libopencv_core.so.2.4.8
+   obj:/usr/lib/libtbb.so.2
+   obj:/usr/lib/libtbb.so.2
+   fun:_ZN2cv13parallel_for_ERKNS_5RangeERKNS_16ParallelLoopBodyEd
+   fun:_ZN2cv17CascadeClassifier17detectSingleScaleERKNS_3MatEiNS_5Size_IiEEiidRSt6vectorINS_5Rect_IiEESaIS8_EERS6_IiSaIiEERS6_IdSaIdEEb
+   fun:_ZN2cv17CascadeClassifier16detectMultiScaleERKNS_3MatERSt6vectorINS_5Rect_IiEESaIS6_EERS4_IiSaIiEERS4_IdSaIdEEdiiNS_5Size_IiEESH_b
+   fun:_ZN2cv17CascadeClassifier16detectMultiScaleERKNS_3MatERSt6vectorINS_5Rect_IiEESaIS6_EEdiiNS_5Size_IiEESB_
+}
+
+{
+   libtbb_false_positivte6
+   Memcheck:Leak
+   #match-leak-kinds: possible
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_2.2.5
+   obj:/usr/lib/libtbb.so.2
+   obj:/usr/lib/libtbb.so.2
+   obj:/usr/lib/libtbb.so.2
+   fun:start_thread
+   fun:clone
+}
+
+{
+   highgui_false_positive08
+   Memcheck:Leak
+   #match-leak-kinds: possible
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libopencv_highgui.so.2.4.8
+}
+
+{
+   imgproc_false_positive
+   Memcheck:Leak
+   #match-leak-kinds: possible
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libopencv_imgproc.so.2.4.8
+}

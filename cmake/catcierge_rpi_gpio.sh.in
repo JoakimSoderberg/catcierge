@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Cat door
+echo "Catcierge lockout pin GPIO@CATCIERGE_LOCKOUT_GPIO@"
+echo @CATCIERGE_LOCKOUT_GPIO@ > /sys/class/gpio/export
+echo out > /sys/class/gpio/gpio@CATCIERGE_LOCKOUT_GPIO@/direction
+echo 0 > /sys/class/gpio/gpio@CATCIERGE_LOCKOUT_GPIO@/value
+
+# Backlight pin
+echo "Catcierge backlight pin GPIO@CATCIERGE_BACKLIGHT_GPIO@"
+echo @CATCIERGE_BACKLIGHT_GPIO@ > /sys/class/gpio/export
+echo out > /sys/class/gpio/gpio@CATCIERGE_BACKLIGHT_GPIO@/direction
+echo 0 > /sys/class/gpio/gpio@CATCIERGE_BACKLIGHT_GPIO@/value
+
+echo "Catcierge GPIO ports setup"

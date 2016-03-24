@@ -1,4 +1,21 @@
-
+//
+// This file is part of the Catcierge project.
+//
+// Copyright (c) Joakim Soderberg 2013-2015
+//
+//    Catcierge is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    Catcierge is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
+//
 #include <assert.h>
 #include "catcierge_haar_matcher.h"
 #include "catcierge_haar_wrapper.h"
@@ -6,6 +23,7 @@
 #include "catcierge_util.h"
 #include "catcierge_log.h"
 #include <opencv2/core/core_c.h>
+#include "cargo.h"
 
 int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 		catcierge_matcher_args_t *oargs)
@@ -24,17 +42,19 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 	ctx = (catcierge_haar_matcher_t *)*octx;
 
 	ctx->super.type = MATCHER_HAAR;
+	ctx->super.name = "Haar Cascade";
+	ctx->super.short_name = "haar";
 
 	if (!args->cascade)
 	{
-		CATERR("Haar matcher: No cascade xml specified.\n");
+		CATERR("Haar matcher: No cascade xml specified. Use --cascade\n");
 		return -1;
 	}
 
 	if (!(ctx->cascade = cv2CascadeClassifier_create()))
 	{
 		CATERR("Failed to create cascade classifier.\n");
-		return -1;
+		goto opencv_error;
 	}
 
 	if (cv2CascadeClassifier_load(ctx->cascade, args->cascade))
@@ -45,22 +65,22 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 
 	if (!(ctx->storage = cvCreateMemStorage(0)))
 	{
-		return -1;
+		goto opencv_error;
 	}
 
 	if (!(ctx->kernel2x2 = cvCreateStructuringElementEx(2, 2, 0, 0, CV_SHAPE_RECT, NULL)))
 	{
-		return -1;
+		goto opencv_error;
 	}
 
 	if (!(ctx->kernel3x3 = cvCreateStructuringElementEx(3, 3, 0, 0, CV_SHAPE_RECT, NULL)))
 	{
-		return -1;
+		goto opencv_error;
 	}
 
 	if (!(ctx->kernel5x1 = cvCreateStructuringElementEx(5, 1, 0, 0, CV_SHAPE_RECT, NULL)))
 	{
-		return -1;
+		goto opencv_error;
 	}
 
 	ctx->args = args;
@@ -70,6 +90,9 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 	ctx->super.translate = catcierge_haar_matcher_translate;
 
 	return 0;
+opencv_error:
+	CATERR("OpenCV error\n");
+	return -1;
 }
 
 void catcierge_haar_matcher_destroy(catcierge_matcher_t **octx)
@@ -612,6 +635,172 @@ int catcierge_haar_matcher_decide(void *ctx, match_group_t *mg)
 	return mg->success;
 }
 
+static int parse_in_direction(cargo_t ctx, void *user, const char *optname,
+                                 	int argc, char **argv)
+{
+	direction_t *in_dir = (direction_t *)user;
+	char *d = NULL;
+
+	if (argc < 1)
+	{
+		cargo_set_error(ctx, 0,
+			"%s requires 1 argument", optname);
+		return -1;
+	}
+
+	d = argv[0];
+
+	if (!strcasecmp(d, "left"))
+	{
+		*in_dir = DIR_LEFT;
+	}
+	else if (!strcasecmp(d, "right"))
+	{
+		*in_dir = DIR_RIGHT;
+	}
+	else
+	{
+		cargo_set_error(ctx, 0,
+			"Invalid direction \"%s\", must be \"left\" or \"right\" "
+			"for option %s.", d, optname);
+		return -1;
+	}
+
+	return 1;
+}
+
+static int parse_width_height(cargo_t ctx, void *user, const char *optname,
+                              int argc, char **argv)
+{
+	catcierge_haar_matcher_args_t *args = (catcierge_haar_matcher_args_t *)user;
+	int sret = 0;
+
+	if (argc < 1)
+	{
+		cargo_set_error(ctx, 0,
+			"%s requires 1 argument", optname);
+		return -1;
+	}
+
+	sret = sscanf(argv[0], "%dx%d", &args->min_width, &args->min_height);
+
+	if ((sret == EOF) || (sret != 2))
+	{
+		cargo_set_error(ctx, 0,
+			"Cannot parse %s value \"%s\" expected format: WxH\n", optname, argv[0]);
+		return -1;
+	}
+
+	return 1;
+}
+
+static int parse_prey_method(cargo_t ctx, void *user, const char *optname,
+                             int argc, char **argv)
+{
+	catcierge_haar_prey_method_t *pm = (catcierge_haar_prey_method_t *)user;
+	char *d = NULL;
+
+	if (argc < 1)
+	{
+		cargo_set_error(ctx, 0,
+			"Missing either \"adaptive\" or \"normal\" for %s", optname);
+		return -1;
+	}
+
+	d = argv[0];
+
+	if (!strcasecmp(d, "adaptive"))
+	{
+		*pm = PREY_METHOD_ADAPTIVE;
+	}
+	else if (!strcasecmp(d, "normal"))
+	{
+		*pm = PREY_METHOD_NORMAL;
+	}
+	else
+	{
+		cargo_set_error(ctx, 0,
+			"Invalid prey method \"%s\", must be \"adaptive\" "
+			"or \"normal\".", d);
+		return -1;
+	}
+
+	return 1;
+}
+
+int catcierge_haar_matcher_args_destroy(catcierge_haar_matcher_args_t *args)
+{
+	catcierge_xfree(&args->cascade);
+}
+
+int catcierge_haar_matcher_add_options(cargo_t cargo,
+										catcierge_haar_matcher_args_t *args)
+{
+	int ret = 0;
+	assert(cargo);
+	assert(args);
+
+	ret |= cargo_add_group(cargo, 0,
+			"haar", "Haar cascade matcher settings",
+			"Settings for when --haar_matcher is used.\n"
+			"This is the recommended matcher type.");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<haar> --cascade",
+			"Path to the haar cascade xml generated by opencv_traincascade.",
+			"s", &args->cascade);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<haar> --in_direction",
+			"The direction which is considered going inside.",
+			"c", parse_in_direction, &args->in_direction);
+	ret |= cargo_set_metavar(cargo,
+			"--in_direction",
+			"LEFT|RIGHT");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<haar> --min_size",
+			"The size of the minimum sized box that fits the matched cat head.",
+			"c", parse_width_height, args);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<haar> --no_match_is_fail",
+			"If no cat head is found in the picture, consider this a failure. "
+			"The default is to only consider found prey a failure.",
+			"b", &args->no_match_is_fail);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<haar> --equalize_histogram --eqhist",
+			"Equalize the histogram of the image before doing. "
+			"the haar cascade detection step.",
+			"b", &args->eq_histogram);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<haar> --prey_steps",
+			"Only applicable for normal prey mode. 2 means a secondary "
+			"search should be made if no prey is found initially.",
+			"i", &args->prey_steps);
+	ret |= cargo_set_metavar(cargo,
+			"--prey_steps",
+			"1|2");
+	ret |= cargo_add_validation(cargo, 0, "--prey_steps",
+								cargo_validate_int_range(1, 2));
+
+	ret |= cargo_add_option(cargo, 0,
+			"<haar> --prey_method",
+			"Sets the prey matching method. Adaptive combines the result "
+			"of both a global and adaptive thresholding to be better able to "
+			"find prey parts otherwise blended into the background. "
+			"Normal is simpler and doesn't catch such corner cases as well.",
+			"c", parse_prey_method, &args->prey_method);
+	ret |= cargo_set_metavar(cargo,
+			"--prey_method",
+			"ADAPTIVE|NORMAL");
+
+	return ret;
+}
+
+#if 0
 int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args,
 		const char *key, char **values, size_t value_count)
 {
@@ -738,6 +927,7 @@ int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args,
 
 	return 1;
 }
+#endif
 
 void catcierge_haar_matcher_usage()
 {
@@ -781,7 +971,7 @@ void catcierge_haar_output_print_usage()
 
 	for (i = 0; i < sizeof(haar_vars) / sizeof(haar_vars[0]); i++)
 	{
-		fprintf(stderr, "%20s   %s\n", haar_vars[i].name, haar_vars[i].description);
+		fprintf(stderr, "%30s   %s\n", haar_vars[i].name, haar_vars[i].description);
 	}
 }
 

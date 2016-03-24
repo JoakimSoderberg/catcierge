@@ -20,12 +20,12 @@ static char *run_success_tests()
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 0;
-	args->matcher = "haar"; 
 	args->matcher_type = MATCHER_HAAR;
-	args->haar.cascade = CATCIERGE_CASCADE;
+	args->haar.cascade = strdup(CATCIERGE_CASCADE);
 
 	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->haar))
 	{
@@ -59,6 +59,7 @@ static char *run_success_tests()
 	}
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -72,17 +73,17 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->saveimg = 0;
-	args->matcher = "haar"; 
 	args->matcher_type = MATCHER_HAAR;
 	args->ok_matches_needed = 3;
 	args->lockout_method = OBSTRUCT_OR_TIMER_3;
 
 	args->haar.prey_method = prey_method;
 	args->haar.prey_steps = 2;
-	args->haar.cascade = CATCIERGE_CASCADE;
+	args->haar.cascade = strdup(CATCIERGE_CASCADE);
 
 	#ifdef CATCIERGE_GUI_TESTS
 	args->show = 1;
@@ -122,6 +123,7 @@ static char *run_failure_tests(catcierge_haar_prey_method_t prey_method)
 	}
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;
@@ -133,6 +135,7 @@ static char *run_save_steps_test()
 	catcierge_args_t *args = &grb.args;
 
 	catcierge_grabber_init(&grb);
+	catcierge_args_init_vars(args);
 
 	args->matcher_type = MATCHER_HAAR;
 	args->ok_matches_needed = 3;
@@ -140,12 +143,14 @@ static char *run_save_steps_test()
 	catcierge_haar_matcher_args_init(&args->haar);
 	args->haar.prey_method = PREY_METHOD_ADAPTIVE;
 	args->haar.prey_steps = 2;
-	args->haar.cascade = CATCIERGE_CASCADE;
+	args->haar.cascade = strdup(CATCIERGE_CASCADE);
 
 	args->save_steps = 1;
 	args->save_obstruct_img = 1;
 	args->saveimg = 1;
-	args->output_path = "./test_save_steps";
+	free(args->output_path);
+	args->output_path = strdup("./test_save_steps");
+	mu_assert("Out of memory", args->output_path);
 	catcierge_make_path(args->output_path);
 
 	if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->haar))
@@ -182,6 +187,7 @@ static char *run_save_steps_test()
 	mu_assert("Expected 10 step images", grb.match_group.matches[3].result.step_img_count == 11);
 
 	catcierge_matcher_destroy(&grb.matcher);
+	catcierge_args_destroy_vars(args);
 	catcierge_grabber_destroy(&grb);
 
 	return NULL;

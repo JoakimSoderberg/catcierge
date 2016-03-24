@@ -1,4 +1,21 @@
-
+//
+// This file is part of the Catcierge project.
+//
+// Copyright (c) Joakim Soderberg 2013-2015
+//
+//    Catcierge is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    Catcierge is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
+//
 #include "catcierge_config.h"
 #include "catcierge_args.h"
 #include "catcierge_log.h"
@@ -255,8 +272,12 @@ void catcierge_do_lockout(catcierge_grb_t *grb)
 	else
 	{
 		#ifdef RPI
-		gpio_write(DOOR_PIN, 1);
-		gpio_write(BACKLIGHT_PIN, 1);
+		gpio_write(CATCIERGE_LOCKOUT_GPIO, 1);
+
+		if (args->backlight_enable)
+		{
+			gpio_write(CATCIERGE_BACKLIGHT_GPIO, 1);
+		}
 		#endif // RPI
 	}
 }
@@ -281,8 +302,12 @@ void catcierge_do_unlock(catcierge_grb_t *grb)
 	else
 	{
 		#ifdef RPI
-		gpio_write(DOOR_PIN, 0);
-		gpio_write(BACKLIGHT_PIN, 1);
+		gpio_write(CATCIERGE_LOCKOUT_GPIO, 0);
+		
+		if (args->backlight_enable)
+		{
+			gpio_write(CATCIERGE_BACKLIGHT_GPIO, 1);
+		}
 		#endif // RPI
 	}
 }
@@ -396,22 +421,35 @@ int catcierge_setup_gpio(catcierge_grb_t *grb)
 	catcierge_args_t *args = &grb->args;
 	int ret = 0;
 
+	if (args->do_lockout_cmd)
+	{
+		CATLOG("Skipping GPIO setup since a custom lockout command is set:");
+		CATLOG("  %s", args->do_lockout_cmd);
+		return 0;
+	}
+
 	// Set export for pins.
-	if (gpio_export(DOOR_PIN) || gpio_set_direction(DOOR_PIN, OUT))
+	if (gpio_export(CATCIERGE_LOCKOUT_GPIO)
+	 || gpio_set_direction(CATCIERGE_LOCKOUT_GPIO, OUT))
 	{
 		CATERR("Failed to export and set direction for door pin\n");
 		ret = -1; goto fail;
 	}
 
-	if (gpio_export(BACKLIGHT_PIN) || gpio_set_direction(BACKLIGHT_PIN, OUT))
-	{
-		CATERR("Failed to export and set direction for backlight pin\n");
-		ret = -1; goto fail;
-	}
-
 	// Start with the door open and light on.
-	gpio_write(DOOR_PIN, 0);
-	gpio_write(BACKLIGHT_PIN, 1);
+	gpio_write(CATCIERGE_LOCKOUT_GPIO, 0);
+
+	if (args->backlight_enable)
+	{
+		if (gpio_export(CATCIERGE_BACKLIGHT_GPIO)
+		 || gpio_set_direction(CATCIERGE_BACKLIGHT_GPIO, OUT))
+		{
+			CATERR("Failed to export and set direction for backlight pin\n");
+			ret = -1; goto fail;
+		}
+	
+		gpio_write(CATCIERGE_BACKLIGHT_GPIO, 1);
+	}
 
 fail:
 	if (ret)
@@ -539,7 +577,10 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 
 		if (!args->match_output_path)
 		{
-			args->match_output_path = args->output_path;
+			if (!(args->match_output_path = strdup(args->output_path)))
+			{
+				CATERR("Out of memory");
+			}
 		}
 
 		if (!(match_gen_output_path = catcierge_output_generate(&grb->output, grb, args->match_output_path)))
@@ -575,7 +616,10 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 
 			if (!args->steps_output_path)
 			{
-				args->steps_output_path = args->output_path;
+				if (!(args->steps_output_path = strdup(args->output_path)))
+				{
+					CATERR("Out of memory");
+				}
 			}
 
 			for (j = 0; j < m->result.step_img_count; j++)
@@ -922,7 +966,7 @@ double catcierge_do_match(catcierge_grb_t *grb)
 
 	if ((match_res = grb->matcher->match(grb->matcher, grb->img, result, args->save_steps)) < 0.0)
 	{
-		CATERR("%s matcher: Error when matching frame!\n", grb->args.matcher);
+		CATERR("%s matcher: Error when matching frame!\n", grb->matcher->name);
 	}
 
 	return match_res;
@@ -1165,7 +1209,10 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 
 		if (!args->obstruct_output_path)
 		{
-			args->obstruct_output_path = args->output_path;
+			if (!(args->obstruct_output_path = strdup(args->output_path)))
+			{
+				CATERR("Out of memory");
+			}
 		}
 
 		// TODO: Break this out into a function and reuse for all saved images.
@@ -1579,11 +1626,12 @@ int catcierge_grabber_init(catcierge_grb_t *grb)
 	assert(grb);
 
 	memset(grb, 0, sizeof(catcierge_grb_t));
-	
+	#if 0
 	if (catcierge_args_init(&grb->args))
 	{
 		return -1;
 	}
+	#endif
 
 	return 0;
 }
@@ -1592,6 +1640,6 @@ void catcierge_grabber_destroy(catcierge_grb_t *grb)
 {
 	// Always make sure we unlock.
 	catcierge_do_unlock(grb);
-	catcierge_args_destroy(&grb->args);
+	//catcierge_args_destroy(&grb->args);
 	catcierge_cleanup_imgs(grb);
 }

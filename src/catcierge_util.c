@@ -1,7 +1,7 @@
 //
 // This file is part of the Catcierge project.
 //
-// Copyright (c) Joakim Soderberg 2013-2014
+// Copyright (c) Joakim Soderberg 2013-2015
 //
 //    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <assert.h>
 #include "catcierge_log.h"
 
 const char *catcierge_path_sep()
@@ -584,6 +585,20 @@ char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
 
 	return buf;
 	#endif // _WIN32
+}
+
+void catcierge_xfree(void *p)
+{
+	void **pp;
+    assert(p);
+
+    pp = (void **)p;
+
+    if (*pp)
+    {
+        free(*pp);
+        *pp = NULL;
+    }
 }
 
 

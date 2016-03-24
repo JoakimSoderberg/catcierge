@@ -1,7 +1,7 @@
 //
 // This file is part of the Catcierge project.
 //
-// Copyright (c) Joakim Soderberg 2013-2014
+// Copyright (c) Joakim Soderberg 2013-2015
 //
 //    Catcierge is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -115,7 +115,7 @@ void catcierge_output_print_usage()
 
 	for (i = 0; i < sizeof(vars) / sizeof(vars[0]); i++)
 	{
-		fprintf(stderr, "%20s   %s\n", vars[i].name, vars[i].description);
+		fprintf(stderr, "%30s   %s\n", vars[i].name, vars[i].description);
 	}
 }
 
@@ -676,7 +676,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strcmp(var, "matcher"))
 	{
-		return grb->args.matcher;
+		return grb->matcher->short_name;
 	}
 
 	if (grb->matcher && (matcher_val = grb->matcher->translate(grb->matcher, var, buf, bufsize)))
@@ -1033,13 +1033,18 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 	char *it;
 	char *output = NULL;
 	char *tmp = NULL;
-	size_t orig_len = strlen(template_str);
+	size_t orig_len = 0;
 	size_t out_len = 2 * orig_len + 1;
 	size_t len;
 	size_t linenum;
 	size_t reslen;
 	assert(ctx);
 	assert(grb);
+
+	if (!template_str)
+		return NULL;
+
+	orig_len = strlen(template_str);
 
 	if (ctx->recursion >= CATCIERGE_OUTPUT_MAX_RECURSION)
 	{
@@ -1275,7 +1280,10 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 
 	if (!args->template_output_path)
 	{
-		args->template_output_path = args->output_path;
+		if (!(args->template_output_path = strdup(args->output_path)))
+		{
+			CATERR("Out of memory");
+		}
 	}
 
 	catcierge_output_free_generated_paths(ctx);
