@@ -95,7 +95,7 @@ catcierge_output_var_t vars[] =
 	{
 		"time:<fmt>",
 		"The time using the given format string"
-		"using strftime formatting (replace % with @)."
+		"using strftime formatting (replace % with @ or &)."
 		#ifdef _WIN32
 		" Note that Windows only supports a subset of formatting characters."
 		#endif // _WIN32
@@ -482,7 +482,7 @@ static char *catcierge_replace_time_format_char(char *fmt)
 
 	while (*s)
 	{
-		if (*s == '@')
+		if ((*s == '@') || (*s == '&'))
 			*s = '%';
 		s++;
 	}

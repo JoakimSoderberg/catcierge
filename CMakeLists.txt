@@ -346,6 +346,8 @@ endforeach()
 # Install targets
 #
 
+set(CATCIERGE_EXTRA_DIR "share/catcierge")
+
 if (UNIX)
 	#
 	# Generate systemd init files.
@@ -367,12 +369,19 @@ if (UNIX)
 	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge.service.in"
 				   "${PROJECT_BINARY_DIR}/catcierge.service")
 
-	set(CATCIERGE_EXTRA_DIR "share/catcierge")
 	set(SYSTEMD_CONFIG_DIR "/lib/systemd/system" CACHE STRING "Path to the systemd configuration dir")
 
 	install(FILES
 		"${PROJECT_BINARY_DIR}/catcierge.service"
 		DESTINATION "${SYSTEMD_CONFIG_DIR}/" COMPONENT Runtime)
+
+	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge.cfg.in"
+				   "${PROJECT_BINARY_DIR}/catcierge.cfg")
+
+	# TODO: Fix so test don't break for this first.
+	#install(FILES
+	#	"${PROJECT_BINARY_DIR}/catcierge.cfg"
+	#s	DESTINATION "/etc/" COMPONENT Runtime)
 endif() # Unix
 
 #
