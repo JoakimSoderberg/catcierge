@@ -239,6 +239,21 @@ static int add_roi_options(cargo_t cargo, catcierge_args_t *args)
 			"If it is smaller than this, the program will exit. "
 			"Default %d.",DEFAULT_MIN_BACKLIGHT);
 
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --save_auto_roi",
+			"Save the image roi found by --auto_roi. Can be useful for debugging "
+			"when tweaking the threshold. Result placed in --output_path.",
+			"b", &args->save_auto_roi_img);
+
+	// TODO: Add this.
+	#if 0
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --auto_roi_output_path",
+			"Path for the --auto_roi region found. Overrides --output_path.",
+			"s", &args->auto_roi_output_path);
+	ret |= cargo_set_metavar(cargo, "--auto_roi_output_path", "PATH");
+	#endif
+
 	return ret;
 }
 
@@ -1078,6 +1093,7 @@ catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
 		margs->roi = &args->roi;
 		margs->min_backlight = args->min_backlight;
 		margs->auto_roi_thr = args->auto_roi_thr;
+		margs->save_auto_roi_img = args->save_auto_roi_img;
 	}
 
 	return margs;

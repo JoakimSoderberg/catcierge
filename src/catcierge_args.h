@@ -98,6 +98,8 @@ typedef struct catcierge_args_s
 	CvRect roi;
 	int auto_roi;
 	int auto_roi_thr;
+	int save_auto_roi_img;
+	char *auto_roi_output_path;
 	int min_backlight;
 	double startup_delay;
 	int no_default_config;

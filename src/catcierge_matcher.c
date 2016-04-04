@@ -151,16 +151,26 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 
 	*r = cvBoundingRect(biggest_contour, 0);
 
-	// TODO: Make it a flag to set the path where to save (and if) this image.
-	//if (ctx->args->save_auto_roi)
+	if (args->save_auto_roi_img)
 	{
+		char buf[2048];
+		char path[2048];
 		IplImage *roi_img = NULL;
-		//catcierge_make_path(mg->obstruct_path);
-		//cvSaveImage(mg->obstruct_full_path, mg->obstruct_img, 0);
 		roi_img = cvCloneImage(img);
+
+		if (!getcwd(buf, sizeof(buf) - 1))
+		{
+			strcpy(buf, ".");
+		}
+
+		snprintf(path, sizeof(path) - 1, "%s%sauto_roi.png", buf, catcierge_path_sep());
+
 		cvDrawContours(roi_img, biggest_contour, cvScalarAll(255), cvScalarAll(0), -1, CV_FILLED, 8, cvPoint(0,0));
 		cvRectangleR(roi_img, *r, CV_RGB(255, 0, 0), 2, 8, 0);
-		cvSaveImage("./auto_roi.png", roi_img, 0);
+
+		cvSaveImage(path, roi_img, 0);
+		CATLOG("Saved auto roi image to: %s\n", path);
+
 		cvReleaseImage(&roi_img);
 	}
 

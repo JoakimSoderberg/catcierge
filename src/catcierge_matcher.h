@@ -45,6 +45,7 @@ typedef struct catcierge_matcher_args_s
 	CvRect *roi;
 	int auto_roi_thr;
 	int min_backlight;
+	int save_auto_roi_img;
 } catcierge_matcher_args_t;
 
 typedef struct catcierge_matcher_s
