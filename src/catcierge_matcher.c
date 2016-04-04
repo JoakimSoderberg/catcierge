@@ -112,7 +112,8 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 
 	// Get a binary image.
 	tmp2 = cvCreateImage(cvGetSize(img), 8, 1);
-	cvThreshold(tmp, tmp2, 90, 255, CV_THRESH_BINARY);
+	// TODO: Make these settable via commandline.
+	cvThreshold(tmp, tmp2, 150, 255, CV_THRESH_BINARY);
 
 	cvFindContours(tmp2, storage, &contours,
 		sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
@@ -137,7 +138,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 		ret = -1; goto fail;
 	}
 
-	CATLOG("Back light found with area %0.0f (expected at least %d)\n",
+	CATLOG("Back light found with area %0.0f (which is greater than the minimum allowed %d)\n",
 		max_area, ctx->args->min_backlight);
 
 	if (max_area < (double)ctx->args->min_backlight)
@@ -149,6 +150,19 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 	}
 
 	*r = cvBoundingRect(biggest_contour, 0);
+
+	// TODO: Make it a flag to set the path where to save (and if) this image.
+	//if (ctx->args->save_auto_roi)
+	{
+		IplImage *roi_img = NULL;
+		//catcierge_make_path(mg->obstruct_path);
+		//cvSaveImage(mg->obstruct_full_path, mg->obstruct_img, 0);
+		roi_img = cvCloneImage(img);
+		cvDrawContours(roi_img, biggest_contour, cvScalarAll(255), cvScalarAll(0), -1, CV_FILLED, 8, cvPoint(0,0));
+		cvRectangleR(roi_img, *r, CV_RGB(255, 0, 0), 2, 8, 0);
+		cvSaveImage("./auto_roi.png", roi_img, 0);
+		cvReleaseImage(&roi_img);
+	}
 
 fail:
 	if (img->nChannels != 1)

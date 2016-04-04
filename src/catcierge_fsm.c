@@ -715,6 +715,7 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 		cvReleaseImage(&m->img);
 	}
 
+	// TODO: Move this to be outside this function.
 	if (args->new_execute)
 	{
 		catcierge_output_execute(grb, "match_group_done", args->match_group_done_cmd);
