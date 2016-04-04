@@ -343,30 +343,41 @@ foreach (PROGRAM_NAME ${CATCIERGE_PROGRAMS})
 endforeach()
 
 #
-# Generate systemd init files.
-#
-set(CATCIERGE_SERVICE_AFTER "")
-if (RPI)
-	set(CATCIERGE_GPIO_SCRIPT_PATH "${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.sh")
-	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge_rpi_gpio.sh.in"
-				   "${CATCIERGE_GPIO_SCRIPT_PATH}")
-
-	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge_rpi_gpio.service.in"
-				   "${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.service")
-
-	# This is used in catcierge.service.in so that the gpio is always
-	# setup before the catcierge service on RPI.
-	set(CATCIERGE_SERVICE_AFTER "After=catcierge_rpi_gpio")
-endif()
-
-configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge.service.in"
-			   "${PROJECT_BINARY_DIR}/catcierge.service")
-
-#
 # Install targets
 #
-set(CATCIERGE_EXTRA_DIR "share/catcierge")
-set(SYSTEMD_CONFIG_DIR "/lib/systemd/system")
+
+if (UNIX)
+	#
+	# Generate systemd init files.
+	#
+	set(CATCIERGE_SERVICE_AFTER "")
+	if (RPI)
+		set(CATCIERGE_GPIO_SCRIPT_PATH "${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.sh")
+		configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge_rpi_gpio.sh.in"
+					   "${CATCIERGE_GPIO_SCRIPT_PATH}")
+
+		configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge_rpi_gpio.service.in"
+					   "${PROJECT_BINARY_DIR}/catcierge_rpi_gpio.service")
+
+		# This is used in catcierge.service.in so that the gpio is always
+		# setup before the catcierge service on RPI.
+		set(CATCIERGE_SERVICE_AFTER "After=catcierge_rpi_gpio")
+	endif()
+
+	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge.service.in"
+				   "${PROJECT_BINARY_DIR}/catcierge.service")
+
+	set(CATCIERGE_EXTRA_DIR "share/catcierge")
+	set(SYSTEMD_CONFIG_DIR "/lib/systemd/system" CACHE STRING "Path to the systemd configuration dir")
+
+	install(FILES
+		"${PROJECT_BINARY_DIR}/catcierge.service"
+		DESTINATION "${SYSTEMD_CONFIG_DIR}/" COMPONENT Runtime)
+endif() # Unix
+
+#
+# Install files common to all systems.
+#
 
 install(TARGETS ${CATCIERGE_PROGRAMS}
 		RUNTIME DESTINATION "bin/" COMPONENT Runtime)
@@ -379,10 +390,6 @@ install(FILES
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/extra/templates/"
 		DESTINATION "${CATCIERGE_EXTRA_DIR}/templates/" COMPONENT Runtime
 		FILES_MATCHING PATTERN "*.json")
-
-install(FILES
-		"${PROJECT_BINARY_DIR}/catcierge.service"
-		DESTINATION "${SYSTEMD_CONFIG_DIR}/" COMPONENT Runtime)
 
 if (RPI)
 	install(FILES
@@ -419,30 +426,26 @@ if (UNIX)
 	set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 	set(CPACK_SET_DESTDIR ON)
 
-	if (LINUX)
-		# Find the correct package architecture based on the platform we're building on.
-		find_program(DPKG_CMD dpkg)
-		if(NOT DPKG_CMD)
-			message(WARNING "Debian architecture: Can not find dpkg in your path, default to i386.")
-			set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE i386)
-		else()
-			execute_process(COMMAND "${DPKG_CMD}" --print-architecture
-				OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_ARCHITECTURE
-				OUTPUT_STRIP_TRAILING_WHITESPACE
-			)
-		endif()
-
-		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
-
-		set(CPACK_DEBIAN_PACKAGE_DEPENDS "libopencv-dev libopenexr-dev")
-		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "joakim.soderberg@netrounds.com")
-		set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${LINUX_PACKAGE_DESCRIPTION}")
-		set(CPACK_DEBIAN_PACKAGE_SECTION "unknown")
-		set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
+	# Find the correct package architecture based on the platform we're building on.
+	find_program(DPKG_CMD dpkg)
+	if(NOT DPKG_CMD)
+		message(WARNING "Debian architecture: Can not find dpkg in your path, default to i386.")
+		set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE i386)
 	else()
-		# Non Linux targets use the system processor instead of the debian architecture in the filename.
-		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CMAKE_SYSTEM_PROCESSOR}")
+		execute_process(COMMAND "${DPKG_CMD}" --print-architecture
+			OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_ARCHITECTURE
+			OUTPUT_STRIP_TRAILING_WHITESPACE)
 	endif()
+
+	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
+
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS "libopencv-dev, libopenexr-dev")
+	set(CPACK_DEBIAN_PACKAGE_MAINTAINER "joakim.soderberg@netrounds.com")
+	set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${LINUX_PACKAGE_DESCRIPTION}")
+	set(CPACK_DEBIAN_PACKAGE_SECTION "unknown")
+	set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
+
+	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/cmake/debian/postinst")
 
 	# Needs to be last.
 	include(CPack)

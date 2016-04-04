@@ -2,3 +2,5 @@
 
 echo "Creating catcierge user"
 adduser --system catcierge
+usermod -a -G video catcierge
+usermod -a -G gpio catcierge
