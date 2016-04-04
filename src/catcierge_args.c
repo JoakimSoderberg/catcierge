@@ -154,6 +154,94 @@ static int add_presentation_options(cargo_t cargo, catcierge_args_t *args)
 	return ret;
 }
 
+static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
+                        int argc, char **argv)
+{
+	CvRect *rect = (CvRect *)user;
+
+	if (argc != 4)
+	{
+		cargo_set_error(ctx, 0,
+			"Not enough arguments for %s, expected (x, y, width, height) "
+			"but only got %d values",
+			optname, argc);
+		return -1;
+	}
+
+	*rect = cvRect(atoi(argv[0]), atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
+
+	return argc;
+}
+
+static int add_roi_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, "roi",
+			"Region Of Interest (ROI) settings",
+			"If the backlight does not take up the entire camera image, these settings "
+			"can be used to set what part of the image that the matcher should "
+			"look for the cat head in. The region of interest (ROI).");
+
+	ret |= cargo_add_mutex_group(cargo, 0,
+			"roi_type", 
+			"ROI type",
+			NULL);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --startup_delay",
+			"Number of seconds to wait after starting before starting "
+			"to capture anything. This is so that if you have a back light "
+			"that is turned on at startup, it has time to turn on, otherwise "
+			"the program will think something is obstructing the image and "
+			"start trying to match.",
+			"d", &args->startup_delay);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!roi_type, roi> --roi",
+			"Crop all input image to this region of interest. "
+			"Cannot be used together with --auto_roi.",
+			"[c]#", parse_CvRect, &args->roi, NULL, 4);
+	ret |= cargo_set_metavar(cargo,
+			"--roi",
+			"X Y WIDTH HEIGHT");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!roi_type, roi> --auto_roi",
+			"Automatically crop to the area covered by the backlight. "
+			"This will be done after --startup_delay has ended. "
+			"Cannot be used together with --roi.",
+			"b", &args->auto_roi);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --auto_roi_thr",
+			NULL,
+			"i", &args->auto_roi_thr);
+	ret |= cargo_set_metavar(cargo,
+			"--auto_roi_thr",
+			"THRESHOLD");
+	ret |= cargo_set_option_description(cargo,
+			"--auto_roi_thr",
+			"Set the threshold values used to find the backlight, using "
+			"a binary threshold algorithm. Separate each pixel into either "
+			"black or white. White if the greyscale value of the pixel is above "
+			"the threshold, and black otherwise.\n\n"
+			"Default value %d", DEFAULT_AUTOROI_THR);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --min_backlight",
+			NULL,
+			"i", &args->min_backlight);
+	ret |= cargo_set_option_description(cargo,
+			"--min_backlight",
+			"If --auto_roi is on, this sets the minimum allowed area the "
+			"backlight is allowed to be before it is considered broken. "
+			"If it is smaller than this, the program will exit. "
+			"Default %d.",DEFAULT_MIN_BACKLIGHT);
+
+	return ret;
+}
+
 static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 {
 	//
@@ -467,25 +555,6 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 	return ret;
 }
 
-static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
-                        int argc, char **argv)
-{
-	CvRect *rect = (CvRect *)user;
-
-	if (argc != 4)
-	{
-		cargo_set_error(ctx, 0,
-			"Not enough arguments for %s, expected (x, y, width, height) "
-			"but only got %d values",
-			optname, argc);
-		return -1;
-	}
-
-	*rect = cvRect(atoi(argv[0]), atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
-
-	return argc;
-}
-
 // TODO: Add windows support.
 #ifndef _WIN32
 static int parse_base_time(cargo_t ctx, void *user, const char *optname,
@@ -568,56 +637,6 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"which are needed for setting GPIO pins on the Raspberry Pi.",
 			"s", &args->chuid);
 
-	ret |= cargo_add_option(cargo, 0,
-			"--startup_delay",
-			"Number of seconds to wait after starting before starting "
-			"to capture anything. This is so that if you have a back light "
-			"that is turned on at startup, it has time to turn on, otherwise "
-			"the program will think something is obstructing the image and "
-			"start trying to match.",
-			"d", &args->startup_delay);
-
-	ret |= cargo_add_option(cargo, 0,
-			"--roi",
-			"Crop all input image to this region of interest.",
-			"[c]#", parse_CvRect, &args->roi, NULL, 4);
-	ret |= cargo_set_metavar(cargo,
-			"--roi",
-			"X Y WIDTH HEIGHT");
-
-	ret |= cargo_add_option(cargo, 0,
-			"--auto_roi",
-			"Automatically crop to the area covered by the backlight. "
-			"This will be done after --startup_delay has ended. "
-			"Overrides --roi.",
-			"b", &args->auto_roi);
-
-	ret |= cargo_add_option(cargo, 0,
-			"--auto_roi_thr",
-			NULL,
-			"i", &args->auto_roi_thr);
-	ret |= cargo_set_metavar(cargo,
-			"--auto_roi_thr",
-			"THRESHOLD");
-	ret |= cargo_set_option_description(cargo,
-			"--auto_roi_thr",
-			"Set the threshold values used to find the backlight, using "
-			"a binary threshold algorithm. Separate each pixel into either "
-			"black or white. White if the greyscale value of the pixel is above "
-			"the threshold, and black otherwise.\n\n"
-			"Default value %d", DEFAULT_AUTOROI_THR);
-
-	ret |= cargo_add_option(cargo, 0,
-			"--min_backlight",
-			NULL,
-			"i", &args->min_backlight);
-	ret |= cargo_set_option_description(cargo,
-			"--min_backlight",
-			"If --auto_roi is on, this sets the minimum allowed area the "
-			"backlight is allowed to be before it is considered broken. "
-			"If it is smaller than this, the program will exit. "
-			"Default %d.",DEFAULT_MIN_BACKLIGHT);
-
 	// Meant for the fsm_tester
 	#ifndef _WIN32
 	ret |= cargo_add_option(cargo, 0,
@@ -636,6 +655,7 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"b", &args->show_camhelp);
 	#endif // RPI
 
+	ret |= add_roi_options(cargo, args);
 	ret |= add_matcher_options(cargo, args);
 	ret |= add_lockout_options(cargo, args);
 	#ifdef RPI
