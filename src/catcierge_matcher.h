@@ -24,6 +24,9 @@
 
 #include "catcierge_types.h"
 
+#define DEFAULT_AUTOROI_THR 90
+#define DEFAULT_MIN_BACKLIGHT 10000
+
 struct catcierge_matcher_s;
 
 typedef double (*catcierge_match_func_t)(void *ctx,
@@ -40,6 +43,7 @@ typedef struct catcierge_matcher_args_s
 {
 	catcierge_matcher_type_t type;
 	CvRect *roi;
+	int auto_roi_thr;
 	int min_backlight;
 } catcierge_matcher_args_t;
 

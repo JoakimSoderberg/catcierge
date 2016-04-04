@@ -593,11 +593,30 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"b", &args->auto_roi);
 
 	ret |= cargo_add_option(cargo, 0,
+			"--auto_roi_thr",
+			NULL,
+			"i", &args->auto_roi_thr);
+	ret |= cargo_set_metavar(cargo,
+			"--auto_roi_thr",
+			"THRESHOLD");
+	ret |= cargo_set_option_description(cargo,
+			"--auto_roi_thr",
+			"Set the threshold values used to find the backlight, using "
+			"a binary threshold algorithm. Separate each pixel into either "
+			"black or white. White if the greyscale value of the pixel is above "
+			"the threshold, and black otherwise.\n\n"
+			"Default value %d", DEFAULT_AUTOROI_THR);
+
+	ret |= cargo_add_option(cargo, 0,
+			"--min_backlight",
+			NULL,
+			"i", &args->min_backlight);
+	ret |= cargo_set_option_description(cargo,
 			"--min_backlight",
 			"If --auto_roi is on, this sets the minimum allowed area the "
 			"backlight is allowed to be before it is considered broken. "
-			"If it is smaller than this, the program will exit. Default 10000.",
-			"i", &args->min_backlight);
+			"If it is smaller than this, the program will exit. "
+			"Default %d.",DEFAULT_MIN_BACKLIGHT);
 
 	// Meant for the fsm_tester
 	#ifndef _WIN32
@@ -746,7 +765,7 @@ void catcierge_args_init_vars(catcierge_args_t *args)
 	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
 	args->ok_matches_needed = DEFAULT_OK_MATCHES_NEEDED;
 	args->output_path = strdup(".");
-	args->min_backlight = 10000;
+	args->min_backlight = DEFAULT_MIN_BACKLIGHT;
 
 	#ifdef RPI
 	{
@@ -959,7 +978,10 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("       Startup delay: %0.1f seconds\n", args->startup_delay);
 	printf("            Auto ROI: %d\n", args->auto_roi);
 	if (args->auto_roi)
+	{
+	printf("  Auto ROI threshold: %d\n", args->auto_roi_thr);
 	printf(" Min. backlight area: %d\n", args->min_backlight);
+	}
 	printf("          Show video: %d\n", args->show);
 	printf("        Save matches: %d\n", args->saveimg);
 	printf("       Save obstruct: %d\n", args->save_obstruct_img);
@@ -1035,6 +1057,7 @@ catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
 	{
 		margs->roi = &args->roi;
 		margs->min_backlight = args->min_backlight;
+		margs->auto_roi_thr = args->auto_roi_thr;
 	}
 
 	return margs;

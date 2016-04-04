@@ -91,6 +91,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 	IplImage *tmp = NULL;
 	IplImage *tmp2 = NULL;
 	CvMemStorage *storage = NULL;
+	catcierge_matcher_args_t *args = ctx->args;
 	assert(ctx);
 	assert(r);
 
@@ -112,8 +113,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 
 	// Get a binary image.
 	tmp2 = cvCreateImage(cvGetSize(img), 8, 1);
-	// TODO: Make these settable via commandline.
-	cvThreshold(tmp, tmp2, 150, 255, CV_THRESH_BINARY);
+	cvThreshold(tmp, tmp2, args->auto_roi_thr, 255, CV_THRESH_BINARY);
 
 	cvFindContours(tmp2, storage, &contours,
 		sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
