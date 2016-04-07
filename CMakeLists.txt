@@ -46,7 +46,14 @@ option(WITH_UNIT_TESTS "Turn on compilation of unit test" ON)
 option(WITH_ZMQ "Compile ZMQ support" OFF)
 option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
 set(CARGO_DEBUG "" CACHE STRING "Debug level for Cargo command line parser")
-set(CATCIERGE_CONF_PATH "/etc/catcierge.cfg" CACHE FILEPATH "The default location for the config file")
+
+# This is where the catcierge config files will be installed.
+set(CATCIERGE_CONF_BASE_PATH "/etc/catcierge" CACHE FILEPATH "System config directory for catcierge")
+
+# The system wide default config that catcierge looks for by default.
+set(CATCIERGE_CONF_PATH "${CATCIERGE_CONF_BASE_PATH}/catcierge.cfg" CACHE FILEPATH "The default location for the config file")
+
+set(CATCIERGE_USER "catcierge" CACHE STRING "The user that is created after a debian package installation")
 
 #
 # Piborg Picoborg pins.
@@ -375,13 +382,12 @@ if (UNIX)
 		"${PROJECT_BINARY_DIR}/catcierge.service"
 		DESTINATION "${SYSTEMD_CONFIG_DIR}/" COMPONENT Runtime)
 
-	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge.cfg.in"
-				   "${PROJECT_BINARY_DIR}/catcierge.cfg")
+	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge-example.cfg.in"
+				   "${PROJECT_BINARY_DIR}/catcierge-example.cfg")
 
-	# TODO: Fix so test don't break for this first.
-	#install(FILES
-	#	"${PROJECT_BINARY_DIR}/catcierge.cfg"
-	#s	DESTINATION "/etc/" COMPONENT Runtime)
+	install(FILES
+		"${PROJECT_BINARY_DIR}/catcierge-example.cfg"
+		DESTINATION "${CATCIERGE_CONF_BASE_PATH}" COMPONENT Runtime)
 endif() # Unix
 
 #
@@ -454,7 +460,9 @@ if (UNIX)
 	set(CPACK_DEBIAN_PACKAGE_SECTION "unknown")
 	set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
 
-	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/cmake/debian/postinst")
+	configure_file("${PROJECT_SOURCE_DIR}/cmake/debian/postinst.in"
+				   "${PROJECT_BINARY_DIR}/debian/postinst" @ONLY)
+	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${PROJECT_BINARY_DIR}/debian/postinst")
 
 	# Needs to be last.
 	include(CPack)
