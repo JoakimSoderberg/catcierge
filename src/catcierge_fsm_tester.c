@@ -27,6 +27,7 @@
 #include "catcierge_args.h"
 #include "catcierge_output.h"
 #include "test/catcierge_test_common.h"
+#include "catcierge_strftime.h"
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
