@@ -950,7 +950,7 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 		int confret = 0;
 		int is_default_config = !strcmp(args->config_path, CATCIERGE_CONF_PATH);
 
-		if (is_default_config && args->no_default_config)
+		if (is_default_config && (args->no_default_config || (getenv("CATCIERGE_NO_DEFAULT_CONFIG") != NULL)))
 		{
 			CATLOG("Default config turned off, ignoring: %s\n", CATCIERGE_CONF_PATH);
 		}
