@@ -154,6 +154,109 @@ static int add_presentation_options(cargo_t cargo, catcierge_args_t *args)
 	return ret;
 }
 
+static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
+                        int argc, char **argv)
+{
+	CvRect *rect = (CvRect *)user;
+
+	if (argc != 4)
+	{
+		cargo_set_error(ctx, 0,
+			"Not enough arguments for %s, expected (x, y, width, height) "
+			"but only got %d values",
+			optname, argc);
+		return -1;
+	}
+
+	*rect = cvRect(atoi(argv[0]), atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
+
+	return argc;
+}
+
+static int add_roi_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	ret |= cargo_add_group(cargo, 0, "roi",
+			"Region Of Interest (ROI) settings",
+			"If the backlight does not take up the entire camera image, these settings "
+			"can be used to set what part of the image that the matcher should "
+			"look for the cat head in. The region of interest (ROI).");
+
+	ret |= cargo_add_mutex_group(cargo, 0,
+			"roi_type", 
+			"ROI type",
+			NULL);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --startup_delay",
+			"Number of seconds to wait after starting before starting "
+			"to capture anything. This is so that if you have a back light "
+			"that is turned on at startup, it has time to turn on, otherwise "
+			"the program will think something is obstructing the image and "
+			"start trying to match.",
+			"d", &args->startup_delay);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!roi_type, roi> --roi",
+			"Crop all input image to this region of interest. "
+			"Cannot be used together with --auto_roi.",
+			"[c]#", parse_CvRect, &args->roi, NULL, 4);
+	ret |= cargo_set_metavar(cargo,
+			"--roi",
+			"X Y WIDTH HEIGHT");
+
+	ret |= cargo_add_option(cargo, 0,
+			"<!roi_type, roi> --auto_roi",
+			"Automatically crop to the area covered by the backlight. "
+			"This will be done after --startup_delay has ended. "
+			"Cannot be used together with --roi.",
+			"b", &args->auto_roi);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --auto_roi_thr",
+			NULL,
+			"i", &args->auto_roi_thr);
+	ret |= cargo_set_metavar(cargo,
+			"--auto_roi_thr",
+			"THRESHOLD");
+	ret |= cargo_set_option_description(cargo,
+			"--auto_roi_thr",
+			"Set the threshold values used to find the backlight, using "
+			"a binary threshold algorithm. Separate each pixel into either "
+			"black or white. White if the greyscale value of the pixel is above "
+			"the threshold, and black otherwise.\n\n"
+			"Default value %d", DEFAULT_AUTOROI_THR);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --min_backlight",
+			NULL,
+			"i", &args->min_backlight);
+	ret |= cargo_set_option_description(cargo,
+			"--min_backlight",
+			"If --auto_roi is on, this sets the minimum allowed area the "
+			"backlight is allowed to be before it is considered broken. "
+			"If it is smaller than this, the program will exit. "
+			"Default %d.",DEFAULT_MIN_BACKLIGHT);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --save_auto_roi",
+			"Save the image roi found by --auto_roi. Can be useful for debugging "
+			"when tweaking the threshold. Result placed in --output_path.",
+			"b", &args->save_auto_roi_img);
+
+	// TODO: Add this.
+	#if 0
+	ret |= cargo_add_option(cargo, 0,
+			"<roi> --auto_roi_output_path",
+			"Path for the --auto_roi region found. Overrides --output_path.",
+			"s", &args->auto_roi_output_path);
+	ret |= cargo_set_metavar(cargo, "--auto_roi_output_path", "PATH");
+	#endif
+
+	return ret;
+}
+
 static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 {
 	//
@@ -202,6 +305,10 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= cargo_add_option(cargo, 0,
 			"<matcher> --matchtime", NULL,
 			"i", &args->match_time);
+	ret |= cargo_set_option_description(cargo,
+			"--matchtime",
+			"The time to wait after a match before attemping again. "
+			"Default %d seconds.", DEFAULT_MATCH_WAIT);
 
 	ret |= catcierge_haar_matcher_add_options(cargo, &args->haar);
 	ret |= catcierge_template_matcher_add_options(cargo, &args->templ);
@@ -467,25 +574,6 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 	return ret;
 }
 
-static int parse_CvRect(cargo_t ctx, void *user, const char *optname,
-                        int argc, char **argv)
-{
-	CvRect *rect = (CvRect *)user;
-
-	if (argc != 4)
-	{
-		cargo_set_error(ctx, 0,
-			"Not enough arguments for %s, expected (x, y, width, height) "
-			"but only got %d values",
-			optname, argc);
-		return -1;
-	}
-
-	*rect = cvRect(atoi(argv[0]), atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
-
-	return argc;
-}
-
 // TODO: Add windows support.
 #ifndef _WIN32
 static int parse_base_time(cargo_t ctx, void *user, const char *optname,
@@ -568,37 +656,6 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"which are needed for setting GPIO pins on the Raspberry Pi.",
 			"s", &args->chuid);
 
-	ret |= cargo_add_option(cargo, 0,
-			"--startup_delay",
-			"Number of seconds to wait after starting before starting "
-			"to capture anything. This is so that if you have a back light "
-			"that is turned on at startup, it has time to turn on, otherwise "
-			"the program will think something is obstructing the image and "
-			"start trying to match.",
-			"d", &args->startup_delay);
-
-	ret |= cargo_add_option(cargo, 0,
-			"--roi",
-			"Crop all input image to this region of interest.",
-			"[c]#", parse_CvRect, &args->roi, NULL, 4);
-	ret |= cargo_set_metavar(cargo,
-			"--roi",
-			"X Y WIDTH HEIGHT");
-
-	ret |= cargo_add_option(cargo, 0,
-			"--auto_roi",
-			"Automatically crop to the area covered by the backlight. "
-			"This will be done after --startup_delay has ended. "
-			"Overrides --roi.",
-			"b", &args->auto_roi);
-
-	ret |= cargo_add_option(cargo, 0,
-			"--min_backlight",
-			"If --auto_roi is on, this sets the minimum allowed area the "
-			"backlight is allowed to be before it is considered broken. "
-			"If it is smaller than this, the program will exit. Default 10000.",
-			"i", &args->min_backlight);
-
 	// Meant for the fsm_tester
 	#ifndef _WIN32
 	ret |= cargo_add_option(cargo, 0,
@@ -617,6 +674,7 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"b", &args->show_camhelp);
 	#endif // RPI
 
+	ret |= add_roi_options(cargo, args);
 	ret |= add_matcher_options(cargo, args);
 	ret |= add_lockout_options(cargo, args);
 	#ifdef RPI
@@ -746,7 +804,7 @@ void catcierge_args_init_vars(catcierge_args_t *args)
 	args->consecutive_lockout_delay = DEFAULT_CONSECUTIVE_LOCKOUT_DELAY;
 	args->ok_matches_needed = DEFAULT_OK_MATCHES_NEEDED;
 	args->output_path = strdup(".");
-	args->min_backlight = 10000;
+	args->min_backlight = DEFAULT_MIN_BACKLIGHT;
 
 	#ifdef RPI
 	{
@@ -885,7 +943,7 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	#endif // RPI
 
 	// Parse once to get --config value.
-	if (cargo_parse(cargo, 0, 1, argc, argv))
+	if (cargo_parse(cargo, CARGO_SKIP_CHECK_MUTEX | CARGO_SKIP_CHECK_REQUIRED, 1, argc, argv))
 	{
 		ret = -1; goto fail;
 	}
@@ -895,8 +953,14 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	{
 		int confret = 0;
 		int is_default_config = !strcmp(args->config_path, CATCIERGE_CONF_PATH);
+		int skip_default_config = (args->no_default_config || (getenv("CATCIERGE_NO_DEFAULT_CONFIG") != NULL));
 
-		if (is_default_config && args->no_default_config)
+		if (is_default_config)
+		{
+			CATLOG("Using default config\n");
+		}
+
+		if (is_default_config && skip_default_config)
 		{
 			CATLOG("Default config turned off, ignoring: %s\n", CATCIERGE_CONF_PATH);
 		}
@@ -909,13 +973,22 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 
 			if (confret < 0)
 			{
+				CATERR("Failed to parse config\n");
 				ret = -1; goto fail;
 			}
 			else if ((confret == 1) && !is_default_config)
 			{
-				CATERR("WARNING: Specified config %s does not exist", args->config_path);
+				CATERR("WARNING: Specified config %s does not exist\n", args->config_path);
+			}
+			else
+			{
+				CATLOG("Parsed config\n");
 			}
 		}
+	}
+	else
+	{
+		CATLOG("No config file specified\n");
 	}
 
 	// And finally parse the commandline to override config settings.
@@ -959,7 +1032,10 @@ void catcierge_print_settings(catcierge_args_t *args)
 	printf("       Startup delay: %0.1f seconds\n", args->startup_delay);
 	printf("            Auto ROI: %d\n", args->auto_roi);
 	if (args->auto_roi)
+	{
+	printf("  Auto ROI threshold: %d\n", args->auto_roi_thr);
 	printf(" Min. backlight area: %d\n", args->min_backlight);
+	}
 	printf("          Show video: %d\n", args->show);
 	printf("        Save matches: %d\n", args->saveimg);
 	printf("       Save obstruct: %d\n", args->save_obstruct_img);
@@ -1035,6 +1111,8 @@ catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args)
 	{
 		margs->roi = &args->roi;
 		margs->min_backlight = args->min_backlight;
+		margs->auto_roi_thr = args->auto_roi_thr;
+		margs->save_auto_roi_img = args->save_auto_roi_img;
 	}
 
 	return margs;

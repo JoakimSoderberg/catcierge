@@ -4,6 +4,11 @@ file(GLOB TEST_SRCS
 	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/TEST_*.c")
 
+# Make sure the tests don't try to read the default config
+# since that would screw up the specific settings we are testing...
+set(CMAKE_TESTDRIVER_BEFORE_TESTMAIN
+	"setenv(\"CATCIERGE_NO_DEFAULT_CONFIG\", \"1\", 1);")
+
 create_test_sourcelist(
 	CATCIERGE_TESTS_SRCS		# Name of the test suite.
 	${CATCIERGE_TEST_DRIVER}.c	# Name of the test DRIVER source generated.

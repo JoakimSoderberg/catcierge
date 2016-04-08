@@ -33,6 +33,7 @@ static char *do_run_delayed_start_tests(int test_no_backlight)
 		args->matcher_type = MATCHER_HAAR;
 		args->haar.cascade = CATCIERGE_CASCADE;
 		args->auto_roi = 1;
+		args->save_auto_roi_img = 1;
 		args->startup_delay = 1;
 
 		if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))

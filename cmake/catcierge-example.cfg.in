@@ -1,0 +1,25 @@
+#
+# Catcierge config file example
+# -----------------------------
+#
+# To list all options see:
+#
+#   catcierge_grabber --help
+#
+# To make this your default config:
+#
+#   cp ${CATCIERGE_CONF_BASE_PATH}/catcierge-example.cfg ${CATCIERGE_CONF_PATH}
+#
+
+# Haar matcher
+haar=1
+cascade=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge.xml
+in_direction=right
+min_size=80x80
+
+# Save images
+save=1
+save_obstruct=1
+save_steps=1
+output_path=/home/catcierge/images/%time:&Y-&m-&dT&H:&M:&S.&f&z%-%match_group_id%
+

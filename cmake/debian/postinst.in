@@ -1,0 +1,26 @@
+#!/bin/bash
+
+echo "#########################################"
+echo "Creating user @CATCIERGE_USER@"
+echo "#########################################"
+adduser --system @CATCIERGE_USER@
+usermod -a -G video @CATCIERGE_USER@
+usermod -a -G gpio @CATCIERGE_USER@
+
+echo "Getting started"
+echo "---------------"
+echo
+echo "1. Create a system-wide catcierge config file to get started:"
+echo
+echo "  sudo cp @CATCIERGE_CONF_BASE_PATH@/catcierge-example.cfg @CATCIERGE_CONF_PATH@"
+echo
+echo "2. To see available options run:"
+echo
+echo "  catcierge_grabber --help"
+echo
+echo "3. And to finally start the service:"
+echo
+echo "  sudo systemctl start catcierge"
+echo
+
+	

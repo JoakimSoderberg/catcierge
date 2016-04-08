@@ -91,6 +91,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 	IplImage *tmp = NULL;
 	IplImage *tmp2 = NULL;
 	CvMemStorage *storage = NULL;
+	catcierge_matcher_args_t *args = ctx->args;
 	assert(ctx);
 	assert(r);
 
@@ -112,7 +113,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 
 	// Get a binary image.
 	tmp2 = cvCreateImage(cvGetSize(img), 8, 1);
-	cvThreshold(tmp, tmp2, 90, 255, CV_THRESH_BINARY);
+	cvThreshold(tmp, tmp2, args->auto_roi_thr, 255, CV_THRESH_BINARY);
 
 	cvFindContours(tmp2, storage, &contours,
 		sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
@@ -137,7 +138,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 		ret = -1; goto fail;
 	}
 
-	CATLOG("Back light found with area %0.0f (expected at least %d)\n",
+	CATLOG("Back light found with area %0.0f (which is greater than the minimum allowed %d)\n",
 		max_area, ctx->args->min_backlight);
 
 	if (max_area < (double)ctx->args->min_backlight)
@@ -149,6 +150,29 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 	}
 
 	*r = cvBoundingRect(biggest_contour, 0);
+
+	if (args->save_auto_roi_img)
+	{
+		char buf[2048];
+		char path[2048];
+		IplImage *roi_img = NULL;
+		roi_img = cvCloneImage(img);
+
+		if (!getcwd(buf, sizeof(buf) - 1))
+		{
+			strcpy(buf, ".");
+		}
+
+		snprintf(path, sizeof(path) - 1, "%s%sauto_roi.png", buf, catcierge_path_sep());
+
+		cvDrawContours(roi_img, biggest_contour, cvScalarAll(255), cvScalarAll(0), -1, CV_FILLED, 8, cvPoint(0,0));
+		cvRectangleR(roi_img, *r, CV_RGB(255, 0, 0), 2, 8, 0);
+
+		cvSaveImage(path, roi_img, 0);
+		CATLOG("Saved auto roi image to: %s\n", path);
+
+		cvReleaseImage(&roi_img);
+	}
 
 fail:
 	if (img->nChannels != 1)
