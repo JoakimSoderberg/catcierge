@@ -6,8 +6,13 @@ file(GLOB TEST_SRCS
 
 # Make sure the tests don't try to read the default config
 # since that would screw up the specific settings we are testing...
-set(CMAKE_TESTDRIVER_BEFORE_TESTMAIN
-	"setenv(\"CATCIERGE_NO_DEFAULT_CONFIG\", \"1\", 1);")
+if (WIN32)
+	set(CMAKE_TESTDRIVER_BEFORE_TESTMAIN
+		"_putenv(\"CATCIERGE_NO_DEFAULT_CONFIG\=1\");")
+else()
+	set(CMAKE_TESTDRIVER_BEFORE_TESTMAIN
+		"setenv(\"CATCIERGE_NO_DEFAULT_CONFIG\", \"1\", 1);")
+endif()
 
 create_test_sourcelist(
 	CATCIERGE_TESTS_SRCS		# Name of the test suite.
