@@ -8,7 +8,7 @@ file(GLOB TEST_SRCS
 # since that would screw up the specific settings we are testing...
 if (WIN32)
 	set(CMAKE_TESTDRIVER_BEFORE_TESTMAIN
-		"_putenv(\"CATCIERGE_NO_DEFAULT_CONFIG\=1\");")
+		"_putenv(\"CATCIERGE_NO_DEFAULT_CONFIG=1\");")
 else()
 	set(CMAKE_TESTDRIVER_BEFORE_TESTMAIN
 		"setenv(\"CATCIERGE_NO_DEFAULT_CONFIG\", \"1\", 1);")
@@ -20,7 +20,7 @@ create_test_sourcelist(
 
 	# List of test files. All TEST_*.c files.
 	${TEST_SRCS}
-	)
+	EXTRA_INCLUDE "stdlib.h")
 
 #list(APPEND TEST_DRIVERS ${CATCIERGE_TEST_DRIVER}.c)
 
