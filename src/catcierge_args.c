@@ -305,6 +305,10 @@ static int add_matcher_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= cargo_add_option(cargo, 0,
 			"<matcher> --matchtime", NULL,
 			"i", &args->match_time);
+	ret |= cargo_set_option_description(cargo,
+			"--matchtime",
+			"The time to wait after a match before attemping again. "
+			"Default %d seconds.", DEFAULT_MATCH_WAIT);
 
 	ret |= catcierge_haar_matcher_add_options(cargo, &args->haar);
 	ret |= catcierge_template_matcher_add_options(cargo, &args->templ);
@@ -949,8 +953,14 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	{
 		int confret = 0;
 		int is_default_config = !strcmp(args->config_path, CATCIERGE_CONF_PATH);
+		int skip_default_config = (args->no_default_config || (getenv("CATCIERGE_NO_DEFAULT_CONFIG") != NULL));
 
-		if (is_default_config && (args->no_default_config || (getenv("CATCIERGE_NO_DEFAULT_CONFIG") != NULL)))
+		if (is_default_config)
+		{
+			CATLOG("Using default config\n");
+		}
+
+		if (is_default_config && skip_default_config)
 		{
 			CATLOG("Default config turned off, ignoring: %s\n", CATCIERGE_CONF_PATH);
 		}
