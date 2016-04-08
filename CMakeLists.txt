@@ -370,7 +370,7 @@ if (UNIX)
 
 		# This is used in catcierge.service.in so that the gpio is always
 		# setup before the catcierge service on RPI.
-		set(CATCIERGE_SERVICE_AFTER "After=catcierge_rpi_gpio")
+		set(CATCIERGE_SERVICE_AFTER "After=catcierge_rpi_gpio.service")
 	endif()
 
 	configure_file("${PROJECT_SOURCE_DIR}/cmake/catcierge.service.in"

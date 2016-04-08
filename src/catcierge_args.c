@@ -939,7 +939,7 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	#endif // RPI
 
 	// Parse once to get --config value.
-	if (cargo_parse(cargo, 0, 1, argc, argv))
+	if (cargo_parse(cargo, CARGO_SKIP_CHECK_MUTEX | CARGO_SKIP_CHECK_REQUIRED, 1, argc, argv))
 	{
 		ret = -1; goto fail;
 	}
@@ -963,13 +963,22 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 
 			if (confret < 0)
 			{
+				CATERR("Failed to parse config\n");
 				ret = -1; goto fail;
 			}
 			else if ((confret == 1) && !is_default_config)
 			{
-				CATERR("WARNING: Specified config %s does not exist", args->config_path);
+				CATERR("WARNING: Specified config %s does not exist\n", args->config_path);
+			}
+			else
+			{
+				CATLOG("Parsed config\n");
 			}
 		}
+	}
+	else
+	{
+		CATLOG("No config file specified\n");
 	}
 
 	// And finally parse the commandline to override config settings.

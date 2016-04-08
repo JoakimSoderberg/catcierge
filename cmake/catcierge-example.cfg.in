@@ -13,7 +13,7 @@
 
 # Haar matcher
 haar=1
-cascade=${CMAKE_INSTALL_PREFIX}/share/catcierge.xml
+cascade=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge.xml
 in_direction=right
 min_size=80x80
 
@@ -21,5 +21,5 @@ min_size=80x80
 save=1
 save_obstruct=1
 save_steps=1
-output_path=/home/catcierge/%time:&Y-&m-&dT&H:&M:&S.&f&z%-%match_group_id%
+output_path=/home/catcierge/images/%time:&Y-&m-&dT&H:&M:&S.&f&z%-%match_group_id%
 
