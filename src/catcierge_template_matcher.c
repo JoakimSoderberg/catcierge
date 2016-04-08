@@ -447,17 +447,6 @@ int catcierge_template_matcher_add_options(cargo_t cargo,
 	return ret;
 }
 
-void catcierge_template_matcher_usage()
-{
-	fprintf(stderr, " --snout <paths>        Path to the snout images to use. If more than \n");
-	fprintf(stderr, "                        one path is given, the average match result is used.\n");
-	fprintf(stderr, " --threshold <float>    Match threshold as a value between 0.0 and 1.0.\n");
-	fprintf(stderr, "                        Default %.1f\n", DEFAULT_MATCH_THRESH);
-	fprintf(stderr, " --match_flipped <0|1>  Match a flipped version of the snout\n");
-	fprintf(stderr, "                        (don't consider going out a failed match). Default on.\n");
-	fprintf(stderr, "\n");
-}
-
 catcierge_output_var_t templ_vars[] =
 {
 	{ "snout_count", "Number of snouts given via --snout."},

@@ -328,8 +328,6 @@ int TEST_catcierge_fsm_template_matcher(int argc, char **argv)
 
 	catcierge_test_HEADLINE("TEST_catcierge_fsm_template_matcher");
 
-	catcierge_template_matcher_usage();
-
 	// Test without anything obstructing the frame after
 	// the successful match.
 	CATCIERGE_RUN_TEST((e = run_success_tests(0)),

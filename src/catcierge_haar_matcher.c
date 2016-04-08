@@ -731,6 +731,7 @@ static int parse_prey_method(cargo_t ctx, void *user, const char *optname,
 int catcierge_haar_matcher_args_destroy(catcierge_haar_matcher_args_t *args)
 {
 	catcierge_xfree(&args->cascade);
+	return 0;
 }
 
 int catcierge_haar_matcher_add_options(cargo_t cargo,
@@ -799,135 +800,6 @@ int catcierge_haar_matcher_add_options(cargo_t cargo,
 
 	return ret;
 }
-
-#if 0
-int catcierge_haar_matcher_parse_args(catcierge_haar_matcher_args_t *args,
-		const char *key, char **values, size_t value_count)
-{
-	if (!strcmp(key, "cascade"))
-	{
-		if (value_count >= 1)
-		{
-			args->cascade = values[0];
-		}
-		else
-		{
-			fprintf(stderr, "Missing value for --cascade\n");
-			return -1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(key, "min_size"))
-	{
-		if (value_count == 1)
-		{
-			int sret = sscanf(values[0], "%dx%d", &args->min_width, &args->min_height);
-
-			if ((sret == EOF) || (sret != 2))
-			{
-				fprintf(stderr, "Invalid format for --min_size \"%s\"\n", values[0]);
-				return -1;
-			}
-		}
-		else
-		{
-			fprintf(stderr, "Missing value for --min_size\n");
-			return -1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(key, "no_match_is_fail"))
-	{
-		args->no_match_is_fail = 1;
-		if (value_count == 1) args->no_match_is_fail = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "equalize_historgram") || !strcmp(key, "eqhist"))
-	{
-		args->eq_histogram = 1;
-		if (value_count == 1) args->eq_histogram = atoi(values[0]);
-		return 0;
-	}
-
-	if (!strcmp(key, "prey_steps"))
-	{
-		if (value_count == 1)
-		{
-			args->prey_steps = atoi(values[0]);
-		}
-		else
-		{
-			fprintf(stderr, "Missing value for --prey_steps\n");
-			return -1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(key, "in_direction"))
-	{
-		if (value_count == 1)
-		{
-			char *d = values[0];
-			if (!strcasecmp(d, "left"))
-			{
-				args->in_direction = DIR_LEFT;
-			}
-			else if (!strcasecmp(d, "right"))
-			{
-				args->in_direction = DIR_RIGHT;
-			}
-			else
-			{
-				fprintf(stderr, "Invalid direction \"%s\", must be \"left\" or \"right\".\n", d);
-				return -1;
-			}
-		}
-		else
-		{
-			fprintf(stderr, "Missing either \"left\" or \"right\" for --in_direction\n");
-			return -1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(key, "prey_method"))
-	{
-		if (value_count == 1)
-		{
-			char *d = values[0];
-			if (!strcasecmp(d, "adaptive"))
-			{
-				args->prey_method = PREY_METHOD_ADAPTIVE;
-			}
-			else if (!strcasecmp(d, "normal"))
-			{
-				args->prey_method = PREY_METHOD_NORMAL;
-			}
-			else
-			{
-				fprintf(stderr, "Invalid prey method \"%s\", must be \"adaptive\" or \"normal\".\n", d);
-				return -1;
-			}
-		}
-		else
-		{
-			fprintf(stderr, "Missing either \"adaptive\" or \"normal\" for --prey_method\n");
-			return -1;
-		}
-
-		return 0;
-	}
-
-	return 1;
-}
-#endif
 
 void catcierge_haar_matcher_usage()
 {

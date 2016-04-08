@@ -17,11 +17,17 @@
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include "catcierge_config.h"
 #include <stdio.h>
 
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
 
+#ifdef CATCIERGE_HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#include "catcierge_util.h"
 #include "catcierge_matcher.h"
 #include "catcierge_template_matcher.h"
 #include "catcierge_haar_matcher.h"
