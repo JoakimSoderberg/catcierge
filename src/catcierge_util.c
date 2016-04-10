@@ -601,4 +601,48 @@ void catcierge_xfree(void *p)
     }
 }
 
+void print_line(FILE *fd, int length, const char *s)
+{
+	int i;
+	for (i = 0; i < length; i++)
+		fputc(*s, fd);
+	fprintf(fd, "\n");
+}
 
+char *catcierge_read_file(const char *filename)
+{
+	char *buffer = NULL;
+	int string_size;
+	int read_size;
+	FILE *f;
+
+	if (!(f = fopen(filename,"r")))
+	{
+		CATERR("Failed to open file %s\n", filename);
+		return NULL;
+	}
+
+	fseek(f, 0, SEEK_END);
+	string_size = ftell(f);
+	rewind(f);
+
+	if (!(buffer = (char *)malloc(sizeof(char) * (string_size + 1))))
+	{
+		goto fail;
+	}
+
+	read_size = fread(buffer, sizeof(char), string_size, f);
+	buffer[string_size] = '\0';
+
+	if (string_size != read_size)
+	{
+		CATERR("Failed to read file %s\n", filename);
+		free(buffer);
+		buffer = NULL;
+	}
+
+fail:
+	if (f) fclose(f);
+
+	return buffer;
+}

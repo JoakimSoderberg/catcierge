@@ -310,6 +310,7 @@ endif()
 
 if (RPI)
 	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/src/catcierge_gpio.c)
+	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/src/catcierge_rpi_args.c)
 endif()
 
 if (WITH_RFID)

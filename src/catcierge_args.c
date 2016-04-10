@@ -23,6 +23,9 @@
 #include "catcierge_args.h"
 #include "catcierge_output.h"
 #include "catcierge_log.h"
+#ifdef RPI
+#include "catcierge_rpi_args.h"
+#endif
 
 #ifdef WITH_RFID
 #include "catcierge_rfid.h"
@@ -638,8 +641,32 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= cargo_add_option(cargo,
 			CARGO_OPT_UNIQUE | CARGO_OPT_STOP | CARGO_OPT_STOP_HARD,
 			"--config -c",
-			"Path to config file",
+			NULL,
 			"s", &args->config_path);
+	ret |= cargo_set_option_description(cargo,
+			"--config",
+			"Path to the catcierge config file. Catcierge looks for %s "
+			"by default, unless --no_default_config has been specified. "
+			"Setting this overrides the default config.\n"
+			#ifdef RPI
+			"NOTE: Options for the raspberry pi camera settings --rpi, "
+			"cannot be used in this config. Please see --config_rpi and "
+			"--camhelp for details."
+			#endif
+			, CATCIERGE_CONF_PATH);
+
+	#ifdef RPI
+	ret |= cargo_add_option(cargo,
+			CARGO_OPT_UNIQUE,
+			"--config_rpi",
+			NULL,
+			"s", &args->config_path);
+	ret |= cargo_set_option_description(cargo,
+			"--config_rpi",
+			"Path to config file for raspberry pi camera settings. See "
+			"--camhelp for details. Default location: %s",
+			CATCIERGE_RPI_CONF_PATH);
+	#endif // RPI
 
 	ret |= cargo_add_option(cargo, 0,
 			"--no_default_config",
@@ -700,95 +727,6 @@ static void print_cmd_help(cargo_t cargo, catcierge_args_t *args)
 	catcierge_haar_output_print_usage();
 }
 
-static void print_line(FILE *fd, int length, const char *s)
-{
-	int i;
-	for (i = 0; i < length; i++)
-		fputc(*s, fd);
-	fprintf(fd, "\n");
-}
-
-#ifdef RPI
-static void print_cam_help(cargo_t cargo)
-{
-	int console_width = cargo_get_width(cargo, 0) - 1;
-	print_line(stderr, console_width, "-");
-	fprintf(stderr, "Raspberry Pi camera settings:\n");
-	fprintf(stderr, "(Prepend these with --rpi. Example: --rpi--saturation or --rpi-sa)\n");
-	print_line(stderr, console_width, "-");
-	raspicamcontrol_display_help();
-	print_line(stderr, console_width, "-");
-	fprintf(stderr, "\nNote! To use the above command line parameters\n");
-	fprintf(stderr, "you must prepend them with \"rpi-\".\n");
-	fprintf(stderr, "For example --rpi-ISO\n");
-	print_line(stderr, console_width, "-");
-}
-
-static char **parse_rpi_args(int *argc, char **argv, catcierge_args_t *args)
-{
-	int i;
-	int j;
-	int rpi_count = 0;
-	char **nargv;
-	int nargc = 0;
-	int used = 0;
-	assert(argc);
-	assert(argv);
-	assert(args);
-
-	if (!(nargv = calloc(*argc, sizeof(char *))))
-	{
-		return NULL;
-	}
-
-	for (i = 0, j = 0; i < *argc; i++)
-	{
-		if (!strncmp(argv[i], "--rpi-", sizeof("--rpi-") - 1))
-		{
-			int rpiret = 0;
-			char *next_arg = NULL;
-			const char *rpikey = argv[i] + sizeof("--rpi") - 1;
-
-			if ((i + 1) < *argc)
-			{
-				next_arg = argv[i + 1];
-
-				if (*next_arg == '-')
-				{
-					next_arg = NULL;
-					i++;
-				}
-			}
-
-			if ((used = raspicamcontrol_parse_cmdline(
-				&args->rpi_settings.camera_parameters,
-				rpikey, next_arg)) == 0)
-			{
-				fprintf(stderr, "Error parsing rpi-cam option:\n  %s\n", rpikey);
-				goto fail;
-			}
-
-			rpi_count += used;
-		}
-		else
-		{
-			nargv[j++] = strdup(argv[i]);
-		}
-	}
-
-	*argc -= rpi_count;
-
-	return nargv;
-fail:
-	if (nargv)
-	{
-		cargo_free_commandline(&nargv, nargc);
-	}
-
-	return NULL;
-}
-#endif // RPI
-
 void catcierge_args_init_vars(catcierge_args_t *args)
 {
 	memset(args, 0, sizeof(catcierge_args_t));
@@ -820,6 +758,8 @@ void catcierge_args_init_vars(catcierge_args_t *args)
 		args->lockout_gpio_pin = CATCIERGE_LOCKOUT_GPIO;
 		args->backlight_gpio_pin = CATCIERGE_BACKLIGHT_GPIO;
 		args->backlight_enable = 0;
+
+		args->rpi_config_path = strdup(CATCIERGE_RPI_CONF_PATH);
 	}
 	#endif // RPI
 
@@ -933,12 +873,25 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	assert(args);
 
 	#ifdef RPI
+	if (args->rpi_config_path)
+	{
+		int is_default_rpi_config = !strcmp(args->rpi_config_path, CATCIERGE_RPI_CONF_PATH);
+
+		if (catcierge_parse_rpi_config(args->rpi_config_path, args))
+		{
+			if (!is_default_rpi_config)
+			{
+				ret = -1; goto fail;
+			}
+		}
+	}
+
 	// Let the raspicam software parse any --rpi settings
 	// and remove them from the list of arguments (argv is replaced).
-	if (!(argv = parse_rpi_args(&argc, argv, args)))
+	if (!(argv = catcierge_parse_rpi_args(&argc, argv, args)))
 	{
 		CATERR("Failed to parse Raspberry Pi camera settings. See --camhelp\n");
-		goto fail; ret = -1;
+		ret = -1; goto fail;
 	}
 	#endif // RPI
 
@@ -1007,7 +960,7 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	if (args->show_camhelp)
 	{
 		print_cam_help(cargo);
-		ret -1; goto fail;
+		ret = -1; goto fail;
 	}
 	#endif // RPI
 

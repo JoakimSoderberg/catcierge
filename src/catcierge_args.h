@@ -123,6 +123,7 @@ typedef struct catcierge_args_s
 	int backlight_enable;
 
 	#ifdef RPI
+	char *rpi_config_path;
 	int show_camhelp;
 	RASPIVID_SETTINGS rpi_settings;
 	#endif // RPI

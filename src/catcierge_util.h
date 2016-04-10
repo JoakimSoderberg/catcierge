@@ -22,6 +22,7 @@
 #include "catcierge_types.h"
 #include <time.h>
 #include "catcierge_platform.h"
+#include <stdio.h>
 
 void catcierge_execute(char *command, char *fmt, ...);
 void catcierge_reset_cursor_position();
@@ -40,5 +41,9 @@ const char *catcierge_path_sep();
 char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen);
 
 void catcierge_xfree(void *p);
+
+void print_line(FILE *fd, int length, const char *s);
+
+char *catcierge_read_file(const char *filename);
 
 #endif // __CATCIERGE_UTIL_H__
