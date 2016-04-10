@@ -11,6 +11,8 @@
 #   cp ${CATCIERGE_CONF_BASE_PATH}/catcierge-example.cfg ${CATCIERGE_CONF_PATH}
 #
 
+noanim=1
+
 # Haar matcher
 haar=1
 cascade=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge.xml
@@ -21,5 +23,5 @@ min_size=80x80
 save=1
 save_obstruct=1
 save_steps=1
-output_path=/home/catcierge/images/%time:&Y-&m-&dT&H:&M:&S.&f&z%-%match_group_id%
+output_path=/home/catcierge/images/
 
