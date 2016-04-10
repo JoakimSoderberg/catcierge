@@ -145,4 +145,8 @@ void catcierge_args_destroy_vars(catcierge_args_t *args);
 void catcierge_print_settings(catcierge_args_t *args);
 catcierge_matcher_args_t *catcierge_get_matcher_args(catcierge_args_t *args);
 
+#ifdef RPI
+char **parse_rpi_args(int *argc, char **argv, RASPIVID_SETTINGS *rpi_settings);
+#endif
+
 #endif // __CATCIERGE_ARGS_H__

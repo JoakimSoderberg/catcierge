@@ -24,6 +24,9 @@
 #include "cargo.h"
 #include "uthash.h"
 #include "catcierge_platform.h"
+#ifdef RPI
+#include "RaspiCamCV.h"
+#endif
 
 #define MAX_CONFIG_KEY 1024
 #define MAX_CONFIG_VAL 1024
@@ -69,10 +72,14 @@ typedef struct conf_ini_args_s
 
 	// Used in the ini parsing stage to store the variables.
 	conf_arg_t *config_args;
-	//size_t config_args_count;
 } conf_ini_args_t;
 
-int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args);
+int parse_config(cargo_t cargo, const char *config_path,
+				 conf_ini_args_t *ini_args
+				 #ifdef RPI
+				 , RASPIVID_SETTINGS *rpi_settings
+				 #endif
+				 );
 
 void ini_args_destroy(conf_ini_args_t *args);
 

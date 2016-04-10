@@ -22,6 +22,7 @@
 #include <string.h>
 #include <errno.h>
 #include "cargo_ini.h"
+#include "catcierge_args.h"
 
 static void alini_cb(alini_parser_t *parser,
 					 char *section, char *key, char *value)
@@ -75,7 +76,7 @@ void ini_args_destroy(conf_ini_args_t *args)
 	cargo_free_commandline(&args->config_argv, args->config_argc);
 }
 
-#if 0
+#if 1
 void print_hash(conf_arg_t *config_args)
 {
 	size_t i = 0;
@@ -118,6 +119,12 @@ cargo_type_t guess_expanded_name(cargo_t cargo, conf_arg_t *it,
 	cargo_type_t type;
 	int i = 1;
 
+	if (!strncmp(it->key, "rpi-", sizeof("rpi-") - 1))
+	{
+		snprintf(tmpkey, tmpkey_len, "--%s", it->key);
+		return -1;
+	}
+
 	// TODO: Maybe cargo should simply have a function that can find this for us...
 
 	// Hack to figure out what prefix to use, "-", "--", and so on...
@@ -149,7 +156,7 @@ int build_config_commandline(cargo_t cargo, const char *config_path, conf_ini_ar
 	// in the hash table. We know want to create a command line from
 	// this, that is "argv" that then cargo can parse.
 
-	// Cunt how many args there will be (argc).
+	// Count how many args there will be (argc).
 	HASH_ITER(hh, args->config_args, it, tmp)
 	{
 		it->type = guess_expanded_name(cargo, it,
@@ -284,7 +291,12 @@ fail:
 	return ret;
 }
 
-int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
+int parse_config(cargo_t cargo, const char *config_path,
+				 conf_ini_args_t *ini_args
+				 #ifdef RPI
+				 , RASPIVID_SETTINGS *rpi_settings
+				 #endif
+				 )
 {
 	int ret;
 	cargo_parse_result_t err = 0;
@@ -296,7 +308,7 @@ int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 	}
 
 	// Parse the ini-file and store contents in a hash table.
-	ret = perform_config_parse(cargo, config_path, args);
+	ret = perform_config_parse(cargo, config_path, ini_args);
 	
 	if (ret < 0)
 	{
@@ -314,23 +326,43 @@ int parse_config(cargo_t cargo, const char *config_path, conf_ini_args_t *args)
 	//   key2 = 789
 	// Becomes:
 	//   --key1 123 456 --key2 789
-	if (build_config_commandline(cargo, config_path, args))
+	if (build_config_commandline(cargo, config_path, ini_args))
 	{
 		return -1;
 	}
 
-	#if 0
-	if (args->debug)
+	#if 1
 	{
-		print_hash(args->ini_args.config_args);
-		print_commandline(&args->ini_args);
+		print_hash(ini_args->config_args);
+		print_commandline(ini_args);
+	}
+	#endif
+
+	#ifdef RPI
+	// Let the raspicam software parse any --rpi settings
+	// and remove them from the list of arguments (argv is replaced).
+	if (!(ini_args->config_argv = parse_rpi_args(&ini_args->config_argc,
+												 ini_args->config_argv,
+								 				 rpi_settings)))
+	{
+		fprintf(stderr, "Failed to parse Raspberry Pi camera settings. See --camhelp\n");
+		return -1;
+	}
+	#endif // RPI
+
+	#if 1
+	{
+		printf("AFTER\n");
+		print_hash(ini_args->config_args);
+		print_commandline(ini_args);
 	}
 	#endif
 
 	// Parse the "fake" command line using cargo. We turn off the
 	// internal error output, so the errors are more in the context
 	// of a config file.
-	if ((err = cargo_parse(cargo, CARGO_NOERR_USAGE, 0, args->config_argc, args->config_argv)))
+	if ((err = cargo_parse(cargo, CARGO_NOERR_USAGE, 0,
+							ini_args->config_argc, ini_args->config_argv)))
 	{
 		size_t k = 0;
 		fprintf(stderr, "Failed to parse config: %d\n", err);

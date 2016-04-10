@@ -724,7 +724,7 @@ static void print_cam_help(cargo_t cargo)
 	print_line(stderr, console_width, "-");
 }
 
-static char **parse_rpi_args(int *argc, char **argv, catcierge_args_t *args)
+char **parse_rpi_args(int *argc, char **argv, RASPIVID_SETTINGS *rpi_settings)
 {
 	int i;
 	int j;
@@ -734,7 +734,7 @@ static char **parse_rpi_args(int *argc, char **argv, catcierge_args_t *args)
 	int used = 0;
 	assert(argc);
 	assert(argv);
-	assert(args);
+	assert(rpi_settings);
 
 	if (!(nargv = calloc(*argc, sizeof(char *))))
 	{
@@ -761,7 +761,7 @@ static char **parse_rpi_args(int *argc, char **argv, catcierge_args_t *args)
 			}
 
 			if ((used = raspicamcontrol_parse_cmdline(
-				&args->rpi_settings.camera_parameters,
+				&rpi_settings->camera_parameters,
 				rpikey, next_arg)) == 0)
 			{
 				fprintf(stderr, "Error parsing rpi-cam option:\n  %s\n", rpikey);
@@ -935,7 +935,7 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	#ifdef RPI
 	// Let the raspicam software parse any --rpi settings
 	// and remove them from the list of arguments (argv is replaced).
-	if (!(argv = parse_rpi_args(&argc, argv, args)))
+	if (!(argv = parse_rpi_args(&argc, argv, &args->rpi_settings)))
 	{
 		CATERR("Failed to parse Raspberry Pi camera settings. See --camhelp\n");
 		goto fail; ret = -1;
@@ -969,7 +969,11 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 			CATLOG("Config path: %s\n", args->config_path);
 
 			// Read ini file and translate that into an argv that cargo can parse.
-			confret = parse_config(cargo, args->config_path, &args->ini_args);
+			confret = parse_config(cargo, args->config_path, &args->ini_args
+				#ifdef RPI
+				, &args->rpi_settings
+				#endif
+				);
 
 			if (confret < 0)
 			{
