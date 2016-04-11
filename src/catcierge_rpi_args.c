@@ -96,6 +96,7 @@ int catcierge_parse_rpi_config(const char *config_path, catcierge_args_t *args)
 	char *arg = NULL;
 	char *next_arg = NULL;
 	int used;
+	char *s = NULL;
 
 	CATLOG("Reading Raspberry Pi camera config: %s\n", config_path);
 	
@@ -105,8 +106,17 @@ int catcierge_parse_rpi_config(const char *config_path, catcierge_args_t *args)
 		ret = -1; goto fail;
 	}
 
+	s = buf;
+	while (*s)
+	{
+		if (*s == '\n')
+			*s = ' ';
+		s++;
+	}
+
 	if (!(argv = cargo_split_commandline(0, buf, &argc)))
 	{
+		CATERR("Raspberry Pi camera: Failed to split input into command line:\n%s", buf);
 		ret = -1; goto fail;
 	}
 
