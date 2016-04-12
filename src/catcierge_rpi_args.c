@@ -107,6 +107,8 @@ int catcierge_parse_rpi_config(const char *config_path, catcierge_args_t *args)
 	}
 
 	s = buf;
+
+	// TODO: Remove comments #
 	while (*s)
 	{
 		if (*s == '\n')
