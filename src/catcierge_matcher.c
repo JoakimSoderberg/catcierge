@@ -94,8 +94,9 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 	double area;
 	CvSeq *biggest_contour = NULL;
 	CvSeq *it = NULL;
-	IplImage *tmp = NULL;
-	IplImage *tmp2 = NULL;
+	IplImage *img_gray = NULL;
+	IplImage *img_thr = NULL;
+	IplImage *img_eq = NULL;
 	CvMemStorage *storage = NULL;
 	catcierge_matcher_args_t *args = ctx->args;
 	assert(ctx);
@@ -109,20 +110,24 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 	// Only covert to grayscale if needed.
 	if (img->nChannels != 1)
 	{
-		tmp = cvCreateImage(cvGetSize(img), 8, 1);
-		cvCvtColor(img, tmp, CV_BGR2GRAY);
+		img_gray = cvCreateImage(cvGetSize(img), 8, 1);
+		cvCvtColor(img, img_gray, CV_BGR2GRAY);
 	}
 	else
 	{
-		tmp = img;
+		img_gray = img;
 	}
 
-	// Get a binary image.
-	tmp2 = cvCreateImage(cvGetSize(img), 8, 1);
-	cvThreshold(tmp, tmp2, args->auto_roi_thr, 255, CV_THRESH_BINARY);
+	// Equalize image histogram.
+	img_eq = cvCreateImage(cvGetSize(img), 8, 1);
+	cvEqualizeHist(img_gray, img_eq);
 
-	cvFindContours(tmp2, storage, &contours,
-		sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0, 0));
+	// Get a binary image.
+	img_thr = cvCreateImage(cvGetSize(img), 8, 1);
+	cvThreshold(img_eq, img_thr, args->auto_roi_thr, 255, 0);
+
+	cvFindContours(img_thr, storage, &contours,
+		sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
 
 	it = contours;
 	while (it)
@@ -171,7 +176,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 
 		snprintf(path, sizeof(path) - 1, "%s%sauto_roi.png", buf, catcierge_path_sep());
 
-		cvDrawContours(roi_img, biggest_contour, cvScalarAll(255), cvScalarAll(0), -1, CV_FILLED, 8, cvPoint(0,0));
+		cvDrawContours(roi_img, biggest_contour, cvScalarAll(255), cvScalarAll(0), 0, 2, 8, cvPoint(0,0));
 		cvRectangleR(roi_img, *r, CV_RGB(255, 0, 0), 2, 8, 0);
 
 		cvSaveImage(path, roi_img, 0);
@@ -183,10 +188,10 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 fail:
 	if (img->nChannels != 1)
 	{
-		cvReleaseImage(&tmp);
+		cvReleaseImage(&img_gray);
 	}
 
-	cvReleaseImage(&tmp2);
+	cvReleaseImage(&img_thr);
 	cvReleaseMemStorage(&storage);
 
 	return ret;
