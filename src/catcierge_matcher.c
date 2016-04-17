@@ -192,6 +192,7 @@ fail:
 	}
 
 	cvReleaseImage(&img_thr);
+	cvReleaseImage(&img_eq);
 	cvReleaseMemStorage(&storage);
 
 	return ret;
