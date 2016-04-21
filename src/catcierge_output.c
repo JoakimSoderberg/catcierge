@@ -841,6 +841,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		{
 			idx = grb->match_group.match_count;
 			subvar = var + strlen("matchcur_");
+			idx--;
 		}
 		else
 		{
