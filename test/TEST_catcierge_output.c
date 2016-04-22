@@ -129,7 +129,7 @@ static char *run_generate_tests()
 			{ "aaa %match3_direction% bbb", "aaa in bbb" },
 			{ "%match3_result%", "0.800000" },
 			{ "%state%", "Waiting" },
-			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg4" },
+			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg3" },
 			{ "%match4_path%", "/some/path/omg4" }, // Match count is only 3, so this should be empty.
 			{ "%match_count%", "3" },
 			{ "%match_group_count%", "3" },
@@ -150,6 +150,7 @@ static char *run_generate_tests()
 			{ "%match2_step7_active%", "0" },
 			{ "%match2_step_count%", "8" },
 			{ "%match2_id%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
+			{ "%match2_idx%", "2" },
 			{ "%git_hash%", CATCIERGE_GIT_HASH },
 			{ "%git_hash_short%", CATCIERGE_GIT_HASH_SHORT },
 			{ "%git_tainted%", _XSTR(CATCIERGE_GIT_TAINTED) },

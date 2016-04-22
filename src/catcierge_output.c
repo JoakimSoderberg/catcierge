@@ -71,6 +71,8 @@ catcierge_output_var_t vars[] =
 	{ "match_group_direction", "The match group direction (based on all match directions)."},
 	{ "match_group_count", "Match group count o matches so far."},
 	{ "match_group_max_count", "Match group max number of matches that will be made."},
+	{ "matchcur_*", "Gets the current match while matching. "},
+	{ "match#_idx", "Gets the current match index, that is #. Makes sense to use with matchcur_*"},
 	{ "match#_id", "Unique ID for match #." },
 	{ "match#_filename", "Image filenamefor match #." },
 	{ "match#_path", "Image output path for match # (excluding filename)." },
@@ -897,6 +899,11 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		else if (!strcmp(subvar, "filename"))
 		{
 			return m->filename;
+		}
+		else if (!strncmp(subvar, "idx", 3))
+		{
+			snprintf(buf, bufsize - 1, "%d", idx + 1);
+			return buf;
 		}
 		else if (!strncmp(subvar, "id", 2))
 		{

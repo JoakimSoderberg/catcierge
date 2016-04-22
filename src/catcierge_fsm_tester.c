@@ -156,6 +156,13 @@ int main(int argc, char **argv)
 		ret = -1; goto fail;
 	}
 
+	printf("Images:\n");
+
+	for (i = 0; i < ctx.img_count; i++)
+	{
+		printf("%s\n", ctx.img_paths[i]);
+	}
+
 	if (args->base_time)
 	{
 		printf("Setting basetime to: %s\n", args->base_time);
