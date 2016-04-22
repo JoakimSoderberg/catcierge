@@ -23,5 +23,7 @@ min_size=80x80
 save=1
 save_obstruct=1
 save_steps=1
-output_path=/home/catcierge/images/
 
+output_path=/home/catcierge/images/%match_group_start_time:&Y-&m-&d%
+match_output_path=%output_path%/%match_group_id%
+steps_output_path=%match_output_path%/%matchcur_idx%

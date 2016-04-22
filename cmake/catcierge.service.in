@@ -7,6 +7,8 @@ ExecStart=@CMAKE_INSTALL_PREFIX@/bin/catcierge_grabber
 RemainAfterExit=yes
 StandardOutput=journal+console
 StandardError=journal+console
+User=catcierge
+Group=users
 
 [Install]
 WantedBy=multi-user.target
