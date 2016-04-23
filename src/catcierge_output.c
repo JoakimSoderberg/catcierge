@@ -1509,6 +1509,12 @@ void catcierge_output_execute_list(catcierge_grb_t *grb,
 {
 	size_t i;
 
+	if (catcierge_output_generate_templates(&grb->output, grb, event))
+	{
+		CATERR("Failed to generate templates on execute!\n");
+		return;
+	}
+
 	for (i = 0; i < command_count; i++)
 	{
 		catcierge_output_execute(grb, event, commands[i]);
@@ -1519,12 +1525,6 @@ void catcierge_output_execute(catcierge_grb_t *grb,
 		const char *event, const char *command)
 {
 	char *generated_cmd = NULL;
-
-	if (catcierge_output_generate_templates(&grb->output, grb, event))
-	{
-		CATERR("Failed to generate templates on execute!\n");
-		return;
-	}
 
 	if (!command)
 	{
