@@ -325,7 +325,17 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= cargo_add_group(cargo, 0, "output", "Output settings", 
 			"Note that all the *_path variables below can contain "
 			"variables of the format %%var%%.\n"
-			"See --cmdhelp for available variables.");
+			"See --cmdhelp for available variables, and --eventhelp "
+			"for a list of events.");
+
+	ret |= cargo_add_option(cargo,
+			CARGO_OPT_STOP | CARGO_OPT_STOP_HARD,
+			"<output> --eventhelp",
+			"Show a list of the events that are triggered by catcierge. "
+			"Templates specified using --input can filter based on these "
+			"so that they generate output only for a specific event. "
+			"This also shows general help regarding input template settings.",
+			"b", &args->show_event_help);
 
 	ret |= cargo_add_option(cargo, 0,
 			"<output> --save",
@@ -346,7 +356,9 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= cargo_add_option(cargo, 0,
 			"<output> --input",
 			"Path to one or more template files generated on specified events. "
-			"(Not to be confused with the template matcher)",
+			"(Not to be confused with the template matcher). "
+			"See --eventhelp for details on generating these on specific "
+			"events as well as input template settings.",
 			"[s]+", &args->inputs, &args->input_count);
 
 	ret |= cargo_add_option(cargo, 0,
@@ -659,6 +671,49 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 	return ret;
 }
 
+static void print_event_help(cargo_t cargo, catcierge_args_t *args)
+{
+	cargo_print_usage(cargo, 0);
+
+	// TODO: The output settings here should be generated automatically.
+	printf("Catcierge events and input templates:\n"
+		   "\n"
+		   "These events are triggered by catcierge at certain significant "
+		   "moments during execution.\n"
+		   "\n"
+		   "On each event you can choose to run one or more commands "
+		   "(see --cmdhelp), as well as generate text files containing "
+		   "the state of catcierge (using templates specified via --input). "
+		   "Also if ZMQ is enabled, the template can be published via that.\n"
+		   "\n"
+		   "Input templates can contain settings. These must be specified at "
+		   "the top of the file, and are prefixed with \"%%!\".\n"
+		   "\n"
+		   "For example to filter on events in a template use this:\n"
+		   "\n"
+		   " %%!event name_of_event, name_of_event\n"
+		   "\n"
+		   "You can use '*' or 'all' to trigger on all events.\n"
+		   "Note that you can have multiple input templates, each filtering "
+		   "on different events.\n"
+		   "\n"
+		   "Other available input template settings are:\n"
+		   " %%!filename    The filename of the generated files, variables "
+		                   "can be used here, see --cmdhelp for a list.\n"
+		   " %%!topic       When ZMQ is enabled, this is the ZMQ topic used.\n"
+		   " %%!nozmq       Don't publish this template via ZMQ.\n"
+		   " %%!nofile      Don't output any file for this template "
+		                  "(if you only want to publish it via ZMQ)\n"
+		   "\n"
+		   "List of events:\n");
+
+	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description)	\
+		printf(" %-20s %s\n", #ev_name, ev_description);
+	#include "catcierge_events.h"
+
+	printf("\n\n");
+}
+
 static void print_cmd_help(cargo_t cargo, catcierge_args_t *args)
 {
 	cargo_print_usage(cargo, 0);
@@ -889,6 +944,12 @@ int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 	if (args->show_cmd_help)
 	{
 		print_cmd_help(cargo, args);
+		ret = -1; goto fail;
+	}
+
+	if (args->show_event_help)
+	{
+		print_event_help(cargo, args);
 		ret = -1; goto fail;
 	}
 

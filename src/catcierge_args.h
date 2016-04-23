@@ -63,6 +63,7 @@ typedef struct catcierge_args_s
 	int max_consecutive_lockout_count;
 	int lockout_dummy;
 	int show_cmd_help;
+	int show_event_help;
 	int match_time;
 	char *output_path;
 	char *match_output_path;

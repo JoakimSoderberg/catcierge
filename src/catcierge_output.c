@@ -267,6 +267,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 		it += 2;
 		it = catcierge_skip_whitespace_alt(it);
 
+		// TODO: Enable listing these events in help by making a list of them.
 		if (!strncmp(it, "event", 5))
 		{
 			it += 5;
