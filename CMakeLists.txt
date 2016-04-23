@@ -43,7 +43,7 @@ endif()
 
 option(WITH_TEST_PROGRAMS "Turns on compilation of tester programs" ON)
 option(WITH_UNIT_TESTS "Turn on compilation of unit test" ON)
-option(WITH_ZMQ "Compile ZMQ support" OFF)
+option(WITH_ZMQ "Compile ZMQ support" ON)
 option(CATCIERGE_GUI_TESTS "Include GUI tests" OFF)
 set(CARGO_DEBUG "" CACHE STRING "Debug level for Cargo command line parser")
 
@@ -461,9 +461,12 @@ if (UNIX)
 	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
 
 	set(CPACK_DEBIAN_PACKAGE_DEPENDS "libopencv-dev, libopenexr-dev")
-	set(CPACK_DEBIAN_PACKAGE_MAINTAINER "joakim.soderberg@netrounds.com")
+	if (WITH_ZMQ)
+		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_DEBIAN_PACKAGE_MAINTAINER}, libzmq-dev")
+	endif()
+	set(CPACK_DEBIAN_PACKAGE_MAINTAINER "joakim.soderberg@gmail.com")
 	set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${LINUX_PACKAGE_DESCRIPTION}")
-	set(CPACK_DEBIAN_PACKAGE_SECTION "unknown")
+	set(CPACK_DEBIAN_PACKAGE_SECTION "Miscellaneous")
 	set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
 
 	configure_file("${PROJECT_SOURCE_DIR}/cmake/debian/postinst.in"
