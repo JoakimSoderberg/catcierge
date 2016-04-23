@@ -358,16 +358,21 @@ static int add_output_options(cargo_t cargo, catcierge_args_t *args)
 
 	ret |= cargo_add_option(cargo, 0,
 			"<output> --match_output_path",
-			"Override --output_path for match images and save them here instead. "
-			"If --new_execute is used, this can be relative to --output_path "
-			"by using %%output_path%% in the path.",
+			"Override --output_path for match images and save them here "
+			"instead. This can be relative to --output_path by using "
+			"%%output_path%% in the path. Note that this applies to all paths, "
+			"other path variables can be used to create a nested structure. "
+			"Just make sure you do not add a recursive dependence. "
+			"Also any other %%vars%% can of course be used to build the path. "
+			"See --cmdhelp for details.",
 			"s", &args->match_output_path);
 	ret |= cargo_set_metavar(cargo, "--match_output_path", "PATH");
 
 	ret |= cargo_add_option(cargo, 0,
 			"<output> --steps_output_path",
 			"If --save_steps is enabled, save step images to this path. "
-			"Same as for --match_output_path, overrides --output_path.",
+			"Same as for --match_output_path, overrides --output_path.\n"
+			"Example: --steps_output_path %%match_output_path%%/steps",
 			"s", &args->steps_output_path);
 	ret |= cargo_set_metavar(cargo, "--steps_output_path", "PATH");
 
@@ -498,16 +503,6 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 			"To see a list of variables use --cmdhelp");
 
 	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --old_execute",
-			"Turn on the old execute support.",
-			"b=", &args->new_execute, 0);
-
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --new_execute",
-			"Use the new execute support (default on).",
-			"D");
-
-	ret |= cargo_add_option(cargo, 0,
 			"<cmd> --frame_obstructed_cmd",
 			"Command to run when the frame becomes obstructed "
 			"and a new match is initiated. (--save_obstruct must be on).",
@@ -631,8 +626,6 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 {
 	int ret = 0;
 	assert(args);
-
-	args->new_execute = 1;
 
 	// If a config is specified, we stop parsing any other arguments.
 	// In this way we can use two parse passes. First one to read the

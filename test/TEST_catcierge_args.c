@@ -11,7 +11,7 @@ char *perform_config_test(int expected_ret, char *test_cfg, catcierge_args_t *ar
 {
 	int ret;
 	FILE *f;
-	//catcierge_args_t args;
+
 	#define TEST_CONFIG_PATH "______test.cfg"
 	char *argv[] = { "program", "--config", TEST_CONFIG_PATH };
 	int argc = sizeof(argv) / sizeof(argv[0]);
@@ -215,10 +215,6 @@ static char *run_catcierge_parse_test()
 
 	PARSE_ARGV_START(0, &args, "catcierge", "--haar", "--save_obstruct");
 	mu_assert("Expected save_obstruct == 1", args.save_obstruct_img == 1);
-	PARSE_ARGV_END();
-
-	PARSE_ARGV_START(0, &args, "catcierge", "--haar", "--new_execute");
-	mu_assert("Expected new_execute == 1", args.new_execute == 1);
 	PARSE_ARGV_END();
 
 	PARSE_ARGV_START(0, &args, "catcierge", "--haar", "--highlight");

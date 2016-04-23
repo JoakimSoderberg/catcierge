@@ -101,17 +101,7 @@ void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 	grb->prev_state = grb->state;
 	grb->state = new_state;
 
-	if (args->new_execute)
-	{
-		catcierge_output_execute(grb, "state_change", args->state_change_cmd);
-	}
-	else
-	{
-		catcierge_execute(args->state_change_cmd, 
-			"%s %s",
-			catcierge_get_state_string(grb->prev_state), // old state.
-			catcierge_get_state_string(grb->state)); // new state.
-	}
+	catcierge_output_execute(grb, "state_change", args->state_change_cmd);
 }
 
 #ifdef WITH_RFID
@@ -180,23 +170,8 @@ static void rfid_set_direction(catcierge_grb_t *grb, rfid_match_t *current, rfid
 	current->data_len = data_len;
 	current->is_allowed = match_allowed_rfid(grb, current->data);
 
-	if (args->new_execute)
-	{
-		// TODO: Do we have all RFID vars for this?
-		catcierge_output_execute(grb, "rfid_detect", args->rfid_detect_cmd);
-	}
-	else
-	{
-		catcierge_execute(args->rfid_detect_cmd, 
-			"%s %s %d %d %s %d %s",
-			rfid->name, 				// %0 = RFID reader name.
-			rfid->serial_path,			// %1 = RFID path.
-			current->is_allowed, 		// %2 = Is allowed.
-			!current->complete, 		// %3 = Is data incomplete.
-			current->data,				// %4 = Tag data.
-			other->triggered,			// %5 = Other reader triggered.
-			catcierge_get_direction_str(grb->rfid_direction)); // %6 = Direction.
-	}
+	// TODO: Do we have all RFID vars for this?
+	catcierge_output_execute(grb, "rfid_detect", args->rfid_detect_cmd);
 }
 
 static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int complete, const char *data, size_t data_len, void *user)
@@ -260,14 +235,7 @@ void catcierge_do_lockout(catcierge_grb_t *grb)
 
 	if (args->do_lockout_cmd)
 	{
-		if (args->new_execute)
-		{
-			catcierge_output_execute(grb, "do_lockout", args->do_lockout_cmd);
-		}
-		else
-		{
-			catcierge_execute(args->do_lockout_cmd, "");
-		}
+		catcierge_output_execute(grb, "do_lockout", args->do_lockout_cmd);
 	}
 	else
 	{
@@ -290,14 +258,7 @@ void catcierge_do_unlock(catcierge_grb_t *grb)
 
 	if (args->do_unlock_cmd)
 	{
-		if (args->new_execute)
-		{
-			catcierge_output_execute(grb, "do_unlock", args->do_unlock_cmd);
-		}
-		else
-		{
-			catcierge_execute(args->do_unlock_cmd, "");
-		}
+		catcierge_output_execute(grb, "do_unlock", args->do_unlock_cmd);
 	}
 	else
 	{
@@ -699,46 +660,13 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 			}
 		}
 
-		if (args->new_execute)
-		{
-			catcierge_output_execute(grb, "save_img", args->save_img_cmd);
-		}
-		else
-		{
-			catcierge_execute(args->save_img_cmd, "%f %d %s%s%s %d",
-				res->result,	// %0 = Match result.
-				res->success, 	// %1 = Match success.
-				m->full_path,	// %2 = Image path (of now saved image).
-				res->direction);// %3 = Match direction.
-		}
+		catcierge_output_execute(grb, "save_img", args->save_img_cmd);
 
 		cvReleaseImage(&m->img);
 	}
 
 	// TODO: Move this to be outside this function.
-	if (args->new_execute)
-	{
-		catcierge_output_execute(grb, "match_group_done", args->match_group_done_cmd);
-	}
-	else
-	{
-		catcierge_execute(args->match_group_done_cmd,
-			"%d %s %s %s %s %f %f %f %f %d %d %d %d %d",
-			grb->match_group.success, 						// %0 = Match success.
-			grb->match_group.matches[0].full_path,			// %1 = Image 1 path (of now saved image).
-			grb->match_group.matches[1].full_path,			// %2 = Image 2 path (of now saved image).
-			grb->match_group.matches[2].full_path,			// %3 = Image 3 path (of now saved image).
-			grb->match_group.matches[3].full_path,			// %4 = Image 4 path (of now saved image).
-			grb->match_group.matches[0].result.result,		// %5 = Image 1 result.
-			grb->match_group.matches[1].result.result,		// %6 = Image 2 result.
-			grb->match_group.matches[2].result.result,		// %7 = Image 3 result.
-			grb->match_group.matches[3].result.result,		// %8 = Image 4 result.
-			grb->match_group.matches[0].result.direction,	// %9 =  Image 1 direction.
-			grb->match_group.matches[1].result.direction,	// %10 = Image 2 direction.
-			grb->match_group.matches[2].result.direction,	// %11 = Image 3 direction.
-			grb->match_group.matches[3].result.direction,	// %12 = Image 4 direction.
-			direction); 									// %13 = Total direction.
-	}
+	catcierge_output_execute(grb, "match_group_done", args->match_group_done_cmd);
 }
 
 static int catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
@@ -859,30 +787,8 @@ static void catcierge_should_we_rfid_lockout(catcierge_grb_t *grb)
 			if (args->rfid_inner_path) CATLOG("  %s RFID: %s\n", grb->rfid_in.name, grb->rfid_in_match.triggered ? grb->rfid_in_match.data : "No tag data");
 			if (args->rfid_outer_path) CATLOG("  %s RFID: %s\n", grb->rfid_out.name, grb->rfid_out_match.triggered ? grb->rfid_out_match.data : "No tag data");
 
-			if (args->new_execute)
-			{
-				// TODO: Do we have all RFID vars for this?
-				catcierge_output_execute(grb, "rfid_match", args->rfid_match_cmd);
-			}
-			else
-			{
-				// %0 = Match success.
-				// %1 = RFID inner in use.
-				// %2 = RFID outer in use.
-				// %3 = RFID inner success.
-				// %4 = RFID outer success.
-				// %5 = RFID inner data.
-				// %6 = RFID outer data.
-				catcierge_execute(args->rfid_match_cmd, 
-					"%d %d %d %d %s %s", 
-					!do_rfid_lockout,
-					(args->rfid_inner_path != NULL),
-					(args->rfid_outer_path != NULL),
-					grb->rfid_in_match.is_allowed,
-					grb->rfid_out_match.is_allowed,
-					grb->rfid_in_match.data,
-					grb->rfid_out_match.data);
-			}
+			// TODO: Do we have all RFID vars for this?
+			catcierge_output_execute(grb, "rfid_match", args->rfid_match_cmd);
 
 			grb->checked_rfid_lock = 1;
 		}
@@ -1165,17 +1071,7 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 
 	catcierge_match_group_end(mg);
 
-	if (args->new_execute)
-	{
-		catcierge_output_execute(grb, "match_done", args->match_done_cmd);
-	}
-	else
-	{
-		catcierge_execute(args->match_done_cmd, "%d %d %d", 
-			mg->success, 		// %0 = Match success.
-			mg->success_count,	// %1 = Successful match count.
-			MATCH_MAX_COUNT);	// %2 = Max matches.
-	}
+	catcierge_output_execute(grb, "match_done", args->match_done_cmd);
 
 	// Now we can save the images that we cached earlier 
 	// without slowing down the matching FPS.
@@ -1469,20 +1365,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	catcierge_process_match_result(grb, grb->img);
 
 	// Runs the --match_cmd program specified.
-	if (args->new_execute)
-	{
-		catcierge_output_execute(grb, "match", args->match_cmd);
-	}
-	else
-	{
-		match_state_t *match = &mg->matches[mg->match_count - 1];
-		match_result_t *result = &match->result;
-		catcierge_execute(args->match_cmd, "%f %d %s %d",
-				result->result, 					// %0 = Match result.
-				result->success,					// %1 = 0/1 succes or failure.
-				args->saveimg ? match->path : "",	// %2 = Image path if saveimg is turned on.
-				result->direction);					// %3 = Direction, 0 = in, 1 = out.
-	}
+	catcierge_output_execute(grb, "match", args->match_cmd);
 
 	catcierge_show_image(grb);
 
@@ -1553,14 +1436,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 		// Save the obstruct image.
 		catcierge_save_obstruct_image(grb);
 
-		if (args->new_execute)
-		{
-			catcierge_output_execute(grb, "frame_obstructed", args->frame_obstructed_cmd);
-		}
-		else
-		{
-			catcierge_execute(args->frame_obstructed_cmd, "%s", mg->obstruct_path);
-		}
+		catcierge_output_execute(grb, "frame_obstructed", args->frame_obstructed_cmd);
 
 		catcierge_set_state(grb, catcierge_state_matching);
 	}

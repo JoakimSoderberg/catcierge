@@ -28,7 +28,7 @@ static char *do_run_delayed_start_tests(int test_no_backlight)
 
 	catcierge_grabber_init(&grb);
 	{
-		catcierge_haar_matcher_args_init(&args->haar);
+		catcierge_args_init(args, "delayed_start_tests");
 		args->saveimg = 0;
 		args->matcher_type = MATCHER_HAAR;
 		args->haar.cascade = CATCIERGE_CASCADE;
@@ -100,7 +100,7 @@ static char *run_backlight_tests()
 
 	catcierge_grabber_init(&grb);
 	{
-		catcierge_haar_matcher_args_init(&args->haar);
+		catcierge_args_init(args, "backlight_tests");
 		args->saveimg = 0;
 		args->matcher_type = MATCHER_HAAR;
 		args->haar.cascade = CATCIERGE_CASCADE;

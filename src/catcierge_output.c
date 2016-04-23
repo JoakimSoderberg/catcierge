@@ -1288,6 +1288,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 	FILE *f = NULL;
 	assert(ctx);
 	assert(grb);
+	assert(args->output_path);
 
 	if (!args->template_output_path)
 	{
@@ -1366,7 +1367,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 			zstr_sendfm(grb->zmq_pub, t->settings.topic);
 			zstr_send(grb->zmq_pub, output);
 		}
-		#endif
+		#endif // WITH_ZMQ
 
 		if (!t->settings.nofile)
 		{
@@ -1526,7 +1527,10 @@ void catcierge_output_execute(catcierge_grb_t *grb,
 	}
 
 	if (!command)
+	{
+		CATERR("Skipping empty command for %s event\n", event);
 		return;
+	}
 
 	if (!(generated_cmd = catcierge_output_generate(&grb->output, grb, command)))
 	{
