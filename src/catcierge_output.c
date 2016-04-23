@@ -1288,9 +1288,8 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 	FILE *f = NULL;
 	assert(ctx);
 	assert(grb);
-	assert(args->output_path);
 
-	if (!args->template_output_path)
+	if (!args->template_output_path && args->output_path)
 	{
 		if (!(args->template_output_path = strdup(args->output_path)))
 		{
@@ -1315,6 +1314,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		// (It is important this comes first, since we might refer to the generated
 		// path later, either inside the template itself, but most importantly we
 		// want to be able to pass the path to an external program).
+		if (args->template_output_path)
 		{
 			// Generate the output path.
 			if (!(gen_output_path = catcierge_output_generate(&grb->output,
@@ -1528,7 +1528,6 @@ void catcierge_output_execute(catcierge_grb_t *grb,
 
 	if (!command)
 	{
-		CATERR("Skipping empty command for %s event\n", event);
 		return;
 	}
 

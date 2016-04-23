@@ -56,6 +56,23 @@
 #include "catcierge_fsm.h"
 #include "catcierge_output.h"
 
+void catcierge_trigger_event(catcierge_grb_t *grb, catcierge_event_t e, int execute)
+{
+	// We use this wrapper function and pass a catcierge_event_t so that if
+	// one specifies an event type that is not defined in "catcierge_events.h"
+	// it will fail at compilation time.
+
+	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description)	\
+		if (e == ev_enum_name)												\
+		{																	\
+			const char *cmd = NULL;											\
+			if (execute) cmd = grb->args.ev_name ## _cmd;					\
+			catcierge_output_execute(grb, #ev_name, cmd);					\
+			return;															\
+		}
+	#include "catcierge_events.h"
+}
+
 void catcierge_run_state(catcierge_grb_t *grb)
 {
 	assert(grb);
@@ -101,7 +118,7 @@ void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state)
 	grb->prev_state = grb->state;
 	grb->state = new_state;
 
-	catcierge_output_execute(grb, "state_change", args->state_change_cmd);
+	catcierge_trigger_event(grb, CATCIERGE_STATE_CHANGE, 1);
 }
 
 #ifdef WITH_RFID
@@ -171,7 +188,7 @@ static void rfid_set_direction(catcierge_grb_t *grb, rfid_match_t *current, rfid
 	current->is_allowed = match_allowed_rfid(grb, current->data);
 
 	// TODO: Do we have all RFID vars for this?
-	catcierge_output_execute(grb, "rfid_detect", args->rfid_detect_cmd);
+	catcierge_trigger_event(grb, CATCIERGE_RFID_DETECT, 1);
 }
 
 static void rfid_inner_read_cb(catcierge_rfid_t *rfid, int complete, const char *data, size_t data_len, void *user)
@@ -235,10 +252,12 @@ void catcierge_do_lockout(catcierge_grb_t *grb)
 
 	if (args->do_lockout_cmd)
 	{
-		catcierge_output_execute(grb, "do_lockout", args->do_lockout_cmd);
+		catcierge_trigger_event(grb, CATCIERGE_DO_LOCKOUT, 1);
 	}
 	else
 	{
+		catcierge_trigger_event(grb, CATCIERGE_DO_LOCKOUT, 0);
+
 		#ifdef RPI
 		gpio_write(CATCIERGE_LOCKOUT_GPIO, 1);
 
@@ -258,10 +277,12 @@ void catcierge_do_unlock(catcierge_grb_t *grb)
 
 	if (args->do_unlock_cmd)
 	{
-		catcierge_output_execute(grb, "do_unlock", args->do_unlock_cmd);
+		catcierge_trigger_event(grb, CATCIERGE_DO_UNLOCK, 1);
 	}
 	else
 	{
+		catcierge_trigger_event(grb, CATCIERGE_DO_UNLOCK, 0);
+
 		#ifdef RPI
 		gpio_write(CATCIERGE_LOCKOUT_GPIO, 0);
 		
@@ -660,13 +681,10 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 			}
 		}
 
-		catcierge_output_execute(grb, "save_img", args->save_img_cmd);
+		catcierge_trigger_event(grb, CATCIERGE_SAVE_IMG, 1);
 
 		cvReleaseImage(&m->img);
 	}
-
-	// TODO: Move this to be outside this function.
-	catcierge_output_execute(grb, "match_group_done", args->match_group_done_cmd);
 }
 
 static int catcierge_check_max_consecutive_lockouts(catcierge_grb_t *grb)
@@ -788,7 +806,7 @@ static void catcierge_should_we_rfid_lockout(catcierge_grb_t *grb)
 			if (args->rfid_outer_path) CATLOG("  %s RFID: %s\n", grb->rfid_out.name, grb->rfid_out_match.triggered ? grb->rfid_out_match.data : "No tag data");
 
 			// TODO: Do we have all RFID vars for this?
-			catcierge_output_execute(grb, "rfid_match", args->rfid_match_cmd);
+			catcierge_trigger_event(grb, CATCIERGE_RFID_MATCH, 1);
 
 			grb->checked_rfid_lock = 1;
 		}
@@ -1071,14 +1089,14 @@ void catcierge_decide_lock_status(catcierge_grb_t *grb)
 
 	catcierge_match_group_end(mg);
 
-	catcierge_output_execute(grb, "match_done", args->match_done_cmd);
-
 	// Now we can save the images that we cached earlier 
 	// without slowing down the matching FPS.
 	if (args->saveimg)
 	{
 		catcierge_save_images(grb, mg->direction);
 	}
+
+	catcierge_trigger_event(grb, CATCIERGE_MATCH_GROUP_DONE, 1);
 
 	assert(mg->match_count <= MATCH_MAX_COUNT);
 }
@@ -1364,8 +1382,7 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 
 	catcierge_process_match_result(grb, grb->img);
 
-	// Runs the --match_cmd program specified.
-	catcierge_output_execute(grb, "match", args->match_cmd);
+	catcierge_trigger_event(grb, CATCIERGE_MATCH_DONE, 1);
 
 	catcierge_show_image(grb);
 
@@ -1436,7 +1453,7 @@ int catcierge_state_waiting(catcierge_grb_t *grb)
 		// Save the obstruct image.
 		catcierge_save_obstruct_image(grb);
 
-		catcierge_output_execute(grb, "frame_obstructed", args->frame_obstructed_cmd);
+		catcierge_trigger_event(grb, CATCIERGE_FRAME_OBSTRUCTED, 1);
 
 		catcierge_set_state(grb, catcierge_state_matching);
 	}

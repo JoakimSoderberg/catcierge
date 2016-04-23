@@ -59,7 +59,7 @@ static char *run_tests()
 	args->do_unlock_cmd = strdup("");
 	catcierge_do_lockout(&grb);
 	catcierge_do_unlock(&grb);
-	args->new_execute = 1;
+
 	catcierge_do_lockout(&grb);
 	catcierge_do_unlock(&grb);
 	args->lockout_dummy = 1;

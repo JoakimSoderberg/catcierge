@@ -350,7 +350,7 @@ static char *run_catcierge_parse_test()
 			args.cmd && !strcmp(args.cmd, "awesome_cmd.sh"));			\
 		PARSE_ARGV_END()
 
-	PARSE_CMD_SETTING(match_cmd);
+	//PARSE_CMD_SETTING(match_cmd);
 	PARSE_CMD_SETTING(save_img_cmd);
 	PARSE_CMD_SETTING(match_group_done_cmd);
 	PARSE_CMD_SETTING(frame_obstructed_cmd);

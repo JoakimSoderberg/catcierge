@@ -117,10 +117,10 @@ static char *run_consecutive_lockout_tests()
 {
 	int i;
 	int ret = 0;
+	char *return_message = NULL;
 	catcierge_grb_t grb;
 	catcierge_args_t *args;
 	args = &grb.args;
-	char *return_message = NULL;
 
 	catcierge_grabber_init(&grb);
 	catcierge_args_init(args, "catcierge");

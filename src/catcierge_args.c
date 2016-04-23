@@ -502,72 +502,18 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 			"  %%state%%, %%match_success%% and so on.\n"
 			"To see a list of variables use --cmdhelp");
 
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --frame_obstructed_cmd",
-			"Command to run when the frame becomes obstructed "
-			"and a new match is initiated. (--save_obstruct must be on).",
-			"s", &args->frame_obstructed_cmd);
-	ret |= cargo_set_metavar(cargo, "--frame_obstructed_cmd", "CMD");
+	//
+	// Automatically add options for all events specified in catcierge_events.h
+	//
+	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description)	\
+		ret |= cargo_add_option(cargo, 0,									\
+			"<cmd> --" #ev_name "_cmd",										\
+			"Command to run when the " #ev_name " event is triggered. "		\
+			ev_description,													\
+			"s", &args->ev_name ## _cmd);									\
+	ret |= cargo_set_metavar(cargo, "--" #ev_name "_cmd", "CMD");
 
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --match_cmd",
-			"Command to run after a match is made.",
-			"s", &args->match_cmd);
-	ret |= cargo_set_metavar(cargo, "--match_cmd", "CMD");
-
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --save_img_cmd",
-			"Command to run at the moment a match image is saved.",
-			"s", &args->save_img_cmd);
-	ret |= cargo_set_metavar(cargo, "--save_img_cmd", "CMD");
-
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --match_group_done_cmd",
-			"Command that runs when all match images have been saved to disk.\n"
-			"(This is most likely what you want to use in most cases).",
-			"s", &args->match_group_done_cmd);
-	ret |= cargo_set_metavar(cargo, "--match_group_done_cmd", "CMD");
-
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --match_done_cmd",
-			"Command to run when a match is done.",
-			"s", &args->match_done_cmd);
-	ret |= cargo_set_metavar(cargo, "--match_done_cmd", "CMD");
-
-	#ifdef WITH_RFID
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --rfid_detect_cmd",
-			"Command to run when one of the RFID readers detects a tag.",
-			"s", &args->rfid_detect_cmd);
-	ret |= cargo_set_metavar(cargo, "--rfid_detect_cmd", "CMD");
-
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --rfid_match_cmd",
-			"Command that is run when a RFID match is made.",
-			"s", &args->rfid_match_cmd);
-	ret |= cargo_set_metavar(cargo, "--rfid_match_cmd", "CMD");
-	#endif // WITH_RFID
-
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --do_lockout_cmd",
-			"Command to run when the lockout should be performed. "
-			"This will override the normal lockout method.",
-			"s", &args->do_lockout_cmd);
-	ret |= cargo_set_metavar(cargo, "--do_lockout_cmd", "CMD");
-
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --do_unlock_cmd",
-			"Command that is run when we should unlock. "
-			"This will override the normal unlock method.",
-			"s", &args->do_unlock_cmd);
-	ret |= cargo_set_metavar(cargo, "--do_unlock_cmd", "CMD");
-
-	ret |= cargo_add_option(cargo, 0,
-			"<cmd> --state_change_cmd",
-			"Command to run when the state machine changes state.",
-			"s", &args->state_change_cmd);
-	ret |= cargo_set_metavar(cargo, "--state_change_cmd", "CMD");
-
+	#include "catcierge_events.h"
 
 	return ret;
 }
@@ -789,14 +735,11 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 	catcierge_xfree(&args->inputs);
 
 	catcierge_xfree(&args->log_path);
-	catcierge_xfree(&args->match_cmd);
-	catcierge_xfree(&args->save_img_cmd);
-	catcierge_xfree(&args->match_group_done_cmd);
-	catcierge_xfree(&args->match_done_cmd);
-	catcierge_xfree(&args->do_lockout_cmd);
-	catcierge_xfree(&args->do_unlock_cmd);
-	catcierge_xfree(&args->frame_obstructed_cmd);
-	catcierge_xfree(&args->state_change_cmd);
+
+	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description) \
+		catcierge_xfree(&args->ev_name ## _cmd);
+	#include "catcierge_events.h"
+
 	catcierge_xfree(&args->config_path);
 	catcierge_xfree(&args->chuid);
 
@@ -811,8 +754,6 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 	catcierge_xfree(&args->base_time);
 
 	#ifdef WITH_RFID
-	catcierge_xfree(&args->rfid_detect_cmd);
-	catcierge_xfree(&args->rfid_match_cmd);
 	catcierge_xfree(&args->rfid_inner_path);
 	catcierge_xfree(&args->rfid_outer_path);
 

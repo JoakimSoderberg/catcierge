@@ -29,6 +29,14 @@
 
 #define MATCH_MAX_COUNT 4 // The number of matches to perform before deciding the lock state.
 
+#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description)	\
+	ev_enum_name,
+
+typedef enum catcierge_event_e
+{
+	#include "catcierge_events.h"
+} catcierge_event_t;
+
 typedef struct catcierge_output_var_s
 {
 	char *name;

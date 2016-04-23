@@ -77,16 +77,13 @@ typedef struct catcierge_args_s
 	catcierge_template_matcher_args_t templ;
 	catcierge_haar_matcher_args_t haar;
 
-	char *log_path;
-	int new_execute;
-	char *match_cmd;
-	char *save_img_cmd;
-	char *match_group_done_cmd;
-	char *match_done_cmd;
-	char *do_lockout_cmd;
-	char *do_unlock_cmd;
-	char *frame_obstructed_cmd;
-	char *state_change_cmd;
+	char *log_path; // TODO: Remove this.
+
+	// Generate all event cmd args
+	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description) \
+		char *ev_name ## _cmd;
+	#include "catcierge_events.h"
+
 	char *config_path;
 	char *chuid;
 	int temp_config_count;
@@ -108,8 +105,6 @@ typedef struct catcierge_args_s
 	long base_time_diff;
 
 	#ifdef WITH_RFID
-	char *rfid_detect_cmd;
-	char *rfid_match_cmd;
 	char *rfid_inner_path;
 	char *rfid_outer_path;
 	double rfid_lock_time;

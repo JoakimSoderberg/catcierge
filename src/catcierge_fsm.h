@@ -70,7 +70,7 @@ typedef struct catcierge_grb_s
 	catcierge_state_func_t state;
 	catcierge_state_func_t prev_state;
 	catcierge_args_t args;
-	FILE *log_file;
+	FILE *log_file; // TODO: Remove this and all use.
 
 	int running;
 

@@ -177,11 +177,6 @@ void setup_sig_handlers()
 	#endif // _WIN32
 }
 
-void short_usage(const char *progname)
-{
-	fprintf(stderr, "For more details use --help\n");
-}
-
 int main(int argc, char **argv)
 {
 	catcierge_args_t *args = &grb.args;
