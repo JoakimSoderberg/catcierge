@@ -44,6 +44,9 @@
 #include <czmq.h>
 #endif
 
+// TODO: Enable generating relative paths to a given path at the head of a template.
+// TODO: Enable adding multiple commands for an event. --match_group_done_cmd would take a list of arguments instead of just 1
+
 catcierge_output_var_t vars[] =
 {
 	{ "state", "The current state machine state." },
@@ -1498,6 +1501,17 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 	}
 
 	return ret;
+}
+
+void catcierge_output_execute_list(catcierge_grb_t *grb,
+		const char *event, const char **commands, size_t command_count)
+{
+	size_t i;
+
+	for (i = 0; i < command_count; i++)
+	{
+		catcierge_output_execute(grb, event, commands[i]);
+	}
 }
 
 void catcierge_output_execute(catcierge_grb_t *grb,
