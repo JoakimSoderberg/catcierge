@@ -197,7 +197,7 @@ def compose_adaptive_prey(img_paths=None, match_json=None, gap=5, horizontal_gap
 
 def create_matches(catcierge_json, output_file):
 
-	match_count = catcierge_json["match_count"]
+	match_count = catcierge_json["match_group_count"]
 	match_imgs = []
 	total_width = 0
 	total_height = 0

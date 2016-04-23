@@ -1,4 +1,5 @@
 %!event match_group_done
+%!filename %match_group_id%.json
 {
 	"id": "%match_group_id%",
 	"catcierge_type": "match_group_done",

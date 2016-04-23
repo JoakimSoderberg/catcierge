@@ -401,11 +401,16 @@ install(TARGETS ${CATCIERGE_PROGRAMS}
 install(FILES
 		"${PROJECT_SOURCE_DIR}/extra/catcierge.xml"
 		"${PROJECT_SOURCE_DIR}/extra/catcierge-twitter.py"
+		"${PROJECT_SOURCE_DIR}/extra/catcierge-compose.py"
 		DESTINATION "${CATCIERGE_EXTRA_DIR}/" COMPONENT Runtime)
 
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/extra/templates/"
 		DESTINATION "${CATCIERGE_EXTRA_DIR}/templates/" COMPONENT Runtime
 		FILES_MATCHING PATTERN "*.json")
+
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/extra/fonts/"
+		DESTINATION "${CATCIERGE_EXTRA_DIR}/fonts/" COMPONENT Runtime)
+
 
 if (RPI)
 	install(FILES
