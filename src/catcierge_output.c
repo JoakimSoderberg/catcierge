@@ -1505,7 +1505,7 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 }
 
 void catcierge_output_execute_list(catcierge_grb_t *grb,
-		const char *event, const char **commands, size_t command_count)
+		const char *event, char **commands, size_t command_count)
 {
 	size_t i;
 

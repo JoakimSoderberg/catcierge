@@ -49,7 +49,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var);
 
 void catcierge_output_execute_list(catcierge_grb_t *grb,
-		const char *event, const char **commands, size_t command_count);
+		const char *event, char **commands, size_t command_count);
 
 void catcierge_output_execute(catcierge_grb_t *grb,
 		const char *event, const char *command);

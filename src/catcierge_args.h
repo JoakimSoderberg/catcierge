@@ -81,7 +81,8 @@ typedef struct catcierge_args_s
 
 	// Generate all event cmd args
 	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description) \
-		char *ev_name ## _cmd;
+		char **ev_name ## _cmd;											  \
+		size_t ev_name ## _cmd_count;
 	#include "catcierge_events.h"
 
 	char *config_path;

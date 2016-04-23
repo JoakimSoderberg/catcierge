@@ -497,7 +497,10 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= cargo_add_group(cargo, CARGO_GROUP_HIDE, 
 			"cmd_help", "Advanced command settings", 
 			"These are commands that will be executed when certain events "
-			"occur.\n"
+			"occur. You can specify multiple commands, they will be started "
+			"in the order they are added. Each process is forked and run in "
+			"parallel with the others. If you want them to run sequentially "
+			"you need to create a script and run that.\n"
 			"Variables can be passed to these commands such as:\n"
 			"  %%state%%, %%match_success%% and so on.\n"
 			"To see a list of variables use --cmdhelp");
@@ -510,8 +513,8 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 			"<cmd> --" #ev_name "_cmd",										\
 			"Command to run when the " #ev_name " event is triggered. "		\
 			ev_description,													\
-			"s", &args->ev_name ## _cmd);									\
-	ret |= cargo_set_metavar(cargo, "--" #ev_name "_cmd", "CMD");
+			"[s]+", &args->ev_name ## _cmd, &args->ev_name ## _cmd_count);	\
+	ret |= cargo_set_metavar(cargo, "--" #ev_name "_cmd", "CMD [CMD ...]");
 
 	#include "catcierge_events.h"
 
@@ -736,8 +739,11 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 
 	catcierge_xfree(&args->log_path);
 
-	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description) \
-		catcierge_xfree(&args->ev_name ## _cmd);
+	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description) 		\
+		catcierge_xfree(&args->ev_name ## _cmd);								\
+		catcierge_free_list(args->ev_name ## _cmd, args->ev_name ## _cmd_count);\
+		args->ev_name ## _cmd_count = 0;										\
+		args->ev_name ## _cmd = NULL;
 	#include "catcierge_events.h"
 
 	catcierge_xfree(&args->config_path);
@@ -757,13 +763,9 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 	catcierge_xfree(&args->rfid_inner_path);
 	catcierge_xfree(&args->rfid_outer_path);
 
-	for (i = 0; i < args->rfid_allowed_count; i++)
-	{
-		catcierge_xfree(&args->rfid_allowed[i]);
-	}
-
-	catcierge_xfree(&args->rfid_allowed);
+	catcierge_free_list(args->rfid_allowed, args->rfid_allowed_count);
 	args->rfid_allowed_count = 0;
+	args->rfid_allowed = NULL;
 	#endif // WITH_RFID
 
 	catcierge_haar_matcher_args_destroy(&args->haar);

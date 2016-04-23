@@ -55,8 +55,13 @@ static char *run_tests()
 	sleep(1);
 	catcierge_print_spinner(&grb);
 
-	args->do_lockout_cmd = strdup("");
-	args->do_unlock_cmd = strdup("");
+	args->do_lockout_cmd = calloc(1, sizeof(char *));
+	args->do_lockout_cmd_count = 1;
+	args->do_lockout_cmd[0] = strdup("");
+
+	args->do_unlock_cmd = calloc(1, sizeof(char *));
+	args->do_unlock_cmd_count = 1;
+	args->do_unlock_cmd[0] = strdup("");
 	catcierge_do_lockout(&grb);
 	catcierge_do_unlock(&grb);
 

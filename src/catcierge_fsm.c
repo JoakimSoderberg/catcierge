@@ -58,6 +58,8 @@
 
 void catcierge_trigger_event(catcierge_grb_t *grb, catcierge_event_t e, int execute)
 {
+	catcierge_args_t *args = &grb->args;
+
 	// We use this wrapper function and pass a catcierge_event_t so that if
 	// one specifies an event type that is not defined in "catcierge_events.h"
 	// it will fail at compilation time.
@@ -65,9 +67,10 @@ void catcierge_trigger_event(catcierge_grb_t *grb, catcierge_event_t e, int exec
 	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description)	\
 		if (e == ev_enum_name)												\
 		{																	\
-			const char *cmd = NULL;											\
-			if (execute) cmd = grb->args.ev_name ## _cmd;					\
-			catcierge_output_execute(grb, #ev_name, cmd);					\
+			char **cmd = NULL;												\
+			size_t count = args->ev_name ## _cmd_count;						\
+			if (execute) cmd = args->ev_name ## _cmd;						\
+			catcierge_output_execute_list(grb, #ev_name, cmd, count);		\
 			return;															\
 		}
 	#include "catcierge_events.h"
