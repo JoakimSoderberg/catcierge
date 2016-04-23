@@ -2,12 +2,14 @@ targets:
   ubuntu-12.04:
     build_dependencies:
       - libopencv-dev
+      - libzmq-dev
       - cmake
     dependencies:
       - libopencv-objdetect2.3
   ubuntu-14.04:
     build_dependencies:
       - libopencv-dev
+      - libzmq-dev
       - cmake
     dependencies:
       - libopencv-objdetect2.4
@@ -31,5 +33,5 @@ before:
   - git submodule update --init
   - mkdir build
   - cd build
-  - cmake -DRPI=OFF ..
+  - cmake -DRPI=OFF -DWITH_ZMQ=OFF ..
   - cmake --build .

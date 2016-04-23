@@ -4,7 +4,7 @@ checkout:
     - git submodule update --init
 dependencies:
   override:
-    - sudo apt-get update; sudo apt-get install cmake libopencv-dev
+    - sudo apt-get update; sudo apt-get install cmake libopencv-dev libzmq-dev
 test:
   override:
-    - mkdir build && cd build && cmake -DRPI=OFF .. && cmake --build . && ctest --output-on-failure
+    - mkdir build && cd build && cmake -DWITH_ZMQ=OFF .. && cmake --build . && ctest --output-on-failure

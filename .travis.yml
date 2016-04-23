@@ -4,8 +4,8 @@ env:
    #   via the "travis encrypt" command using the project repo's public key
    - secure: "Kza1lOgpHML3DiiKuRUji0xHXmDxsfMSxHgff/WR6+nOlubNpWUmf1OwWe4BBTX8GblKPXOlWFpzPtwA5l1NiT2rQ/s7ypsmCS16bGppV34VC77iJSAT6qrqao7Wb3iziRbtba5rVfiqHtEYJLw2q5psz9JcjI+G7On25jciM4M="
   matrix:
-   - CAT_METHOD=memcheck
-   - CAT_METHOD=coverage CMAKE_ARGS="-DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERALLS=ON -DCMAKE_BUILD_TYPE=Debug -DCATCIERGE_GUI_TESTS=ON" COVERALLS=yes
+   - CAT_METHOD=memcheck CMAKE_ARGS="-DWITH_ZMQ=OFF"
+   - CAT_METHOD=coverage CMAKE_ARGS="-DWITH_ZMQ=OFF -DCATCIERGE_WITH_MEMCHECK=OFF -DCATCIERGE_COVERALLS=ON -DCMAKE_BUILD_TYPE=Debug -DCATCIERGE_GUI_TESTS=ON" COVERALLS=yes
 language: c
 os:
   - linux
