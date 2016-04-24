@@ -497,6 +497,7 @@ static char *run_load_templates_test()
 				"%!event hej, hopp\n"
 				"%!nozmq\n"
 				"%!topic 123\n"
+				"%!name arne_weises_tempalte%time%"
 				"Some cool template",
 			}
 		};

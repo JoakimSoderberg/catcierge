@@ -45,7 +45,6 @@
 #endif
 
 // TODO: Enable generating relative paths to a given path at the head of a template.
-// TODO: Enable adding multiple commands for an event. --match_group_done_cmd would take a list of arguments instead of just 1
 
 catcierge_output_var_t vars[] =
 {
@@ -110,6 +109,8 @@ catcierge_output_var_t vars[] =
 	{ "git_tainted", "Was the git working tree changed when building."},
 	{ "version", "The catcierge version." },
 	{ "cwd", "Current working directory." },
+	{ "template_path", "Path to the first template in the list (makes sense if you're only using one)." },
+	{ "template_path:<name>", "Get the template with the given name (if multiple templates are used)." }
 };
 
 void catcierge_output_print_usage()
@@ -142,16 +143,15 @@ int catcierge_output_init(catcierge_output_t *ctx)
 void catcierge_output_free_template_settings(catcierge_output_settings_t *settings)
 {
 	#ifdef WITH_ZMQ
-	if (settings->topic) free(settings->topic);
-	settings->topic = NULL;
+	catcierge_xfree(&settings->topic);
 	#endif
 
 	catcierge_free_list(settings->event_filter, settings->event_filter_count);
 	settings->event_filter = NULL;
 	settings->event_filter_count = 0;
 
-	if (settings->filename) free(settings->filename);
-	settings->filename = NULL;
+	catcierge_xfree(&settings->filename);
+	catcierge_xfree(&settings->name);
 }
 
 void catcierge_output_free_template(catcierge_output_template_t *t)
@@ -159,12 +159,9 @@ void catcierge_output_free_template(catcierge_output_template_t *t)
 	if (!t)
 		return;
 
-	if (t->tmpl) free(t->tmpl);
-	t->tmpl = NULL;
-	if (t->name) free(t->name);
-	t->name = NULL;
-	if (t->generated_path) free(t->generated_path);
-	t->generated_path = NULL;
+	catcierge_xfree(&t->tmpl);
+	catcierge_xfree(&t->name);
+	catcierge_xfree(&t->generated_path);
 
 	catcierge_output_free_template_settings(&t->settings);
 }
@@ -211,8 +208,7 @@ int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, c
 	return 0;
 }
 
-const char *catcierge_output_read_template_settings(const char *name,
-	catcierge_output_settings_t *settings, const char *template_str)
+const char *catcierge_output_read_template_settings(catcierge_output_settings_t *settings, const char *template_str)
 {
 	const char *s = NULL;
 	char *it = NULL;
@@ -280,12 +276,24 @@ const char *catcierge_output_read_template_settings(const char *name,
 			it = row_end;
 			continue;
 		}
+		else if (!strncmp(it, "name", 4))
+		{
+			it += 4;
+			it = catcierge_skip_whitespace_alt(it);
+			catcierge_xfree(&settings->name);
+			if (!(settings->name = strdup(it)))
+			{
+				CATERR("Out of memory!\n"); goto fail;
+			}
+			it = row_end;
+			continue;
+		}
 		else if (!strncmp(it, "filename", 8))
 		{
 			it += 8;
 			it = catcierge_skip_whitespace_alt(it);
 
-			if (settings->filename) free(settings->filename);
+			catcierge_xfree(&settings->filename);
 			if (!(settings->filename = strdup(it)))
 			{
 				CATERR("Out of memory!\n"); goto fail;
@@ -308,7 +316,7 @@ const char *catcierge_output_read_template_settings(const char *name,
 			it = catcierge_skip_whitespace_alt(it);
 
 			#ifdef WITH_ZMQ
-			if (settings->topic) free(settings->topic);
+			catcierge_xfree(&settings->topic);
 			if (!(settings->topic = strdup(it)))
 			{
 				CATERR("Out of memory!\n"); goto fail;
@@ -357,14 +365,14 @@ const char *catcierge_output_read_template_settings(const char *name,
 
 	if (settings->event_filter_count == 0)
 	{
-		CATERR("!!! Output template \"%s\" missing event filter, nothing will be generated !!!\n", name);
+		CATERR("!!! Output template \"%s\" missing event filter, nothing will be generated !!!\n", settings->name);
 	}
 
 	#ifdef WITH_ZMQ
 	// Default for ZMQ publish topic to be the same as the template name.
 	if (!settings->topic)
 	{
-		if (!(settings->topic = strdup(name)))
+		if (!(settings->topic = strdup(settings->name)))
 		{
 			CATERR("Out of memory!\n"); goto fail;
 		}
@@ -441,8 +449,8 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		{
 			snprintf(name, sizeof(name) - 1, "%d", (int)ctx->template_count);
 		}
-		
-		if (!(t->name = strdup(name)))
+
+		if (!(t->settings.name = strdup(name)))
 		{
 			goto out_of_memory;
 		}
@@ -456,10 +464,14 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		goto out_of_memory;
 	}
 
-	if (!(template_str = catcierge_output_read_template_settings(t->name,
-							&t->settings, template_str)))
+	if (!(template_str = catcierge_output_read_template_settings(&t->settings, template_str)))
 	{
 		goto fail;
+	}
+
+	if (!(t->name = strdup(t->settings.name)))
+	{
+		goto out_of_memory;
 	}
 
 	if (!(t->tmpl = strdup(template_str)))

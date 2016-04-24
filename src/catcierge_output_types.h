@@ -26,6 +26,7 @@
 
 typedef struct catcierge_output_settings_s
 {
+	char *name;
 	char **event_filter;
 	size_t event_filter_count;
 	int nofile;
