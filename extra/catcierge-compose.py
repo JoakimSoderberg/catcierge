@@ -247,6 +247,10 @@ def main():
 	parser.add_argument("--fonts", metavar="FONT_DIRECTORY",
 					help="Path to where the fonts can be found.")
 
+	parser.add_argument("--steps", action="store_true",
+					help="Incude the steps images.")
+	# TODO: Implement NOT including steps...
+
 	args = parser.parse_args()
 
 	if args.fonts:

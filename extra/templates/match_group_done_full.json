@@ -1,4 +1,5 @@
 %!event match_group_done
+%!name match_group_done_full
 %!filename %match_group_id%.json
 {
 	"id": "%match_group_id%",

@@ -24,6 +24,29 @@ save=1
 save_obstruct=1
 save_steps=1
 
+# Image output paths
 output_path=/home/catcierge/images/%match_group_start_time:&Y-&m-&d%
 match_output_path=%output_path%/%match_group_id%
 steps_output_path=%match_output_path%/%matchcur_idx%
+
+# JSON template for match_group_done event.
+input=${CMAKE_INSTALL_PREFIX}/share/catcierge/templates/match_group_done_full.json
+
+#
+# Examples of running scripts and passing the generated template to them.
+#
+
+# Create a debug version of the match images combined.
+#match_group_done_cmd=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:match_group_done_full%" --steps --output "%match_group_id%-combined-steps.png"
+
+# Normal version.
+#match_group_done_cmd=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:match_group_done_full%" --output "%match_group_id%-combined.png"
+
+# Post normal version to twitter.
+#match_group_done_cmd=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-twitter.py --json "%template_path:match_group_done_full%" %match_group_id%-combined.png
+
+# ZIP the related files.
+#match_group_done_cmd=zip -0 -r %match_group_id%.zip "%template_path:match_group_done_full%" %obstruct_filename% %match_group_id%/
+
+# Mail debug image and zip.
+#match_group_done_cmd=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-send-mail-new.py --to some.dude@example.com another.dude@example.com --from cat@example.com --smtp the.server:587 --password secret --json "%template_path:match_group_done_full%" --images %match_group_id%-combined.png --extra %match_group_id%.zip
