@@ -460,7 +460,7 @@ if (UNIX)
 
 	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
 
-	set(CPACK_DEBIAN_PACKAGE_DEPENDS "libopencv-dev, libopenexr-dev")
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS "libopencv-dev, libopenexr-dev, python, python-twython, python-wand")
 	if (WITH_ZMQ)
 		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_DEBIAN_PACKAGE_MAINTAINER}, libzmq-dev")
 	endif()
