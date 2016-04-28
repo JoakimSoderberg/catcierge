@@ -35,18 +35,23 @@ input=${CMAKE_INSTALL_PREFIX}/share/catcierge/templates/match_group_done_full.js
 #
 # Examples of running scripts and passing the generated template to them.
 #
+# NOTE! The scripts are executed in parallel, but started in the order they are listed
+#       If you want output from one script to be input to another,
+#		you'll need to make a wrapper script.
+#       Or string them together with "script.sh && script2.sh"
+#
 
 # Create a debug version of the match images combined.
-#match_group_done_cmd=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:match_group_done_full%" --steps --output "%match_group_id%-combined-steps.png"
+#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:match_group_done_full%" --steps --output "%match_group_id%-combined-steps.png"
 
 # Normal version.
-#match_group_done_cmd=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:match_group_done_full%" --output "%match_group_id%-combined.png"
+#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:match_group_done_full%" --output "%match_group_id%-combined.png"
 
 # Post normal version to twitter.
-#match_group_done_cmd=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-twitter.py --json "%template_path:match_group_done_full%" %match_group_id%-combined.png
+#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-twitter.py --json "%template_path:match_group_done_full%" %match_group_id%-combined.png
 
 # ZIP the related files.
-#match_group_done_cmd=zip -0 -r %match_group_id%.zip "%template_path:match_group_done_full%" %obstruct_filename% %match_group_id%/
+#match_group_done_cmd=zip -0 -r %match_group_id%.zip "%template_path:match_group_done_full%" %obstruct_full_path% %match_output_path%/
 
-# Mail debug image and zip.
-#match_group_done_cmd=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-send-mail-new.py --to some.dude@example.com another.dude@example.com --from cat@example.com --smtp the.server:587 --password secret --json "%template_path:match_group_done_full%" --images %match_group_id%-combined.png --extra %match_group_id%.zip
+# Mail image and json.
+#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-sendmail-new.py --to some.dude@example.com another.dude@example.com --from cat@example.com --smtp the.server:587 --password secret --json "%template_path:match_group_done_full%" --images %match_group_id%-combined-steps.png --extra "%template_path:match_group_done_full%"

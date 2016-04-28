@@ -134,5 +134,6 @@ def main():
     s.login(args.from_email, args.password)
     s.sendmail(args.from_email, args.to_emails, msg.as_string())
     s.quit()
+    print("Mail sent!")
 
 if __name__ == '__main__': main()
