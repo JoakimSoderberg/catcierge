@@ -402,6 +402,7 @@ install(FILES
 		"${PROJECT_SOURCE_DIR}/extra/catcierge.xml"
 		"${PROJECT_SOURCE_DIR}/extra/catcierge-twitter.py"
 		"${PROJECT_SOURCE_DIR}/extra/catcierge-compose.py"
+		"${PROJECT_SOURCE_DIR}/extra/catcierge-sendmail-new.py"
 		DESTINATION "${CATCIERGE_EXTRA_DIR}/" COMPONENT Runtime)
 
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/extra/templates/"
