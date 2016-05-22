@@ -66,7 +66,8 @@ catcierge_output_var_t vars[] =
 	{ "match_group_id", "Match group ID."},
 	{ "match_group_start_time", "Match group start time."},
 	{ "match_group_end_time", "Match group end time."},
-	{ "match_group_success", "Match group success status."},
+	{ "match_group_success", "Match group success status. 1 or 0"},
+	{ "match_group_success_str", "Match group success status, as a string 'success' or 'fail'."},
 	{ "match_group_success_count", "Match group success count."},
 	{ "match_group_final_decision", "Did the match group veto the final decision?"},
 	{ "match_group_desc", "Match group description."},
@@ -83,8 +84,8 @@ catcierge_output_var_t vars[] =
 	{ "match#_id", "Unique ID for match #." },
 	{ "match#_filename", "Image filenamefor match #." },
 	{ "match#_path", "Image output path for match # (excluding filename)." },
-	{ "match#_abs_path", "Absolute image path for match # (excluding filename)." },
 	{ "match#_full_path", "Image path for match # (including filename)." },
+	{ "match#_abs_path", "Absolute image path for match # (excluding filename)." },
 	{ "match#_abs_full_path", "Absolute image path for match # (including filename)." },
 	{ "match#_success", "Success status for match #." },
 	{ "match#_direction", "Direction for match #." },
@@ -814,19 +815,19 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strcmp(var, "obstruct_filename"))
 	{
-		return mg->obstruct_filename;
+		return mg->obstruct_path.filename;
 	}
 
 	if (!strcmp(var, "obstruct_path"))
 	{
-		return mg->obstruct_path;
+		return mg->obstruct_path.dir;
 	}
 
 	if (!strcmp(var, "abs_obstruct_path"))
 	{
-		if (!catcierge_get_abs_path(mg->obstruct_path, buf, bufsize))
+		if (!catcierge_get_abs_path(mg->obstruct_path.dir, buf, bufsize))
 		{
-			return mg->obstruct_path;
+			return mg->obstruct_path.dir;
 		}
 
 		return buf;
@@ -834,14 +835,14 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strcmp(var, "obstruct_full_path"))
 	{
-		return mg->obstruct_full_path;
+		return mg->obstruct_path.full;
 	}
 
 	if (!strcmp(var, "abs_obstruct_full_path"))
 	{
-		if (!catcierge_get_abs_path(mg->obstruct_full_path, buf, bufsize))
+		if (!catcierge_get_abs_path(mg->obstruct_path.full, buf, bufsize))
 		{
-			return mg->obstruct_full_path;
+			return mg->obstruct_path.full;
 		}
 
 		return buf;
@@ -893,33 +894,33 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 		if (!strcmp(subvar, "path"))
 		{
-			return m->path;
+			return m->path.dir;
 		}
 		else if (!strcmp(subvar, "abs_path"))
 		{
-			if (!catcierge_get_abs_path(m->path, buf, bufsize))
+			if (!catcierge_get_abs_path(m->path.dir, buf, bufsize))
 			{
-				return m->path;
+				return m->path.dir;
 			}
 
 			return buf;
 		}
 		if (!strcmp(subvar, "full_path"))
 		{
-			return m->full_path;
+			return m->path.full;
 		}
 		else if (!strcmp(subvar, "abs_full_path"))
 		{
-			if (!catcierge_get_abs_path(m->full_path, buf, bufsize))
+			if (!catcierge_get_abs_path(m->path.full, buf, bufsize))
 			{
-				return m->full_path;
+				return m->path.full;
 			}
 
 			return buf;
 		}
 		else if (!strcmp(subvar, "filename"))
 		{
-			return m->filename;
+			return m->path.filename;
 		}
 		else if (!strncmp(subvar, "idx", 3))
 		{
@@ -934,6 +935,11 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		else if (!strcmp(subvar, "success"))
 		{
 			snprintf(buf, bufsize - 1, "%d", m->result.success);
+			return buf;
+		}
+		else if (!strcmp(subvar, "success_str"))
+		{
+			snprintf(buf, bufsize - 1, "%s", m->result.success ? "success": "fail");
 			return buf;
 		}
 		else if (!strcmp(subvar, "direction"))
@@ -989,33 +995,33 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 			if (!strcmp(stepvar, "path"))
 			{
-				return step->path;
+				return step->path.dir;
 			}
 			else if (!strcmp(stepvar, "abs_path"))
 			{
-				if (!catcierge_get_abs_path(step->path, buf, bufsize))
+				if (!catcierge_get_abs_path(step->path.dir, buf, bufsize))
 				{
-					return step->path;
+					return step->path.dir;
 				}
 
 				return buf;
 			}
 			else if (!strcmp(stepvar, "full_path"))
 			{
-				return step->full_path;
+				return step->path.full;
 			}
 			else if (!strcmp(stepvar, "abs_full_path"))
 			{
-				if (!catcierge_get_abs_path(step->full_path, buf, bufsize))
+				if (!catcierge_get_abs_path(step->path.full, buf, bufsize))
 				{
-					return step->full_path;
+					return step->path.full;
 				}
 
 				return buf;
 			}
 			else if (!strcmp(stepvar, "filename"))
 			{
-				return step->filename;
+				return step->path.filename;
 			}
 			else if (!strcmp(stepvar, "name"))
 			{

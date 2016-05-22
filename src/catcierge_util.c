@@ -443,7 +443,7 @@ char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
 
 	return buf;
 
-	#else
+	#else // Unix.
 
 	char *real_path = NULL;
 	assert(buf);

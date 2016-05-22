@@ -68,6 +68,7 @@ int catcierge_haar_matcher_init(catcierge_matcher_t **octx,
 		goto opencv_error;
 	}
 
+	// TOOD: Make args for kernel sizes. Rename the kernels for what they do instead
 	if (!(ctx->kernel2x2 = cvCreateStructuringElementEx(2, 2, 0, 0, CV_SHAPE_RECT, NULL)))
 	{
 		goto opencv_error;

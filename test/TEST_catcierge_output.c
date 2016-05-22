@@ -200,7 +200,7 @@ static char *run_generate_tests()
 		grb.args.max_consecutive_lockout_count = 20;
 		grb.args.consecutive_lockout_delay = 2.44;
 
-		strcpy(grb.match_group.matches[0].result.steps[0].path, "some/step/path");
+		strcpy(grb.match_group.matches[0].result.steps[0].path.dir, "some/step/path");
 		grb.match_group.success_count = 3;
 		grb.match_group.final_decision = 1;
 		grb.match_group.matches[0].result.steps[1].name = "the_step_name";
@@ -208,12 +208,12 @@ static char *run_generate_tests()
 		grb.match_group.matches[1].result.step_img_count = 8;
 		strcpy(grb.match_group.description, "hej");
 		strcpy(grb.match_group.matches[1].result.description, "prey found");
-		strcpy(grb.match_group.matches[0].path, "/some/path/omg1");
-		strcpy(grb.match_group.matches[1].path, "/some/path/omg2");
-		strcpy(grb.match_group.matches[2].path, "/some/path/omg3");
-		strcpy(grb.match_group.matches[3].path, "/some/path/omg4");
+		strcpy(grb.match_group.matches[0].path.dir, "/some/path/omg1");
+		strcpy(grb.match_group.matches[1].path.dir, "/some/path/omg2");
+		strcpy(grb.match_group.matches[2].path.dir, "/some/path/omg3");
+		strcpy(grb.match_group.matches[3].path.dir, "/some/path/omg4");
 		grb.match_group.direction = MATCH_DIR_IN;
-		strcpy(grb.match_group.obstruct_filename, "obstructify");
+		strcpy(grb.match_group.obstruct_path.filename, "obstructify");
 		grb.match_group.matches[0].result.success = 4;
 		grb.match_group.matches[2].result.direction = MATCH_DIR_IN;
 		grb.match_group.matches[2].result.result = 0.8;
@@ -336,13 +336,15 @@ static char *run_add_and_generate_tests()
 			grb.match_group.end_time = time(NULL);
 			gettimeofday(&grb.match_group.end_tv, NULL);
 
-			strcpy(grb.match_group.matches[1].filename, "blafile.png");
-			strcpy(grb.match_group.matches[1].path, "tut/blafile.png");
+			// TODO: Use helper function
+			strcpy(grb.match_group.matches[1].path.filename, "blafile.png");
+			strcpy(grb.match_group.matches[1].path.dir, "tut/");
+			strcpy(grb.match_group.matches[1].path.full, "tut/blafile.png");
 			grb.match_group.match_count = 3;
 
 			grb.match_group.obstruct_time = time(NULL);
 			gettimeofday(&grb.match_group.obstruct_tv, NULL);
-			strcpy(grb.match_group.obstruct_path, "obstruct_path");
+			strcpy(grb.match_group.obstruct_path.dir, "obstruct_path");
 
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
@@ -377,7 +379,7 @@ static char *run_add_and_generate_tests()
 			const char *named_template_path = NULL;
 			const char *default_template_path = NULL;
 			grb.match_group.matches[1].time = time(NULL);
-			strcpy(grb.match_group.matches[1].path, "thematchpath");
+			strcpy(grb.match_group.matches[1].path.dir, "thematchpath");
 			grb.match_group.match_count = 2;
 
 			if (catcierge_output_add_template(o,

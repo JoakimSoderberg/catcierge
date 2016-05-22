@@ -297,6 +297,15 @@ void catcierge_do_unlock(catcierge_grb_t *grb)
 	}
 }
 
+static void catcierge_path_reset(catcierge_path_t *path)
+{
+	assert(path);
+
+	path->filename[0] = '\0';
+	path->full[0] = '\0';
+	path->dir[0] = '\0';
+}
+
 static void catcierge_cleanup_match_steps(catcierge_grb_t *grb, match_result_t *result)
 {
 	int j;
@@ -315,7 +324,7 @@ static void catcierge_cleanup_match_steps(catcierge_grb_t *grb, match_result_t *
 
 		step->description = NULL;
 		step->name = NULL;
-		step->path[0] = '\0';
+		catcierge_path_reset(&step->path);
 	}
 
 	result->step_img_count = 0;
@@ -550,8 +559,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 		m->sha.Message_Digest[3],
 		m->sha.Message_Digest[4]);
 
-	m->path[0] = '\0';
-	m->filename[0] = '\0';
+	catcierge_path_reset(&m->path);
 
 	// Save match image.
 	// (We don't write to disk yet, that will slow down the matching).
@@ -560,6 +568,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 		char base_path[1024];
 		char *match_gen_output_path = NULL;
 
+		// TODO: Set this at init instead...
 		if (!args->match_output_path)
 		{
 			if (!(args->match_output_path = strdup(args->output_path)))
@@ -581,10 +590,10 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 			m->time_str,
 			(int)grb->match_group.match_count);
 
-		snprintf(m->path, sizeof(m->path) - 1, "%s", match_gen_output_path);
-		snprintf(m->filename, sizeof(m->filename) - 1, "%s.png", base_path);
-		snprintf(m->full_path, sizeof(m->full_path) - 1, "%s%s%s",
-					m->path, catcierge_path_sep(), m->filename);
+		snprintf(m->path.dir, sizeof(m->path.dir) - 1, "%s", match_gen_output_path);
+		snprintf(m->path.filename, sizeof(m->path.filename) - 1, "%s.png", base_path);
+		snprintf(m->path.full, sizeof(m->path.full) - 1, "%s%s%s",
+				 m->path.dir, catcierge_path_sep(), m->path.filename);
 
 		if (match_gen_output_path)
 		{
@@ -599,6 +608,7 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 			match_step_t *step;
 			char *step_gen_output_path = NULL;
 
+			// TODO: Move to init instead.
 			if (!args->steps_output_path)
 			{
 				if (!(args->steps_output_path = strdup(args->output_path)))
@@ -615,17 +625,17 @@ static void catcierge_process_match_result(catcierge_grb_t *grb, IplImage *img)
 				}
 
 				step = &m->result.steps[j];
-				snprintf(step->path, sizeof(step->path) - 1,
+				snprintf(step->path.dir, sizeof(step->path.dir) - 1,
 					"%s", step_gen_output_path);
 
-				snprintf(step->filename, sizeof(step->filename) - 1,
+				snprintf(step->path.filename, sizeof(step->path.filename) - 1,
 					"%s_%02d_%s.png",
 					base_path,
 					(int)j,
 					step->name);
 
-				snprintf(step->full_path, sizeof(step->full_path) - 1, "%s%s%s",
-					step->path, catcierge_path_sep(), step->filename);
+				snprintf(step->path.full, sizeof(step->path.full) - 1, "%s%s%s",
+					step->path.dir, catcierge_path_sep(), step->path.filename);
 
 				if (step_gen_output_path)
 				{
@@ -651,9 +661,9 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 
 	if (args->save_obstruct_img)
 	{
-		CATLOG("Saving obstruct image: %s\n", mg->obstruct_full_path);
-		catcierge_make_path(mg->obstruct_path);
-		cvSaveImage(mg->obstruct_full_path, mg->obstruct_img, 0);
+		CATLOG("Saving obstruct image: %s\n", mg->obstruct_path.full);
+		catcierge_make_path(mg->obstruct_path.dir);
+		cvSaveImage(mg->obstruct_path.full, mg->obstruct_img, 0);
 		// TODO: Save obstruct step images as well?
 		// TODO: Add execute event for this?
 
@@ -665,21 +675,21 @@ static void catcierge_save_images(catcierge_grb_t *grb, match_direction_t direct
 		m = &grb->match_group.matches[i];
 		res = &m->result;
 
-		CATLOG("Saving image %s\n", m->full_path);
-		catcierge_make_path(m->path);
-		cvSaveImage(m->full_path, m->img, 0);
+		CATLOG("Saving image %s\n", m->path.full);
+		catcierge_make_path(m->path.dir);
+		cvSaveImage(m->path.full, m->img, 0);
 
 		if (args->save_steps)
 		{
 			for (j = 0; j < m->result.step_img_count; j++)
 			{
 				step = &m->result.steps[j];
-				CATLOG("  %02d %-34s  %s\n", (int)j, step->description, step->full_path);
+				CATLOG("  %02d %-34s  %s\n", (int)j, step->description, step->path.full);
 
 				if (step->img)
 				{
-					catcierge_make_path(step->path);
-					cvSaveImage(step->full_path, step->img, NULL);
+					catcierge_make_path(step->path.dir);
+					cvSaveImage(step->path.full, step->img, NULL);
 				}
 			}
 		}
@@ -965,7 +975,7 @@ void catcierge_match_group_start(match_group_t *mg, IplImage *img)
 	mg->end_time = 0;
 
 	mg->description[0] = '\0';
-	mg->obstruct_path[0] = '\0';
+	catcierge_path_reset(&mg->obstruct_path);
 	mg->match_count = 0;
 	mg->final_decision = 0;
 
@@ -1125,6 +1135,7 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 		get_time_str_fmt(mg->obstruct_time, &mg->obstruct_tv, time_str,
 			sizeof(time_str), FILENAME_TIME_FORMAT);
 
+		// TODO: Move to init
 		if (!args->obstruct_output_path)
 		{
 			if (!(args->obstruct_output_path = strdup(args->output_path)))
@@ -1139,12 +1150,12 @@ void catcierge_save_obstruct_image(catcierge_grb_t *grb)
 			CATERR("Failed to generate output path from: \"%s\"\n", args->obstruct_output_path);
 		}
 
-		snprintf(mg->obstruct_path, sizeof(mg->obstruct_path) - 1, "%s", gen_output_path);
-		snprintf(mg->obstruct_filename, sizeof(mg->obstruct_filename) - 1,
+		snprintf(mg->obstruct_path.dir, sizeof(mg->obstruct_path.dir) - 1, "%s", gen_output_path);
+		snprintf(mg->obstruct_path.filename, sizeof(mg->obstruct_path.filename) - 1,
 			"match_obstruct_%s.png", time_str);
 
-		snprintf(mg->obstruct_full_path, sizeof(mg->obstruct_full_path) - 1, "%s%s%s",
-			mg->obstruct_path, catcierge_path_sep(), mg->obstruct_filename);
+		snprintf(mg->obstruct_path.full, sizeof(mg->obstruct_path.full) - 1, "%s%s%s",
+				 mg->obstruct_path.dir, catcierge_path_sep(), mg->obstruct_path.filename);
 
 		if (gen_output_path)
 		{
