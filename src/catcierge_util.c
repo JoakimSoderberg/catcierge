@@ -530,3 +530,145 @@ fail:
 
 	return buffer;
 }
+
+size_t catcierge_path_common_prefix(const char *path1, const char *path2)
+{
+	#ifdef _WIN32
+
+	return (size_t)PathCommonPrefixA(path1, path2, NULL);
+
+	#else
+
+	const char *p1 = path1;
+	const char *p2 = path2;
+	size_t len = 0;
+
+	if (!p1 || !p2)
+		return 0;
+
+	do
+	{
+		if ((!(*p1) || (*p1 == '/')) &&
+			(!(*p1) || (*p2 == '/')))
+		{
+			len = p1 - path1;
+		}
+
+		if (!(*p1) || (*p1 != *p2))
+		{
+			break;
+		}
+
+		p1++;
+		p2++;
+	} while (1);
+
+	return len;
+	#endif
+}
+
+const char *catcierge_path_find_next_component(const char *path)
+{
+	const char *slash = NULL;
+
+	if (!path || !*path)
+		return NULL;
+
+	if ((slash = strchr(path, '/')))
+	{
+		return slash + 1;
+	}
+
+	return path + strlen(path);
+}
+
+char *catcierge_relative_path(const char *pfrom, const char *pto)
+{
+	char *pout = NULL;
+	int is_from_dir = 0;
+	int is_to_dir =  0;
+	char last_from_char = pfrom[strlen(pfrom) - 1];
+	char last_to_char = pfrom[strlen(pto) - 1];
+
+	// If we got a trailing slash we consider the path
+	// a directory. This is required for the windows version.
+	if ((last_to_char == '/') || (last_to_char == '\\'))
+	{
+		is_to_dir = 1;
+	}
+
+	if ((last_from_char == '/') || (last_from_char == '\\'))
+	{
+		is_from_dir = 1;
+	}
+
+	#ifdef _WIN32
+	if (!PathRelativePathToA(&pout,
+			pfrom,
+			is_from_dir ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL,
+			pto,
+			is_to_dir ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL))
+	{
+		return NULL;
+	}
+
+	return pout;
+
+	#else // Unix
+	{
+		// Remove common first part of path.
+		const char *f = pfrom;
+		const char *t = pto; // Relative to.
+		size_t prefix_len;
+		char dst[4096] = {0};
+
+		// Special case :)
+		if (!strcmp(pfrom, "/") && !strcmp(pto, "/"))
+			return strdup("/");
+
+		prefix_len = catcierge_path_common_prefix(f, t);
+		f += prefix_len;
+		t += prefix_len;
+
+		if (!(*f))
+		{
+			// If the common path prefix is not root /
+			// we add a . before the initial / to indicate
+			// the file is in the same directory.
+			if (prefix_len > 1)
+			{
+				dst[0] = '.';
+				dst[1] = 0;
+			}
+			else
+			{
+				dst[0] = 0;
+			}
+		}
+
+		if (*f == '/')
+			f++;
+
+		while ((f = catcierge_path_find_next_component(f)) != NULL)
+		{
+			strcat(dst, (*f) ? "../" : "..");
+		}
+
+		if (*t)
+		{
+			size_t len;
+			if (*t != '/')
+				t--;
+
+			len = strlen(dst);
+
+			snprintf(dst + len, sizeof(dst) - len - 1, "%s", t);
+		}
+
+		return strdup(dst);
+	}
+
+	return NULL;
+
+	#endif
+}

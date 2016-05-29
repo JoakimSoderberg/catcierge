@@ -5,6 +5,39 @@
 #include "minunit.h"
 #include "catcierge_test_helpers.h"
 
+static char * _test_relative(const char *from, const char *to, const char *expect)
+{
+	char *s = NULL;
+
+	s = catcierge_relative_path(from, to);
+	catcierge_test_STATUS("%s relative %s => %s\n", from, to, s);
+	mu_assert("Relative path not as expected", s && !strcmp(s, expect));
+
+	if (s)
+		free(s);
+
+	return NULL;
+}
+
+char *run_test_catcierge_relative_path()
+{
+	char *err = NULL;
+
+	#ifdef _WIN32
+	// TODO: Tests for windows paths.
+	#else
+	if ((err = _test_relative("/abc/def/123/", "/abc/tut/file.txt", "../../tut/file.txt"))) return err;
+	if ((err = _test_relative("/abc/def/123/", "/abc/def/file.txt", "../file.txt"))) return err;
+	if ((err = _test_relative("/", "/abc/def/file.txt", "/abc/def/file.txt"))) return err;
+	if ((err = _test_relative("/abc/def/", "/abc/def/file.txt", "./file.txt"))) return err;
+	if ((err = _test_relative("/", "/", "/"))) return err;
+	if ((err = _test_relative("/abc", "/abc", "."))) return err;
+	if ((err = _test_relative("/def/qxy/", "/abc/def/bla/blo/file.exe", "../../abc/def/bla/blo/file.exe"))) return err;
+	#endif
+
+	return NULL;
+}
+
 char *run_test_catcierge_get_abs_path()
 {
 	char buf[4096];
@@ -69,6 +102,10 @@ int TEST_catcierge_util(int argc, char *argv[])
 	CATCIERGE_RUN_TEST((e = run_make_path_tests()),
 		"catcierge_make_path tests",
 		"catcierge_make_path tests", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_test_catcierge_relative_path()),
+		"catcierge_get_abs_path",
+		"catcierge_get_abs_path", &ret);
 
 	if (ret)
 	{

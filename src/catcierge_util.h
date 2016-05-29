@@ -46,4 +46,6 @@ void print_line(FILE *fd, int length, const char *s);
 
 char *catcierge_read_file(const char *filename);
 
+char *catcierge_relative_path(const char *pfrom, const char *pto);
+
 #endif // __CATCIERGE_UTIL_H__
