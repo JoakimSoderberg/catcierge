@@ -620,11 +620,143 @@ static char *catcierge_get_short_id(char *subvar, char *buf, size_t bufsize, SHA
 	return buf;
 }
 
+static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
+								catcierge_path_t *path,
+								char *buf, size_t bufsize)
+{
+	// Example:
+	// cwd         = /tut
+	// output_path = abc/def
+	//
+	//  obstruct_path          -> abc/def/file.png
+	//  obstruct_path|dir      -> abc/def/
+	//  obstruct_path|abs      -> /tut/abc/def/file.png
+	//  bla = /bla/teet
+	//  obstruct_path|rel(@bla@/omg) -> ../../tut/bla/def/file.png
+	//  obstruct_path|dir,abs  -> /tut/abc/def
+
+	const char *path_ops = strchr(var, '|');
+	int is_dir = 0;
+	int is_abs = 0;
+	int is_rel = 0;
+	char *the_path = NULL;
+	assert(path);
+
+	// Get any path operations if any.
+	if (path_ops)
+	{
+		size_t i = 0;
+		size_t count = 0;
+		char **path_ops_list = NULL;
+		char *c = NULL;
+		char *rel_to_path = NULL;
+
+		path_ops++; // Skip the | char.
+
+		// First we parse each path operation.
+		// We wait with performing the actual action until later.
+		path_ops_list = catcierge_parse_list(path_ops, &count, 1);
+
+		for (i = 0; i < count; i++)
+		{
+			if (!strcmp(path_ops_list[i], "dir"))
+			{
+				is_dir = 1;
+			}
+			else if (!strcmp(path_ops_list[i], "abs"))
+			{
+				is_abs = 1;
+			}
+			else if (!strncmp(path_ops_list[i], "rel", 3))
+			{
+				//
+				// Parse/evaluate the path we should calculate the relative path.
+				//
+
+				char *s = path_ops_list[i];
+				char *start = NULL;
+
+				if (rel_to_path)
+				{
+					CATERR("Double parse on relative path '%s'\n", var);
+					return NULL;
+				}
+
+				s += sizeof("rel") - 1;
+
+				if (!(s = strchr(s, '('))) return NULL;
+				s++;
+				start = s;
+
+				// The nested path uses @ instead of % as not to confuse
+				// the initial parsing of the parent variable name.
+				while (*s && *s != ')')
+				{
+					if (*s == '@') *s = '%';
+					s++;
+				}
+
+				if (*s != ')')
+				{
+					CATERR("Missing ')' for '%s'\n", var);
+					return NULL;
+				}
+
+				*s = 0;
+
+				// Expand any variables in the path.
+				if (!(rel_to_path = catcierge_output_generate(&grb->output, grb, start)))
+				{
+					CATERR("Failed to generate reative path based on '%s'\n", var);
+					return NULL;
+				}
+			}
+		}
+
+		catcierge_free_list(path_ops_list, count);
+
+		//
+		// Perform actions in a consistent order that makese sense.
+		//
+		the_path = !(*path->full) ? path->dir : path->full;
+
+		if (is_dir) the_path = path->dir;
+		if (is_abs) the_path = catcierge_get_abs_path(the_path, buf, bufsize);
+
+		// Calculate the actual relative path, based on the previously
+		// evaluated input path given for the rel(...) function.
+		if (rel_to_path)
+		{
+			the_path = catcierge_relative_path(rel_to_path, the_path);
+		}
+
+		snprintf(buf, bufsize - 1, "%s", the_path);
+
+		if (rel_to_path)
+		{
+			free(the_path);
+			free(rel_to_path);
+		}
+
+		return buf;
+	}
+
+	the_path = !(*path->full) ? path->dir : path->full;
+	snprintf(buf, bufsize - 1, "%s", the_path);
+
+	return buf;
+}
+
 const char *catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var)
 {
 	const char *matcher_val;
 	match_group_t *mg = &grb->match_group;
+
+	if (!strncmp(var, "obstruct_path", 13))
+	{
+		return catcierge_get_path(grb, var, &mg->obstruct_path, buf, bufsize);
+	}
 
 	if (!strncmp(var, "template_path", 13))
 	{

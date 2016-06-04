@@ -344,7 +344,8 @@ static char *run_add_and_generate_tests()
 
 			grb.match_group.obstruct_time = time(NULL);
 			gettimeofday(&grb.match_group.obstruct_tv, NULL);
-			strcpy(grb.match_group.obstruct_path.dir, "obstruct_path");
+			strcpy(grb.match_group.obstruct_path.dir, "template_tests/");
+			strcpy(grb.match_group.obstruct_path.filename, "file.txt");
 
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
@@ -362,6 +363,10 @@ static char *run_add_and_generate_tests()
 				"Snout count: %snout_count%\n"
 				"Threshold: %threshold%\n"
 				"Match flipped: %match_flipped%\n"
+				"normal: %obstruct_path%\n"
+				"abs,dir: %obstruct_path|abs,dir%\n"
+				"abs: %obstruct_path|abs%\n"
+				"dir: %obstruct_path|dir%\n"
 				,
 				"the path2"))
 			{
@@ -698,6 +703,87 @@ static char *run_grow_template_array_test()
 	return NULL;
 }
 
+static char *run_test_paths_test()
+{
+	int i;
+	catcierge_grb_t grb;
+	catcierge_output_t *o = &grb.output;
+	catcierge_args_t *args = &grb.args;
+	match_group_t *mg = NULL;
+	FILE *f = NULL;
+	char fille_path[1024];
+	const char *paths[] =
+	{
+		"path_tests/abc/def/",
+		"path_tests/abc/rapade/",
+		"path_tests/bla/tut/bla/"
+	};
+
+	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
+	{
+		if (catcierge_output_init(o))
+			return "Failed to init output context";
+
+		for (i = 0; i < sizeof(paths) / sizeof(paths[0]); i++)
+		{
+			if (catcierge_make_path("%s", paths[i]))
+			{
+				return "Failed to create path";
+			}
+
+			snprintf(fille_path, sizeof(fille_path) - 1, "%s/file.txt", paths[i]);
+
+			if (!(f = fopen(fille_path, "w")))
+			{
+				return "Failed to create file";
+			}
+
+			fclose(f);
+		}
+
+		mg = &grb.match_group;
+		strcpy(mg->obstruct_path.dir, "path_tests/abc/def/");
+		strcpy(mg->obstruct_path.filename, "file.txt");
+
+		strcpy(mg->matches[0].path.dir, "path_tests/abc/rapade/");
+		strcpy(mg->matches[0].path.filename, "file.txt");
+
+		if (catcierge_output_add_template(o, 
+			"%!event all\n"
+			"%!name path_template\n"
+			"Template contents %time%\n"
+			"normal: %obstruct_path%\n"
+			"abs,dir: %obstruct_path|abs,dir%\n"
+			"abs: %obstruct_path|abs%\n"
+			"dir: %obstruct_path|dir%\n"
+			"rel var: %obstruct_path|rel(@match1_path@)%\n"
+			"rel static: %obstruct_path|rel(path_tests/abc/rapade/)%\n"
+			"rel var: %obstruct_path|rel(@match1_path@)%\n"
+			"Path relative to this template file\n"
+			"rel template: %obstruct_path|rel(@template_path:path_template@)%"
+			,
+			"path_tests/path_1234"))
+		{
+			return "Failed to add template";
+		}
+
+		mu_assert("Expected template count 1", o->template_count == 1);
+
+		if (catcierge_output_generate_templates(o, &grb, "all"))
+			return "Failed generating infinite recursion template";
+
+		catcierge_test_STATUS("Generated\n");
+
+		catcierge_output_destroy(o);
+	}
+	catcierge_args_destroy(args);
+	catcierge_grabber_destroy(&grb);
+
+	return NULL;
+}
+
+
 int TEST_catcierge_output(int argc, char **argv)
 {
 	char *e = NULL;
@@ -732,6 +818,10 @@ int TEST_catcierge_output(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_grow_template_array_test()),
 		"Run grow template array tests.",
 		"Grow template array tests", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_test_paths_test()),
+		"Run path tests.",
+		"Path tests", &ret);
 
 	// TODO: Add a test for template paths in other directory.
 

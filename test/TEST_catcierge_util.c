@@ -104,8 +104,8 @@ int TEST_catcierge_util(int argc, char *argv[])
 		"catcierge_make_path tests", &ret);
 
 	CATCIERGE_RUN_TEST((e = run_test_catcierge_relative_path()),
-		"catcierge_get_abs_path",
-		"catcierge_get_abs_path", &ret);
+		"catcierge_relative_path",
+		"catcierge_relative_path", &ret);
 
 	if (ret)
 	{
