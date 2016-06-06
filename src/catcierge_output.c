@@ -563,15 +563,21 @@ static char *catcierge_get_template_path(catcierge_grb_t *grb, const char *var)
 	size_t i;
 	catcierge_output_t *o = &grb->output;
 	const char *subvar = var + strlen("template_path");
+	const char *subvar_end = NULL;
 
 	if (*subvar == ':')
 	{
 		subvar++;
 
+		// To allow path operations the name stops at |
+		subvar_end = strrchr(subvar, '|');
+		if (subvar_end) subvar_end--;
+		else subvar_end = subvar + strlen(subvar);
+
 		// Find the template with the given name.
 		for (i = 0; i < o->template_count; i++)
 		{
-			if (!strcmp(subvar, o->templates[i].name))
+			if (!strncmp(subvar, o->templates[i].name, (subvar_end - subvar)))
 			{
 				return o->templates[i].generated_path;
 			}
@@ -641,6 +647,16 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	int is_rel = 0;
 	char *the_path = NULL;
 	assert(path);
+
+	if (!(*path->full))
+	{
+		char *dir_end = path->dir + strlen(path->dir) - 1;
+
+		snprintf(path->full, sizeof(path->full) - 1, "%s%s%s",
+			*path->dir ? path->dir : "",
+			(*dir_end == catcierge_path_sep()[0]) ? "" : catcierge_path_sep(),
+			*path->filename ? path->filename : "");
+	}
 
 	// Get any path operations if any.
 	if (path_ops)
@@ -718,7 +734,7 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 		//
 		// Perform actions in a consistent order that makese sense.
 		//
-		the_path = !(*path->full) ? path->dir : path->full;
+		the_path = path->full;
 
 		if (is_dir) the_path = path->dir;
 		if (is_abs) the_path = catcierge_get_abs_path(the_path, buf, bufsize);
@@ -727,7 +743,12 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 		// evaluated input path given for the rel(...) function.
 		if (rel_to_path)
 		{
-			the_path = catcierge_relative_path(rel_to_path, the_path);
+			char abs_rel_to_path[4096];
+			the_path = catcierge_get_abs_path(the_path, buf, bufsize);
+			catcierge_get_abs_path(rel_to_path,
+								abs_rel_to_path, sizeof(abs_rel_to_path));
+
+			the_path = catcierge_relative_path(abs_rel_to_path, the_path);
 		}
 
 		snprintf(buf, bufsize - 1, "%s", the_path);
