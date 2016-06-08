@@ -768,6 +768,60 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	return buf;
 }
 
+#define DIR_ONLY 1
+//
+// Helper function to create a path struct from a path string
+// and then call catcierge_get_path on it.
+//
+char *catcierge_create_and_get_path(catcierge_grb_t *grb, const char *var,
+								const char *path_val, int dir_only,
+								char *buf, size_t bufsize)
+{
+	char *dir = NULL;
+	char *dir_end = NULL;
+	char *filename = NULL;
+	char *path_copy = NULL;
+	catcierge_path_t path;
+
+	if (!path_val)
+		return NULL;
+
+	memset(&path, 0, sizeof(path));
+
+	if (!(path_copy = strdup(path_val)))
+	{
+		return NULL;
+	}
+
+	if (!dir_only)
+	{
+		char *dir_end = strrchr(path_copy, catcierge_path_sep()[0]);
+
+		if (dir_end)
+		{
+			filename = dir_end + 1;
+			*dir_end = 0;
+		}
+	}
+
+	dir = path_copy;
+
+	if (!dir) dir = "./";
+	if (!dir_end) dir_end = dir + strlen(dir);
+
+	snprintf(path.dir, sizeof(path.dir), "%s%s",
+			dir, (*(dir_end - 1) == '/') ? "" : "");
+
+	if (filename)
+	{
+		snprintf(path.filename, sizeof(path.filename), "%s", filename);
+	}
+
+	free(path_copy);
+
+	return catcierge_get_path(grb, var, &path, buf, bufsize);
+} 
+
 const char *catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var)
 {

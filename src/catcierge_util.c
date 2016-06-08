@@ -446,8 +446,17 @@ char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
 	#else // Unix.
 
 	char *real_path = NULL;
+	int is_dir = 0;
 	assert(buf);
 	buflen--; // To fit '\0'
+
+	// If the input has a slash at the end
+	// preserve it.
+	if (path[strlen(path) - 1] == '/')
+	{
+		is_dir = 1;
+		buflen--;
+	}
 
 	if (!path || (buflen <= 0))
 		return NULL;
@@ -464,7 +473,12 @@ char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
 	}
 
 	strncpy(buf, real_path, buflen);
-	buf[buflen] = '\0';
+
+	if (is_dir)
+	{
+		strcat(buf, "/");
+	}
+
 	free(real_path);
 
 	return buf;
@@ -587,8 +601,14 @@ char *catcierge_relative_path(const char *pfrom, const char *pto)
 	char *pout = NULL;
 	int is_from_dir = 0;
 	int is_to_dir =  0;
-	char last_from_char = pfrom[strlen(pfrom) - 1];
-	char last_to_char = pfrom[strlen(pto) - 1];
+	char last_from_char = 0;
+	char last_to_char = 0;
+
+	if (!pfrom) return NULL;
+	if (!pto) return NULL;
+
+	last_from_char = pfrom[strlen(pfrom) - 1];
+	last_to_char = pto[strlen(pto) - 1];
 
 	// If we got a trailing slash we consider the path
 	// a directory. This is required for the windows version.
@@ -612,6 +632,8 @@ char *catcierge_relative_path(const char *pfrom, const char *pto)
 		return NULL;
 	}
 
+	// TODO: Make sure paths are returned wiht a / on windows
+
 	return pout;
 
 	#else // Unix
@@ -619,6 +641,7 @@ char *catcierge_relative_path(const char *pfrom, const char *pto)
 		// Remove common first part of path.
 		const char *f = pfrom;
 		const char *t = pto; // Relative to.
+		int i;
 		size_t prefix_len;
 		char dst[4096] = {0};
 
@@ -630,40 +653,26 @@ char *catcierge_relative_path(const char *pfrom, const char *pto)
 		f += prefix_len;
 		t += prefix_len;
 
-		if (!(*f))
-		{
-			// If the common path prefix is not root /
-			// we add a . before the initial / to indicate
-			// the file is in the same directory.
-			if (prefix_len > 1)
-			{
-				dst[0] = '.';
-				dst[1] = 0;
-			}
-			else
-			{
-				dst[0] = 0;
-			}
-		}
+		if (*t == '/') t++;
+		if (*f == '/') f++;
 
-		if (*f == '/')
-			f++;
+		i = 0;
 
 		while ((f = catcierge_path_find_next_component(f)) != NULL)
 		{
-			strcat(dst, (*f) ? "../" : "..");
+			i++;
+
+			// If we are calculating relative from a file path
+			// remove the file first, or it will be counted as a dir.
+			if ((i == 1) && !is_to_dir)
+			{
+				continue;
+			}
+
+			strcat(dst, (*f) ? "" : "../");
 		}
 
-		if (*t)
-		{
-			size_t len;
-			if (*t != '/')
-				t--;
-
-			len = strlen(dst);
-
-			snprintf(dst + len, sizeof(dst) - len - 1, "%s", t);
-		}
+		strcat(dst, t);
 
 		return strdup(dst);
 	}
