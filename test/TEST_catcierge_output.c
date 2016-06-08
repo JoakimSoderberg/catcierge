@@ -122,15 +122,15 @@ static char *run_generate_tests()
 			{ "a b c %match_success%\nd e f", "a b c 33\nd e f" },
 			{ "%match_success%", "33" },
 			{ "abc%%def", "abc%def" },
-			{ "%match1_path%", "/some/path/omg1" },
-			{ "%match2_path%", "/some/path/omg2" },
+			{ "%match1_path%", "/some/path/omg1/" },
+			{ "%match2_path%", "/some/path/omg2/" },
 			{ "%match2_success%", "0" },
 			{ "%match2_description%", "prey found" },
 			{ "aaa %match3_direction% bbb", "aaa in bbb" },
 			{ "%match3_result%", "0.800000" },
 			{ "%state%", "Waiting" },
-			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg3" },
-			{ "%match4_path%", "/some/path/omg4" }, // Match count is only 3, so this should be empty.
+			{ "%prev_state% %matchcur_path%", "Initial /some/path/omg3/" },
+			{ "%match4_path%", "/some/path/omg4/" }, // Match count is only 3, so this should be empty.
 			{ "%match_count%", "3" },
 			{ "%match_group_count%", "3" },
 			{ "%match_group_final_decision%", "1" },
@@ -144,7 +144,7 @@ static char *run_generate_tests()
 			{ "%match_group_id:45%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
 			{ "%match_group_desc%", "hej" },
 			{ "%match_group_description%", "hej" },
-			{ "%match1_step1_path%", "some/step/path" },
+			{ "%match1_step1_path%", "some/step/path/" },
 			{ "%match1_step2_name%", "the_step_name" },
 			{ "%match2_step7_desc%", "Step description" },
 			{ "%match2_step7_active%", "0" },
@@ -208,10 +208,10 @@ static char *run_generate_tests()
 		grb.match_group.matches[1].result.step_img_count = 8;
 		strcpy(grb.match_group.description, "hej");
 		strcpy(grb.match_group.matches[1].result.description, "prey found");
-		strcpy(grb.match_group.matches[0].path.dir, "/some/path/omg1");
-		strcpy(grb.match_group.matches[1].path.dir, "/some/path/omg2");
-		strcpy(grb.match_group.matches[2].path.dir, "/some/path/omg3");
-		strcpy(grb.match_group.matches[3].path.dir, "/some/path/omg4");
+		strcpy(grb.match_group.matches[0].path.dir, "/some/path/omg1/");
+		strcpy(grb.match_group.matches[1].path.dir, "/some/path/omg2/");
+		strcpy(grb.match_group.matches[2].path.dir, "/some/path/omg3/");
+		strcpy(grb.match_group.matches[3].path.dir, "/some/path/omg4/");
 		grb.match_group.direction = MATCH_DIR_IN;
 		strcpy(grb.match_group.obstruct_path.filename, "obstructify");
 		grb.match_group.matches[0].result.success = 4;
@@ -706,6 +706,7 @@ static char *run_grow_template_array_test()
 static char *run_test_paths_test()
 {
 	int i;
+	int j;
 	catcierge_grb_t grb;
 	catcierge_output_t *o = &grb.output;
 	catcierge_args_t *args = &grb.args;
@@ -725,6 +726,8 @@ static char *run_test_paths_test()
 		if (catcierge_output_init(o))
 			return "Failed to init output context";
 
+		args->template_output_path = strdup("path_tests/");
+
 		for (i = 0; i < sizeof(paths) / sizeof(paths[0]); i++)
 		{
 			if (catcierge_make_path("%s", paths[i]))
@@ -732,41 +735,58 @@ static char *run_test_paths_test()
 				return "Failed to create path";
 			}
 
-			snprintf(fille_path, sizeof(fille_path) - 1, "%s/file.txt", paths[i]);
-
-			if (!(f = fopen(fille_path, "w")))
+			for (j = 1; j < 3; j++)
 			{
-				return "Failed to create file";
-			}
+				snprintf(fille_path, sizeof(fille_path) - 1, "%s/file%d.txt", paths[i], j);
 
-			fclose(f);
+				if (!(f = fopen(fille_path, "w")))
+				{
+					return "Failed to create file";
+				}
+
+				fclose(f);
+			}
 		}
 
 		mg = &grb.match_group;
 		strcpy(mg->obstruct_path.dir, "path_tests/abc/def/");
-		strcpy(mg->obstruct_path.filename, "file.txt");
+		strcpy(mg->obstruct_path.filename, "file1.txt");
 
 		strcpy(mg->matches[0].path.dir, "path_tests/abc/rapade/");
-		strcpy(mg->matches[0].path.filename, "file.txt");
+		strcpy(mg->matches[0].path.filename, "file2.txt");
+
+		strcpy(mg->matches[1].path.dir, "path_tests/def/");
+		strcpy(mg->matches[1].path.filename, "file3.txt");
 
 		if (catcierge_output_add_template(o, 
 			"%!event all\n"
 			"%!name path_template\n"
 			"Template contents %time%\n"
-			"normal: %obstruct_path%\n"
-			"abs,dir: %obstruct_path|abs,dir%\n"
-			"abs: %obstruct_path|abs%\n"
-			"dir: %obstruct_path|dir%\n"
-			"rel var: %obstruct_path|rel(@match1_path@)%\n"
-			"rel static: %obstruct_path|rel(path_tests/abc/rapade/)%\n"
-			"rel var: %obstruct_path|rel(@match1_path@)%\n"
-			"Path relative to this template file\n"
-			"rel template: %obstruct_path|rel(@template_path:path_template@)%"
+			"obstruct_path: %obstruct_path%\n"
+			"  abs,dir: %obstruct_path|abs,dir%\n"
+			"  abs obstruct: %obstruct_path|abs%\n"
+			"  dir obstruct: %obstruct_path|dir%\n"
+			"  rel var match1: %obstruct_path|rel(@match1_path@)%\n"
+			"  rel static : %obstruct_path|rel(path_tests/abc/rapade/)%\n"
+			"  rel var match1: %obstruct_path|rel(@match1_path@)%\n"
+			"match1_path: %match1_path%\n"
+			"  \n"
+			"Path relative to this template file:\n"
+			"  template:    %template_path:path_template%\n"
+			"  obstruct:    %obstruct_path|rel(@template_path:path_template@)%\n"
+			"  match1 full: %match1_path|rel(@template_path:path_template@)%\n"
+			"  match1:      %match1_path|rel(@template_path:path_template|dir@)%\n"
+			"  match1 dir:  %match1_path|rel(@template_path:path_template|dir@),dir%\n"
+			"\n"
+			"Match1:\n"
+			"  %match1_path%\n"
 			,
-			"path_tests/path_1234"))
+			"path_1234"))
 		{
 			return "Failed to add template";
 		}
+
+		// TODO: Add  individual tests  for output_translate here.
 
 		mu_assert("Expected template count 1", o->template_count == 1);
 

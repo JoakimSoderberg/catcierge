@@ -664,12 +664,12 @@ char *catcierge_relative_path(const char *pfrom, const char *pto)
 
 			// If we are calculating relative from a file path
 			// remove the file first, or it will be counted as a dir.
-			if ((i == 1) && !is_to_dir)
+			if ((i == 1) && !is_from_dir)
 			{
 				continue;
 			}
 
-			strcat(dst, (*f) ? "" : "../");
+			strcat(dst, "../");
 		}
 
 		strcat(dst, t);

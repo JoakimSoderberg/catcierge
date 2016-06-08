@@ -28,11 +28,12 @@ char *run_test_catcierge_relative_path()
 	#else
 	if ((err = _test_relative("/abc/def/123/", "/abc/tut/file.txt", "../../tut/file.txt"))) return err;
 	if ((err = _test_relative("/abc/def/123/", "/abc/def/file.txt", "../file.txt"))) return err;
-	if ((err = _test_relative("/", "/abc/def/file.txt", "/abc/def/file.txt"))) return err;
-	if ((err = _test_relative("/abc/def/", "/abc/def/file.txt", "./file.txt"))) return err;
+	if ((err = _test_relative("/", "/abc/def/file.txt", "abc/def/file.txt"))) return err;
+	if ((err = _test_relative("/abc/def/", "/abc/def/file.txt", "file.txt"))) return err;
 	if ((err = _test_relative("/", "/", "/"))) return err;
-	if ((err = _test_relative("/abc", "/abc", "."))) return err;
+	if ((err = _test_relative("/abc", "/abc", ""))) return err;
 	if ((err = _test_relative("/def/qxy/", "/abc/def/bla/blo/file.exe", "../../abc/def/bla/blo/file.exe"))) return err;
+	if ((err = _test_relative("/", "/", "/"))) return err;
 	#endif
 
 	return NULL;

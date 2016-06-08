@@ -76,17 +76,11 @@ catcierge_output_var_t vars[] =
 	{ "match_group_max_count", "Match group max number of matches that will be made."},
 	{ "obstruct_filename", "Filename for the obstruct image for the current match group." },
 	{ "obstruct_path", "Path for the obstruct image (excluding filename)."},
-	{ "abs_obstruct_path", "Absolute path for the obstruct image (excluding filename)."},
-	{ "obstruct_full_path", "Full path for the obstruct image (including filename)."},
-	{ "abs_obstruct_full_path", "Absolute path for the obstruct image (including filename)."},
 	{ "matchcur_*", "Gets the current match while matching. "},
 	{ "match#_idx", "Gets the current match index, that is #. Makes sense to use with matchcur_*"},
 	{ "match#_id", "Unique ID for match #." },
 	{ "match#_filename", "Image filenamefor match #." },
 	{ "match#_path", "Image output path for match # (excluding filename)." },
-	{ "match#_full_path", "Image path for match # (including filename)." },
-	{ "match#_abs_path", "Absolute image path for match # (excluding filename)." },
-	{ "match#_abs_full_path", "Absolute image path for match # (including filename)." },
 	{ "match#_success", "Success status for match #." },
 	{ "match#_direction", "Direction for match #." },
 	{ "match#_description", "Description of match #." },
@@ -94,9 +88,6 @@ catcierge_output_var_t vars[] =
 	{ "match#_time", "Time of match #." },
 	{ "match#_step#_filename", "Image filename for match step # for match #."},
 	{ "match#_step#_path", "Image path for match step # for match # (excluding filename)."},
-	{ "match#_step#_abs_path", "Absolute image path for match step # for match # (excluding filename)."},
-	{ "match#_step#_full_path", "Image path for match step # for match #."},
-	{ "match#_step#_abs_full_path", "Absolute image path for match step # for match #."},
 	{ "match#_step#_name", "Short name for match step # for match #."},
 	{ "match#_step#_desc", "Description for match step # for match #."},
 	{ "match#_step#_active", "If this match step was used for match #."},
@@ -743,6 +734,7 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 		// evaluated input path given for the rel(...) function.
 		if (rel_to_path)
 		{
+			// TODO: Check for template level relative path also.
 			char abs_rel_to_path[4096];
 			the_path = catcierge_get_abs_path(the_path, buf, bufsize);
 			catcierge_get_abs_path(rel_to_path,
@@ -828,14 +820,11 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	const char *matcher_val;
 	match_group_t *mg = &grb->match_group;
 
-	if (!strncmp(var, "obstruct_path", 13))
-	{
-		return catcierge_get_path(grb, var, &mg->obstruct_path, buf, bufsize);
-	}
-
 	if (!strncmp(var, "template_path", 13))
 	{
-		return catcierge_get_template_path(grb, var);
+		char *template_path = catcierge_get_template_path(grb, var);
+		return catcierge_create_and_get_path(grb, var,
+					template_path, 0, buf, bufsize);
 	}
 
 	// Current time.
@@ -891,12 +880,8 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	#define CHECK_OUTPUT_PATH_VAR(name, _output) \
 		if (!strcmp(name, #_output)) \
 		{ \
-			char *s = catcierge_output_generate(&grb->output, grb, grb->args._output); \
-			if (!s) \
-				return NULL; \
-			snprintf(buf, bufsize - 1, "%s", s); \
-			free(s); \
-			return buf; \
+			return catcierge_create_and_get_path(grb, var, \
+						grb->args._output, DIR_ONLY, buf, bufsize); \
 		}
 
 	CHECK_OUTPUT_PATH_VAR(var, output_path);
@@ -1025,34 +1010,9 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 		return mg->obstruct_path.filename;
 	}
 
-	if (!strcmp(var, "obstruct_path"))
+	if (!strncmp(var, "obstruct_path", 13))
 	{
-		return mg->obstruct_path.dir;
-	}
-
-	if (!strcmp(var, "abs_obstruct_path"))
-	{
-		if (!catcierge_get_abs_path(mg->obstruct_path.dir, buf, bufsize))
-		{
-			return mg->obstruct_path.dir;
-		}
-
-		return buf;
-	}
-
-	if (!strcmp(var, "obstruct_full_path"))
-	{
-		return mg->obstruct_path.full;
-	}
-
-	if (!strcmp(var, "abs_obstruct_full_path"))
-	{
-		if (!catcierge_get_abs_path(mg->obstruct_path.full, buf, bufsize))
-		{
-			return mg->obstruct_path.full;
-		}
-
-		return buf;
+		return catcierge_get_path(grb, var, &mg->obstruct_path, buf, bufsize);
 	}
 
 	if (!strncmp(var, "obstruct_time", strlen("obstruct_time")))
@@ -1099,31 +1059,9 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 			return "";
 		}
 
-		if (!strcmp(subvar, "path"))
+		if (!strncmp(subvar, "path", 4))
 		{
-			return m->path.dir;
-		}
-		else if (!strcmp(subvar, "abs_path"))
-		{
-			if (!catcierge_get_abs_path(m->path.dir, buf, bufsize))
-			{
-				return m->path.dir;
-			}
-
-			return buf;
-		}
-		if (!strcmp(subvar, "full_path"))
-		{
-			return m->path.full;
-		}
-		else if (!strcmp(subvar, "abs_full_path"))
-		{
-			if (!catcierge_get_abs_path(m->path.full, buf, bufsize))
-			{
-				return m->path.full;
-			}
-
-			return buf;
+			return catcierge_get_path(grb, var, &m->path, buf, bufsize);
 		}
 		else if (!strcmp(subvar, "filename"))
 		{
@@ -1202,29 +1140,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 
 			if (!strcmp(stepvar, "path"))
 			{
-				return step->path.dir;
-			}
-			else if (!strcmp(stepvar, "abs_path"))
-			{
-				if (!catcierge_get_abs_path(step->path.dir, buf, bufsize))
-				{
-					return step->path.dir;
-				}
-
-				return buf;
-			}
-			else if (!strcmp(stepvar, "full_path"))
-			{
-				return step->path.full;
-			}
-			else if (!strcmp(stepvar, "abs_full_path"))
-			{
-				if (!catcierge_get_abs_path(step->path.full, buf, bufsize))
-				{
-					return step->path.full;
-				}
-
-				return buf;
+				return catcierge_get_path(grb, var, &step->path, buf, bufsize);
 			}
 			else if (!strcmp(stepvar, "filename"))
 			{
