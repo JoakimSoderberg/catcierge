@@ -31,6 +31,7 @@ typedef struct catcierge_output_settings_s
 	size_t event_filter_count;
 	int nofile;
 	char *filename;
+	char *rootpath; // Path all templates are relative to. Default is cwd.
 	#ifdef WITH_ZMQ
 	char *topic; // ZMQ topic name, defaults to template name.
 	int nozmq;
@@ -51,8 +52,12 @@ typedef struct catcierge_output_s
 	catcierge_output_template_t *templates;
 	size_t template_count;
 	size_t template_max_count;
+	int template_idx; // Index of template currently being parsed.
 	int recursion;
 	int recursion_error;
+	int no_relative_path; // Flag to turn off relative_path calculations when
+						  // running catcierge_output_generate when generating
+						  // relative paths :)
 } catcierge_output_t;
 
 #endif // __CATCIERGE_OUTPUT_TYPES_H__

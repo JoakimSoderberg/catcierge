@@ -127,6 +127,7 @@ int catcierge_output_init(catcierge_output_t *ctx)
 	assert(ctx);
 	memset(ctx, 0, sizeof(catcierge_output_t));
 	ctx->template_max_count = 10;
+	ctx->template_idx = -1;
 
 	if (!(ctx->templates = calloc(ctx->template_max_count,
 		sizeof(catcierge_output_template_t))))
@@ -345,6 +346,21 @@ const char *catcierge_output_read_template_settings(catcierge_output_settings_t 
 			it += 6;
 			it = catcierge_skip_whitespace_alt(it);
 			settings->nofile = 1;
+			it = row_end;
+			continue;
+		}
+		else if (!strncmp(it, "rootpath", 8))
+		{
+			// Path that all paths should be relative to.
+			it += 8;
+			it = catcierge_skip_whitespace_alt(it);
+
+			catcierge_xfree(&settings->rootpath);
+			if (!(settings->rootpath = strdup(it)))
+			{
+				CATERR("Out of memory!\n"); goto fail;
+			}
+
 			it = row_end;
 			continue;
 		}
@@ -637,7 +653,23 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	int is_abs = 0;
 	int is_rel = 0;
 	char *the_path = NULL;
+	char *rel_to_path = NULL;
+	catcierge_output_t *ctx = NULL;
+	catcierge_output_template_t *template = NULL;
+	size_t count = 0;
+	char **path_ops_list = NULL;
 	assert(path);
+	assert(grb);
+
+	ctx = &grb->output;
+
+	// If we are generating this based on a template
+	// we want the settings from the template so we
+	// can use the rootpath for deciding the relative path.
+	if (ctx->template_idx > 0)
+	{
+		template = &ctx->templates[ctx->template_idx];
+	}
 
 	if (!(*path->full))
 	{
@@ -653,10 +685,7 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	if (path_ops)
 	{
 		size_t i = 0;
-		size_t count = 0;
-		char **path_ops_list = NULL;
 		char *c = NULL;
-		char *rel_to_path = NULL;
 
 		path_ops++; // Skip the | char.
 
@@ -686,7 +715,7 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 				if (rel_to_path)
 				{
 					CATERR("Double parse on relative path '%s'\n", var);
-					return NULL;
+					goto fail;
 				}
 
 				s += sizeof("rel") - 1;
@@ -706,58 +735,74 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 				if (*s != ')')
 				{
 					CATERR("Missing ')' for '%s'\n", var);
-					return NULL;
+					goto fail;
 				}
 
 				*s = 0;
 
-				// Expand any variables in the path.
-				if (!(rel_to_path = catcierge_output_generate(&grb->output, grb, start)))
+				if (!(rel_to_path = strdup(start)))
 				{
-					CATERR("Failed to generate reative path based on '%s'\n", var);
-					return NULL;
+					CATERR("Out of memory\n");
+					goto fail;
 				}
 			}
 		}
 
 		catcierge_free_list(path_ops_list, count);
-
-		//
-		// Perform actions in a consistent order that makese sense.
-		//
-		the_path = path->full;
-
-		if (is_dir) the_path = path->dir;
-		if (is_abs) the_path = catcierge_get_abs_path(the_path, buf, bufsize);
-
-		// Calculate the actual relative path, based on the previously
-		// evaluated input path given for the rel(...) function.
-		if (rel_to_path)
-		{
-			// TODO: Check for template level relative path also.
-			char abs_rel_to_path[4096];
-			the_path = catcierge_get_abs_path(the_path, buf, bufsize);
-			catcierge_get_abs_path(rel_to_path,
-								abs_rel_to_path, sizeof(abs_rel_to_path));
-
-			the_path = catcierge_relative_path(abs_rel_to_path, the_path);
-		}
-
-		snprintf(buf, bufsize - 1, "%s", the_path);
-
-		if (rel_to_path)
-		{
-			free(the_path);
-			free(rel_to_path);
-		}
-
-		return buf;
 	}
 
+	//
+	// Perform actions in a consistent order that makes sense:
+	//
 	the_path = !(*path->full) ? path->dir : path->full;
+
+	if (is_dir) the_path = path->dir;
+	if (is_abs) the_path = catcierge_get_abs_path(the_path, buf, bufsize);
+
+	// If no relative path was specified, use the global
+	// root path if set for the current template.
+	if (!rel_to_path && template && template->settings.rootpath)
+	{
+		if (!(rel_to_path = strdup(template->settings.rootpath)))
+		{
+			CATERR("Out of memory\n");
+			goto fail;
+		}
+	}
+
+	if (rel_to_path && !ctx->no_relative_path)
+	{
+		char abs_rel_to_path[4096];
+		char *full_rel_to_path = NULL;
+
+		// Generate the full relative path.
+		ctx->no_relative_path = 1;
+		full_rel_to_path = catcierge_output_generate(&grb->output, grb, rel_to_path);
+		ctx->no_relative_path = 0;
+
+		// The relativeness must be based on absolute paths.
+		the_path = catcierge_get_abs_path(the_path, buf, bufsize);
+		catcierge_get_abs_path(full_rel_to_path,
+							abs_rel_to_path, sizeof(abs_rel_to_path));
+
+		// Relative path (the_path is allocated).
+		the_path = catcierge_relative_path(abs_rel_to_path, the_path);
+		free(full_rel_to_path);
+	}
+
 	snprintf(buf, bufsize - 1, "%s", the_path);
 
+	if (rel_to_path && !ctx->no_relative_path)
+	{
+		free(the_path);
+		free(rel_to_path);
+	}
+
 	return buf;
+
+fail:
+	catcierge_free_list(path_ops_list, count);
+	return NULL;
 }
 
 #define DIR_ONLY 1
@@ -1441,6 +1486,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		if (!(args->template_output_path = strdup(args->output_path)))
 		{
 			CATERR("Out of memory");
+			return -1;
 		}
 	}
 
@@ -1448,6 +1494,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 
 	for (i = 0; i < ctx->template_count; i++)
 	{
+		ctx->template_idx = i;
 		t = &ctx->templates[i];
 
 		// Filter out any events that don't have the current "event" in their list.
@@ -1552,6 +1599,8 @@ fail_template:
 			gen_output_path = NULL;
 		}
 	}
+
+	ctx->template_idx = -1;
 
 	return 0;
 }

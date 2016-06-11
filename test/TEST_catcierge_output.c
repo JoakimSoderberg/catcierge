@@ -749,6 +749,8 @@ static char *run_test_paths_test()
 		}
 
 		mg = &grb.match_group;
+
+		// We use these paths for testing relative paths.
 		strcpy(mg->obstruct_path.dir, "path_tests/abc/def/");
 		strcpy(mg->obstruct_path.filename, "file1.txt");
 
@@ -758,6 +760,7 @@ static char *run_test_paths_test()
 		strcpy(mg->matches[1].path.dir, "path_tests/def/");
 		strcpy(mg->matches[1].path.filename, "file3.txt");
 
+		// A basic template.
 		if (catcierge_output_add_template(o, 
 			"%!event all\n"
 			"%!name path_template\n"
@@ -786,9 +789,40 @@ static char *run_test_paths_test()
 			return "Failed to add template";
 		}
 
-		// TODO: Add  individual tests  for output_translate here.
-
 		mu_assert("Expected template count 1", o->template_count == 1);
+
+		if (catcierge_output_add_template(o, 
+			"%!event all\n"
+			"%!name path_template2\n"
+			"%!rootpath %template_path:path_template2%\n"
+			"Template contents %time%\n"
+			"obstruct_path: %obstruct_path%\n"
+			"  abs,dir: %obstruct_path|abs,dir%\n"
+			"  abs obstruct: %obstruct_path|abs%\n"
+			"  dir obstruct: %obstruct_path|dir%\n"
+			"  rel var match1: %obstruct_path|rel(@match1_path@)%\n"
+			"  rel static : %obstruct_path|rel(path_tests/abc/rapade/)%\n"
+			"  rel var match1: %obstruct_path|rel(@match1_path@)%\n"
+			"match1_path: %match1_path%\n"
+			"  \n"
+			"Path relative to this template file:\n"
+			"  template:    %template_path:path_template%\n"
+			"  obstruct:    %obstruct_path|rel(@template_path:path_template@)%\n"
+			"  match1 full: %match1_path|rel(@template_path:path_template@)%\n"
+			"  match1:      %match1_path|rel(@template_path:path_template|dir@)%\n"
+			"  match1 dir:  %match1_path|rel(@template_path:path_template|dir@),dir%\n"
+			"\n"
+			"Match1:\n"
+			"  %match1_path%\n"
+			,
+			"path_4567"))
+		{
+			return "Failed to add template";
+		}
+
+		mu_assert("Expected template count 1", o->template_count == 2);
+
+		// TODO: Add  individual tests  for output_translate here.
 
 		if (catcierge_output_generate_templates(o, &grb, "all"))
 			return "Failed generating infinite recursion template";
