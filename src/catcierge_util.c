@@ -39,6 +39,10 @@
 #include <assert.h>
 #include "catcierge_log.h"
 
+#ifdef _WIN32
+#include <Shlwapi.h>
+#endif
+
 const char *catcierge_path_sep()
 {
 	#ifdef _WIN32
