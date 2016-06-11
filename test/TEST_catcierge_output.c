@@ -712,6 +712,7 @@ static char *run_test_paths_test()
 	catcierge_args_t *args = &grb.args;
 	match_group_t *mg = NULL;
 	FILE *f = NULL;
+	char *p = NULL;
 	char fille_path[1024];
 	const char *paths[] =
 	{
@@ -828,6 +829,19 @@ static char *run_test_paths_test()
 			return "Failed generating infinite recursion template";
 
 		catcierge_test_STATUS("Generated\n");
+
+		#define TEST_GENERATE(str, expect_str)								\
+			p = catcierge_output_generate(&grb.output, &grb, str);			\
+			catcierge_test_STATUS("'%s' => '%s'\n", str, p);				\
+			mu_assert("Failed to generate: '" str "'", p);					\
+			mu_assert("Expected '" expect_str "'", !strcmp(p, expect_str));	\
+			free(p)
+
+		TEST_GENERATE("%match1_path%", "path_tests/abc/rapade/file2.txt");
+		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@)%", "abc/rapade/file2.txt");
+		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@),dir%", "abc/rapade/");
+		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@)%", "abc/rapade/file2.txt");
+		TEST_GENERATE("%template_path:path_template%", "path_tests/path_1234");
 
 		catcierge_output_destroy(o);
 	}
