@@ -677,7 +677,7 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 
 		snprintf(path->full, sizeof(path->full) - 1, "%s%s%s",
 			*path->dir ? path->dir : "",
-			(*dir_end == catcierge_path_sep()[0]) ? "" : catcierge_path_sep(),
+			((*dir_end == '/') || (*dir_end == catcierge_path_sep()[0])) ? "" : "/",
 			*path->filename ? path->filename : "");
 	}
 
