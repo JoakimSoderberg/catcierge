@@ -208,6 +208,8 @@ message("This file can be found in the build tree of OpenCV")
 message("-----------------------------------------------------------------")
 endif()
 
+set(LIBS "")
+
 #
 # This can be overridden by specifying your own OpenCV build
 # using -DOpenCV_DIR=<path>
@@ -222,11 +224,13 @@ if (WIN32)
 		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
 		set(OpenCV_STATIC ON)
 	endif()
+
+	list(APPEND LIBS Shlwapi.lib)
 endif()
 
 find_package(Threads)
 find_package(OpenCV REQUIRED)
-set(LIBS ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+list(APPEND LIBS ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 # Raspicam lib.
 if (RPI)
