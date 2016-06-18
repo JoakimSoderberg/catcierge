@@ -1,4 +1,6 @@
 %!event match_group_done
+%!name catcierge_event
+%!rootpath %template_path:catcierge_event|dir%
 %!filename %match_group_id%.json
 {
 	"id": "%match_group_id%",
