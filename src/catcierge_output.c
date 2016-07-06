@@ -675,10 +675,18 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	{
 		char *dir_end = path->dir + strlen(path->dir) - 1;
 
-		snprintf(path->full, sizeof(path->full) - 1, "%s%s%s",
-			*path->dir ? path->dir : "",
-			((*dir_end == '/') || (*dir_end == catcierge_path_sep()[0])) ? "" : "/",
-			*path->filename ? path->filename : "");
+		if (*path->filename)
+		{
+			snprintf(path->full, sizeof(path->full) - 1, "%s%s%s",
+				*path->dir ? path->dir : "",
+				((*dir_end == '/') || (*dir_end == catcierge_path_sep()[0])) ? "" : "/",
+				path->filename);
+		}
+		else
+		{
+			snprintf(path->full, sizeof(path->full) - 1, "%s",
+				*path->dir ? path->dir : "");
+		}
 	}
 
 	// Get any path operations if any.
@@ -774,9 +782,11 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	{
 		char abs_rel_to_path[4096];
 		char *full_rel_to_path = NULL;
+		char *tmp_path = NULL;
 
 		// Generate the full relative path.
 		ctx->no_relative_path = 1;
+		// TODO: check return value
 		full_rel_to_path = catcierge_output_generate(&grb->output, grb, rel_to_path);
 		ctx->no_relative_path = 0;
 
@@ -789,14 +799,20 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 		the_path = catcierge_relative_path(abs_rel_to_path, the_path);
 		free(full_rel_to_path);
 	}
+	else
+	{
+		the_path = catcierge_output_generate(&grb->output, grb, the_path);
+	}
 
 	snprintf(buf, bufsize - 1, "%s", the_path);
 
 	if (rel_to_path && !ctx->no_relative_path)
 	{
-		free(the_path);
 		free(rel_to_path);
 	}
+
+	if (the_path)
+		free(the_path);
 
 	return buf;
 

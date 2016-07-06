@@ -144,7 +144,7 @@ static char *run_generate_tests()
 			{ "%match_group_id:45%", "34aa973cd4c4daa4f61eeb2bdbad27316534016f" },
 			{ "%match_group_desc%", "hej" },
 			{ "%match_group_description%", "hej" },
-			{ "%match1_step1_path%", "some/step/path/" },
+			{ "%match1_step1_path%", "some/step/path" },
 			{ "%match1_step2_name%", "the_step_name" },
 			{ "%match2_step7_desc%", "Step description" },
 			{ "%match2_step7_active%", "0" },
@@ -840,6 +840,13 @@ static char *run_test_paths_test()
 		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@)%", "abc/rapade/file2.txt");
 		TEST_GENERATE("%template_path:path_template%", "path_tests/path_1234");
 
+		args->lockout_time = 30;
+		args->output_path = strdup("/some/output/path/%lockout_time%");
+		args->match_output_path = strdup("%output_path%/more/deep/");
+
+		TEST_GENERATE("%output_path%", "/some/output/path/30");
+		TEST_GENERATE("%match_output_path%", "/some/output/path/30/more/deep/");
+
 		catcierge_output_destroy(o);
 	}
 	catcierge_args_destroy(args);
@@ -847,7 +854,6 @@ static char *run_test_paths_test()
 
 	return NULL;
 }
-
 
 int TEST_catcierge_output(int argc, char **argv)
 {
