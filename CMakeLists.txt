@@ -33,7 +33,6 @@ if (UNIX)
 	option(CATCIERGE_COVERALLS "Turn on generating coverage data for http://coveralls.io/. This only works when run on Travis-CI." OFF)
 	option(CATCIERGE_COVERALLS_UPLOAD "If CATCIERGE_COVERALLS is set, upload the generated JSON." ON)
 	set(RPI_USERLAND "${PROJECT_SOURCE_DIR}/rpi_userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
-	option(CATCIERGE_GIT_HASH_INSTALL "Include the git hash in the installer name, when building a non-tagged version" ON)
 endif()
 
 option(WITH_TEST_PROGRAMS "Turns on compilation of tester programs" ON)
@@ -150,6 +149,14 @@ if (GIT_FOUND)
 		RESULT_VARIABLE GIT_IS_TAG
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
+
+	# If return value is 0, it is tagged.
+	if (${GIT_IS_TAG} GREATER 0)
+		set(GIT_IS_TAG 0)
+		set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_STR}-${GIT_HASH_SHORT}")
+	else()
+		set(GIT_IS_TAG 1)
+	endif()
 
 	# Branch.
 	execute_process(
@@ -472,10 +479,6 @@ if (UNIX)
 
 	set(CPACK_PACKAGE_FILE_NAME "catcierge-${CATCIERGE_VERSION_STR}")
 
-	if (NOT GIT_IS_TAG AND CATCIERGE_GIT_HASH_INSTALL AND GIT_HASH_SHORT)
-		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}-${GIT_HASH_SHORT}")
-	endif()
-
 	set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 	set(CPACK_SET_DESTDIR ON)
 
@@ -523,6 +526,7 @@ message("------------------------------------------------------------------")
 message(" Settings:")
 message("------------------------------------------------------------------")
 message("                                 Version: v${CATCIERGE_VERSION_STR}")
+message("                       Tagged as release: ${GIT_IS_TAG}")
 message("                  Built for Raspberry pi: ${RPI}")
 message("  Raspberry pi userland (-DRPI_USERLAND): ${RPI_USERLAND}")
 message("              RFID support (-DWITH_RFID): ${WITH_RFID}")
