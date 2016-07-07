@@ -22,13 +22,8 @@
 cmake_minimum_required(VERSION 2.6) 
 project(catcierge)
 
-set(CATCIERGE_VERSION_MAJOR 0)
-set(CATCIERGE_VERSION_MINOR 5)
-set(CATCIERGE_VERSION_PATCH 0)
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
 option(CATCIERGE_WITH_MEMCHECK "Run tests with memory check using valgrind" ON)
 
 if (UNIX)
@@ -105,7 +100,16 @@ else()
 	endif()
 endif()
 
+#
+# Set version based on git tag
+# 
 find_package(Git)
+
+# 
+set(CATCIERGE_VERSION_MAJOR 0)
+set(CATCIERGE_VERSION_MINOR 0)
+set(CATCIERGE_VERSION_PATCH 0)
+set(CATCIERGE_VERSION_STR "unknown")
 
 if (GIT_FOUND)
 	# TODO: Move this to separate CMake script.
@@ -125,6 +129,19 @@ if (GIT_FOUND)
 	git_log_format(cn GIT_COMMITTER_NAME)
 	git_log_format(ce GIT_COMMITTER_EMAIL)
 	git_log_format(B GIT_COMMIT_MESSAGE)
+
+	# Get version from tag.
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} describe --tags
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		OUTPUT_VARIABLE GIT_VERSION
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+
+	string(REGEX REPLACE "^v?([0-9]+)\\..*" "\\1" CATCIERGE_VERSION_MAJOR "${GIT_VERSION}")
+	string(REGEX REPLACE "^v?[0-9]+\\.([0-9]+).*" "\\1" CATCIERGE_VERSION_MINOR "${GIT_VERSION}")
+	string(REGEX REPLACE "^v?[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" CATCIERGE_VERSION_PATCH "${GIT_VERSION}")
+	set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
 
 	# Branch.
 	execute_process(
@@ -149,6 +166,8 @@ if (GIT_FOUND)
 		set(GIT_STATUS 0)
 	endif()
 endif()
+
+message("Catcierge version: ${CATCIERGE_VERSION_STR}")
 
 # Coverage only works with GCC for a debug build.
 if (CATCIERGE_COVERAGE)
