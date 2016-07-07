@@ -666,7 +666,7 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	// If we are generating this based on a template
 	// we want the settings from the template so we
 	// can use the rootpath for deciding the relative path.
-	if (ctx->template_idx > 0)
+	if (ctx->template_idx >= 0)
 	{
 		template = &ctx->templates[ctx->template_idx];
 	}

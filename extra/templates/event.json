@@ -4,6 +4,7 @@
 %!filename %match_group_id%.json
 {
     "id": "%match_group_id%",
+    "rootpath": "%template_path:catcierge_event|dir%",
     "catcierge_type": "match_group_done",
     "start": "%match_group_start_time:@Y-@m-@dT@H:@M:@S.@f@z%",
     "end": "%match_group_end_time:@Y-@m-@dT@H:@M:@S.@f@z%",
