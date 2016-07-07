@@ -196,7 +196,7 @@ def compose_adaptive_prey(img_paths=None, match_json=None, gap=5, horizontal_gap
 
 	return img
 
-def create_matches(catcierge_json, output_file):
+def create_matches(catcierge_json, output_file, args):
 
 	match_count = catcierge_json["match_group_count"]
 	match_imgs = []
@@ -204,13 +204,16 @@ def create_matches(catcierge_json, output_file):
 	total_height = 0
 	i = 1
 
+	# All paths in the json are relative to this.
+	base_path = os.path.dirname(args.json)
+
 	for match in catcierge_json["matches"][:match_count]:
 
 		step_count = match["step_count"]
 		img_paths = []
 
 		for step in match["steps"][:step_count]:
-			img_paths.append(step["abs_full_path"])
+			img_paths.append(os.path.join(base_path, step["path"]))
 
 		img = compose_adaptive_prey(img_paths=img_paths,
 				gap=5,
@@ -269,7 +272,7 @@ def main():
 			print("Failed to compose images: %s" % ex.message)
 	elif args.json:
 		catcierge_json = json.loads(open(args.json).read())
-		img = create_matches(catcierge_json, args.output)
+		img = create_matches(catcierge_json, args.output, args)
 		img.save(filename=args.output)
 
 	print("Saved composed image: %s" % args.output)

@@ -57,7 +57,7 @@ def main():
 
 	extra_args = [os.path.expanduser(os.path.expandvars(s)) for s in args.extra_args.split(" ")]
 
-	the_args = [args.exe_path] + extra_args + ["--images"] + images
+	the_args = [args.exe_path] + ["--images"] + images + extra_args
 	print(the_args)
 
 	call(the_args)
