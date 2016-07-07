@@ -2,7 +2,7 @@
 # Catcierge CMake project
 # -----------------------
 #
-# Copyright (c) Joakim Soderberg 2013-2014
+# Copyright (c) Joakim Soderberg 2013-2016
 #
 #  This file is part of Catcierge.
 #

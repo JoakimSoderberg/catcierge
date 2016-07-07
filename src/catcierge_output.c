@@ -1244,16 +1244,190 @@ static char *catcierge_output_realloc_if_needed(char *str, size_t new_size, size
 	return str;
 }
 
+char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
+		const char *forvar, size_t *linenum)
+{
+	char *start = NULL;
+	char *end = NULL;
+	char *it = NULL;
+	char *var = NULL;
+	char *for_body = NULL;
+	size_t start_linenum = *linenum;
+	int loop_count = 0;
+	catcierge_output_t *ctx = &grb->output;
+	assert(grb);
+
+	forvar += sizeof("for");
+	loop_count = atoi(forvar);
+
+	if (loop_count == 0)
+	{
+		CATERR("Could not parse loop count for '%s', line %d\n", forvar, start_linenum);
+		return NULL;
+	}
+
+	// Find end of for loop body.
+	start = *template_str;
+
+	if (*start != '\n')
+	{
+		CATERR("Expected newline after '%s, line %d\n", forvar, start_linenum);
+	}
+
+	start++; // Skip newline after for loop start.
+	it = start;
+	end = NULL;
+
+	while (*it)
+	{
+		if (*it == '\n')
+		{
+			(*linenum)++;
+		}
+
+		if (*it == '%')
+		{
+			it++;
+
+			// %% means a literal %
+			if (*it && (*it == '%'))
+			{
+				it++;
+				continue;
+			}
+
+			// Save position at beginning of var name.
+			var = it;
+
+			// Look for the ending %
+			while (*it && (*it != '%') && (*it != '\n'))
+			{
+				it++;
+			}
+
+			// Either we found it or the end of string.
+			if (*it != '%')
+			{
+				*it = '\0';
+				CATERR("Variable \"%s\" not terminated in output template line %d\n",
+					var, (int)linenum);
+				goto fail;
+			}
+
+			if (!(var = strndup(var, (it - var))))
+			{
+				CATERR("Out of memory\n");
+				goto fail;
+			}
+
+			it++; // Skip ending %	
+
+			if (!strcmp(var, "endfor"))
+			{
+				// Found end of for body.
+				end = it - sizeof("%endfor%");
+				catcierge_xfree(&var);
+
+				if (*it != '\n')
+				{
+					CATERR("Expected newline after 'endfor' got '%c', line %d\n", *it, *linenum);
+					goto fail;
+				}
+				it++;
+
+				break;
+			}
+
+			catcierge_xfree(&var);
+		}
+		else
+		{
+			it++;
+		}
+	}
+
+	if (end == NULL)
+	{
+		CATERR("Missing closing 'endfor' for '%s' at line %d\n", forvar, start_linenum);
+		goto fail;
+	}
+
+	// Copy the body.
+	if (!(for_body = strndup(start, (end - start) + 1)))
+	{
+		goto fail;
+	}
+
+	// Pass our iterator back to the caller (after the for loop).
+	*template_str = it;
+
+	// Now generate based on the loop body.
+	{
+		char *res = NULL;
+		char *resit = NULL;
+		size_t reslen = 0;
+		char *output;
+		size_t orig_len = 0;
+		size_t out_len = 0;
+		size_t len = 0;
+		int i;
+
+		orig_len = strlen(start);
+		out_len = (2 * orig_len + 1) * loop_count;
+
+		if (!(output = malloc(out_len)))
+		{
+			CATERR("Out of memory\n");
+			return NULL;
+		}
+
+		for (i = 0; i < loop_count; i++)
+		{
+			if (!(res = catcierge_output_generate(&grb->output, grb, for_body)))
+			{	
+				CATERR("Failed to generate loop at iteration %d\n", i);
+				catcierge_xfree(&output);
+				goto fail;
+			}
+
+			reslen = strlen(res);
+
+			if (!(output = catcierge_output_realloc_if_needed(output, (len + reslen + 1), &out_len)))
+			{
+				CATERR("Out of memory\n");
+				goto fail;
+			}
+
+			resit = res;
+			while (*resit)
+			{
+				output[len] = *resit++;
+				len++;
+			}
+
+			catcierge_xfree(&res);
+		}
+
+		output[len] = '\0';
+
+		return output;
+	}
+
+fail:
+	catcierge_xfree(&for_body);
+	return NULL;
+}
+
 char *catcierge_output_generate(catcierge_output_t *ctx,
 	catcierge_grb_t *grb, const char *template_str)
 {
 	char buf[4096];
-	char *s;
+	char *var;
 	char *it;
 	char *output = NULL;
 	char *tmp = NULL;
 	size_t orig_len = 0;
-	size_t out_len = 2 * orig_len + 1;
+	size_t out_len = 0;
 	size_t len;
 	size_t linenum;
 	size_t reslen;
@@ -1263,8 +1437,6 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 	if (!template_str)
 		return NULL;
 
-	orig_len = strlen(template_str);
-
 	if (ctx->recursion >= CATCIERGE_OUTPUT_MAX_RECURSION)
 	{
 		CATERR("Max output template recursion level reached (%d)!\n",
@@ -1272,6 +1444,9 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 		ctx->recursion_error = 1;
 		return NULL;
 	}
+
+	orig_len = strlen(template_str);
+	out_len = 2 * orig_len + 1;
 
 	if (!(output = malloc(out_len)))
 	{
@@ -1299,6 +1474,8 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 		if (*it == '%')
 		{
 			const char *res;
+			const char *resit;
+			int res_is_alloc = 0;
 			it++;
 
 			// %% means a literal %
@@ -1309,8 +1486,8 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 				continue;
 			}
 
-			// Save position of beginning of var name.
-			s = it;
+			// Save position at beginning of var name.
+			var = it;
 
 			// Look for the ending %
 			while (*it && (*it != '%') && (*it != '\n'))
@@ -1323,7 +1500,7 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 			{
 				*it = '\0';
 				CATERR("Variable \"%s\" not terminated in output template line %d\n",
-					s, (int)linenum);
+					var, (int)linenum);
 				free(output);
 				output = NULL;
 				goto fail;
@@ -1336,12 +1513,23 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 			// we don't end up in an infinite recursion.
 			ctx->recursion++;
 
+			// TODO: Add for support.
+			if (!strncmp(var, "for", 3))
+			{
+				res_is_alloc = 1;
+
+				if (!(res = catcierge_parse_for_loop(grb, &it, var, &linenum)))
+				{
+					catcierge_xfree(&output);
+					goto fail;
+				}
+			}
 			// Find the value of the variable and append it to the output.
-			if (!(res = catcierge_output_translate(grb, buf, sizeof(buf), s)))
+			else if (!(res = catcierge_output_translate(grb, buf, sizeof(buf), var)))
 			{
 				if (ctx->recursion_error)
 				{
-					CATERR(" %*s\"%s\"\n", (CATCIERGE_OUTPUT_MAX_RECURSION - ctx->recursion), "", s);
+					CATERR(" %*s\"%s\"\n", (CATCIERGE_OUTPUT_MAX_RECURSION - ctx->recursion), "", var);
 					ctx->recursion--;
 
 					if (ctx->recursion == 0)
@@ -1349,11 +1537,10 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 				}
 				else
 				{
-					CATERR("Unknown template variable \"%s\"\n", s);
+					CATERR("Unknown template variable \"%s\"\n", var);
 				}
 
-				free(output);
-				output = NULL;
+				catcierge_xfree(&output);
 				goto fail;
 			}
 
@@ -1368,10 +1555,16 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 			}
 
 			// Append the variable to the output.
-			while (*res)
+			resit = res;
+			while (*resit)
 			{
-				output[len] = *res++;
+				output[len] = *resit++;
 				len++;
+			}
+
+			if (res_is_alloc)
+			{
+				catcierge_xfree(&res);
 			}
 		}
 		else

@@ -16,6 +16,13 @@ typedef struct output_test_s
 	const char *expected;
 } output_test_t;
 
+#define TEST_GENERATE(str, expect_str)								\
+	p = catcierge_output_generate(&grb.output, &grb, str);			\
+	catcierge_test_STATUS("'%s' => '%s'\n", str, p);				\
+	mu_assert("Failed to generate: '" str "'", p);					\
+	mu_assert("Expected '" expect_str "'", !strcmp(p, expect_str));	\
+	free(p)
+
 static char *do_init_matcher(catcierge_grb_t *grb, catcierge_matcher_type_t type)
 {
 	int ret = 0;
@@ -827,13 +834,6 @@ static char *run_test_paths_test()
 
 		catcierge_test_STATUS("Generated\n");
 
-		#define TEST_GENERATE(str, expect_str)								\
-			p = catcierge_output_generate(&grb.output, &grb, str);			\
-			catcierge_test_STATUS("'%s' => '%s'\n", str, p);				\
-			mu_assert("Failed to generate: '" str "'", p);					\
-			mu_assert("Expected '" expect_str "'", !strcmp(p, expect_str));	\
-			free(p)
-
 		TEST_GENERATE("%match1_path%", "path_tests/abc/rapade/file2.txt");
 		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@)%", "abc/rapade/file2.txt");
 		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@),dir%", "abc/rapade/");
@@ -851,6 +851,46 @@ static char *run_test_paths_test()
 	}
 	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
+
+	return NULL;
+}
+
+char *run_for_loop_test()
+{
+	char *p = NULL;
+	catcierge_grb_t grb;
+	catcierge_output_t *o = &grb.output;
+	catcierge_args_t *args = &grb.args;
+
+	catcierge_grabber_init(&grb);
+	catcierge_args_init(args, "catcierge");
+	{
+		if (catcierge_output_init(o))
+			return "Failed to init output context";
+
+		TEST_GENERATE(
+			"arne weise\n"
+			"%for 2%\n"
+			"123\n"
+			"%endfor%\n",
+
+			"arne weise\n"
+			"123\n"
+			"123\n");
+
+		TEST_GENERATE(
+			"arne weise\n"
+			"%for 5%\n"
+			"123\n"
+			"%endfor%\n",
+
+			"arne weise\n"
+			"123\n"
+			"123\n"
+			"123\n"
+			"123\n"
+			"123\n");
+	}
 
 	return NULL;
 }
@@ -893,6 +933,10 @@ int TEST_catcierge_output(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_test_paths_test()),
 		"Run path tests.",
 		"Path tests", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_for_loop_test()),
+		"Run for loop tests.",
+		"For loop tests", &ret);
 
 	// TODO: Add a test for template paths in other directory.
 
