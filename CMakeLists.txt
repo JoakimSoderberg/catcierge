@@ -33,7 +33,7 @@ if (UNIX)
 	option(CATCIERGE_COVERALLS "Turn on generating coverage data for http://coveralls.io/. This only works when run on Travis-CI." OFF)
 	option(CATCIERGE_COVERALLS_UPLOAD "If CATCIERGE_COVERALLS is set, upload the generated JSON." ON)
 	set(RPI_USERLAND "${PROJECT_SOURCE_DIR}/rpi_userland" CACHE STRING "Path to rpi userland tools https://github.com/raspberrypi/userland.git")
-	option(CATCIERGE_GIT_HASH_INSTALL "Include the git hash in the installer name" ON)
+	option(CATCIERGE_GIT_HASH_INSTALL "Include the git hash in the installer name, when building a non-tagged version" ON)
 endif()
 
 option(WITH_TEST_PROGRAMS "Turns on compilation of tester programs" ON)
@@ -142,6 +142,14 @@ if (GIT_FOUND)
 	string(REGEX REPLACE "^v?[0-9]+\\.([0-9]+).*" "\\1" CATCIERGE_VERSION_MINOR "${GIT_VERSION}")
 	string(REGEX REPLACE "^v?[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" CATCIERGE_VERSION_PATCH "${GIT_VERSION}")
 	set(CATCIERGE_VERSION_STR "${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
+
+	# Is this commit a tagged commit? (a release commit)
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} describe --exact-match
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		RESULT_VARIABLE GIT_IS_TAG
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
 
 	# Branch.
 	execute_process(
@@ -462,10 +470,10 @@ if (UNIX)
 	set(CPACK_PACKAGE_NAME "catcierge")
 	set(LINUX_PACKAGE_DESCRIPTION "Catcierge, intelligent cat door. https://github.com/JoakimSoderberg/catcierge")
 
-	set(CPACK_PACKAGE_FILE_NAME "catcierge_${CATCIERGE_VERSION_MAJOR}.${CATCIERGE_VERSION_MINOR}.${CATCIERGE_VERSION_PATCH}")
+	set(CPACK_PACKAGE_FILE_NAME "catcierge-${CATCIERGE_VERSION_STR}")
 
-	if (CATCIERGE_GIT_HASH_INSTALL AND GIT_HASH_SHORT)
-		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${GIT_HASH_SHORT}")
+	if (NOT GIT_IS_TAG AND CATCIERGE_GIT_HASH_INSTALL AND GIT_HASH_SHORT)
+		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}-${GIT_HASH_SHORT}")
 	endif()
 
 	set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
@@ -482,7 +490,7 @@ if (UNIX)
 			OUTPUT_STRIP_TRAILING_WHITESPACE)
 	endif()
 
-	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
+	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}-${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
 
 	set(CPACK_DEBIAN_PACKAGE_DEPENDS "libopencv-dev, libopenexr-dev, python, zip")
 
