@@ -3,6 +3,7 @@
 %!rootpath %template_path:catcierge_event|dir%
 %!filename %match_group_id%.json
 {
+    "event_json_version": "1.0",
     "id": "%match_group_id%",
     "rootpath": "%template_path:catcierge_event|dir%",
     "catcierge_type": "match_group_done",
@@ -123,12 +124,14 @@
             "active": %match1_step10_active%,
             "name": "%match1_step10_name%",
             "filename": "%match1_step10_filename%",
+            "path": "%match1_step10_path%",
             "description": "%match1_step10_desc%"
         },
         {
             "active": %match1_step11_active%,
             "name": "%match1_step11_name%",
             "filename": "%match1_step11_filename%",
+            "path": "%match1_step11_path%",
             "description": "%match1_step11_desc%"
         }]
     },
@@ -210,12 +213,14 @@
             "active": %match2_step10_active%,
             "name": "%match2_step10_name%",
             "filename": "%match2_step10_filename%",
+            "path": "%match2_step10_path%",
             "description": "%match2_step10_desc%"
         },
         {
             "active": %match2_step11_active%,
             "name": "%match2_step11_name%",
             "filename": "%match2_step11_filename%",
+            "path": "%match2_step11_path%",
             "description": "%match2_step11_desc%"
         }]
     },
@@ -297,12 +302,14 @@
             "active": %match3_step10_active%,
             "name": "%match3_step10_name%",
             "filename": "%match3_step10_filename%",
+            "path": "%match3_step10_path%",
             "description": "%match3_step10_desc%"
         },
         {
             "active": %match3_step11_active%,
             "name": "%match3_step11_name%",
             "filename": "%match3_step11_filename%",
+            "path": "%match3_step11_path%",
             "description": "%match3_step11_desc%"
         }]
     },
@@ -384,12 +391,14 @@
             "active": %match4_step10_active%,
             "name": "%match4_step10_name%",
             "filename": "%match4_step10_filename%",
+            "path": "%match4_step10_path%",
             "description": "%match4_step10_desc%"
         },
         {
             "active": %match4_step11_active%,
             "name": "%match4_step11_name%",
             "filename": "%match4_step11_filename%",
+            "path": "%match4_step11_path%",
             "description": "%match4_step11_desc%"
         }]
     }]
