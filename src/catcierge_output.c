@@ -873,9 +873,27 @@ char *catcierge_create_and_get_path(catcierge_grb_t *grb, const char *var,
 	free(path_copy);
 
 	return catcierge_get_path(grb, var, &path, buf, bufsize);
-} 
+}
 
-const char *catcierge_output_translate(catcierge_grb_t *grb,
+static char *catcierge_output_realloc_if_needed(char *str, size_t new_size, size_t *max_size)
+{
+	assert(max_size);
+
+	while (new_size >= *max_size)
+	{
+		//CATLOG("Realloc needed! %lu >= %u\n", new_size, *max_size);
+		(*max_size) *= 2;
+
+		if (!(str = realloc(str, *max_size)))
+		{
+			CATERR("Out of memory\n"); return NULL;
+		}
+	}
+
+	return str;
+}
+
+const char *_catcierge_output_translate(catcierge_grb_t *grb,
 	char *buf, size_t bufsize, char *var)
 {
 	const char *matcher_val;
@@ -1226,22 +1244,121 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	return NULL;
 }
 
-static char *catcierge_output_realloc_if_needed(char *str, size_t new_size, size_t *max_size)
+char *catcierge_translate_inner_vars(catcierge_grb_t *grb, char *var)
 {
-	assert(max_size);
+	char *it = var;
+	char *output = NULL;
+	char *innervar = NULL;
+	char *end = NULL;
+	size_t orig_len = 0;
+	size_t out_len = 0;
+	size_t reslen = 0;
+	size_t len = 0;
+	char buf[4096];
 
-	while (new_size >= *max_size)
+	orig_len = strlen(var);
+	out_len = (2 * orig_len + 1);
+
+	if (!(output = malloc(out_len)))
 	{
-		//CATLOG("Realloc needed! %lu >= %u\n", new_size, *max_size);
-		(*max_size) *= 2;
+		CATERR("Out of memory\n");
+		return NULL;
+	}
 
-		if (!(str = realloc(str, *max_size)))
+	while (*it)
+	{
+		if (*it == '$')
 		{
-			CATERR("Out of memory\n"); return NULL;
+			const char *res = NULL;
+			it++;
+
+			innervar = it;
+
+			while (*it && (*it != '$'))
+			{
+				it++;
+			}
+
+			// Either we found it or the end of string.
+			if (*it != '$')
+			{
+				*it = '\0';
+				CATERR("Inner variable \"%s\" not terminated inside of \"%s\"\n",
+						innervar, var);
+				free(output);
+				output = NULL;
+				goto fail;
+			}
+
+			if (!(innervar = strndup(innervar, (it - innervar))))
+			{
+				CATERR("Out of memory\n");
+				goto fail;
+			}
+
+			it++;
+
+			printf("Inner variable: %s\n", innervar);
+
+			if (!(res = _catcierge_output_translate(grb, buf, sizeof(buf), innervar)))
+			{
+				CATERR("Unknown template inner variable \"%s\"\n", innervar);
+				goto fail;
+			}
+
+			catcierge_xfree(&innervar);
+			reslen = strlen(res);
+
+			if (!(output = catcierge_output_realloc_if_needed(output, (len + reslen + 1), &out_len)))
+			{
+				CATERR("Out of memory\n");
+				goto fail;
+			}
+
+			while (*res)
+			{
+				output[len] = *res++;
+				len++;
+			}
+		}
+		else
+		{
+			if (!(output = catcierge_output_realloc_if_needed(output, (len + 1), &out_len)))
+			{
+				goto fail;
+			}
+
+			output[len] = *it++;
+			len++;
 		}
 	}
 
-	return str;
+	output[len] = '\0';
+	printf("output: %s\n", output);
+
+	return output;
+fail:
+	catcierge_xfree(&output);
+	catcierge_xfree(&innervar);
+	return NULL;
+}
+
+const char *catcierge_output_translate(catcierge_grb_t *grb,
+	char *buf, size_t bufsize, char *var)
+{
+	const char *ret = NULL;
+	char *varexp = NULL;
+
+	// Expand variables inside of other variables.
+	if (!(varexp = catcierge_translate_inner_vars(grb, var)))
+	{
+		CATERR("Invalid inner variable\n");
+		return NULL;
+	}
+
+	ret = _catcierge_output_translate(grb, buf, bufsize, varexp);
+	catcierge_xfree(&varexp);
+	return ret;
 }
 
 char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
@@ -1254,9 +1371,19 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 	char *for_body = NULL;
 	size_t start_linenum = *linenum;
 	int loop_count = 0;
+	int inner_loops = 0;
 	catcierge_output_t *ctx = &grb->output;
 	assert(grb);
 
+	/*
+	%for i=1..5%
+	
+	%endfor%
+	*/
+
+	// TODO: Allow looping based on value of other variable.
+	// TODO: Allow looping from a start value.
+	// TODO: Allow loop variable.
 	forvar += sizeof("for");
 	loop_count = atoi(forvar);
 
@@ -1309,7 +1436,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			if (*it != '%')
 			{
 				*it = '\0';
-				CATERR("Variable \"%s\" not terminated in output template line %d\n",
+				CATERR("Variable \"%s\" not terminated\n",
 					var, (int)linenum);
 				goto fail;
 			}
@@ -1320,22 +1447,34 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 				goto fail;
 			}
 
-			it++; // Skip ending %	
+			it++; // Skip ending %
 
-			if (!strcmp(var, "endfor"))
+			if (!strncmp(var, "for", 3))
 			{
-				// Found end of for body.
-				end = it - sizeof("%endfor%");
-				catcierge_xfree(&var);
-
-				if (*it != '\n')
+				inner_loops++;
+			}
+			else if (!strcmp(var, "endfor"))
+			{
+				if (inner_loops == 0)
 				{
-					CATERR("Expected newline after 'endfor' got '%c', line %d\n", *it, *linenum);
-					goto fail;
-				}
-				it++;
+					// Found end of for body.
+					end = it - sizeof("%endfor%");
+					catcierge_xfree(&var);
 
-				break;
+					if (*it != '\n')
+					{
+						CATERR("Expected newline after 'endfor' got '%c', line %d\n",
+							*it, *linenum);
+						goto fail;
+					}
+					it++;
+
+					break;
+				}
+				else
+				{
+					inner_loops--;
+				}
 			}
 
 			catcierge_xfree(&var);
@@ -1410,6 +1549,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 
 		output[len] = '\0';
 
+		catcierge_xfree(&for_body);
 		return output;
 	}
 

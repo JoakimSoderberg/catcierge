@@ -39,12 +39,12 @@ void *catcierge_test_realloc(void *ptr, size_t sz);
 		catcierge_test_HEADLINE(headline); \
 		if (err) \
 		{ \
-			catcierge_test_FAILURE(e); \
+			catcierge_test_FAILURE("%s", e); \
 			*ret = -1; \
 		} \
 		else \
 		{ \
-			catcierge_test_SUCCESS(success); \
+			catcierge_test_SUCCESS("%s", success); \
 		} \
 	} while(0)
 

@@ -865,6 +865,9 @@ char *run_for_loop_test()
 	catcierge_grabber_init(&grb);
 	catcierge_args_init(args, "catcierge");
 	{
+		if (do_init_matcher(&grb, MATCHER_HAAR))
+			return "Failed to init matcher";
+
 		if (catcierge_output_init(o))
 			return "Failed to init output context";
 
