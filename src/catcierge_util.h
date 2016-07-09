@@ -48,4 +48,6 @@ char *catcierge_read_file(const char *filename);
 
 char *catcierge_relative_path(const char *pfrom, const char *pto);
 
+int catcierge_split(char *str, char delim, char ***array, size_t *length);
+
 #endif // __CATCIERGE_UTIL_H__

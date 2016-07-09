@@ -685,3 +685,39 @@ char *catcierge_relative_path(const char *pfrom, const char *pto)
 
 	#endif
 }
+
+int catcierge_split(char *str, char delim, char ***array, size_t *length)
+{
+	char *p;
+	char **res;
+	size_t count = 0;
+	int k = 0;
+
+	p = str;
+
+	// Count occurance of delim in string
+	while ((p = strchr(p, delim)) != NULL)
+	{
+		*p = 0; // Null terminate the deliminator.
+		p++; // Skip past our new null
+		count++;
+	}
+
+	// allocate dynamic array
+	res = calloc( 1, count * sizeof(char *));
+	if (!res) return -1;
+
+	p = str;
+	for (k = 0; k < count; k++)
+	{
+		if (*p) res[k] = p;  // Copy start of string
+		p = strchr(p, 0);    // Look for next null
+		p++; // Start of next string
+	}
+
+	*array = res;
+	*length = count;
+
+	return 0;
+}
+

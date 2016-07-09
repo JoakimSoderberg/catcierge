@@ -859,6 +859,7 @@ char *run_for_loop_test()
 {
 	char *p = NULL;
 	catcierge_grb_t grb;
+	match_group_t *mg = NULL;
 	catcierge_output_t *o = &grb.output;
 	catcierge_args_t *args = &grb.args;
 
@@ -873,7 +874,7 @@ char *run_for_loop_test()
 
 		TEST_GENERATE(
 			"arne weise\n"
-			"%for 2%\n"
+			"%for i in 1..2%\n"
 			"123\n"
 			"%endfor%\n",
 
@@ -883,7 +884,7 @@ char *run_for_loop_test()
 
 		TEST_GENERATE(
 			"arne weise\n"
-			"%for 5%\n"
+			"%for i in 1..5%\n"
 			"123\n"
 			"%endfor%\n",
 
@@ -896,7 +897,7 @@ char *run_for_loop_test()
 
 		TEST_GENERATE(
 			"arne weise\n"
-			"%for 5%\n"
+			"%for i in 0..4%\n"
 			"%i%\n"
 			"%endfor%\n",
 
@@ -907,19 +908,31 @@ char *run_for_loop_test()
 			"3\n"
 			"4\n");
 
-		/*
+		mg = &grb.match_group;
+		mg->match_count = 3;
+		strcpy(mg->matches[0].path.dir, "/abc/def/");
+		strcpy(mg->matches[0].path.filename, "1.txt");
+
+		strcpy(mg->matches[1].path.dir, "/ghi/klm/");
+		strcpy(mg->matches[1].path.filename, "2.txt");
+
+		strcpy(mg->matches[2].path.dir, "/nop/qrs/");
+		strcpy(mg->matches[2].path.filename, "3.txt");
+
+		strcpy(mg->matches[3].path.dir, "/tuv/wxy/");
+		strcpy(mg->matches[3].path.filename, "4.txt");
+
 		TEST_GENERATE(
 			"arne weise\n"
-			"%for 4%\n"
-			"%match$i$_path%\n"
+			"%for i in 1..4%\n"
+			"%match$i$_path|dir%\n"
 			"%endfor%\n",
 
 			"arne weise\n"
-			"match0_path\n"
-			"match1_path\n"
-			"match2_path\n"
-			"match3_path\n");
-		*/
+			"/abc/def/\n"
+			"/ghi/klm/\n"
+			"/nop/qrs/\n"
+			"/tuv/wxy/\n");
 	}
 
 	return NULL;
