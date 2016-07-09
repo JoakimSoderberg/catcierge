@@ -21,8 +21,10 @@
 
 #include <stdio.h>
 #include "catcierge_types.h"
+#include "uthash.h"
 
 #define CATCIERGE_OUTPUT_MAX_RECURSION 10
+#define CATCIERGE_OUTPUT_MAX_VAR_LENGTH 32
 
 typedef struct catcierge_output_settings_s
 {
@@ -46,6 +48,13 @@ typedef struct catcierge_output_template_s
 	catcierge_output_settings_t settings;
 } catcierge_output_template_t;
 
+typedef struct catcierge_output_invar_s
+{
+	char name[CATCIERGE_OUTPUT_MAX_VAR_LENGTH];
+	char *value;
+	UT_hash_handle hh;
+} catcierge_output_invar_t;
+
 typedef struct catcierge_output_s
 {
 	char *input_path;
@@ -58,6 +67,7 @@ typedef struct catcierge_output_s
 	int no_relative_path; // Flag to turn off relative_path calculations when
 						  // running catcierge_output_generate when generating
 						  // relative paths :)
+	catcierge_output_invar_t *vars; // Hash table.
 } catcierge_output_t;
 
 #endif // __CATCIERGE_OUTPUT_TYPES_H__

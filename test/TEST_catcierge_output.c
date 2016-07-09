@@ -893,6 +893,33 @@ char *run_for_loop_test()
 			"123\n"
 			"123\n"
 			"123\n");
+
+		TEST_GENERATE(
+			"arne weise\n"
+			"%for 5%\n"
+			"%i%\n"
+			"%endfor%\n",
+
+			"arne weise\n"
+			"0\n"
+			"1\n"
+			"2\n"
+			"3\n"
+			"4\n");
+
+		/*
+		TEST_GENERATE(
+			"arne weise\n"
+			"%for 4%\n"
+			"%match$i$_path%\n"
+			"%endfor%\n",
+
+			"arne weise\n"
+			"match0_path\n"
+			"match1_path\n"
+			"match2_path\n"
+			"match3_path\n");
+		*/
 	}
 
 	return NULL;

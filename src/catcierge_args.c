@@ -707,6 +707,7 @@ static void print_event_help(cargo_t cargo, catcierge_args_t *args)
 		   " %%!nozmq       Don't publish this template via ZMQ.\n"
 		   " %%!nofile      Don't output any file for this template "
 		                  "(if you only want to publish it via ZMQ)\n"
+		   " %%!rootpath    Make all paths relative to this path.\n"
 		   "\n"
 		   "List of events:\n");
 

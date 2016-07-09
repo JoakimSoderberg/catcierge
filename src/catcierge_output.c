@@ -1241,6 +1241,18 @@ const char *_catcierge_output_translate(catcierge_grb_t *grb,
 		}
 	}
 
+	// Look for user defined variables.
+	{
+		catcierge_output_invar_t *it = NULL;
+		HASH_FIND_STR(grb->output.vars, var, it);
+
+		if (it)
+		{
+			snprintf(buf, bufsize - 1, "%s", it->value);
+			return buf;
+		}
+	}
+
 	return NULL;
 }
 
@@ -1298,8 +1310,6 @@ char *catcierge_translate_inner_vars(catcierge_grb_t *grb, char *var)
 
 			it++;
 
-			printf("Inner variable: %s\n", innervar);
-
 			if (!(res = _catcierge_output_translate(grb, buf, sizeof(buf), innervar)))
 			{
 				CATERR("Unknown template inner variable \"%s\"\n", innervar);
@@ -1334,7 +1344,6 @@ char *catcierge_translate_inner_vars(catcierge_grb_t *grb, char *var)
 	}
 
 	output[len] = '\0';
-	printf("output: %s\n", output);
 
 	return output;
 fail:
@@ -1509,6 +1518,8 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		size_t orig_len = 0;
 		size_t out_len = 0;
 		size_t len = 0;
+		char buf[128];
+		catcierge_output_invar_t *var_it = NULL;
 		int i;
 
 		orig_len = strlen(start);
@@ -1517,11 +1528,33 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		if (!(output = malloc(out_len)))
 		{
 			CATERR("Out of memory\n");
-			return NULL;
+			goto fail;
 		}
+
+		// TODO: Replace with proper named variable.
+		HASH_FIND_STR(grb->output.vars, "i", var_it);
+		
+		if (var_it)
+		{
+			CATERR("Variable '%s' already defined\n", var_it->name);
+			goto fail;
+		}
+
+		if (!(var_it = calloc(1, sizeof(*var_it))))
+		{
+			goto fail;
+		}
+
+		strncpy(var_it->name, "i", sizeof(var_it->name) - 1);
+		HASH_ADD_STR(grb->output.vars, name, var_it);
 
 		for (i = 0; i < loop_count; i++)
 		{
+			// Set loop var value.
+			catcierge_xfree(&var_it->value);
+			snprintf(buf, sizeof(buf), "%d", i);
+			var_it->value = strdup(buf);
+
 			if (!(res = catcierge_output_generate(&grb->output, grb, for_body)))
 			{	
 				CATERR("Failed to generate loop at iteration %d\n", i);
@@ -1546,6 +1579,10 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 
 			catcierge_xfree(&res);
 		}
+
+		HASH_DEL(grb->output.vars, var_it);
+		catcierge_xfree(&var_it->value);
+		catcierge_xfree(&var_it);
 
 		output[len] = '\0';
 

@@ -142,14 +142,14 @@ int build_config_commandline(cargo_t cargo, const char *config_path, conf_ini_ar
 	conf_arg_t *it = NULL;
 	conf_arg_t *tmp = NULL;
 	cargo_type_t type;
-	
+
 	args->config_argc = 0;
 
 	// The ini file has been parsed, and each key=value has been put
 	// in the hash table. We know want to create a command line from
 	// this, that is "argv" that then cargo can parse.
 
-	// Cunt how many args there will be (argc).
+	// Count how many args there will be (argc).
 	HASH_ITER(hh, args->config_args, it, tmp)
 	{
 		it->type = guess_expanded_name(cargo, it,
