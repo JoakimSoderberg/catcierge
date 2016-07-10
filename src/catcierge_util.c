@@ -492,15 +492,15 @@ char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
 void catcierge_xfree(void *p)
 {
 	void **pp;
-    assert(p);
+	assert(p);
 
-    pp = (void **)p;
+	pp = (void **)p;
 
-    if (*pp)
-    {
-        free(*pp);
-        *pp = NULL;
-    }
+	if (*pp)
+	{
+		free(*pp);
+		*pp = NULL;
+	}
 }
 
 void print_line(FILE *fd, int length, const char *s)
@@ -721,3 +721,26 @@ int catcierge_split(char *str, char delim, char ***array, size_t *length)
 	return 0;
 }
 
+void catcierge_xfree_list(char ***s, size_t *count)
+{
+	size_t i;
+
+	if (!s || !*s)
+		goto done;
+
+	// Only free elements if we have a count.
+	if (count)
+	{
+		for (i = 0; i < *count; i++)
+		{
+			free((*s)[i]);
+			(*s)[i] = NULL;
+		}
+	}
+
+	free(*s);
+	*s = NULL;
+done:
+	if (count)
+		*count = 0;
+}

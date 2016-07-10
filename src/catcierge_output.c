@@ -1390,23 +1390,6 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 	int ret = 0;
 	assert(grb);
 
-	/*
-	%for i in 1..5%
-	
-	%endfor%
-
-	for i in 1..5
-	for_vals = [1,2,3,4,5]
-
-	for i in 2,3,4
-	for_vals = [2,3,4]
-
-	for i in abc,def,ghi
-	*/
-
-	// TODO: Allow looping based on value of other variable.
-	// TODO: Allow looping from a start value.
-	// TODO: Allow loop variable.
 	forexpr += sizeof("for");
 	
 	//
@@ -1424,6 +1407,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			return NULL;
 		}
 
+		// TODO: Allow looping based on value of other variable.
 		if (sscanf(for_expr_valstr, "%d..%d", &range_start, &range_end) == 2)
 		{
 			int j;
@@ -1441,7 +1425,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 
 				if (!(for_expr_vals[i] = strdup(valbuf)))
 				{
-					// TODO: Free list.
+					catcierge_xfree_list(&for_expr_vals, &for_expr_vals_count);
 					return NULL;
 				}
 			}
@@ -1604,7 +1588,6 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			goto fail;
 		}
 
-		// TODO: Replace with proper named variable.
 		HASH_FIND_STR(grb->output.vars, for_expr_var, var_it);
 		
 		if (var_it)
@@ -1661,16 +1644,12 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		catcierge_xfree(&var_it->value);
 		catcierge_xfree(&var_it);
 
-		for (i = 0; i < for_expr_vals_count; i++)
-		{
-			catcierge_xfree(&for_expr_vals[i]);
-		}
-
-		catcierge_xfree(&for_expr_vals);
+		catcierge_xfree_list(&for_expr_vals, &for_expr_vals_count);
+		catcierge_xfree(&for_body);
+		catcierge_xfree(&res);
 
 		output[len] = '\0';
 
-		catcierge_xfree(&for_body);
 		return output;
 	}
 
