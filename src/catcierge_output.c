@@ -1753,16 +1753,25 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 			// we don't end up in an infinite recursion.
 			ctx->recursion++;
 
-			// TODO: Add for support.
+			// TODO: Change catcierge_output_translate to parse the for loops also
 			if (!strncmp(var, "for", 3))
 			{
 				res_is_alloc = 1;
 
-				if (!(res = catcierge_parse_for_loop(grb, &it, var, &linenum)))
+				if (!(var = catcierge_translate_inner_vars(grb, var)))
 				{
 					catcierge_xfree(&output);
 					goto fail;
 				}
+
+				if (!(res = catcierge_parse_for_loop(grb, &it, var, &linenum)))
+				{
+					catcierge_xfree(&var);
+					catcierge_xfree(&output);
+					goto fail;
+				}
+
+				catcierge_xfree(&var);
 			}
 			// Find the value of the variable and append it to the output.
 			else if (!(res = catcierge_output_translate(grb, buf, sizeof(buf), var)))

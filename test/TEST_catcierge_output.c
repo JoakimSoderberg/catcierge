@@ -908,8 +908,21 @@ char *run_for_loop_test()
 			"3\n"
 			"4\n");
 
+		TEST_GENERATE(
+			"arne weise\n"
+			"%for i in [0,1,2,3,4]%\n"
+			"%i%\n"
+			"%endfor%\n",
+
+			"arne weise\n"
+			"0\n"
+			"1\n"
+			"2\n"
+			"3\n"
+			"4\n");
+
 		mg = &grb.match_group;
-		mg->match_count = 3;
+		mg->match_count = 4;
 		strcpy(mg->matches[0].path.dir, "/abc/def/");
 		strcpy(mg->matches[0].path.filename, "1.txt");
 
@@ -933,6 +946,68 @@ char *run_for_loop_test()
 			"/ghi/klm/\n"
 			"/nop/qrs/\n"
 			"/tuv/wxy/\n");
+
+		TEST_GENERATE(
+			"arne weise\n"
+			"%for i in 1..$match_count$%\n"
+			"%match$i$_path|dir%\n"
+			"%endfor%\n",
+
+			"arne weise\n"
+			"/abc/def/\n"
+			"/ghi/klm/\n"
+			"/nop/qrs/\n"
+			"/tuv/wxy/\n");
+
+		// Nested loop.
+		TEST_GENERATE(
+			"arne weise\n"
+			"%for i in [0,1,2,3,4]%\n"
+			"%for j in 1..2%\n"
+			"%i%.%j%\n"
+			"%endfor%\n"
+			"%endfor%\n",
+
+			"arne weise\n"
+			"0.1\n"
+			"0.2\n"
+			"1.1\n"
+			"1.2\n"
+			"2.1\n"
+			"2.2\n"
+			"3.1\n"
+			"3.2\n"
+			"4.1\n"
+			"4.2\n");
+
+		strcpy(mg->matches[0].result.steps[0].path.dir, "/abc/def/step0");
+		strcpy(mg->matches[0].result.steps[0].path.filename, "1.txt");
+	
+		strcpy(mg->matches[0].result.steps[1].path.dir, "/abc/def/step1");
+		strcpy(mg->matches[0].result.steps[1].path.filename, "2.txt");
+
+		strcpy(mg->matches[1].result.steps[0].path.dir, "/ghi/klm/step0");
+		strcpy(mg->matches[1].result.steps[0].path.filename, "3.txt");
+	
+		strcpy(mg->matches[1].result.steps[1].path.dir, "/ghi/klm/step1");
+		strcpy(mg->matches[1].result.steps[1].path.filename, "4.txt");
+
+		TEST_GENERATE(
+			"arne weise\n"
+			"%for i in 1..2%\n"
+			"match %i%: %match$i$_path|dir%\n"
+			"%for j in 1..2%\n"
+			"  step %j%: %match$i$_step$j$_path%\n"
+			"%endfor%\n"
+			"%endfor%\n",
+
+			"arne weise\n"
+			"match 1: /abc/def/\n"
+			"  step 1: /abc/def/step0/1.txt\n"
+			"  step 2: /abc/def/step1/2.txt\n"
+			"match 2: /ghi/klm/\n"
+			"  step 1: /ghi/klm/step0/3.txt\n"
+			"  step 2: /ghi/klm/step1/4.txt\n");
 	}
 
 	return NULL;

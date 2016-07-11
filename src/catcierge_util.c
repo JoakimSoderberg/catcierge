@@ -690,7 +690,7 @@ int catcierge_split(char *str, char delim, char ***array, size_t *length)
 {
 	char *p;
 	char **res;
-	size_t count = 0;
+	size_t count = 1;
 	int k = 0;
 
 	p = str;
@@ -710,8 +710,15 @@ int catcierge_split(char *str, char delim, char ***array, size_t *length)
 	p = str;
 	for (k = 0; k < count; k++)
 	{
-		if (*p) res[k] = p;  // Copy start of string
-		p = strchr(p, 0);    // Look for next null
+		if (*p)
+		{
+			if (!(res[k] = strdup(p)))
+			{
+				catcierge_free_list(res, count);
+				return -1;
+			}
+		}
+		p = strchr(p, 0); // Look for next null
 		p++; // Start of next string
 	}
 
