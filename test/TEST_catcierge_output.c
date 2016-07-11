@@ -1008,6 +1008,55 @@ char *run_for_loop_test()
 			"match 2: /ghi/klm/\n"
 			"  step 1: /ghi/klm/step0/3.txt\n"
 			"  step 2: /ghi/klm/step1/4.txt\n");
+
+		// TODO: Fix test with trailing comma
+		TEST_GENERATE(
+			"arne weise\n"
+			"[\n"
+			"%for i in 1..2%\n"
+			"{\n"
+			"  \"match\": \"%match$i$_path|dir%\"\n"
+			"  \"steps\":\n"
+			"  [\n"
+			"%for j in 1..2%\n"
+			"    {\n"
+			"      \"step\": %match$i$_step$j$_path%\n"
+			"    },\n"
+			"%endfor%\n"
+			"  ]\n"
+			"},\n"
+			//"}%if j != 2%,%endif%\n"
+			//"}%notrail ,%\n"
+			"%endfor%\n"
+			"]\n",
+
+			"arne weise\n"
+			"[\n"
+			"{\n"
+			"  \"match\": \"/abc/def/\"\n"
+			"  \"steps\":\n"
+			"  [\n"
+			"    {\n"
+			"      \"step\": /abc/def/step0/1.txt\n"
+			"    },\n"
+			"    {\n"
+			"      \"step\": /abc/def/step1/2.txt\n"
+			"    },\n"
+			"  ]\n"
+			"},\n"
+			"{\n"
+			"  \"match\": \"/ghi/klm/\"\n"
+			"  \"steps\":\n"
+			"  [\n"
+			"    {\n"
+			"      \"step\": /ghi/klm/step0/3.txt\n"
+			"    },\n"
+			"    {\n"
+			"      \"step\": /ghi/klm/step1/4.txt\n"
+			"    },\n"
+			"  ]\n"
+			"},\n"
+			"]\n");
 	}
 
 	return NULL;
