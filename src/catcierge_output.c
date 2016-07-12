@@ -1296,10 +1296,7 @@ char *catcierge_translate_inner_vars(catcierge_grb_t *grb, char *var)
 			if (*it != '$')
 			{
 				*it = '\0';
-				CATERR("Inner variable \"%s\" not terminated inside of \"%s\"\n",
-						innervar, var);
-				free(output);
-				output = NULL;
+				CATERR("Inner variable \"$...$\" not terminated inside of \"%s\"\n", var);
 				goto fail;
 			}
 
@@ -1314,6 +1311,7 @@ char *catcierge_translate_inner_vars(catcierge_grb_t *grb, char *var)
 			if (!(res = _catcierge_output_translate(grb, buf, sizeof(buf), innervar)))
 			{
 				CATERR("Unknown template inner variable \"%s\"\n", innervar);
+				catcierge_xfree(&innervar);
 				goto fail;
 			}
 
@@ -1349,7 +1347,6 @@ char *catcierge_translate_inner_vars(catcierge_grb_t *grb, char *var)
 	return output;
 fail:
 	catcierge_xfree(&output);
-	catcierge_xfree(&innervar);
 	return NULL;
 }
 
@@ -1362,7 +1359,7 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	// Expand variables inside of other variables.
 	if (!(varexp = catcierge_translate_inner_vars(grb, var)))
 	{
-		CATERR("Invalid inner variable\n");
+		CATERR("Invalid inner variable '%s'\n", var);
 		return NULL;
 	}
 
@@ -1392,6 +1389,14 @@ char **catcierge_output_parse_for_loop_expr(const char *forexpr,
 	if (sscanf(for_expr_valstr, "%d..%d", &range_start, &range_end) == 2)
 	{
 		int j;
+
+		if (range_start > range_end)
+		{
+			CATERR("Reversed range not allowed %d > %d for '%s'\n",
+					range_start, range_end, for_expr_valstr);
+			return NULL;
+		}
+
 		*for_expr_vals_count = range_end - range_start + 1;
 
 		if (!(for_expr_vals = calloc(*for_expr_vals_count, sizeof(char *))))
@@ -1495,7 +1500,7 @@ char *catcierge_parse_for_loop_body(const char *forexpr, char **template_str,
 			if (*it != '%')
 			{
 				*it = '\0';
-				CATERR("Variable \"%s\" not terminated\n",
+				CATERR("Variable \"%s\" not terminated. Line %d\n",
 					var, (int)*linenum);
 				goto fail;
 			}
@@ -1568,14 +1573,12 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		const char *forexpr, size_t *linenum)
 {
 	char *it = NULL;
-	char *var = NULL;
 	char *for_expr_var = NULL;
 	char **for_expr_vals = NULL;
 	size_t for_expr_vals_count = 0;
 	char *for_body = NULL;
 	size_t start_linenum = *linenum;
 	catcierge_output_t *ctx = &grb->output;
-	int ret = 0;
 	assert(grb);
 
 	forexpr += sizeof("for");
@@ -1693,7 +1696,7 @@ fail:
 }
 
 char *catcierge_output_generate(catcierge_output_t *ctx,
-	catcierge_grb_t *grb, const char *template_str)
+		catcierge_grb_t *grb, const char *template_str)
 {
 	char buf[4096];
 	char *var;
@@ -1787,7 +1790,6 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 			// we don't end up in an infinite recursion.
 			ctx->recursion++;
 
-			// TODO: Change catcierge_output_translate to parse the for loops also
 			if (!strncmp(var, "for", 3))
 			{
 				res_is_alloc = 1;

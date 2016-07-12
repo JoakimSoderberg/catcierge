@@ -23,6 +23,11 @@ typedef struct output_test_s
 	mu_assert("Expected '" expect_str "'", !strcmp(p, expect_str));	\
 	free(p)
 
+#define TEST_GENERATE_FAIL(str)										\
+	p = catcierge_output_generate(&grb.output, &grb, str);			\
+	catcierge_test_STATUS("'%s' Expected to fail\n", str);			\
+	mu_assert("Expecetd '" str "' to fail\n", !p)
+
 static char *do_init_matcher(catcierge_grb_t *grb, catcierge_matcher_type_t type)
 {
 	int ret = 0;
@@ -1057,7 +1062,43 @@ char *run_for_loop_test()
 			"  ]\n"
 			"},\n"
 			"]\n");
+
+		TEST_GENERATE_FAIL(
+			"%for i in 1..2%\n"
+			"%i%\n");
+
+		TEST_GENERATE_FAIL(
+			"%for i in $x..2%\n"
+			"%i%\n"
+			"%endfor%\n");
+
+		TEST_GENERATE_FAIL(
+			"%for i in 1..2%"
+			"%i%\n"
+			"%endfor%\n");
+
+		TEST_GENERATE_FAIL(
+			"%for i in $1..2%\n"
+			"%i%\n"
+			"%endfor%");
+
+		TEST_GENERATE_FAIL(
+			"%for i in 1..%\n"
+			"%i%\n"
+			"%endfor%\n");
+
+		TEST_GENERATE_FAIL(
+			"%for i in 1..2%\n"
+			"%i\n"
+			"%endfor%\n");
+
+		TEST_GENERATE_FAIL(
+			"%for i in 1..$nosuchvar$%\n"
+			"%i%\n"
+			"%endfor%\n");
 	}
+	catcierge_args_destroy(args);
+	catcierge_grabber_destroy(&grb);
 
 	return NULL;
 }
