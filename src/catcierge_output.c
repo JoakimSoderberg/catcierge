@@ -1371,100 +1371,93 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	return ret;
 }
 
-char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
-		const char *forexpr, size_t *linenum)
+char **catcierge_output_parse_for_loop_expr(const char *forexpr, 
+		char **for_expr_var_ret, size_t *for_expr_vals_count,
+		size_t *linenum)
 {
-	// TODO: Break this up into multiple functions
-	char *start = NULL;
-	char *end = NULL;
-	char *it = NULL;
-	char *var = NULL;
-	char for_expr_var[32];
+	int range_start = 0;
+	int range_end = 0;
+	int i;
+	char valbuf[128];
+	char for_expr_var[128];
 	char for_expr_valstr[1024];
 	char **for_expr_vals = NULL;
-	size_t for_expr_vals_count = 0;
-	char *for_body = NULL;
-	size_t start_linenum = *linenum;
-	int inner_loops = 0;
-	catcierge_output_t *ctx = &grb->output;
-	int ret = 0;
-	assert(grb);
 
-	forexpr += sizeof("for");
-	
-	//
-	// Parse the for loop expression.
-	//
+	if (sscanf(forexpr, "%127s in %1023s", for_expr_var, for_expr_valstr) != 2)
 	{
-		int range_start = 0;
-		int range_end = 0;
-		int i;
-		char valbuf[128];
+		CATERR("Failed to parse for expression '%s' on line %d\n", forexpr, *linenum);
+		return NULL;
+	}
 
-		if (sscanf(forexpr, "%31s in %1023s", &for_expr_var, &for_expr_valstr) != 2)
+	if (sscanf(for_expr_valstr, "%d..%d", &range_start, &range_end) == 2)
+	{
+		int j;
+		*for_expr_vals_count = range_end - range_start + 1;
+
+		if (!(for_expr_vals = calloc(*for_expr_vals_count, sizeof(char *))))
 		{
-			CATERR("Failed to parse for expression '%s' on line %d\n", forexpr, linenum);
+			CATERR("Out of memory\n");
 			return NULL;
 		}
 
-		// TODO: Allow looping based on value of other variable.
-		if (sscanf(for_expr_valstr, "%d..%d", &range_start, &range_end) == 2)
+		for (i = 0, j = range_start; i < *for_expr_vals_count; i++, j++)
 		{
-			int j;
-			for_expr_vals_count = range_end - range_start + 1;
+			snprintf(valbuf, sizeof(valbuf) - 1, "%d", j);
 
-			if (!(for_expr_vals = calloc(for_expr_vals_count, sizeof(char *))))
+			if (!(for_expr_vals[i] = strdup(valbuf)))
 			{
-				CATERR("Out of memory\n");
-				return NULL;
-			}
-
-			for (i = 0, j = range_start; i < for_expr_vals_count; i++, j++)
-			{
-				snprintf(valbuf, sizeof(valbuf) - 1, "%d", j);
-
-				if (!(for_expr_vals[i] = strdup(valbuf)))
-				{
-					catcierge_xfree_list(&for_expr_vals, &for_expr_vals_count);
-					return NULL;
-				}
-			}
-		}
-		else if (*for_expr_valstr == '[')
-		{
-			char *range_str_end = NULL;
-
-			if (!(range_str_end = strchr(&for_expr_valstr[1], ']')))
-			{
-				CATERR("Missing expected closing ']': %s\n", forexpr);
-				return NULL;
-			}
-
-			*range_str_end = '\0';
-
-			// Split comma delimeted list into strings.
-			if (catcierge_split(&for_expr_valstr[1], ',', &for_expr_vals, &for_expr_vals_count))
-			{
-				CATERR("Failed to parse argument list in loop: '%s'\n", forexpr);
+				catcierge_xfree_list(&for_expr_vals, for_expr_vals_count);
 				return NULL;
 			}
 		}
-		else
+	}
+	else if (*for_expr_valstr == '[')
+	{
+		char *range_str_end = NULL;
+
+		if (!(range_str_end = strchr(&for_expr_valstr[1], ']')))
 		{
-			CATERR("Failed to parse 'for' expression '%s' on line %d\n", forexpr, linenum);
+			CATERR("Missing expected closing ']': %s\n", forexpr);
+			return NULL;
+		}
+
+		*range_str_end = '\0';
+
+		// Split comma delimeted list into strings.
+		if (catcierge_split(&for_expr_valstr[1], ',', &for_expr_vals, for_expr_vals_count))
+		{
+			CATERR("Failed to parse argument list in loop: '%s'\n", forexpr);
 			return NULL;
 		}
 	}
+	else
+	{
+		CATERR("Failed to parse 'for' expression '%s' on line %d\n", forexpr, *linenum);
+		return NULL;
+	}
 
-	//
-	// Find end of the for loop body.
-	//
-	start = *template_str;
+	if (for_expr_vals)
+	{
+		*for_expr_var_ret = strdup(for_expr_var);
+	}
+
+	return for_expr_vals;
+}
+
+char *catcierge_parse_for_loop_body(const char *forexpr, char **template_str,
+									size_t start_linenum, size_t *linenum)
+{
+	char *start = *template_str;
+	char *end = NULL;
+	char *var = NULL;
+	char *for_body = NULL;
+	char *it = NULL;
+	int inner_loops = 0;
 
 	if (*start != '\n')
 	{
-		CATERR("Expected newline after '%s, line %d\n", forexpr, start_linenum);
-		return NULL;
+		CATERR("Expected newline after '%s', line %d\n", forexpr, start_linenum);
+		goto fail;
 	}
 
 	start++; // Skip newline after for loop expression.
@@ -1503,7 +1496,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			{
 				*it = '\0';
 				CATERR("Variable \"%s\" not terminated\n",
-					var, (int)linenum);
+					var, (int)*linenum);
 				goto fail;
 			}
 
@@ -1566,6 +1559,45 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 	// Pass our iterator back to the caller (after the for loop).
 	*template_str = it;
 
+fail:
+
+	return for_body;
+}
+
+char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
+		const char *forexpr, size_t *linenum)
+{
+	char *it = NULL;
+	char *var = NULL;
+	char *for_expr_var = NULL;
+	char **for_expr_vals = NULL;
+	size_t for_expr_vals_count = 0;
+	char *for_body = NULL;
+	size_t start_linenum = *linenum;
+	catcierge_output_t *ctx = &grb->output;
+	int ret = 0;
+	assert(grb);
+
+	forexpr += sizeof("for");
+
+	//
+	// Parse the for loop expression.
+	//
+	if (!(for_expr_vals = catcierge_output_parse_for_loop_expr(forexpr,
+							&for_expr_var, &for_expr_vals_count, linenum)))
+	{
+		return NULL;
+	}
+
+	//
+	// Find end of the for loop body.
+	//
+	if (!(for_body = catcierge_parse_for_loop_body(forexpr, template_str,
+						start_linenum, linenum)))
+	{
+		goto fail;
+	}
+
 	// Now generate based on the loop body.
 	{
 		char *res = NULL;
@@ -1579,7 +1611,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		catcierge_output_invar_t *var_it = NULL;
 		int i;
 
-		orig_len = strlen(start);
+		orig_len = strlen(for_body);
 		out_len = (2 * orig_len + 1) * for_expr_vals_count;
 
 		if (!(output = malloc(out_len)))
@@ -1654,6 +1686,8 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 	}
 
 fail:
+	catcierge_xfree_list(&for_expr_vals, &for_expr_vals_count);
+	catcierge_xfree(&for_expr_var);
 	catcierge_xfree(&for_body);
 	return NULL;
 }
