@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 #ifdef CATCIERGE_HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
