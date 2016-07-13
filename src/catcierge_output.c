@@ -1449,23 +1449,28 @@ char **catcierge_output_parse_for_loop_expr(const char *forexpr,
 	return for_expr_vals;
 }
 
-char *catcierge_parse_for_loop_body(const char *forexpr, char **template_str,
-									size_t start_linenum, size_t *linenum)
+char *catcierge_parse_body(const char *forexpr, char **template_str,
+									size_t start_linenum, size_t *linenum,
+									const char* start_tag, const char *end_tag,
+									int newline_after_tag)
 {
 	char *start = *template_str;
 	char *end = NULL;
 	char *var = NULL;
-	char *for_body = NULL;
+	char *body = NULL;
 	char *it = NULL;
-	int inner_loops = 0;
+	int inner_body = 0;
 
-	if (*start != '\n')
+	if (newline_after_tag)
 	{
-		CATERR("Expected newline after '%s', line %d\n", forexpr, start_linenum);
-		goto fail;
-	}
+		if (*start != '\n')
+		{
+			CATERR("Expected newline after '%s', line %d\n", forexpr, start_linenum);
+			goto fail;
+		}
 
-	start++; // Skip newline after for loop expression.
+		start++; // Skip newline after for loop expression.
+	}
 	it = start;
 	end = NULL;
 
@@ -1501,7 +1506,7 @@ char *catcierge_parse_for_loop_body(const char *forexpr, char **template_str,
 			{
 				*it = '\0';
 				CATERR("Variable \"%s\" not terminated. Line %d\n",
-					var, (int)*linenum);
+						var, (int)*linenum);
 				goto fail;
 			}
 
@@ -1513,31 +1518,34 @@ char *catcierge_parse_for_loop_body(const char *forexpr, char **template_str,
 
 			it++; // Skip ending %
 
-			if (!strncmp(var, "for", 3))
+			if (!strncmp(var, start_tag, strlen(start_tag)))
 			{
-				inner_loops++;
+				inner_body++;
 			}
-			else if (!strcmp(var, "endfor"))
+			else if (!strcmp(var, end_tag))
 			{
-				if (inner_loops == 0)
+				if (inner_body == 0)
 				{
-					// Found end of for body.
-					end = it - sizeof("%endfor%");
+					// Found end of body.
+					end = it - (strlen(end_tag) + 2 + 1);
 					catcierge_xfree(&var);
 
-					if (*it != '\n')
+					if (newline_after_tag)
 					{
-						CATERR("Expected newline after 'endfor' got '%c', line %d\n",
-							*it, *linenum);
-						goto fail;
+						if (*it != '\n')
+						{
+							CATERR("Expected newline after '%s' got '%c', line %d\n",
+									end_tag, *it, *linenum);
+							goto fail;
+						}
+						it++;
 					}
-					it++;
 
 					break;
 				}
 				else
 				{
-					inner_loops--;
+					inner_body--;
 				}
 			}
 
@@ -1551,12 +1559,13 @@ char *catcierge_parse_for_loop_body(const char *forexpr, char **template_str,
 
 	if (end == NULL)
 	{
-		CATERR("Missing closing 'endfor' for '%s' at line %d\n", forexpr, start_linenum);
+		CATERR("Missing closing '%s' for '%s' at line %d\n",
+				end_tag, forexpr, start_linenum);
 		goto fail;
 	}
 
 	// Copy the body.
-	if (!(for_body = strndup(start, (end - start) + 1)))
+	if (!(body = strndup(start, (end - start) + 1)))
 	{
 		goto fail;
 	}
@@ -1566,7 +1575,7 @@ char *catcierge_parse_for_loop_body(const char *forexpr, char **template_str,
 
 fail:
 
-	return for_body;
+	return body;
 }
 
 char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
@@ -1583,20 +1592,16 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 
 	forexpr += sizeof("for");
 
-	//
 	// Parse the for loop expression.
-	//
 	if (!(for_expr_vals = catcierge_output_parse_for_loop_expr(forexpr,
 							&for_expr_var, &for_expr_vals_count, linenum)))
 	{
 		return NULL;
 	}
 
-	//
 	// Find end of the for loop body.
-	//
-	if (!(for_body = catcierge_parse_for_loop_body(forexpr, template_str,
-						start_linenum, linenum)))
+	if (!(for_body = catcierge_parse_body(forexpr, template_str,
+						start_linenum, linenum, "for", "endfor", 1)))
 	{
 		goto fail;
 	}
@@ -1692,6 +1697,64 @@ fail:
 	catcierge_xfree_list(&for_expr_vals, &for_expr_vals_count);
 	catcierge_xfree(&for_expr_var);
 	catcierge_xfree(&for_body);
+	return NULL;
+}
+
+char *catcierge_parse_if(catcierge_grb_t *grb, char **template_str,
+		const char *ifexpr, size_t *linenum)
+{
+	char *output = NULL;
+	size_t start_linenum = *linenum;
+	char valstr1[128];
+	char valstr2[128];
+	long val1;
+	long val2;
+	char operator[128];
+	int if_val = 0;
+
+	ifexpr += sizeof("if");
+
+	if (sscanf(ifexpr, "%127s %127s %127s", valstr1, operator, valstr2) != 3)
+	{
+		CATERR("Failed to parse if expression '%s' on line %d\n", ifexpr, *linenum);
+		return NULL;
+	}
+
+	// TODO: Add string support.
+	val1 = strtol(valstr1, NULL, 10);
+	if (errno == ERANGE)
+	{
+		CATERR("Failed to parse '%s' as an integer\n", valstr1);
+		goto fail;
+	}
+
+	val2 = strtol(valstr2, NULL, 10);
+	if (errno == ERANGE)
+	{
+		CATERR("Failed to parse '%s' as an integer\n", valstr2);
+		goto fail;
+	}
+
+	if (!strcmp(operator, "==")) if_val = (val1 == val2);
+	else if (!strcmp(operator, ">=")) if_val = (val1 >= val2);
+	else if (!strcmp(operator, "<=")) if_val = (val1 <= val2);
+	else if (!strcmp(operator, "!=")) if_val = (val1 != val2);
+	else if (!strcmp(operator, ">")) if_val = (val1 > val2);
+	else if (!strcmp(operator, "<")) if_val = (val1 < val2);
+
+	if (!(output = catcierge_parse_body(ifexpr, template_str,
+						start_linenum, linenum, "if", "endif", 0)))
+	{
+		goto fail;
+	}
+
+	if (!if_val)
+	{
+		output[0] = '\0';
+	}
+
+	return output;
+fail:
 	return NULL;
 }
 
@@ -1808,6 +1871,25 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 				}
 
 				catcierge_xfree(&var);
+			}
+			else if (!strncmp(var, "if", 2))
+			{
+				res_is_alloc = 1;
+
+				if (!(var = catcierge_translate_inner_vars(grb, var)))
+				{
+					catcierge_xfree(&output);
+					goto fail;
+				}
+
+				if (!(res = catcierge_parse_if(grb, &it, var, &linenum)))
+				{
+					catcierge_xfree(&var);
+					catcierge_xfree(&output);
+					goto fail;
+				}
+
+				catcierge_xfree(&var);				
 			}
 			// Find the value of the variable and append it to the output.
 			else if (!(res = catcierge_output_translate(grb, buf, sizeof(buf), var)))

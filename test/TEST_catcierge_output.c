@@ -17,13 +17,15 @@ typedef struct output_test_s
 } output_test_t;
 
 #define TEST_GENERATE(str, expect_str)								\
+	printf("==================================================\n");	\
 	p = catcierge_output_generate(&grb.output, &grb, str);			\
-	catcierge_test_STATUS("'%s' => '%s'\n", str, p);				\
+	catcierge_test_STATUS("'%s'\n=>\n'%s'\n", str, p);				\
 	mu_assert("Failed to generate: '" str "'", p);					\
 	mu_assert("Expected '" expect_str "'", !strcmp(p, expect_str));	\
 	free(p)
 
 #define TEST_GENERATE_FAIL(str)										\
+	printf("==================================================\n");	\
 	p = catcierge_output_generate(&grb.output, &grb, str);			\
 	catcierge_test_STATUS("'%s' Expected to fail\n", str);			\
 	mu_assert("Expecetd '" str "' to fail\n", !p)
@@ -1026,12 +1028,10 @@ char *run_for_loop_test()
 			"%for j in 1..2%\n"
 			"    {\n"
 			"      \"step\": %match$i$_step$j$_path%\n"
-			"    },\n"
+			"    }%if $j$ != 2%,%endif%\n"
 			"%endfor%\n"
 			"  ]\n"
-			"},\n"
-			//"}%if j != 2%,%endif%\n"
-			//"}%notrail ,%\n"
+			"}%if $i$ != 2%,%endif%\n"
 			"%endfor%\n"
 			"]\n",
 
@@ -1046,7 +1046,7 @@ char *run_for_loop_test()
 			"    },\n"
 			"    {\n"
 			"      \"step\": /abc/def/step1/2.txt\n"
-			"    },\n"
+			"    }\n"
 			"  ]\n"
 			"},\n"
 			"{\n"
@@ -1058,10 +1058,44 @@ char *run_for_loop_test()
 			"    },\n"
 			"    {\n"
 			"      \"step\": /ghi/klm/step1/4.txt\n"
-			"    },\n"
+			"    }\n"
 			"  ]\n"
-			"},\n"
+			"}\n"
 			"]\n");
+
+		TEST_GENERATE(
+			"arne weise\n"
+			"%if 1 == 1%"
+			"abc\n"
+			"%endif%"
+			"def\n",
+
+			"arne weise\n"
+			"abc\n"
+			"def\n");
+
+		TEST_GENERATE(
+			"arne weise\n"
+			"%if 1 == 2%abc\n%endif%"
+			"def\n",
+
+			"arne weise\n"
+			"def\n");
+
+		TEST_GENERATE(
+			"%if 1 != 2%abc%endif%def\n",
+
+			"abcdef\n");
+
+		TEST_GENERATE(
+			"%if 1 != 1%abc%endif%def\n",
+
+			"def\n");
+
+		TEST_GENERATE(
+			"%if 1 >= 3%abc%endif%def\n",
+
+			"def\n");
 
 		TEST_GENERATE_FAIL(
 			"%for i in 1..2%\n"
