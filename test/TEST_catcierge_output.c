@@ -364,13 +364,13 @@ static char *run_add_and_generate_tests()
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
 				"Some awesome \"%match2_path%\" template.\n"
-				"Absolute awesome %match2_abs_path%\n"
+				"Absolute awesome %match2_path|abs%\n"
 				"Absolute awesome %match2_filename%\n"
 				"Advanced time format is here: %time:Week @W @H:@M%\n"
 				"And match time, %match2_time:@H:@M%\n"
 				"%match_group_start_time% - %match_group_end_time%\n"
-				"%obstruct_path% %abs_obstruct_path% %obstruct_full_path%\n"
-				"%abs_obstruct_full_path% %obstruct_time%\n"
+				"%obstruct_path|dir% %obstruct_path|abs% %obstruct_path|full%\n"
+				"%obstruct_path|dir,abs% %obstruct_time%\n"
 				"CWD:%cwd%\n"
 				"Output path: %output_path%\n"
 				"Snouts: %snout1% %snout2%\n"
@@ -654,12 +654,12 @@ static char *run_recursion_tests()
 
 			if (catcierge_output_add_template(o,
 				"%!event all\n"
-				"Some other template %time% %bice%\n", "normalpath"))
+				"Some other template %time%\n", "normalpath"))
 			{
-				return "Failed to add normal template with unknown variable";
+				return "Failed to add normal template";
 			}
 
-			mu_assert("Expected template count 1", o->template_count == 2);
+			mu_assert("Expected template count 2", o->template_count == 2);
 
 			if (catcierge_output_generate_templates(o, &grb, "all"))
 				return "Failed generating infinite recursion template";
