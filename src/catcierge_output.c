@@ -1402,8 +1402,7 @@ char **catcierge_output_parse_for_loop_expr(const char *forexpr,
 
 		if (!(for_expr_vals = calloc(*for_expr_vals_count, sizeof(char *))))
 		{
-			CATERR("Out of memory\n");
-			return NULL;
+			CATERR("Out of memory\n"); return NULL;
 		}
 
 		for (i = 0, j = range_start; i < *for_expr_vals_count; i++, j++)
@@ -1423,8 +1422,7 @@ char **catcierge_output_parse_for_loop_expr(const char *forexpr,
 
 		if (!(range_str_end = strchr(&for_expr_valstr[1], ']')))
 		{
-			CATERR("Missing expected closing ']': %s\n", forexpr);
-			return NULL;
+			CATERR("Missing expected closing ']': %s\n", forexpr); return NULL;
 		}
 
 		*range_str_end = '\0';
@@ -1513,8 +1511,7 @@ char *catcierge_parse_body(const char *forexpr, char **template_str,
 
 			if (!(var = strndup(var, (it - var))))
 			{
-				CATERR("Out of memory\n");
-				goto fail;
+				CATERR("Out of memory\n"); goto fail;
 			}
 
 			it++; // Skip ending %
@@ -1625,8 +1622,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 
 		if (!(output = malloc(out_len)))
 		{
-			CATERR("Out of memory\n");
-			goto fail;
+			CATERR("Out of memory\n"); goto fail;
 		}
 
 		HASH_FIND_STR(grb->output.vars, for_expr_var, var_it);
@@ -1653,6 +1649,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			if (!(var_it->value = strdup(for_expr_vals[i])))
 			{
 				CATERR("Out of memory\n");
+				catcierge_xfree(&output);
 				goto fail;
 			}
 
@@ -1660,15 +1657,14 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			{	
 				CATERR("Failed to generate loop at iteration %d\n", i);
 				catcierge_xfree(&output);
-				goto fail;
+				goto fail_gen;
 			}
 
 			reslen = strlen(res);
 
 			if (!(output = catcierge_output_realloc_if_needed(output, (len + reslen + 1), &out_len)))
 			{
-				CATERR("Out of memory\n");
-				goto fail;
+				CATERR("Out of memory\n"); goto fail_gen;
 			}
 
 			resit = res;
@@ -1681,6 +1677,9 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			catcierge_xfree(&res);
 		}
 
+		output[len] = '\0';
+
+	fail_gen:
 		HASH_DEL(grb->output.vars, var_it);
 		catcierge_xfree(&var_it->value);
 		catcierge_xfree(&var_it);
@@ -1688,8 +1687,6 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		catcierge_xfree_list(&for_expr_vals, &for_expr_vals_count);
 		catcierge_xfree(&for_body);
 		catcierge_xfree(&res);
-
-		output[len] = '\0';
 
 		return output;
 	}
@@ -1708,6 +1705,7 @@ char *catcierge_parse_if(catcierge_grb_t *grb, char **template_str,
 	size_t start_linenum = *linenum;
 	char valstr1[128];
 	char valstr2[128];
+	char *end = NULL;
 	long val1;
 	long val2;
 	char operator[128];
@@ -1722,15 +1720,15 @@ char *catcierge_parse_if(catcierge_grb_t *grb, char **template_str,
 	}
 
 	// TODO: Add string support.
-	val1 = strtol(valstr1, NULL, 10);
-	if (errno == ERANGE)
+	val1 = strtol(valstr1, &end, 10);
+	if (end == valstr1)
 	{
 		CATERR("Failed to parse '%s' as an integer\n", valstr1);
 		goto fail;
 	}
 
-	val2 = strtol(valstr2, NULL, 10);
-	if (errno == ERANGE)
+	val2 = strtol(valstr2, &end, 10);
+	if (end == valstr2)
 	{
 		CATERR("Failed to parse '%s' as an integer\n", valstr2);
 		goto fail;

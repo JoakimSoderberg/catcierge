@@ -882,12 +882,12 @@ char *run_for_loop_test()
 		TEST_GENERATE(
 			"arne weise\n"
 			"%for i in 1..2%\n"
-			"123\n"
+			"123%%\n"
 			"%endfor%\n",
 
 			"arne weise\n"
-			"123\n"
-			"123\n");
+			"123%\n"
+			"123%\n");
 
 		TEST_GENERATE(
 			"arne weise\n"
@@ -987,6 +987,14 @@ char *run_for_loop_test()
 			"4.1\n"
 			"4.2\n");
 
+		TEST_GENERATE_FAIL(
+			"arne weise\n"
+			"%for i in [0,1,2,3,4]%\n"
+			"%for i in 1..2%\n"
+			"%i%\n"
+			"%endfor%\n"
+			"%endfor%\n");
+
 		strcpy(mg->matches[0].result.steps[0].path.dir, "/abc/def/step0");
 		strcpy(mg->matches[0].result.steps[0].path.filename, "1.txt");
 	
@@ -1016,7 +1024,6 @@ char *run_for_loop_test()
 			"  step 1: /ghi/klm/step0/3.txt\n"
 			"  step 2: /ghi/klm/step1/4.txt\n");
 
-		// TODO: Fix test with trailing comma
 		TEST_GENERATE(
 			"arne weise\n"
 			"[\n"
@@ -1063,6 +1070,12 @@ char *run_for_loop_test()
 			"}\n"
 			"]\n");
 
+		TEST_GENERATE_FAIL(
+			"arne weise\n"
+			"%for i in [0,1,2,3,4,5]%\n"
+			"%match$i$_path%\n"
+			"%endfor%\n");
+
 		TEST_GENERATE(
 			"arne weise\n"
 			"%if 1 == 1%"
@@ -1098,6 +1111,11 @@ char *run_for_loop_test()
 			"def\n");
 
 		TEST_GENERATE_FAIL(
+			"%if abc != def%\n"
+			"abc\n"
+			"%endif%");
+
+		TEST_GENERATE_FAIL(
 			"%for i in 1..2%\n"
 			"%i%\n");
 
@@ -1130,6 +1148,22 @@ char *run_for_loop_test()
 			"%for i in 1..$nosuchvar$%\n"
 			"%i%\n"
 			"%endfor%\n");
+
+		TEST_GENERATE_FAIL(
+			"%for i out 1..3%\n"
+			"%i%\n"
+			"%endfor%\n");
+
+		TEST_GENERATE_FAIL(
+			"%for i in 3..1%\n"
+			"%i%\n"
+			"%endfor%\n");
+
+		TEST_GENERATE_FAIL(
+			"%for i in [1,2,3,4%\n"
+			"%i%\n"
+			"%endfor%\n");
+
 	}
 	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
