@@ -1702,44 +1702,50 @@ char *catcierge_parse_if(catcierge_grb_t *grb, char **template_str,
 		const char *ifexpr, size_t *linenum)
 {
 	char *output = NULL;
+	char *res = NULL;
+	const char *varval = NULL;
 	size_t start_linenum = *linenum;
-	char valstr1[128];
-	char valstr2[128];
+	char valstrs[2][128];
 	char *end = NULL;
-	long val1;
-	long val2;
+	long vals[2];
 	char operator[128];
 	int if_val = 0;
+	int i;
+	char buf[1024];
 
 	ifexpr += sizeof("if");
 
-	if (sscanf(ifexpr, "%127s %127s %127s", valstr1, operator, valstr2) != 3)
+	if (sscanf(ifexpr, "%127s %127s %127s", valstrs[0], operator, valstrs[1]) != 3)
 	{
 		CATERR("Failed to parse if expression '%s' on line %d\n", ifexpr, *linenum);
 		return NULL;
 	}
 
 	// TODO: Add string support.
-	val1 = strtol(valstr1, &end, 10);
-	if (end == valstr1)
+
+	for (i = 0; i < 2; i++)
 	{
-		CATERR("Failed to parse '%s' as an integer\n", valstr1);
-		goto fail;
+		res = valstrs[i];
+
+		if ((varval = catcierge_output_translate(grb, buf, sizeof(buf), res)))
+		{
+			res = varval; 
+		}
+
+		vals[i] = strtol(res, &end, 10);
+		if (end == res)
+		{
+			CATERR("Failed to parse '%s' as an integer\n", res);
+			goto fail;
+		}
 	}
 
-	val2 = strtol(valstr2, &end, 10);
-	if (end == valstr2)
-	{
-		CATERR("Failed to parse '%s' as an integer\n", valstr2);
-		goto fail;
-	}
-
-	if (!strcmp(operator, "==")) if_val = (val1 == val2);
-	else if (!strcmp(operator, ">=")) if_val = (val1 >= val2);
-	else if (!strcmp(operator, "<=")) if_val = (val1 <= val2);
-	else if (!strcmp(operator, "!=")) if_val = (val1 != val2);
-	else if (!strcmp(operator, ">")) if_val = (val1 > val2);
-	else if (!strcmp(operator, "<")) if_val = (val1 < val2);
+	if (!strcmp(operator, "==")) if_val = (vals[0] == vals[1]);
+	else if (!strcmp(operator, ">=")) if_val = (vals[0] >= vals[1]);
+	else if (!strcmp(operator, "<=")) if_val = (vals[0] <= vals[1]);
+	else if (!strcmp(operator, "!=")) if_val = (vals[0] != vals[1]);
+	else if (!strcmp(operator, ">")) if_val = (vals[0] > vals[1]);
+	else if (!strcmp(operator, "<")) if_val = (vals[0] < vals[1]);
 
 	if (!(output = catcierge_parse_body(ifexpr, template_str,
 						start_linenum, linenum, "if", "endif", 0)))

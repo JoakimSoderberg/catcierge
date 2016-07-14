@@ -1038,7 +1038,7 @@ char *run_for_loop_test()
 			"    }%if $j$ != 2%,%endif%\n"
 			"%endfor%\n"
 			"  ]\n"
-			"}%if $i$ != 2%,%endif%\n"
+			"}%if i != 2%,%endif%\n"
 			"%endfor%\n"
 			"]\n",
 
