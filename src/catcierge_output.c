@@ -1369,14 +1369,13 @@ const char *catcierge_output_translate(catcierge_grb_t *grb,
 	return ret;
 }
 
-char **catcierge_output_parse_for_loop_expr(const char *forexpr, 
-		char **for_expr_var_ret, size_t *for_expr_vals_count,
+char **catcierge_output_parse_for_loop_expr(catcierge_grb_t *grb,
+		const char *forexpr, char **for_expr_var_ret, size_t *for_expr_vals_count,
 		size_t *linenum)
 {
-	int range_start = 0;
-	int range_end = 0;
 	int i;
 	char valbuf[128];
+	char range_strs[2][128];
 	char for_expr_var[128];
 	char for_expr_valstr[1024];
 	char **for_expr_vals = NULL;
@@ -1387,27 +1386,49 @@ char **catcierge_output_parse_for_loop_expr(const char *forexpr,
 		return NULL;
 	}
 
-	if (sscanf(for_expr_valstr, "%d..%d", &range_start, &range_end) == 2)
+	if (sscanf(for_expr_valstr, "%[^ \t.] .. %127s", range_strs[0], range_strs[1]) == 2)
 	{
-		int j;
+		long range[2];
+		long j;
+		char *res = NULL;
+		char *varval = NULL;
+		char *end = NULL;
+		char buf[4096];
 
-		if (range_start > range_end)
+		for (i = 0; i < 2; i++)
+		{
+			res = range_strs[i];
+
+			if ((varval = catcierge_output_translate(grb, buf, sizeof(buf), res)))
+			{
+				res = varval; 
+			}
+
+			range[i] = strtol(res, &end, 10);
+			if (end == res)
+			{
+				CATERR("Failed to parse '%s' as an integer in '%s'\n", res, forexpr);
+				return NULL;
+			}
+		}
+
+		if (range[0] > range[1])
 		{
 			CATERR("Reversed range not allowed %d > %d for '%s'\n",
-					range_start, range_end, for_expr_valstr);
+					range[0], range[1], for_expr_valstr);
 			return NULL;
 		}
 
-		*for_expr_vals_count = range_end - range_start + 1;
+		*for_expr_vals_count = range[1] - range[0] + 1;
 
 		if (!(for_expr_vals = calloc(*for_expr_vals_count, sizeof(char *))))
 		{
 			CATERR("Out of memory\n"); return NULL;
 		}
 
-		for (i = 0, j = range_start; i < *for_expr_vals_count; i++, j++)
+		for (i = 0, j = range[0]; i < *for_expr_vals_count; i++, j++)
 		{
-			snprintf(valbuf, sizeof(valbuf) - 1, "%d", j);
+			snprintf(valbuf, sizeof(valbuf) - 1, "%ld", j);
 
 			if (!(for_expr_vals[i] = strdup(valbuf)))
 			{
@@ -1591,7 +1612,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 	forexpr += sizeof("for");
 
 	// Parse the for loop expression.
-	if (!(for_expr_vals = catcierge_output_parse_for_loop_expr(forexpr,
+	if (!(for_expr_vals = catcierge_output_parse_for_loop_expr(grb, forexpr,
 							&for_expr_var, &for_expr_vals_count, linenum)))
 	{
 		return NULL;

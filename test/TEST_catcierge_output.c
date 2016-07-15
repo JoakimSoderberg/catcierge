@@ -1145,7 +1145,7 @@ char *run_for_loop_test()
 			"%endfor%\n");
 
 		TEST_GENERATE_FAIL(
-			"%for i in 1..$nosuchvar$%\n"
+			"%for i in 1..nosuchvar%\n"
 			"%i%\n"
 			"%endfor%\n");
 
@@ -1163,7 +1163,6 @@ char *run_for_loop_test()
 			"%for i in [1,2,3,4%\n"
 			"%i%\n"
 			"%endfor%\n");
-
 	}
 	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);

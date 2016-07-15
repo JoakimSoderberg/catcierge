@@ -23,7 +23,7 @@
 #include "catcierge_types.h"
 #include "uthash.h"
 
-#define CATCIERGE_OUTPUT_MAX_RECURSION 10
+#define CATCIERGE_OUTPUT_MAX_RECURSION 20
 #define CATCIERGE_OUTPUT_MAX_VAR_LENGTH 32
 
 typedef struct catcierge_output_settings_s
