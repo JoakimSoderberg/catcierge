@@ -46,7 +46,7 @@ int catcierge_output_load_templates(catcierge_output_t *ctx,
 		char **inputs, size_t input_count);
 
 const char *catcierge_output_translate(catcierge_grb_t *grb,
-	char *buf, size_t bufsize, char *var);
+	char *buf, size_t bufsize, const char *var);
 
 void catcierge_output_execute_list(catcierge_grb_t *grb,
 		const char *event, char **commands, size_t command_count);

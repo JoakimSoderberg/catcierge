@@ -522,12 +522,12 @@ static char *catcierge_replace_time_format_char(char *fmt)
 	return fmt;
 }
 
-static char *catcierge_get_time_var_format(char *var,
+static char *catcierge_get_time_var_format(const char *var,
 	char *buf, size_t bufsize, const char *default_fmt, time_t t, struct timeval *tv)
 {
 	int ret;
 	char *fmt = NULL;
-	char *var_fmt = var + 4;
+	const char *var_fmt = var + 4;
 	assert(!strncmp(var, "time", 4));
 
 	if (*var_fmt == ':')
@@ -604,7 +604,7 @@ static char *catcierge_get_template_path(catcierge_grb_t *grb, const char *var)
 	return NULL;
 }
 
-static char *catcierge_get_short_id(char *subvar, char *buf, size_t bufsize, SHA1Context *sha)
+static char *catcierge_get_short_id(const char *subvar, char *buf, size_t bufsize, SHA1Context *sha)
 {
 	int n;
 	int ret;
@@ -895,7 +895,7 @@ static char *catcierge_output_realloc_if_needed(char *str, size_t new_size, size
 }
 
 const char *_catcierge_output_translate(catcierge_grb_t *grb,
-	char *buf, size_t bufsize, char *var)
+	char *buf, size_t bufsize, const char *var)
 {
 	const char *matcher_val;
 	match_group_t *mg = &grb->match_group;
@@ -1024,7 +1024,7 @@ const char *_catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strncmp(var, "match_group_id", 14))
 	{
-		char *subvar = var + 14;
+		const char *subvar = var + 14;
 		return catcierge_get_short_id(subvar, buf, bufsize, &mg->sha);
 	}
 
@@ -1097,7 +1097,7 @@ const char *_catcierge_output_translate(catcierge_grb_t *grb,
 
 	if (!strncmp(var, "obstruct_time", strlen("obstruct_time")))
 	{
-		char *subvar = var + strlen("obstruct_");
+		const char *subvar = var + strlen("obstruct_");
 		return catcierge_get_time_var_format(subvar, buf, bufsize,
 					"%Y-%m-%d %H:%M:%S.%f", mg->obstruct_time, &mg->obstruct_tv);
 	}
@@ -1106,7 +1106,7 @@ const char *_catcierge_output_translate(catcierge_grb_t *grb,
 	{
 		int idx = -1;
 		match_state_t *m = NULL;
-		char *subvar = NULL;
+		const char *subvar = NULL;
 
 		if (!strncmp(var, "matchcur", 8))
 		{
@@ -1155,7 +1155,7 @@ const char *_catcierge_output_translate(catcierge_grb_t *grb,
 		}
 		else if (!strncmp(subvar, "id", 2))
 		{
-			char *subsubvar = subvar + 2;
+			const char *subsubvar = subvar + 2;
 			return catcierge_get_short_id(subsubvar, buf, bufsize, &m->sha);
 		}
 		else if (!strcmp(subvar, "success"))
@@ -1258,26 +1258,33 @@ const char *_catcierge_output_translate(catcierge_grb_t *grb,
 	return NULL;
 }
 
-char *catcierge_translate_inner_vars(catcierge_grb_t *grb, char *var)
+char *catcierge_translate_inner_vars(catcierge_grb_t *grb, const char *var)
 {
-	char *it = var;
+	char *it = NULL;
 	char *output = NULL;
-	char *innervar = NULL;
+	const char *innervar = NULL;
 	char *end = NULL;
 	size_t orig_len = 0;
 	size_t out_len = 0;
 	size_t reslen = 0;
 	size_t len = 0;
 	char buf[4096];
+	char *tmpvar = NULL;
 
 	orig_len = strlen(var);
 	out_len = (2 * orig_len + 1);
 
 	if (!(output = malloc(out_len)))
 	{
-		CATERR("Out of memory\n");
-		return NULL;
+		CATERR("Out of memory\n"); return NULL;
 	}
+
+	if (!(tmpvar = strdup(var)))
+	{
+		CATERR("Out of memory\n"); goto fail;
+	}
+
+	it = tmpvar;
 
 	while (*it)
 	{
@@ -1343,16 +1350,18 @@ char *catcierge_translate_inner_vars(catcierge_grb_t *grb, char *var)
 		}
 	}
 
+	catcierge_xfree(&tmpvar);
 	output[len] = '\0';
 
 	return output;
 fail:
+	catcierge_xfree(&tmpvar);
 	catcierge_xfree(&output);
 	return NULL;
 }
 
 const char *catcierge_output_translate(catcierge_grb_t *grb,
-	char *buf, size_t bufsize, char *var)
+	char *buf, size_t bufsize, const char *var)
 {
 	const char *ret = NULL;
 	char *varexp = NULL;
@@ -1380,18 +1389,18 @@ char **catcierge_output_parse_for_loop_expr(catcierge_grb_t *grb,
 	char for_expr_valstr[1024];
 	char **for_expr_vals = NULL;
 
-	if (sscanf(forexpr, "%127s in %1023s", for_expr_var, for_expr_valstr) != 2)
+	if (sscanf(forexpr, " %127s in %1023s ", for_expr_var, for_expr_valstr) != 2)
 	{
 		CATERR("Failed to parse for expression '%s' on line %d\n", forexpr, *linenum);
 		return NULL;
 	}
 
-	if (sscanf(for_expr_valstr, "%[^ \t.] .. %127s", range_strs[0], range_strs[1]) == 2)
+	if (sscanf(for_expr_valstr, " %[^ \t.] .. %127s", range_strs[0], range_strs[1]) == 2)
 	{
 		long range[2];
 		long j;
-		char *res = NULL;
-		char *varval = NULL;
+		const char *res = NULL;
+		const char *varval = NULL;
 		char *end = NULL;
 		char buf[4096];
 
@@ -1401,7 +1410,7 @@ char **catcierge_output_parse_for_loop_expr(catcierge_grb_t *grb,
 
 			if ((varval = catcierge_output_translate(grb, buf, sizeof(buf), res)))
 			{
-				res = varval; 
+				res = varval;
 			}
 
 			range[i] = strtol(res, &end, 10);
@@ -1723,7 +1732,7 @@ char *catcierge_parse_if(catcierge_grb_t *grb, char **template_str,
 		const char *ifexpr, size_t *linenum)
 {
 	char *output = NULL;
-	char *res = NULL;
+	const char *res = NULL;
 	const char *varval = NULL;
 	size_t start_linenum = *linenum;
 	char valstrs[2][128];
@@ -1879,6 +1888,7 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 			// we don't end up in an infinite recursion.
 			ctx->recursion++;
 
+			// TODO: Refactor
 			if (!strncmp(var, "for", 3))
 			{
 				res_is_alloc = 1;
