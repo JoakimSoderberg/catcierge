@@ -104,7 +104,7 @@ endif()
 # 
 find_package(Git)
 
-# 
+# We set these based on the latest git tag and commit hash.
 set(CATCIERGE_VERSION_MAJOR 0)
 set(CATCIERGE_VERSION_MINOR 0)
 set(CATCIERGE_VERSION_PATCH 0)

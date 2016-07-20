@@ -141,7 +141,6 @@ int build_config_commandline(cargo_t cargo, const char *config_path, conf_ini_ar
 	int i = 0;
 	conf_arg_t *it = NULL;
 	conf_arg_t *tmp = NULL;
-	cargo_type_t type;
 
 	args->config_argc = 0;
 

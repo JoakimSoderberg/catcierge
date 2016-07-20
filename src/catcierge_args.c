@@ -808,7 +808,7 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 	catcierge_xfree(&args->config_path);
 	catcierge_xfree(&args->chuid);
 
-	for (i = 0; i < args->temp_config_count; i++)
+	for (i = 0; i < (size_t)args->temp_config_count; i++)
 	{
 		catcierge_xfree(&args->temp_config_values[i]);
 	}
@@ -862,7 +862,6 @@ int catcierge_args_init(catcierge_args_t *args, const char *progname)
 
 int catcierge_args_parse(catcierge_args_t *args, int argc, char **argv)
 {
-	int i;
 	int ret = 0;
 	cargo_t cargo = args->cargo;
 	assert(args);

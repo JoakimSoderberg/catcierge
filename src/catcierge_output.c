@@ -1291,6 +1291,7 @@ char *catcierge_translate_inner_vars(catcierge_grb_t *grb, const char *var)
 		if (*it == '$')
 		{
 			const char *res = NULL;
+			char *innervartmp = NULL;
 			it++;
 
 			innervar = it;
@@ -1308,7 +1309,7 @@ char *catcierge_translate_inner_vars(catcierge_grb_t *grb, const char *var)
 				goto fail;
 			}
 
-			if (!(innervar = strndup(innervar, (it - innervar))))
+			if (!(innervartmp = strndup(innervar, (it - innervar))))
 			{
 				CATERR("Out of memory\n");
 				goto fail;
@@ -1316,14 +1317,14 @@ char *catcierge_translate_inner_vars(catcierge_grb_t *grb, const char *var)
 
 			it++;
 
-			if (!(res = _catcierge_output_translate(grb, buf, sizeof(buf), innervar)))
+			if (!(res = _catcierge_output_translate(grb, buf, sizeof(buf), innervartmp)))
 			{
-				CATERR("Unknown template inner variable \"%s\"\n", innervar);
-				catcierge_xfree(&innervar);
+				CATERR("Unknown template inner variable \"%s\"\n", innervartmp);
+				catcierge_xfree(&innervartmp);
 				goto fail;
 			}
 
-			catcierge_xfree(&innervar);
+			catcierge_xfree(&innervartmp);
 			reslen = strlen(res);
 
 			if (!(output = catcierge_output_realloc_if_needed(output, (len + reslen + 1), &out_len)))
@@ -1382,7 +1383,7 @@ char **catcierge_output_parse_for_loop_expr(catcierge_grb_t *grb,
 		const char *forexpr, char **for_expr_var_ret, size_t *for_expr_vals_count,
 		size_t *linenum)
 {
-	int i;
+	size_t i;
 	char valbuf[128];
 	char range_strs[2][128];
 	char for_expr_var[128];
@@ -1643,9 +1644,8 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		size_t orig_len = 0;
 		size_t out_len = 0;
 		size_t len = 0;
-		char buf[128];
 		catcierge_output_invar_t *var_it = NULL;
-		int i;
+		size_t i;
 
 		orig_len = strlen(for_body);
 		out_len = (2 * orig_len + 1) * for_expr_vals_count;

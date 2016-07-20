@@ -135,6 +135,18 @@ Unpack it to a known path (you need this when compiling).
 
 Assuming you're using [git bash](http://git-scm.com/) and [Visual Studio Express](http://www.visualstudio.com/downloads/download-visual-studio-vs) (or more advanced version).
 
+**NOTE**: If you are using Visual Studio 2015+ at the time of writing this, the precompiled
+version of OpenCV does not include a compatible version, so you will need to build it yourself:
+
+```bash
+cd /c/opencv-2.4.13
+mkdir build2 && cd build2  # Another build directory already exists.
+cmake -DBUILD_SHARED_LIBS=OFF ../sources  # We want static so we don't have to copy DLLs around.
+cmake --build .
+```
+
+Then compile catcierge itself (note use the correct build directory below if you built OpenCV yourself).
+
 ```bash
 $ git clone <url>
 $ cd catcierge

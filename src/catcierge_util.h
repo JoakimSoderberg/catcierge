@@ -52,4 +52,6 @@ char *catcierge_relative_path(const char *pfrom, const char *pto);
 
 int catcierge_split(char *str, char delim, char ***array, size_t *length);
 
+char *catcierge_strndup(const char *s, size_t n);
+
 #endif // __CATCIERGE_UTIL_H__

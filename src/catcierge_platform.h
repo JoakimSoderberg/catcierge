@@ -30,13 +30,17 @@ typedef int mode_t;
 
 #define PATH_MAX MAX_PATH
 #define getcwd _getcwd
-#define snprintf _snprintf
+
 #define sleep(x) Sleep((DWORD)((x)*1000))
-#define vsnprintf _vsnprintf 
+#if _MSC_VER < 1900
+#define vsnprintf _vsnprintf
+#define snprintf _snprintf
+#endif
 #define strcasecmp _stricmp 
 #define strncasecmp _strnicmp 
 #define gmtime_r(t, tm) gmtime_s(tm, t)
 #define localtime_r(t, tm) localtime_s(tm, t)
+#define strndup catcierge_strndup
 
 #include "win32/gettimeofday.h"
 #endif // _WIN32
