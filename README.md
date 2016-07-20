@@ -142,7 +142,7 @@ version of OpenCV does not include a compatible version, so you will need to bui
 cd /c/opencv-2.4.13
 mkdir build2 && cd build2  # Another build directory already exists.
 cmake -DBUILD_SHARED_LIBS=OFF ../sources  # We want static so we don't have to copy DLLs around.
-cmake --build .
+cmake --build .  # This takes a long time :)
 ```
 
 Then compile catcierge itself (note use the correct build directory below if you built OpenCV yourself).
@@ -154,6 +154,12 @@ $ mkdir build && cd build
 $ cmake -DOpenCV_DIR=/c/PATH/TO/OPENCV/build .. # The OpenCV path must contain OpenCVConfig.cmake
 $ cmake --build .     # Either build from command line...
 $ start catcierge.sln # Or launch Visual Studio and build from there...
+
+$ ctest # Run all tests
+        # If all these fail with OTHER_FAULT you have probably not linked statically
+        # and it is not finding the DLLs in the build directory.
+        # Run command below to get proper error messages.
+$ bin/catcierge_regress # Run the raw test executable without ctest involved.
 ```
 
 Running the main program
