@@ -443,7 +443,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 	// target path at run time to the catcierge_execute function
 	// and the external program can distinguish between multiple templates.
 	{
-		char name[4096];
+		char name[1024];
 		memset(name, 0, sizeof(name));
 
 		if (sscanf(filename, "[%[^]]", name) == 1)
@@ -757,7 +757,7 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 			}
 		}
 
-		catcierge_free_list(path_ops_list, count);
+		catcierge_xfree_list(&path_ops_list, &count);
 	}
 
 	//
@@ -781,14 +781,19 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 
 	if (rel_to_path && !ctx->no_relative_path)
 	{
-		char abs_rel_to_path[4096];
+		char abs_rel_to_path[2048];
 		char *full_rel_to_path = NULL;
 		char *tmp_path = NULL;
 
 		// Generate the full relative path.
 		ctx->no_relative_path = 1;
-		// TODO: check return value
-		full_rel_to_path = catcierge_output_generate(&grb->output, grb, rel_to_path);
+
+		if (!(full_rel_to_path = catcierge_output_generate(&grb->output, grb, rel_to_path)))
+		{
+			ctx->no_relative_path = 0;
+			goto fail;
+		}
+
 		ctx->no_relative_path = 0;
 
 		// The relativeness must be based on absolute paths.
@@ -802,7 +807,10 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	}
 	else
 	{
-		the_path = catcierge_output_generate(&grb->output, grb, the_path);
+		if (!(the_path = catcierge_output_generate(&grb->output, grb, the_path)))
+		{
+			goto fail;
+		}
 	}
 
 	snprintf(buf, bufsize - 1, "%s", the_path);
@@ -818,7 +826,7 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	return buf;
 
 fail:
-	catcierge_free_list(path_ops_list, count);
+	catcierge_xfree_list(&path_ops_list, &count);
 	return NULL;
 }
 

@@ -421,7 +421,7 @@ static char *run_add_and_generate_tests()
 			catcierge_test_STATUS("Got named template path for \"arne\": %s", named_template_path);
 			mu_assert("Got null named template path", named_template_path != NULL);
 			mu_assert("Unexpected named template path", !strcmp("template_tests/the_path", named_template_path));
-
+			
 			// Also try a non-existing name.
 			named_template_path = catcierge_output_translate(&grb, buf, sizeof(buf), "template_path:bla");
 			catcierge_test_STATUS("Tried to get non-existing template path: %s", named_template_path);
@@ -431,11 +431,7 @@ static char *run_add_and_generate_tests()
 			default_template_path = catcierge_output_translate(&grb, buf, sizeof(buf), "template_path");
 			catcierge_test_STATUS("Got default template path: %s", default_template_path);
 			mu_assert("Got null default template path", default_template_path != NULL);
-			#ifdef _WIN32
-			mu_assert("Unexpected default template path", !strcmp("template_tests\\firstoutputpath", default_template_path));
-			#else
 			mu_assert("Unexpected default template path", !strcmp("template_tests/firstoutputpath", default_template_path));
-			#endif
 		}
 
 		catcierge_output_destroy(o);
@@ -661,8 +657,8 @@ static char *run_recursion_tests()
 
 			mu_assert("Expected template count 2", o->template_count == 2);
 
-			if (catcierge_output_generate_templates(o, &grb, "all"))
-				return "Failed generating infinite recursion template";
+			if (!catcierge_output_generate_templates(o, &grb, "all"))
+				return "Did not fail to generate infinite recursion template";
 
 			catcierge_test_STATUS("Failed on infinite recursion template as expected\n");
 		}
@@ -841,11 +837,19 @@ static char *run_test_paths_test()
 
 		catcierge_test_STATUS("Generated\n");
 
+		#ifdef _WIN32
+		TEST_GENERATE("%match1_path%", "path_tests/abc/rapade/file2.txt");
+		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@)%", ".\\abc\\rapade\\file2.txt");
+		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@),dir%", ".\\abc\\rapade\\");
+		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@)%", ".\\abc\\rapade\\file2.txt");
+		TEST_GENERATE("%template_path:path_template%", "path_tests/path_1234");
+		#else
 		TEST_GENERATE("%match1_path%", "path_tests/abc/rapade/file2.txt");
 		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@)%", "abc/rapade/file2.txt");
 		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@),dir%", "abc/rapade/");
 		TEST_GENERATE("%match1_path|rel(@template_path:path_template|dir@)%", "abc/rapade/file2.txt");
 		TEST_GENERATE("%template_path:path_template%", "path_tests/path_1234");
+		#endif
 
 		args->lockout_time = 30;
 		args->output_path = strdup("/some/output/path/%lockout_time%");

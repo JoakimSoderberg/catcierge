@@ -74,9 +74,9 @@ typedef enum catcierge_lockout_method_s
 
 typedef struct catcierge_path_s
 {
-	char full[4096];		// Directory + filename.
+	char full[2048];		// Directory + filename.
 	char filename[1024];	// Filename.
-	char dir[4096];			// Directory.
+	char dir[2048];			// Directory.
 } catcierge_path_t;
 
 typedef struct match_step_s

@@ -602,7 +602,7 @@ const char *catcierge_path_find_next_component(const char *path)
 
 char *catcierge_relative_path(const char *pfrom, const char *pto)
 {
-	char *pout = NULL;
+	char pout[1024];
 	int is_from_dir = 0;
 	int is_to_dir =  0;
 	char last_from_char = 0;
@@ -627,7 +627,7 @@ char *catcierge_relative_path(const char *pfrom, const char *pto)
 	}
 
 	#ifdef _WIN32
-	if (!PathRelativePathToA(&pout,
+	if (!PathRelativePathToA(pout,
 			pfrom,
 			is_from_dir ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL,
 			pto,
@@ -638,7 +638,7 @@ char *catcierge_relative_path(const char *pfrom, const char *pto)
 
 	// TODO: Make sure paths are returned wiht a / on windows
 
-	return pout;
+	return strdup(pout);
 
 	#else // Unix
 	{

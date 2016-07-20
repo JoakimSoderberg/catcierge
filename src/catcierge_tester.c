@@ -116,9 +116,6 @@ int main(int argc, char **argv)
 
 	clock_t start;
 	clock_t end;
-	char *key = NULL;
-	char *values[4096];
-	size_t value_count = 0;
 	catcierge_args_t args;
 	memset(&args, 0, sizeof(args));
 	memset(&result, 0, sizeof(result));
