@@ -55,7 +55,7 @@
         "result": %match$i$_result%,
         "time": "%match$i$_time%",
         "description": "%match$i$_desc%",
-        "directon": "%match$i$_direction%",
+        "direction": "%match$i$_direction%",
         "step_count": %match$i$_step_count%,
         "steps": [
 %for j in 1..match$i$_step_count%
