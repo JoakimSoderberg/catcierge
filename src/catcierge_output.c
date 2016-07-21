@@ -766,7 +766,17 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	the_path = !(*path->full) ? path->dir : path->full;
 
 	if (is_dir) the_path = path->dir;
-	if (is_abs) the_path = catcierge_get_abs_path(the_path, buf, bufsize);
+	if (is_abs)
+	{
+		char *abs_path = NULL;
+		if ((abs_path = catcierge_get_abs_path(the_path, buf, bufsize)))
+		{
+			// Keep it as it was if getting the absolute path fails.
+			// We don't want to completely fail to generate an entire template
+			// just because we were given a path that cannot be resolved as absolute.
+			the_path = abs_path;
+		}
+	}
 
 	// If no relative path was specified, use the global
 	// root path if set for the current template.

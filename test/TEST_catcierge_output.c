@@ -321,7 +321,7 @@ static char *run_add_and_generate_tests()
 			mu_assert("Expected template count 1", o->template_count == 1);
 
 			if (catcierge_output_generate_templates(o, &grb, "all"))
-				return "Failed to generate templates";
+				return "Failed to generate template 1";
 		}
 
 		catcierge_test_STATUS("Add another template");
@@ -336,7 +336,7 @@ static char *run_add_and_generate_tests()
 			mu_assert("Expected template count 2", o->template_count == 2);
 
 			if (catcierge_output_generate_templates(o, &grb, "all"))
-				return "Failed to generate templates";
+				return "Failed to generate template 2";
 		}
 
 		catcierge_test_STATUS("Add a third template");
@@ -389,7 +389,7 @@ static char *run_add_and_generate_tests()
 			mu_assert("Expected template count 3", o->template_count == 3);
 
 			if (catcierge_output_generate_templates(o, &grb, "all"))
-				return "Failed to generate templates";
+				return "Failed to generate template 3";
 		}
 
 		catcierge_test_STATUS("Add a named template");
@@ -414,7 +414,7 @@ static char *run_add_and_generate_tests()
 			mu_assert("Expected named template", !strcmp(o->templates[3].name, "arne"));
 
 			if (catcierge_output_generate_templates(o, &grb, "all"))
-				return "Failed to generate templates";
+				return "Failed to generate named template";
 
 			// Try getting the template_path for the arne template.
 			named_template_path = catcierge_output_translate(&grb, buf, sizeof(buf), "template_path:arne");
