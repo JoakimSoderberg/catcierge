@@ -808,7 +808,6 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 	catcierge_xfree(&args->log_path);
 
 	#define CATCIERGE_DEFINE_EVENT(ev_enum_name, ev_name, ev_description) 		\
-		catcierge_xfree(&args->ev_name ## _cmd);								\
 		catcierge_free_list(args->ev_name ## _cmd, args->ev_name ## _cmd_count);\
 		args->ev_name ## _cmd_count = 0;										\
 		args->ev_name ## _cmd = NULL;
@@ -838,6 +837,8 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 
 	catcierge_haar_matcher_args_destroy(&args->haar);
 	catcierge_template_matcher_args_destroy(&args->templ);
+
+	catcierge_xfree_list(&args->user_vars, &args->user_var_count);
 }
 
 int catcierge_args_init(catcierge_args_t *args, const char *progname)
