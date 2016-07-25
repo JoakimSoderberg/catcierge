@@ -92,3 +92,10 @@ int get_argc(char **argv)
 	return i;
 }
 
+char *perform_catcierge_args(int expect, catcierge_args_t *args, int argc, char **argv, int *ret)
+{
+	*ret = !!catcierge_args_parse(args, argc, argv);
+	mu_assert("Unexpected return value for parse", *ret == !!expect);
+
+	return NULL;
+}

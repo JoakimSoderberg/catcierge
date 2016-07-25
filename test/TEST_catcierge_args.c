@@ -130,16 +130,6 @@ static char *run_catierge_add_options_test()
 
 	catcierge_args_destroy(&args);
 
-
-	return NULL;
-}
-
-static char *perform_catcierge_args(int expect, 
-				catcierge_args_t *args, int argc, char **argv, int *ret)
-{
-	*ret = !!catcierge_args_parse(args, argc, argv);
-	mu_assert("Unexpected return value for parse", *ret == !!expect);
-
 	return NULL;
 }
 
@@ -511,6 +501,9 @@ static char *run_catcierge_parse_test()
 	}
 
 	PARSE_ARGV_START(1, &args, "catcierge", "--cmdhelp");
+	PARSE_ARGV_END();
+
+	PARSE_ARGV_START(0, &args, "catcierge", "--haar", "--uservar", "abc 123");
 	PARSE_ARGV_END();
 
 	return NULL;

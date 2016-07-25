@@ -86,6 +86,9 @@ typedef struct catcierge_args_s
 		size_t ev_name ## _cmd_count;
 	#include "catcierge_events.h"
 
+	char **user_vars;
+	size_t user_var_count;
+
 	char *config_path;
 	char *chuid;
 	int temp_config_count;

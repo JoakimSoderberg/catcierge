@@ -530,6 +530,15 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 
 	#include "catcierge_events.h"
 
+	ret |= cargo_add_option(cargo, 0,
+			"<cmd> --uservar -u",
+			"Adds a user defined variable that can then be used when generating "
+			"templates or executing custom commands. This is useful when passing "
+			"passwords or similar, so those don't have to be defined in the script "
+			"but when catcierge is started instead. And can then also be used in "
+			"multiple places.",
+			"[s]+", &args->user_vars, &args->user_var_count);
+
 	return ret;
 }
 

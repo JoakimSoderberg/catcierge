@@ -1548,6 +1548,5 @@ void catcierge_grabber_destroy(catcierge_grb_t *grb)
 {
 	// Always make sure we unlock.
 	catcierge_do_unlock(grb);
-	//catcierge_args_destroy(&grb->args);
 	catcierge_cleanup_imgs(grb);
 }

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "catcierge_color.h"
+#include "catcierge_args.h"
 
 int catcierge_test_verbose();
 int catcierge_test_log_on();
@@ -41,11 +42,14 @@ void *catcierge_test_realloc(void *ptr, size_t sz);
 		{ \
 			catcierge_test_FAILURE("%s", e); \
 			*ret = -1; \
+			exit(-1); \
 		} \
 		else \
 		{ \
 			catcierge_test_SUCCESS("%s", success); \
 		} \
 	} while(0)
+
+char *perform_catcierge_args(int expect, catcierge_args_t *args, int argc, char **argv, int *ret);
 
 #endif // __CATCIERGE_TEST_HELPERS_H__

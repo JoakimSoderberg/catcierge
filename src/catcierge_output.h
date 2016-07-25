@@ -28,7 +28,7 @@ int catcierge_output_validate(catcierge_output_t *ctx,
 
 void catcierge_output_print_usage();
 
-int catcierge_output_init(catcierge_output_t *ctx);
+int catcierge_output_init(catcierge_grb_t *grb, catcierge_output_t *ctx);
 void catcierge_output_destroy(catcierge_output_t *ctx);
 
 int catcierge_output_add_template(catcierge_output_t *ctx,

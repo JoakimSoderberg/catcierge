@@ -91,7 +91,7 @@ static char *run_validate_tests()
 			"Not terminated %match_success% after a valid %match1_path"
 		};
 
-		ret = catcierge_output_init(o);
+		ret = catcierge_output_init(&grb, o);
 		mu_assertf("Failed to init output context", ret == 0);
 
 		e = do_init_matcher(&grb, MATCHER_HAAR);
@@ -249,7 +249,7 @@ static char *run_generate_tests()
 
 		for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
 		{
-			ret = catcierge_output_init(&o);
+			ret = catcierge_output_init(&grb, &o);
 			mu_assert("Failed to init output context", !ret);
 			
 			str = catcierge_output_generate(&o, &grb, tests[i].input);
@@ -267,7 +267,7 @@ static char *run_generate_tests()
 
 		for (i = 0; i < sizeof(fail_tests) / sizeof(fail_tests[0]); i++)
 		{
-			ret = catcierge_output_init(&o);
+			ret = catcierge_output_init(&grb, &o);
 			mu_assert("Failed to init output context", !ret);
 
 			str = catcierge_output_generate(&o, &grb, fail_tests[i].input);
@@ -306,7 +306,7 @@ static char *run_add_and_generate_tests()
 			return "Failed to init matcher";
 		}
 
-		if (catcierge_output_init(o))
+		if (catcierge_output_init(&grb, o))
 			return "Failed to init output context";
 
 		catcierge_test_STATUS("Add one template");
@@ -533,7 +533,7 @@ static char *run_load_templates_test()
 			fclose(f);
 		}
 
-		if (catcierge_output_init(&o))
+		if (catcierge_output_init(&grb, &o))
 			return "Failed to init output context";
 
 		// Try loading the first 3 test templates without settings.
@@ -622,7 +622,7 @@ static char *run_recursion_tests()
 	catcierge_grabber_init(&grb);
 	catcierge_args_init(args, "catcierge");
 	{
-		if (catcierge_output_init(o))
+		if (catcierge_output_init(&grb, o))
 			return "Failed to init output context";
 
 		catcierge_test_STATUS("Try infinite output template recursion");
@@ -685,7 +685,7 @@ static char *run_grow_template_array_test()
 	catcierge_grabber_init(&grb);
 	catcierge_args_init(args, "catcierge");
 	{
-		if (catcierge_output_init(o))
+		if (catcierge_output_init(&grb, o))
 			return "Failed to init output context";
 
 		for (i = 0; i < 20; i++)
@@ -731,7 +731,7 @@ static char *run_test_paths_test()
 	catcierge_grabber_init(&grb);
 	catcierge_args_init(args, "catcierge");
 	{
-		if (catcierge_output_init(o))
+		if (catcierge_output_init(&grb, o))
 			return "Failed to init output context";
 
 		args->template_output_path = strdup("path_tests/");
@@ -880,7 +880,7 @@ char *run_for_loop_test()
 		if (do_init_matcher(&grb, MATCHER_HAAR))
 			return "Failed to init matcher";
 
-		if (catcierge_output_init(o))
+		if (catcierge_output_init(&grb, o))
 			return "Failed to init output context";
 
 		TEST_GENERATE(
@@ -1174,6 +1174,58 @@ char *run_for_loop_test()
 	return NULL;
 }
 
+char *run_uservars_test()
+{
+	char *p = NULL;
+	catcierge_grb_t grb;
+	char *str = NULL;
+
+	#define PARSE_ARGV_START(expect, ...)									\
+		do																	\
+		{																	\
+			int i; 															\
+			int ret = 0;													\
+			char *err = NULL;												\
+			catcierge_output_t *o = &grb.output;							\
+			catcierge_args_t *args = &grb.args;								\
+			char *argv[] = { __VA_ARGS__ }; 								\
+			int argc = sizeof(argv) / sizeof(argv[0]); 						\
+			memset(args, 0, sizeof(args));									\
+			catcierge_grabber_init(&grb);									\
+			ret = catcierge_args_init(args, "catcierge");					\
+			mu_assert("Failed to init catcierge args", ret == 0);			\
+			for (i = 0; i < argc; i++) printf("%s ", argv[i]); 				\
+			printf("\n"); 													\
+			if ((err = perform_catcierge_args(expect, args, argc, argv, &ret))) \
+			{																\
+				printf("Expected: %d Got: %d\n", expect, ret);				\
+				return err;													\
+			}
+
+	#define PARSE_ARGV_END() 					\
+			catcierge_args_destroy(args);		\
+			catcierge_grabber_destroy(&grb);	\
+		}										\
+		while (0)
+
+	PARSE_ARGV_START(0, "catcierge", "--haar", "--uservar", "abc 123");
+	mu_assert("Expected something was parsed", args->user_var_count == 1);
+	PARSE_ARGV_END();
+
+	PARSE_ARGV_START(0, "catcierge", "--haar", "--uservar", "abc");
+	mu_assert("Expected something was parsed", args->user_var_count == 1);
+	mu_assert("Expected output init to fail but it didn't", catcierge_output_init(&grb, &grb.output));
+	PARSE_ARGV_END();
+
+	PARSE_ARGV_START(0, "catcierge", "--haar", "--uservar", "abc 123");
+	mu_assert("Expected something was parsed", args->user_var_count == 1);
+	mu_assert("output init failed", !catcierge_output_init(&grb, &grb.output));
+	TEST_GENERATE("%abc%\n", "123\n");
+	PARSE_ARGV_END();
+
+	return NULL;
+}
+
 int TEST_catcierge_output(int argc, char **argv)
 {
 	char *e = NULL;
@@ -1216,6 +1268,10 @@ int TEST_catcierge_output(int argc, char **argv)
 	CATCIERGE_RUN_TEST((e = run_for_loop_test()),
 		"Run for loop tests.",
 		"For loop tests", &ret);
+
+	CATCIERGE_RUN_TEST((e = run_uservars_test()),
+		"Run uservars tests.",
+		"uservars tests", &ret);
 
 	// TODO: Add a test for template paths in other directory.
 

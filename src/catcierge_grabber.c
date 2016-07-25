@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 	fprintf(stderr, "-tainted");
 	#endif
 
-	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2015\n\n");
+	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2016\n\n");
 
 	fprintf(stderr, "Library versions:\n");
 	fprintf(stderr, " OpenCV v%d.%d.%d\n", CV_MAJOR_VERSION, CV_MINOR_VERSION, CV_SUBMINOR_VERSION);
@@ -257,7 +257,7 @@ int main(int argc, char **argv)
 
 	CATLOG("Initialized catcierge image recognition\n");
 
-	if (catcierge_output_init(&grb.output))
+	if (catcierge_output_init(&grb, &grb.output))
 	{
 		CATERR("Failed to init output template system\n");
 		return -1;

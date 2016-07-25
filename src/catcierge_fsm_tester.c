@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (catcierge_output_init(&grb.output))
+	if (catcierge_output_init(&grb, &grb.output))
 	{
 		fprintf(stderr, "Failed to init output template system\n");
 		exit(-1);

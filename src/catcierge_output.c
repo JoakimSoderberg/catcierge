@@ -123,8 +123,11 @@ void catcierge_output_print_usage()
 	}
 }
 
-int catcierge_output_init(catcierge_output_t *ctx)
+int catcierge_output_init(catcierge_grb_t *grb, catcierge_output_t *ctx)
 {
+	size_t i;
+	catcierge_output_invar_t *var_it = NULL;
+	catcierge_args_t *args = &grb->args;
 	assert(ctx);
 	memset(ctx, 0, sizeof(catcierge_output_t));
 	ctx->template_max_count = 10;
@@ -136,7 +139,47 @@ int catcierge_output_init(catcierge_output_t *ctx)
 		CATERR("Out of memory\n"); return -1;
 	}
 
+	for (i = 0; i < args->user_var_count; i++)
+	{
+		char *name = args->user_vars[i];
+		char *cmd = strchr(name, ' ');
+
+		printf("Adding user defined variable: '%s'\n", args->user_vars[i]);
+
+		if (!cmd)
+		{
+			CATERR("User variable '%s' needs to be of the format 'name command'\n", args->user_vars[i]);
+			goto fail;
+		}
+
+		*cmd = '\0';
+		cmd++;
+
+		HASH_FIND_STR(ctx->vars, name, var_it);
+
+		if (var_it)
+		{
+			CATERR("Variable '%s' already defined\n", var_it->name);
+			goto fail;
+		}
+
+		if (!(var_it = calloc(1, sizeof(*var_it))))
+		{
+			goto fail;
+		}
+
+		strncpy(var_it->name, name, sizeof(var_it->name) - 1);
+		if (!(var_it->value = strdup(cmd)))
+		{
+			catcierge_xfree(var_it);
+			CATERR("Out of memory\n"); goto fail;
+		}
+		HASH_ADD_STR(ctx->vars, name, var_it);
+	}
+
 	return 0;
+fail:
+	return -1;
 }
 
 void catcierge_output_free_template_settings(catcierge_output_settings_t *settings)
@@ -168,6 +211,8 @@ void catcierge_output_free_template(catcierge_output_template_t *t)
 void catcierge_output_destroy(catcierge_output_t *ctx)
 {
 	catcierge_output_template_t *t;
+	catcierge_output_invar_t *var_it = NULL;
+	catcierge_output_invar_t *tmp = NULL;
 	assert(ctx);
 
 	if (ctx->templates)
@@ -186,6 +231,12 @@ void catcierge_output_destroy(catcierge_output_t *ctx)
 
 	ctx->template_count = 0;
 	ctx->template_max_count = 0;
+
+	HASH_ITER(hh, ctx->vars, var_it, tmp)
+	{
+		HASH_DEL(ctx->vars, var_it);
+		catcierge_xfree(var_it);
+	}
 }
 
 int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, const char *events)
@@ -761,7 +812,8 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 	}
 
 	//
-	// Perform actions in a consistent order that makes sense:
+	// Perform actions in a consistent order that makes sense
+	// instead of the one given by the user. Dir, absolute and finally relative.
 	//
 	the_path = !(*path->full) ? path->dir : path->full;
 
@@ -1673,6 +1725,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			CATERR("Out of memory\n"); goto fail;
 		}
 
+		// TODO: Refactor, break out into separate function
 		HASH_FIND_STR(grb->output.vars, for_expr_var, var_it);
 		
 		if (var_it)
