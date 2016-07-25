@@ -123,6 +123,40 @@ void catcierge_output_print_usage()
 	}
 }
 
+catcierge_output_invar_t *catcierge_output_add_user_variable(catcierge_output_t *ctx, const char *name, const char *value)
+{
+	catcierge_output_invar_t *var_it = NULL;
+
+	HASH_FIND_STR(ctx->vars, name, var_it);
+
+	if (var_it)
+	{
+		CATERR("Variable '%s' already defined\n", var_it->name);
+		goto fail;
+	}
+
+	if (!(var_it = calloc(1, sizeof(*var_it))))
+	{
+		goto fail;
+	}
+
+	strncpy(var_it->name, name, sizeof(var_it->name) - 1);
+
+	if (value)
+	{
+		if (!(var_it->value = strdup(value)))
+		{
+			catcierge_xfree(var_it);
+			CATERR("Out of memory\n"); goto fail;
+		}
+	}
+	HASH_ADD_STR(ctx->vars, name, var_it);
+
+	return var_it;
+fail:
+	return NULL;
+}
+
 int catcierge_output_init(catcierge_grb_t *grb, catcierge_output_t *ctx)
 {
 	size_t i;
@@ -155,26 +189,11 @@ int catcierge_output_init(catcierge_grb_t *grb, catcierge_output_t *ctx)
 		*cmd = '\0';
 		cmd++;
 
-		HASH_FIND_STR(ctx->vars, name, var_it);
-
-		if (var_it)
+		if (!catcierge_output_add_user_variable(ctx, name, cmd))
 		{
-			CATERR("Variable '%s' already defined\n", var_it->name);
+			CATERR("Failed to add variable '%s'\n", name);
 			goto fail;
 		}
-
-		if (!(var_it = calloc(1, sizeof(*var_it))))
-		{
-			goto fail;
-		}
-
-		strncpy(var_it->name, name, sizeof(var_it->name) - 1);
-		if (!(var_it->value = strdup(cmd)))
-		{
-			catcierge_xfree(var_it);
-			CATERR("Out of memory\n"); goto fail;
-		}
-		HASH_ADD_STR(ctx->vars, name, var_it);
 	}
 
 	return 0;
@@ -235,7 +254,8 @@ void catcierge_output_destroy(catcierge_output_t *ctx)
 	HASH_ITER(hh, ctx->vars, var_it, tmp)
 	{
 		HASH_DEL(ctx->vars, var_it);
-		catcierge_xfree(var_it);
+		catcierge_xfree(&var_it->value);
+		catcierge_xfree(&var_it);
 	}
 }
 
@@ -251,6 +271,25 @@ int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, c
 	}
 
 	if (!(settings->event_filter = catcierge_parse_list(events, &settings->event_filter_count, 1)))
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+int catcierge_output_read_required_setting(catcierge_output_settings_t *settings, const char *required)
+{
+	assert(settings);
+
+	CATLOG("    Required variables: %s\n", required);
+
+	if (settings->required_vars)
+	{
+		catcierge_free_list(settings->required_vars, settings->required_var_count);
+	}
+
+	if (!(settings->required_vars = catcierge_parse_list(required, &settings->required_var_count, 1)))
 	{
 		return -1;
 	}
@@ -282,6 +321,7 @@ const char *catcierge_output_read_template_settings(catcierge_output_settings_t 
 	// Consume all the settings in the file.
 	while (it < end)
 	{
+		// TODO: Fix bug if we have a template with only one row, then this break immediately even if we have a setting var.
 		if (it == row_end)
 		{
 			// On the first row_end and row_start
@@ -416,6 +456,19 @@ const char *catcierge_output_read_template_settings(catcierge_output_settings_t 
 			it = row_end;
 			continue;
 		}
+		else if (!strncmp(it, "required", 8))
+		{
+			// Required variables needed to generate the template.
+			it += 8;
+			it = catcierge_skip_whitespace_alt(it);
+
+			if (catcierge_output_read_required_setting(settings, it))
+			{
+				CATERR("Failed to parse required variables setting\n"); goto fail;
+			}
+			it = row_end;
+			continue;
+		}
 		else
 		{
 			const char *unknown_end = strchr(it, '\n');
@@ -462,9 +515,12 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		const char *template_str, const char *filename)
 {
 	const char *path;
+	size_t i;
+	catcierge_output_invar_t *it = NULL;
 	catcierge_output_template_t *t;
 	assert(ctx);
 
+	// TODO: Get rid of template name in filename support.
 	// Get only the filename.
 	if ((path = strrchr(filename, catcierge_path_sep()[0])))
 	{
@@ -483,6 +539,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		}
 	}
 
+	// TODO: Separate out creating a template from adding it so that testing is easier.
 	t = &ctx->templates[ctx->template_count];
 	memset(t, 0, sizeof(*t));
 
@@ -542,6 +599,18 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 	if (!(t->tmpl = strdup(template_str)))
 	{
 		goto out_of_memory;
+	}
+
+	for (i = 0; i < t->settings.required_var_count; i++)
+	{
+		HASH_FIND_STR(ctx->vars, t->settings.required_vars[i], it);
+
+		if (!it)
+		{
+			CATERR("Missing required variable '%s'. Define using: --uservar \"%s some_value goes_here\"\n",
+				t->settings.required_vars[i], t->settings.required_vars[i]);
+			return -1;
+		}
 	}
 
 	ctx->template_count++;
@@ -1725,22 +1794,11 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			CATERR("Out of memory\n"); goto fail;
 		}
 
-		// TODO: Refactor, break out into separate function
-		HASH_FIND_STR(grb->output.vars, for_expr_var, var_it);
-		
-		if (var_it)
+		if (!(var_it = catcierge_output_add_user_variable(&grb->output, for_expr_var, NULL)))
 		{
-			CATERR("Variable '%s' already defined\n", var_it->name);
+			CATERR("Failed to add variable '%s'\n", for_expr_var);
 			goto fail;
 		}
-
-		if (!(var_it = calloc(1, sizeof(*var_it))))
-		{
-			goto fail;
-		}
-
-		strncpy(var_it->name, for_expr_var, sizeof(var_it->name) - 1);
-		HASH_ADD_STR(grb->output.vars, name, var_it);
 
 		for (i = 0; i < for_expr_vals_count; i++)
 		{

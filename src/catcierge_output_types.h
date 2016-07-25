@@ -34,6 +34,8 @@ typedef struct catcierge_output_settings_s
 	int nofile;
 	char *filename;
 	char *rootpath; // Path all templates are relative to. Default is cwd.
+	char **required_vars;
+	size_t required_var_count;
 	#ifdef WITH_ZMQ
 	char *topic; // ZMQ topic name, defaults to template name.
 	int nozmq;

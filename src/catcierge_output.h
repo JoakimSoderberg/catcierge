@@ -54,4 +54,7 @@ void catcierge_output_execute_list(catcierge_grb_t *grb,
 void catcierge_output_execute(catcierge_grb_t *grb,
 		const char *event, const char *command);
 
+catcierge_output_invar_t *catcierge_output_add_user_variable(catcierge_output_t *ctx,
+		const char *name, const char *value);
+
 #endif // __CATCIERGE_OUTPUT_H__

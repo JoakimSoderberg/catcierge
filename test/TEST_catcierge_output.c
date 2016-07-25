@@ -465,7 +465,9 @@ static char *run_load_templates_test()
 			"two_events_%time%",
 			"bla_bla_%time%",
 			"two_events_rev_%time%",
-			"two_events_rev2_%time%"
+			"two_events_rev2_%time%",
+			"one_more_%time%",
+			"mooore_%time%",
 		};
 
 		// TODO: Rewrite this to be inited by a function or something...
@@ -511,8 +513,18 @@ static char *run_load_templates_test()
 				"%!event hej, hopp\n"
 				"%!nozmq\n"
 				"%!topic 123\n"
-				"%!name arne_weises_tempalte%time%"
+				"%!name arne_weises_tempalte%time%\n"
 				"Some cool template",
+			},
+			{
+				"%!required abc, def\n"
+				"%!name arne_weises_tempalte%time%\n"
+				"Some cool template %abc%, %def%",
+			},
+			{
+				"%!required abc, def, ghi\n"
+				"%!name arne_weises_tempalte%time%\n"
+				"Some cool template %abc% %def% %ghi%",
 			}
 		};
 		#define TEST_TEMPLATE_COUNT sizeof(templs) / sizeof(templs[0])
@@ -602,8 +614,37 @@ static char *run_load_templates_test()
 			return "Failed to load nozmq, nofile, topic settings";
 		}
 
-		mu_assert("Expected template count to be 7", o.template_count == 8);
+		mu_assert("Expected template count to be 8", o.template_count == 8);
 		catcierge_test_SUCCESS("Multiple settings, nozmq, nfile, topic");
+
+		// Expect to fail when we do not have the variables defined.
+		if (!catcierge_output_load_template(&o, inputs[9]))
+		{
+			return "Expected template load to fail with unspecified vars";
+		}
+
+		mu_assert("Expected template count to be 9", o.template_count == 8);
+
+		catcierge_output_add_user_variable(&o, "abc", "123");
+		catcierge_output_add_user_variable(&o, "def", "456");
+
+		// Test with the variables now defined.
+		if (catcierge_output_load_template(&o, inputs[9]))
+		{
+			return "Failed to load required vars template";
+		}
+
+		mu_assert("Expected template count to be 9", o.template_count == 9);
+
+		// Test a template with one additional undefined variable, keeping the other two.
+		if (!catcierge_output_load_template(&o, inputs[10]))
+		{
+			return "Expected template load to fail with unspecified var";
+		}
+
+		mu_assert("Expected template count to be 9", o.template_count == 9);
+
+		catcierge_test_SUCCESS("required vars setting");
 
 		catcierge_output_destroy(&o);
 	}
