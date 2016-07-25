@@ -1,7 +1,7 @@
 #!/bin/bash
 git submodule update --recursive --init
 #sudo apt-get update -qq
-sudo apt-get install -y -qq valgrind libopencv-dev libzmq-dev libczmq3
+sudo apt-get install -y -qq valgrind libopencv-dev libzmq-dev libczmq-dev
 mkdir build
 cd build
 set -e
