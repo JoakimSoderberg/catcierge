@@ -13,6 +13,7 @@
 
 static char *do_run_delayed_start_tests(int test_no_backlight)
 {
+	int ret = 0;
 	size_t i;
 	catcierge_grb_t grb;
 	catcierge_args_t *args = &grb.args;
@@ -31,7 +32,8 @@ static char *do_run_delayed_start_tests(int test_no_backlight)
 		catcierge_args_init(args, "delayed_start_tests");
 		args->saveimg = 0;
 		args->matcher_type = MATCHER_HAAR;
-		args->haar.cascade = CATCIERGE_CASCADE;
+		args->haar.cascade = strdup(CATCIERGE_CASCADE);
+		mu_assert("Out of memory", args->haar.cascade);
 		args->auto_roi = 1;
 		args->save_auto_roi_img = 1;
 		args->startup_delay = 1;
@@ -40,6 +42,9 @@ static char *do_run_delayed_start_tests(int test_no_backlight)
 		{
 			return "Failed to init catcierge lib!\n";
 		}
+
+		ret = catcierge_output_init(&grb, &grb.output);
+		mu_assert("Failed to init output context", ret == 0);
 
 		catcierge_fsm_start(&grb);
 
@@ -73,7 +78,9 @@ static char *do_run_delayed_start_tests(int test_no_backlight)
 			mu_assert("Expected fsm to run", grb.running == 1);
 		}
 
+		catcierge_output_destroy(&grb.output);
 		catcierge_matcher_destroy(&grb.matcher);
+		catcierge_args_destroy(args);
 	}
 	catcierge_grabber_destroy(&grb);
 
@@ -103,7 +110,8 @@ static char *run_backlight_tests()
 		catcierge_args_init(args, "backlight_tests");
 		args->saveimg = 0;
 		args->matcher_type = MATCHER_HAAR;
-		args->haar.cascade = CATCIERGE_CASCADE;
+		args->haar.cascade = strdup(CATCIERGE_CASCADE);
+		mu_assert("Out of memory", args->haar.cascade);
 
 		if (catcierge_matcher_init(&grb.matcher, (catcierge_matcher_args_t *)&args->haar))
 		{
@@ -149,6 +157,7 @@ static char *run_backlight_tests()
 		cvReleaseImage(&grb.img);
 
 		catcierge_matcher_destroy(&grb.matcher);
+		catcierge_args_destroy(args);
 	}
 	catcierge_grabber_destroy(&grb);
 
