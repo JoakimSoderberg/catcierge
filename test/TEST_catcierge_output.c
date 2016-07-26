@@ -893,8 +893,10 @@ static char *run_test_paths_test()
 		#endif
 
 		args->lockout_time = 30;
+		catcierge_xfree(&args->output_path);
 		args->output_path = strdup("/some/output/path/%lockout_time%");
 		args->match_output_path = strdup("%output_path%/more/deep/");
+		mu_assert("Out of memory", args->output_path && args->match_output_path);
 
 		TEST_GENERATE("%output_path%", "/some/output/path/30");
 		TEST_GENERATE("%match_output_path%", "/some/output/path/30/more/deep/");
@@ -986,7 +988,7 @@ char *run_for_loop_test()
 
 		strcpy(mg->matches[3].path.dir, "/tuv/wxy/");
 		strcpy(mg->matches[3].path.filename, "4.txt");
-
+	
 		TEST_GENERATE(
 			"arne weise\n"
 			"%for i in 1..4%\n"
@@ -1209,6 +1211,8 @@ char *run_for_loop_test()
 			"%i%\n"
 			"%endfor%\n");
 	}
+	catcierge_output_destroy(&grb.output);
+	catcierge_matcher_destroy(&grb.matcher);
 	catcierge_args_destroy(args);
 	catcierge_grabber_destroy(&grb);
 
@@ -1256,12 +1260,14 @@ char *run_uservars_test()
 	PARSE_ARGV_START(0, "catcierge", "--haar", "--uservar", "abc");
 	mu_assert("Expected something was parsed", args->user_var_count == 1);
 	mu_assert("Expected output init to fail but it didn't", catcierge_output_init(&grb, &grb.output));
+	catcierge_output_destroy(&grb.output);
 	PARSE_ARGV_END();
 
 	PARSE_ARGV_START(0, "catcierge", "--haar", "--uservar", "abc 123");
 	mu_assert("Expected something was parsed", args->user_var_count == 1);
 	mu_assert("output init failed", !catcierge_output_init(&grb, &grb.output));
 	TEST_GENERATE("%abc%\n", "123\n");
+	catcierge_output_destroy(&grb.output);
 	PARSE_ARGV_END();
 
 	return NULL;

@@ -132,7 +132,7 @@ catcierge_output_invar_t *catcierge_output_add_user_variable(catcierge_output_t 
 	if (var_it)
 	{
 		CATERR("Variable '%s' already defined\n", var_it->name);
-		goto fail;
+		return NULL;
 	}
 
 	if (!(var_it = calloc(1, sizeof(*var_it))))
@@ -207,12 +207,12 @@ void catcierge_output_free_template_settings(catcierge_output_settings_t *settin
 	catcierge_xfree(&settings->topic);
 	#endif
 
-	catcierge_free_list(settings->event_filter, settings->event_filter_count);
-	settings->event_filter = NULL;
-	settings->event_filter_count = 0;
+	catcierge_xfree_list(&settings->event_filter, &settings->event_filter_count);
+	catcierge_xfree_list(&settings->required_vars, &settings->required_var_count);
 
 	catcierge_xfree(&settings->filename);
 	catcierge_xfree(&settings->name);
+	catcierge_xfree(&settings->rootpath);
 }
 
 void catcierge_output_free_template(catcierge_output_template_t *t)
@@ -265,10 +265,7 @@ int catcierge_output_read_event_setting(catcierge_output_settings_t *settings, c
 
 	CATLOG("    Event filters: %s\n", events);
 
-	if (settings->event_filter)
-	{
-		catcierge_free_list(settings->event_filter, settings->event_filter_count);
-	}
+	catcierge_xfree_list(&settings->event_filter, &settings->event_filter_count);
 
 	if (!(settings->event_filter = catcierge_parse_list(events, &settings->event_filter_count, 1)))
 	{
@@ -284,10 +281,7 @@ int catcierge_output_read_required_setting(catcierge_output_settings_t *settings
 
 	CATLOG("    Required variables: %s\n", required);
 
-	if (settings->required_vars)
-	{
-		catcierge_free_list(settings->required_vars, settings->required_var_count);
-	}
+	catcierge_xfree_list(&settings->required_vars, &settings->required_var_count);
 
 	if (!(settings->required_vars = catcierge_parse_list(required, &settings->required_var_count, 1)))
 	{
@@ -609,7 +603,7 @@ int catcierge_output_add_template(catcierge_output_t *ctx,
 		{
 			CATERR("Missing required variable '%s'. Define using: --uservar \"%s some_value goes_here\"\n",
 				t->settings.required_vars[i], t->settings.required_vars[i]);
-			return -1;
+			goto fail;
 		}
 	}
 
@@ -946,13 +940,8 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 
 	snprintf(buf, bufsize - 1, "%s", the_path);
 
-	if (rel_to_path && !ctx->no_relative_path)
-	{
-		free(rel_to_path);
-	}
-
-	if (the_path)
-		free(the_path);
+	catcierge_xfree(&rel_to_path);
+	catcierge_xfree(&the_path);
 
 	return buf;
 
@@ -1779,7 +1768,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		char *res = NULL;
 		char *resit = NULL;
 		size_t reslen = 0;
-		char *output;
+		char *output = NULL;
 		size_t orig_len = 0;
 		size_t out_len = 0;
 		size_t len = 0;
@@ -1797,7 +1786,8 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		if (!(var_it = catcierge_output_add_user_variable(&grb->output, for_expr_var, NULL)))
 		{
 			CATERR("Failed to add variable '%s'\n", for_expr_var);
-			goto fail;
+			catcierge_xfree(&output);
+			goto fail_gen;
 		}
 
 		for (i = 0; i < for_expr_vals_count; i++)
@@ -1809,7 +1799,7 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 			{
 				CATERR("Out of memory\n");
 				catcierge_xfree(&output);
-				goto fail;
+				goto fail_gen;
 			}
 
 			if (!(res = catcierge_output_generate(&grb->output, grb, for_body)))
@@ -1839,11 +1829,15 @@ char *catcierge_parse_for_loop(catcierge_grb_t *grb, char **template_str,
 		output[len] = '\0';
 
 	fail_gen:
-		HASH_DEL(grb->output.vars, var_it);
-		catcierge_xfree(&var_it->value);
-		catcierge_xfree(&var_it);
+		if (var_it)
+		{
+			HASH_DEL(grb->output.vars, var_it);
+			catcierge_xfree(&var_it->value);
+			catcierge_xfree(&var_it);
+		}
 
 		catcierge_xfree_list(&for_expr_vals, &for_expr_vals_count);
+		catcierge_xfree(&for_expr_var);
 		catcierge_xfree(&for_body);
 		catcierge_xfree(&res);
 
@@ -1977,8 +1971,8 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 		// Replace any variables signified by %varname%
 		if (*it == '%')
 		{
-			const char *res;
-			const char *resit;
+			const char *res = NULL;
+			const char *resit = NULL;
 			int res_is_alloc = 0;
 			it++;
 
@@ -2005,8 +1999,7 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 				*it = '\0';
 				CATERR("Variable \"%s\" not terminated in output template line %d\n",
 					var, (int)linenum);
-				free(output);
-				output = NULL;
+				catcierge_xfree(&output);
 				goto fail;
 			}
 
