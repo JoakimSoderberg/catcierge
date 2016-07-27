@@ -430,62 +430,66 @@ fail:
 
 char *catcierge_get_abs_path(const char *path, char *buf, size_t buflen)
 {
-	#ifdef _WIN32
-	DWORD ret = 0;
+	assert(buf);
+
+	if (buflen <= 0)
+		return NULL;
+
 	buf[0] = '\0';
 
-	if (!path || (buflen <= 0))
+	if (!path)
 		return NULL;
 
-	if (!(ret = GetFullPathName(path, buflen, buf, NULL)))
+	#ifdef _WIN32
 	{
-		return NULL;
+		DWORD ret = 0;
+
+		if (!(ret = GetFullPathName(path, buflen, buf, NULL)))
+		{
+			return NULL;
+		}
+
+		if (ret >= buflen)
+			return NULL;
+
+		return buf;
 	}
-
-	if (ret >= buflen)
-		return NULL;
-
-	return buf;
-
 	#else // Unix.
-
-	char *real_path = NULL;
-	int is_dir = 0;
-	assert(buf);
-	buflen--; // To fit '\0'
-
-	// If the input has a slash at the end
-	// preserve it.
-	if (path[strlen(path) - 1] == '/')
 	{
-		is_dir = 1;
-		buflen--;
-	}
+		char *real_path = NULL;
+		int is_dir = 0;
+		buflen--; // To fit '\0'
 
-	if (!path || (buflen <= 0))
-		return NULL;
+		// If the input has a slash at the end
+		// preserve it.
+		if (path[strlen(path) - 1] == '/')
+		{
+			is_dir = 1;
+			buflen--;
+		}
 
-	if (!(real_path = realpath(path, NULL)))
-	{
-		return NULL;
-	}
+		if (!(real_path = realpath(path, NULL)))
+		{
+			return NULL;
+		}
 
-	if (strlen(real_path) > buflen)
-	{
+		if (strlen(real_path) > buflen)
+		{
+			free(real_path);
+			return NULL;
+		}
+
+		strncpy(buf, real_path, buflen);
+
+		if (is_dir)
+		{
+			strcat(buf, "/");
+		}
+
 		free(real_path);
-		return NULL;
+
+		return buf;
 	}
-
-	strncpy(buf, real_path, buflen);
-
-	if (is_dir)
-	{
-		strcat(buf, "/");
-	}
-
-	free(real_path);
-
-	return buf;
 	#endif // _WIN32
 }
 

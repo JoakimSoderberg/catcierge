@@ -921,6 +921,7 @@ static char *catcierge_get_path(catcierge_grb_t *grb, const char *var,
 
 		ctx->no_relative_path = 0;
 
+		// TODO: Check return values
 		// The relativeness must be based on absolute paths.
 		the_path = catcierge_get_abs_path(the_path, buf, bufsize);
 		catcierge_get_abs_path(full_rel_to_path,
