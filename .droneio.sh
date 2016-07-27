@@ -5,6 +5,6 @@ sudo apt-get install -y -qq valgrind libopencv-dev libzmq-dev
 mkdir build
 cd build
 set -e
-cmake -DWITH_ZMQ=OFF ..
+cmake -DCMAKE_BUILD_TYPE=Debug -DWITH_ZMQ=OFF ..
 make
 ctest --output-on-failure
