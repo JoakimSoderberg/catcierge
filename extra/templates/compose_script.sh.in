@@ -1,6 +1,5 @@
 %!event match_group_done
 %!name compose_script
-%!rootpath %template_path:compose_script|dir%
 %!filename %match_group_id%-compose-script.sh
 %!required from_email, from_email_passw, to_email
 #!/bin/bash
