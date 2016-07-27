@@ -1235,7 +1235,7 @@ char *run_uservars_test()
 			catcierge_args_t *args = &grb.args;								\
 			char *argv[] = { __VA_ARGS__ }; 								\
 			int argc = sizeof(argv) / sizeof(argv[0]); 						\
-			memset(args, 0, sizeof(args));									\
+			memset(args, 0, sizeof(*args));									\
 			catcierge_grabber_init(&grb);									\
 			ret = catcierge_args_init(args, "catcierge");					\
 			mu_assert("Failed to init catcierge args", ret == 0);			\
