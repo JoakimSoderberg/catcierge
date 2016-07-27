@@ -29,17 +29,30 @@ output_path=/home/catcierge/images/%match_group_start_time:&Y-&m-&d%
 match_output_path=%output_path%/%match_group_id%
 steps_output_path=%match_output_path%/%matchcur_idx%
 
-# JSON template for match_group_done event.
-input=${CMAKE_INSTALL_PREFIX}/share/catcierge/templates/match_group_done_full.json
+# Input template for match_group_done event. Generates a json file describing the match.
+input=${CMAKE_INSTALL_PREFIX}/share/catcierge/templates/event.json
+
+# Input template for compose_script.sh that will run and upload.
+input=${CMAKE_INSTALL_PREFIX}/share/catcierge/templates/compose_script.sh.in
 
 #
 # Examples of running scripts and passing the generated template to them.
 #
 # NOTE! The scripts are executed in parallel, but started in the order they are listed
 #       If you want output from one script to be input to another,
-#		you'll need to make a wrapper script.
+#       you'll need to make a wrapper script.
 #       Or string them together with "script.sh && script2.sh"
 #
+
+# from_email, email_passw, to_email
+# Define the variables required by the compose_script
+uservar=to_email test@example.com
+uservar=from_email test2@example.com
+uservar=from_email_passw my_secret
+
+# This script uses the above user variables so we don't need to pass anything.
+# We don't want to keep it so remove it when done.
+#match_group_done_cmd="%template_path:compose_script%" && rm "%template_path:compose_script%"
 
 # Create a debug version of the match images combined.
 #match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:match_group_done_full%" --steps --output "%match_group_id%-combined-steps.png"
