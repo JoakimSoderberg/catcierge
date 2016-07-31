@@ -4,6 +4,7 @@ import argparse
 import smtplib
 import json
 from os.path import basename
+from datetime import datetime
 
 from email import encoders
 from email.mime.base import MIMEBase
@@ -49,8 +50,8 @@ def main():
     state = j["state"].replace("_", "")
     direction = j["match_group_direction"]
     group_id = j["id"]
-    start_date = j["match_group_start"]
-    end_date = j["match_group_end"]
+    start_date = j.get("start", j.get("match_group_start", str(datetime.now())))
+    end_date = j.get("end", j.get("match_group_end", str(datetime.now())))
 
     # Create the container (outer) email message.
     msg = MIMEMultipart()
