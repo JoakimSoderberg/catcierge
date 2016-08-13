@@ -10,6 +10,7 @@
 #include <opencv2/highgui/highgui_c.h>
 #include "catcierge_fsm.h"
 #include "catcierge_test_common.h"
+#include "catcierge_output.h"
 
 static char *do_run_delayed_start_tests(int test_no_backlight)
 {
