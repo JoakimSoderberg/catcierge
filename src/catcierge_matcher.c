@@ -86,7 +86,7 @@ void catcierge_matcher_destroy(catcierge_matcher_t **ctx)
 	*ctx = NULL;
 }
 
-static void _catcierge_display_auto_roi_images(IplImage *img, CvSeq *biggest_contour, CvRect *r, int save)
+static void _catcierge_display_auto_roi_images(const IplImage *img, CvSeq *biggest_contour, CvRect *r, int save)
 {
 	char buf[2048];
 	char path[2048];
@@ -107,7 +107,7 @@ static void _catcierge_display_auto_roi_images(IplImage *img, CvSeq *biggest_con
 	}
 
 	// Highlight ROI.
-	cvDrawContours(roi_img, biggest_contour, cvScalarAll(255), cvScalarAll(0), 0, 2, 8, cvPoint(0, 0));
+	cvDrawContours(roi_img, biggest_contour, CV_RGB(0, 255, 0), cvScalarAll(0), 0, 2, 8, cvPoint(0, 0));
 	cvRectangleR(roi_img, *r, CV_RGB(255, 0, 0), 2, 8, 0);
 
 	cvShowImage("Auto ROI", roi_img);
@@ -123,7 +123,7 @@ static void _catcierge_display_auto_roi_images(IplImage *img, CvSeq *biggest_con
 	cvReleaseImage(&roi_img);
 }
 
-int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRect *r)
+int catcierge_get_back_light_area(catcierge_matcher_t *ctx, const IplImage *img, CvRect *r)
 {
 	int ret = 0;
 	CvSeq *contours = NULL;
@@ -131,7 +131,8 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 	double area;
 	CvSeq *biggest_contour = NULL;
 	CvSeq *it = NULL;
-	IplImage *img_gray = NULL;
+	const IplImage *img_color = NULL;
+	const IplImage *img_gray = NULL;
 	IplImage *img_thr = NULL;
 	IplImage *img_eq = NULL;
 	CvMemStorage *storage = NULL;
@@ -144,15 +145,18 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 		return -1;
 	}
 
-	// Only covert to grayscale if needed.
+	// Only convert to grayscale if needed.
 	if (img->nChannels != 1)
 	{
+		img_color = img;
 		img_gray = cvCreateImage(cvGetSize(img), 8, 1);
 		cvCvtColor(img, img_gray, CV_BGR2GRAY);
 	}
 	else
 	{
 		img_gray = img;
+		img_color = cvCreateImage(cvGetSize(img), 8, 3);
+		cvCvtColor(img_gray, img_color, CV_GRAY2BGR);
 	}
 
 	// Equalize image histogram.
@@ -199,12 +203,16 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 
 	*r = cvBoundingRect(biggest_contour, 0);
 
-	_catcierge_display_auto_roi_images(img, biggest_contour, r, args->save_auto_roi_img);
+	_catcierge_display_auto_roi_images(img_color, biggest_contour, r, args->save_auto_roi_img);
 
 fail:
 	if (img->nChannels != 1)
 	{
 		cvReleaseImage(&img_gray);
+	}
+	else
+	{
+		cvReleaseImage(&img_color);
 	}
 
 	cvReleaseImage(&img_thr);
@@ -214,7 +222,7 @@ fail:
 	return ret;
 }
 
-int catcierge_is_frame_obstructed(catcierge_matcher_t *ctx, IplImage *img)
+int catcierge_is_frame_obstructed(catcierge_matcher_t *ctx, const IplImage *img)
 {
 	CvSize size;
 	int w;

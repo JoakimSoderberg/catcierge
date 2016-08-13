@@ -61,8 +61,8 @@ typedef struct catcierge_matcher_s
 	catcierge_matcher_args_t *args;
 } catcierge_matcher_t;
 
-int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRect *r);
-int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, IplImage *img);
+int catcierge_get_back_light_area(catcierge_matcher_t *ctx, const IplImage *img, CvRect *r);
+int catcierge_is_frame_obstructed(struct catcierge_matcher_s *ctx, const IplImage *img);
 
 int catcierge_matcher_init(catcierge_matcher_t **ctx, catcierge_matcher_args_t *args);
 void catcierge_matcher_destroy(catcierge_matcher_t **ctx);
