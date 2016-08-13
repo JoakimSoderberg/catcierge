@@ -174,13 +174,19 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 			strcpy(buf, ".");
 		}
 
+		// Save the original unchanged image.
 		snprintf(path, sizeof(path) - 1, "%s%sauto_roi.png", buf, catcierge_path_sep());
+		cvSaveImage(path, roi_img, 0);
+		CATLOG("Saved auto roi image to: %s\n", path);
+
+		// Save another image with the Region Of Interst (ROI) highlighted.
+		snprintf(path, sizeof(path) - 1, "%s%sauto_roi_highlight.png", buf, catcierge_path_sep());
 
 		cvDrawContours(roi_img, biggest_contour, cvScalarAll(255), cvScalarAll(0), 0, 2, 8, cvPoint(0,0));
 		cvRectangleR(roi_img, *r, CV_RGB(255, 0, 0), 2, 8, 0);
 
 		cvSaveImage(path, roi_img, 0);
-		CATLOG("Saved auto roi image to: %s\n", path);
+		CATLOG("Saved auto roi image to (highlighted): %s\n", path);
 
 		cvReleaseImage(&roi_img);
 	}
