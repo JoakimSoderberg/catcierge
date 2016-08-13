@@ -16,9 +16,18 @@ parser.add_argument("--threshold", "-t", type=int, default=90,
 
 args = parser.parse_args()
 
+if not os.path.exists(args.images[0]):
+	print("No such file %s" % args.images[0])
+	exit(-1)
+
 img = cv2.imread(args.images[0])
-img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+if len(img) == 2:
+	img_gray = img
+else:
+	img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 ret, threshimg = cv2.threshold(img_gray, args.threshold, 255, 0)
+cv2.imwrite("thr.png", threshimg)
 
 contours, hierarchy = cv2.findContours(threshimg, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 max_area = 0
@@ -35,4 +44,4 @@ cv2.drawContours( img, contours, -1, (0, 255, 0), 3 )
 cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 3)
 
 cv2.imwrite("sq.png", img)
-cv2.imwrite("thr.png", threshimg)
+
