@@ -86,6 +86,35 @@ void catcierge_matcher_destroy(catcierge_matcher_t **ctx)
 	*ctx = NULL;
 }
 
+static void _catcierge_save_auto_roi_images(IplImage *img, CvSeq *biggest_contour, CvRect *r)
+{
+	char buf[2048];
+	char path[2048];
+	IplImage *roi_img = NULL;
+	roi_img = cvCloneImage(img);
+
+	if (!getcwd(buf, sizeof(buf) - 1))
+	{
+		strcpy(buf, ".");
+	}
+
+	// Save the original unchanged image.
+	snprintf(path, sizeof(path) - 1, "%s%sauto_roi.png", buf, catcierge_path_sep());
+	cvSaveImage(path, roi_img, 0);
+	CATLOG("Saved auto roi image to: %s\n", path);
+
+	// Save another image with the Region Of Interst (ROI) highlighted.
+	snprintf(path, sizeof(path) - 1, "%s%sauto_roi_highlight.png", buf, catcierge_path_sep());
+
+	cvDrawContours(roi_img, biggest_contour, cvScalarAll(255), cvScalarAll(0), 0, 2, 8, cvPoint(0, 0));
+	cvRectangleR(roi_img, *r, CV_RGB(255, 0, 0), 2, 8, 0);
+
+	cvSaveImage(path, roi_img, 0);
+	CATLOG("Saved auto roi image to (highlighted): %s\n", path);
+
+	cvReleaseImage(&roi_img);
+}
+
 int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRect *r)
 {
 	int ret = 0;
@@ -164,31 +193,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, IplImage *img, CvRec
 
 	if (args->save_auto_roi_img)
 	{
-		char buf[2048];
-		char path[2048];
-		IplImage *roi_img = NULL;
-		roi_img = cvCloneImage(img);
-
-		if (!getcwd(buf, sizeof(buf) - 1))
-		{
-			strcpy(buf, ".");
-		}
-
-		// Save the original unchanged image.
-		snprintf(path, sizeof(path) - 1, "%s%sauto_roi.png", buf, catcierge_path_sep());
-		cvSaveImage(path, roi_img, 0);
-		CATLOG("Saved auto roi image to: %s\n", path);
-
-		// Save another image with the Region Of Interst (ROI) highlighted.
-		snprintf(path, sizeof(path) - 1, "%s%sauto_roi_highlight.png", buf, catcierge_path_sep());
-
-		cvDrawContours(roi_img, biggest_contour, cvScalarAll(255), cvScalarAll(0), 0, 2, 8, cvPoint(0,0));
-		cvRectangleR(roi_img, *r, CV_RGB(255, 0, 0), 2, 8, 0);
-
-		cvSaveImage(path, roi_img, 0);
-		CATLOG("Saved auto roi image to (highlighted): %s\n", path);
-
-		cvReleaseImage(&roi_img);
+		_catcierge_save_auto_roi_images(img, biggest_contour, r);
 	}
 
 fail:
