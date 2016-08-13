@@ -364,12 +364,8 @@ set(CATCIERGE_PROGRAMS catcierge_grabber)
 if (WITH_TEST_PROGRAMS)
 	list(APPEND CATCIERGE_PROGRAMS
 		catcierge_tester
-		catcierge_fsm_tester)
-
-	# We use some of the unit test helpers in fsm tester.
-	list(APPEND catcierge_fsm_tester_SRC
-		${PROJECT_SOURCE_DIR}/test/catcierge_test_common.c
-		${PROJECT_SOURCE_DIR}/test/catcierge_test_helpers.c)
+		catcierge_fsm_tester
+		catcierge_bg_tester)
 
 	if (WITH_RFID)
 		list(APPEND CATCIERGE_PROGRAMS catcierge_rfid_tester)
@@ -377,7 +373,12 @@ if (WITH_TEST_PROGRAMS)
 endif()
 
 foreach (PROGRAM_NAME ${CATCIERGE_PROGRAMS})
-	list(APPEND ${PROGRAM_NAME}_SRC "${PROJECT_SOURCE_DIR}/src/${PROGRAM_NAME}.c")
+	# We use some of the unit test helpers for the test programs.
+	list(APPEND ${PROGRAM_NAME}_SRC
+		"${PROJECT_SOURCE_DIR}/src/${PROGRAM_NAME}.c"
+		"${PROJECT_SOURCE_DIR}/test/catcierge_test_common.c"
+		"${PROJECT_SOURCE_DIR}/test/catcierge_test_helpers.c")
+
 	message("${PROGRAM_NAME}_SRC = ${${PROGRAM_NAME}_SRC}")
 
 	add_executable(${PROGRAM_NAME} ${${PROGRAM_NAME}_SRC})
