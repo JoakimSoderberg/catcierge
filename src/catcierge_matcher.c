@@ -83,6 +83,8 @@ void catcierge_matcher_destroy(catcierge_matcher_t **ctx)
 		}
 	}
 
+	cvDestroyWindow("Auto ROI");
+
 	*ctx = NULL;
 }
 
