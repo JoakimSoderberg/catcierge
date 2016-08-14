@@ -83,8 +83,6 @@ void catcierge_matcher_destroy(catcierge_matcher_t **ctx)
 		}
 	}
 
-	cvDestroyWindow("Auto ROI");
-
 	*ctx = NULL;
 }
 
@@ -142,6 +140,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, const IplImage *img,
 	catcierge_matcher_args_t *args = ctx->args;
 	assert(ctx);
 	assert(r);
+	assert(img);
 
 	if (!(storage = cvCreateMemStorage(0)))
 	{

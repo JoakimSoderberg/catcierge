@@ -41,6 +41,7 @@
 typedef struct bg_tester_ctx_s
 {
 	char *img_path;
+	int camera;
 	int interactive;
 } bg_tester_ctx_t;
 
@@ -76,8 +77,18 @@ static int add_bg_tester_args(catcierge_args_t *args)
 		"GUI required, allows changing the auto roi threshold interactively.",
 		"b", &ctx.interactive);
 
-	ret |= cargo_add_option(cargo, CARGO_OPT_REQUIRED,
-		"<bg> image",
+
+	ret |= cargo_add_mutex_group(cargo, CARGO_MUTEXGRP_ONE_REQUIRED,
+			"bginput", "Background tester input settings",
+			"Input type, you can only chose one");
+
+	ret |= cargo_add_option(cargo, 0,
+		"<bg, !bginput> --camera",
+		"Get the live camera image instead of using the provided image.",
+		"b", &ctx.camera);
+
+	ret |= cargo_add_option(cargo, CARGO_OPT_NOT_REQUIRED,
+		"<bg, !bginput> image",
 		"Input image containig the background image used to tweak settings with.",
 		"s", &ctx.img_path);
 
@@ -117,12 +128,20 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	printf("Image: %s\n", ctx.img_path);
-
-	if (!(grb.img = load_image(&grb, ctx.img_path)))
+	if (ctx.img_path)
 	{
-		fprintf(stderr, "Failed to load background image %s\n", ctx.img_path);
-		ret = -1; goto fail;
+		printf("Image: %s\n", ctx.img_path);
+
+		if (!(grb.img = load_image(&grb, ctx.img_path)))
+		{
+			fprintf(stderr, "Failed to load background image %s\n", ctx.img_path);
+			ret = -1; goto fail;
+		}
+	}
+	else
+	{
+		printf("Camera mode!\n");
+		catcierge_setup_camera(&grb);
 	}
 
 	if (ctx.interactive)
@@ -136,6 +155,15 @@ int main(int argc, char **argv)
 	{
 		CvRect roi;
 		int success = 0;
+
+		if (ctx.camera)
+		{
+			if (!(grb.img = catcierge_get_frame(&grb)))
+			{
+				fprintf(stderr, "Failed to get camera image, do you have a camera?\n");
+				goto fail;
+			}
+		}
 
 		if (catcierge_matcher_init(&grb.matcher, catcierge_get_matcher_args(args)))
 		{
@@ -172,12 +200,15 @@ int main(int argc, char **argv)
 
 		if (success)
 		{
-			cvSetImageROI(grb.img, roi);
+			IplImage *img_roi = cvCloneImage(grb.img);
+			cvSetImageROI(img_roi, roi);
 
-			if (catcierge_is_frame_obstructed(grb.matcher, grb.img))
+			if (catcierge_is_frame_obstructed(grb.matcher, img_roi))
 			{
 				CATERR("Frame obstructed\n");
-			}			
+			}
+
+			cvReleaseImage(&img_roi);
 		}
 
 		catcierge_matcher_destroy(&grb.matcher);
@@ -190,7 +221,11 @@ int main(int argc, char **argv)
 	}
 
 fail:
-	cvDestroyAllWindows();
+	if (!ctx.camera && grb.img)
+	{
+		cvReleaseImage(&grb.img);
+	}
+
 	catcierge_grabber_destroy(&grb);
 	catcierge_args_destroy(&grb.args);
 
