@@ -37,7 +37,7 @@ typedef int (*catcierge_decide_func_t)(void *ctx, match_group_t *mg);
 typedef const char *(*catcierge_matcher_translate_func_t)(struct catcierge_matcher_s *octx, const char *var,
 														  char *buf, size_t bufsize);
 
-typedef int (*catcierge_is_obstruct_func_t)(struct catcierge_matcher_s *ctx, IplImage *img);
+typedef int (*catcierge_is_obstruct_func_t)(struct catcierge_matcher_s *ctx, const IplImage *img);
 
 typedef struct catcierge_matcher_args_s
 {
