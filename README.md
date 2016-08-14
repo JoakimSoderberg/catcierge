@@ -61,6 +61,10 @@ For the image recognition catcierge uses OpenCV via the
 [raspicam_cv library][raspicam_cv] written by [Emil Valkov][emil_valkov]
 (which is included in the catcierge source).
 
+Full getting started guide for Raspberry Pi
+-------------------------------------------
+See [doc/](doc/README.md) for a full getting started guide.
+
 Compiling
 ---------
 Catcierge uses the CMake build system. To compile:
@@ -73,14 +77,35 @@ First, to install OpenCV on raspbian:
 $ sudo apt-get install cmake opencv-dev build-essential
 ```
 
+Then to build:
+
 ```bash
 $ git clone https://github.com/JoakimSoderberg/catcierge.git
 $ cd catcierge
 $ git submodule update --init # For the rpi userland sources.
 $ ./build_userland.sh
 $ mkdir build && cd build
+$ cmake -DWITH_ZMQ=OFF ..  # Raspbian has no CZMQ package.
+$ make
+```
+
+If you want ZMQ support:
+
+```bash
+$ sudo apt-get install libzmq3-dev
+```
+
+```bash
+$ git clone git@github.com:zeromq/czmq.git
+$ cd czmq
+$ mkdir build
+$ cd build
 $ cmake ..
 $ make
+$ make install  # either this, or see below
+
+# Or specify the locations manually where you built it.
+$ cmake -DWITH_ZMQ=ON -DCZMQ_LIBRARIES=/path/to/czmq/src/libczmq.so -D CZMQ_INCLUDE_DIRS=/path/to/czmq/include ..
 ```
 
 If you don't have any [RFID cat chip reader][rfid_cat] you can exclude
@@ -114,7 +139,6 @@ or download: [http://opencv.org/downloads.html](http://opencv.org/downloads.html
 $ git clone <url>
 $ cd catcierge
 $ mkdir build && cd build
-$ cmake -DRPI=0 .. # Important, don't compile the Raspberry Pi specifics...
 $ cmake --build .
 ```
 
@@ -123,7 +147,7 @@ and point CMake to that build:
 
 ```bash
 ... # Same as above...
-$ cmake -DRPI=0 -DOpenCV_DIR=/path/to/opencv/build .. # This should be the path containing OpenCVConfig.cmake
+$ cmake -DOpenCV_DIR=/path/to/opencv/build .. # This should be the path containing OpenCVConfig.cmake
 $ cmake --build .
 ```
 
@@ -139,10 +163,10 @@ Assuming you're using [git bash](http://git-scm.com/) and [Visual Studio Express
 version of OpenCV does not include a compatible version, so you will need to build it yourself:
 
 ```bash
-cd /c/opencv-2.4.13
-mkdir build2 && cd build2  # Another build directory already exists.
-cmake -DBUILD_SHARED_LIBS=OFF ../sources  # We want static so we don't have to copy DLLs around.
-cmake --build .  # This takes a long time :)
+$ cd /c/opencv-2.4.13
+$ mkdir build_static && cd build_static  # Another build directory already exists.
+$ cmake -DBUILD_SHARED_LIBS=OFF ../sources  # We want static so we don't have to copy DLLs around.
+$ cmake --build .  # This takes a long time :)
 ```
 
 Then compile catcierge itself (note use the correct build directory below if you built OpenCV yourself).
@@ -151,7 +175,7 @@ Then compile catcierge itself (note use the correct build directory below if you
 $ git clone <url>
 $ cd catcierge
 $ mkdir build && cd build
-$ cmake -DOpenCV_DIR=/c/PATH/TO/OPENCV/build .. # The OpenCV path must contain OpenCVConfig.cmake
+$ cmake -DOpenCV_DIR=/c/PATH/TO/OPENCV/build_static .. # The OpenCV path must contain OpenCVConfig.cmake
 $ cmake --build .     # Either build from command line...
 $ start catcierge.sln # Or launch Visual Studio and build from there...
 
@@ -164,49 +188,76 @@ $ bin/catcierge_regress # Run the raw test executable without ctest involved.
 
 Running the main program
 ------------------------
-The main program is named [catcierge_grabber2](catcierge_grabber2.c) which
+The main program is named [catcierge_grabber](src/catcierge_grabber.c) which
 performs all the logic of doing the image recognition, RFID detection and
 deciding if the door should be locked or not.
 
 For more help on all the settings:
 
 ```bash
-$ ./catcierge_grabber2 --help
+$ ./catcierge_grabber --help
 ```
 
 Test programs
 -------------
-While developing and testing I have developed a few small helper programs.
-There are both prototypes written in Python, as well as test programs that
-uses the C code from the real program. The Python and C versions of OpenCV
-behaves slightly differently in some cases, I am not sure why exactly.
+While developing and testing I have created a few small helper programs.
+See `--help` for all of these.
 
-To test the image recognition there is a test program
-[catcierge_tester](catcierge_tester.c) that allows you to specify an image
-to match against.
+### Finite State Machine (FSM) Tester ###
 
-Template matcher:
+This program tests the entire matching sequence as if it was fully running,
+except that you only feed it with 4 input images, instead of it using the
+camera image live like [catcierge_grabber](src/catcierge_grabber.c).
+
+This is what you want to use most of the time. It can output full debug images
+of each step of the matching algorithms.
 
 ```bash
-$ ./catcierge_tester --matcher template --snout /path/to/image/of/catsnout.png --images *.png --show
+$ catcierge_fsm_tester --haar --cascade /path/to/catcierge.xml --images 01.png 02.png 03.png 04.png --save_steps
 ```
+
+### Image recognition ###
+
+To test the image recognition there is a test program
+[catcierge_tester](src/catcierge_tester.c) that allows you to specify an image
+to match against. This ONLY tests the image recognition part.
 
 Haar matcher:
 
 ```bash
-$ ./catcierge_tester --matcher haar --cascade /path/to/catcierge.xml --images *.png --show
+$ catcierge_tester --haar --cascade /path/to/catcierge.xml --images *.png --show
 ```
+
+Template matcher (this is inferior to the haar matcher):
+
+```bash
+$ catcierge_tester --templ --snout /path/to/image/of/catsnout.png --images *.png --show
+```
+
+### RFID ###
 
 Likewise for the RFID matching:
 
 ```bash
-$ ./catcierge_rfid_tester
+$ catcierge_rfid_tester
 ```
 
-### Prototypes
+### Background ###
+
+There is a program that helps you tweak background settings:
+
+```bash
+$ catcierge_bg_tester --interactive --haar --cascade /path/to/catcierge.xml bg_image.png
+```
+
+Prototypes
+----------
 
 **!Note! The below prototype is quite outdated. For the Haar cascade matcher the
 prototype can be found in the [catcierge-samples][catcierge_samples] repository.**
+
+These are prototypes written in Python. The Python and C versions of OpenCV
+behaves slightly differently in some cases.
 
 To test different matching strategies there's a Python prototype as well
 in the aptly named "protoype/" directory. The prototype is named after my
@@ -219,7 +270,6 @@ compare the result of different matching strategies during development.
 
 For this to work you will need to have [ImageMagick][imagemagick] installed.
 Specifically the program `montage`.
-
 
 ```bash
 $ cd prototype/
@@ -234,6 +284,19 @@ creating the montage, so outdated images won't be included).
 ```bash
 $ rm -rf <path/to/output> # Clear any old images.
 $ python higgs.py --snout snouts/snout{1,2}.png --output <path/to/output> --noshow --threshold 0.8 --avg --montage
+```
+
+### OpenCV/Python in Docker ###
+If you don't have a Python + OpenCV setup ready on your computer I would recommend
+you use docker. Here's an example where I mount the `catcierge-examples/` images
+so they could be passed to the script.
+
+```bash
+$ docker run
+    -v $PWD:/app
+    -v ~/dev/catcierge/examples:/examples
+    ibotdotout/python-opencv
+    python find_backlight.py --threshold 140 /examples/some/image.png
 ```
 
 [imagemagick]: http://www.imagemagick.org/
