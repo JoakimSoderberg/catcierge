@@ -93,7 +93,6 @@ static void sig_handler(int signo)
 
 int main(int argc, char **argv)
 {
-	size_t i;
 	int ret = 0;
 	IplImage *clear_img = NULL;
 	catcierge_args_t *args = &grb.args;

@@ -1972,7 +1972,7 @@ char *catcierge_output_generate(catcierge_output_t *ctx,
 		// Replace any variables signified by %varname%
 		if (*it == '%')
 		{
-			const char *res = NULL;
+			const char *res = NULL; // TODO: Cannot be const for all cases, refactor this.
 			const char *resit = NULL;
 			int res_is_alloc = 0;
 			it++;

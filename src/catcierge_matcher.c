@@ -133,8 +133,8 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, const IplImage *img,
 	double area;
 	CvSeq *biggest_contour = NULL;
 	CvSeq *it = NULL;
-	const IplImage *img_color = NULL;
-	const IplImage *img_gray = NULL;
+	IplImage *img_color = NULL;
+	IplImage *img_gray = NULL;
 	IplImage *img_thr = NULL;
 	IplImage *img_eq = NULL;
 	CvMemStorage *storage = NULL;
@@ -147,16 +147,16 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, const IplImage *img,
 		return -1;
 	}
 
-	// Only convert to grayscale if needed.
+	// We want both color (for showing the image) and grayscale.
 	if (img->nChannels != 1)
 	{
-		img_color = img;
+		img_color = cvCloneImage(img);
 		img_gray = cvCreateImage(cvGetSize(img), 8, 1);
 		cvCvtColor(img, img_gray, CV_BGR2GRAY);
 	}
 	else
 	{
-		img_gray = img;
+		img_gray = cvCloneImage(img);
 		img_color = cvCreateImage(cvGetSize(img), 8, 3);
 		cvCvtColor(img_gray, img_color, CV_GRAY2BGR);
 	}
@@ -208,15 +208,8 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, const IplImage *img,
 	_catcierge_display_auto_roi_images(img_color, biggest_contour, r, args->save_auto_roi_img);
 
 fail:
-	if (img->nChannels != 1)
-	{
-		cvReleaseImage(&img_gray);
-	}
-	else
-	{
-		cvReleaseImage(&img_color);
-	}
-
+	cvReleaseImage(&img_gray);
+	cvReleaseImage(&img_color);
 	cvReleaseImage(&img_thr);
 	cvReleaseImage(&img_eq);
 	cvReleaseMemStorage(&storage);
@@ -232,6 +225,7 @@ int catcierge_is_frame_obstructed(catcierge_matcher_t *ctx, const IplImage *img)
 	int x;
 	int y;
 	int sum;
+	IplImage *img_cpy = NULL;
 	IplImage *tmp = NULL;
 	IplImage *tmp2 = NULL;
 	CvRect orig_roi = cvGetImageROI(img);
@@ -240,32 +234,34 @@ int catcierge_is_frame_obstructed(catcierge_matcher_t *ctx, const IplImage *img)
 
 	roi = ctx->args->roi;
 
+	img_cpy = cvCloneImage(img);
+
 	if (roi && (roi->width != 0) && (roi->height != 0))
 	{
-		cvSetImageROI(img, *roi);
+		cvSetImageROI(img_cpy, *roi);
 	}
 
 	// Get a suitable Region Of Interest (ROI)
 	// in the center of the image.
 	// (This should contain only the white background)
 
-	size = cvGetSize(img);
+	size = cvGetSize(img_cpy);
 	w = (int)(size.width / 2);
 	h = (int)(size.height * 0.1);
 	x = (roi ? roi->x : 0) + (size.width - w) / 2;
 	y = (roi ? roi->y : 0) + (size.height - h) / 2;
 
-	cvSetImageROI(img, cvRect(x, y, w, h));
+	cvSetImageROI(img_cpy, cvRect(x, y, w, h));
 
 	// Only covert to grayscale if needed.
-	if (img->nChannels != 1)
+	if (img_cpy->nChannels != 1)
 	{
 		tmp = cvCreateImage(cvSize(w, h), 8, 1);
-		cvCvtColor(img, tmp, CV_BGR2GRAY);
+		cvCvtColor(img_cpy, tmp, CV_BGR2GRAY);
 	}
 	else
 	{
-		tmp = img;
+		tmp = img_cpy;
 	}
 
 	// Get a binary image and sum the pixel values.
@@ -279,7 +275,7 @@ int catcierge_is_frame_obstructed(catcierge_matcher_t *ctx, const IplImage *img)
 		// NOTE! Since this function this runs very often, this should
 		// only ever be turned on while developing, it will spam ALOT.
 		//cvRectangleR(img, cvRect(x, y, w, h), CV_RGB(255, 0, 0), 2, 8, 0);
-		cvShowImage("obstruct_roi", img);
+		cvShowImage("obstruct_roi", img_cpy);
 
 		printf("\nroi: x: %d, y: %d, w: %d, h:%d\n",
 			roi.x, roi.y, roi.width, roi.height);
@@ -292,7 +288,7 @@ int catcierge_is_frame_obstructed(catcierge_matcher_t *ctx, const IplImage *img)
 	}
 	#endif
 
-	cvSetImageROI(img, orig_roi);
+	cvSetImageROI(img_cpy, orig_roi);
 
 	if (img->nChannels != 1)
 	{
@@ -300,6 +296,7 @@ int catcierge_is_frame_obstructed(catcierge_matcher_t *ctx, const IplImage *img)
 	}
 
 	cvReleaseImage(&tmp2);
+	cvReleaseImage(&img_cpy);
 
 	// Spiders and other 1 pixel creatures need not bother!
 	return ((int)sum > 200);

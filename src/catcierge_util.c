@@ -695,7 +695,7 @@ int catcierge_split(char *str, char delim, char ***array, size_t *length)
 	char *p;
 	char **res;
 	size_t count = 1;
-	int k = 0;
+	size_t k = 0;
 
 	p = str;
 

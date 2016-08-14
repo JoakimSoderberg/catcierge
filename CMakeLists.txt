@@ -345,6 +345,7 @@ set(LIB_SRC
 
 set(LIB_HDR
 	"${PROJECT_SOURCE_DIR}/src/cargo_ini.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_matcher.h"
 	"${PROJECT_SOURCE_DIR}/src/catcierge_args.h"
 	"${PROJECT_SOURCE_DIR}/src/catcierge_color.h"
 	"${PROJECT_SOURCE_DIR}/src/catcierge_events.h"

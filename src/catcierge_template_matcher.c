@@ -399,7 +399,7 @@ double catcierge_template_matcher_match(void *octx,
 
 void catcierge_template_matcher_args_destroy(catcierge_template_matcher_args_t *args)
 {
-	int i;
+	size_t i;
 	assert(args);
 
 	for (i = 0; i < args->snout_count; i++)
