@@ -223,7 +223,8 @@ check_include_files(grp.h CATCIERGE_HAVE_GRP_H)
 check_include_files(pty.h CATCIERGE_HAVE_PTY_H)
 check_include_files(util.h CATCIERGE_HAVE_UTIL_H)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/catcierge_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/catcierge_config.h.in
+			   ${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h)
 include_directories(
 	${PROJECT_SOURCE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
@@ -291,8 +292,8 @@ if (RPI)
 		${PROJECT_SOURCE_DIR}/src/raspicam_cv
 		)
 
-	file(GLOB RASPICAM_SRC ${RPI_USERLAND}/host_applications/linux/apps/raspicam/*.c)
-	list(APPEND RASPICAM_SRC ${PROJECT_SOURCE_DIR}/src/raspicam_cv/RaspiCamCV.c)
+	file(GLOB RASPICAM_SRC "${RPI_USERLAND}/host_applications/linux/apps/raspicam/*.c")
+	list(APPEND RASPICAM_SRC "${PROJECT_SOURCE_DIR}/src/raspicam_cv/RaspiCamCV.c")
 
 	add_library(raspicamcv ${RASPICAM_SRC})
 
@@ -309,7 +310,7 @@ if (RPI)
 
 	# Raspicam test app.
 	if (WITH_TEST_PROGRAMS)
-		set(RASPICAM_TEST_SRC ${PROJECT_SOURCE_DIR}/src/raspicam_cv/RaspiCamTest.c)
+		set(RASPICAM_TEST_SRC "${PROJECT_SOURCE_DIR}/src/raspicam_cv/RaspiCamTest.c")
 		add_executable(raspicam_test ${RASPICAM_TEST_SRC})
 		target_link_libraries(raspicam_test raspicamcv ${LIBS})
 	endif()
@@ -326,37 +327,54 @@ endif()
 
 # Catcierge lib.
 set(LIB_SRC
-	${PROJECT_SOURCE_DIR}/src/catcierge_strftime.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_matcher.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_template_matcher.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_haar_matcher.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_haar_wrapper.cpp
-	${PROJECT_SOURCE_DIR}/src/catcierge_util.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_log.c
-	${PROJECT_SOURCE_DIR}/src/alini/alini.c
-	${PROJECT_SOURCE_DIR}/src/sha1/sha1.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_args.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_timer.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_fsm.c
-	${PROJECT_SOURCE_DIR}/src/catcierge_output.c
-	${PROJECT_SOURCE_DIR}/src/cargo/cargo.c
-	${PROJECT_SOURCE_DIR}/src/cargo_ini.c)
+	"${PROJECT_SOURCE_DIR}/src/catcierge_strftime.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_matcher.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_template_matcher.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_haar_matcher.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_haar_wrapper.cpp"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_util.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_log.c"
+	"${PROJECT_SOURCE_DIR}/src/alini/alini.c"
+	"${PROJECT_SOURCE_DIR}/src/sha1/sha1.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_args.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_timer.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_fsm.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_output.c"
+	"${PROJECT_SOURCE_DIR}/src/cargo/cargo.c"
+	"${PROJECT_SOURCE_DIR}/src/cargo_ini.c")
+
+set(LIB_HDR
+	"${PROJECT_SOURCE_DIR}/src/cargo_ini.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_args.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_color.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_events.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_fsm.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_haar_matcher.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_template_matcher.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_timer.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_util.h"
+	"${PROJECT_SOURCE_DIR}/src/uthash.h"
+	"${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h")
 
 if (WIN32)
-	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/src/win32/gettimeofday.c)
+	list(APPEND LIB_SRC "${PROJECT_SOURCE_DIR}/src/win32/gettimeofday.c")
+	list(APPEND LIB_HDR "${PROJECT_SOURCE_DIR}/src/win32/gettimeofday.h")
 endif()
 
 if (RPI)
-	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/src/catcierge_gpio.c)
-	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/src/catcierge_rpi_args.c)
+	list(APPEND LIB_SRC "${PROJECT_SOURCE_DIR}/src/catcierge_gpio.c")
+	list(APPEND LIB_HDR "${PROJECT_SOURCE_DIR}/src/catcierge_gpio.h")
+	list(APPEND LIB_SRC "${PROJECT_SOURCE_DIR}/src/catcierge_rpi_args.c")
+	list(APPEND LIB_HDR "${PROJECT_SOURCE_DIR}/src/catcierge_rpi_args.h")
 endif()
 
 if (WITH_RFID)
 	add_definitions(-DWITH_RFID)
-	list(APPEND LIB_SRC ${PROJECT_SOURCE_DIR}/src/catcierge_rfid.c)
+	list(APPEND LIB_SRC "${PROJECT_SOURCE_DIR}/src/catcierge_rfid.c")
+	list(APPEND LIB_HDR "${PROJECT_SOURCE_DIR}/src/catcierge_rfid.h")
 endif()
 
-add_library(catcierge ${LIB_SRC})
+add_library(catcierge ${LIB_SRC} ${LIB_HDR})
 target_link_libraries(catcierge ${LIBS})
 
 set(CATCIERGE_PROGRAMS catcierge_grabber)
@@ -372,6 +390,11 @@ if (WITH_TEST_PROGRAMS)
 	endif()
 endif()
 
+list(APPEND LIB_HDR
+	"${PROJECT_SOURCE_DIR}/test/catcierge_test_common.h"
+	"${PROJECT_SOURCE_DIR}/test/catcierge_test_helpers.h"
+	"${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h")
+
 foreach (PROGRAM_NAME ${CATCIERGE_PROGRAMS})
 	# We use some of the unit test helpers for the test programs.
 	list(APPEND ${PROGRAM_NAME}_SRC
@@ -381,13 +404,16 @@ foreach (PROGRAM_NAME ${CATCIERGE_PROGRAMS})
 
 	message("${PROGRAM_NAME}_SRC = ${${PROGRAM_NAME}_SRC}")
 
-	add_executable(${PROGRAM_NAME} ${${PROGRAM_NAME}_SRC})
+	add_executable(${PROGRAM_NAME} ${${PROGRAM_NAME}_SRC} ${LIB_HDR})
 	target_link_libraries(${PROGRAM_NAME} catcierge)
 
 	if (RPI)
 		target_link_libraries(${PROGRAM_NAME} raspicamcv)
 	endif()
 endforeach()
+
+source_group("Lib Headers" FILES ${LIB_HDR})
+source_group("Lib Sources" FILES ${LIB_SRC})
 
 #
 # Install targets

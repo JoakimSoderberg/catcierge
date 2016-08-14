@@ -131,8 +131,6 @@ int main(int argc, char **argv)
 		cvNamedWindow("Auto ROI", CV_WINDOW_AUTOSIZE);
 	}
 
-
-
 	grb.running = 1;
 
 	while (grb.running)
