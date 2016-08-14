@@ -88,7 +88,8 @@ void catcierge_matcher_destroy(catcierge_matcher_t **ctx)
 	*ctx = NULL;
 }
 
-static void _catcierge_display_auto_roi_images(const IplImage *img, CvSeq *biggest_contour, CvRect *r, int save)
+static void _catcierge_display_auto_roi_images(catcierge_matcher_t *ctx,
+		const IplImage *img, CvSeq *biggest_contour, CvRect *r, int save)
 {
 	char buf[2048];
 	char path[2048];
@@ -112,7 +113,7 @@ static void _catcierge_display_auto_roi_images(const IplImage *img, CvSeq *bigge
 	cvDrawContours(roi_img, biggest_contour, CV_RGB(0, 255, 0), cvScalarAll(0), 0, 2, 8, cvPoint(0, 0));
 	cvRectangleR(roi_img, *r, CV_RGB(255, 0, 0), 2, 8, 0);
 
-	cvShowImage("Auto ROI", roi_img);
+	if (ctx->debug) cvShowImage("Auto ROI", roi_img);
 
 	if (save)
 	{
@@ -205,7 +206,7 @@ int catcierge_get_back_light_area(catcierge_matcher_t *ctx, const IplImage *img,
 
 	*r = cvBoundingRect(biggest_contour, 0);
 
-	_catcierge_display_auto_roi_images(img_color, biggest_contour, r, args->save_auto_roi_img);
+	_catcierge_display_auto_roi_images(ctx, img_color, biggest_contour, r, args->save_auto_roi_img);
 
 fail:
 	cvReleaseImage(&img_gray);

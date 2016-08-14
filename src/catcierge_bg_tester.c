@@ -143,6 +143,10 @@ int main(int argc, char **argv)
 			goto fail;
 		}
 
+		// We don't want to use cvShowImage internally in the lib in production
+		// since OpenCV will report incorrect leaks (which we don't want to suppress).
+		grb.matcher->debug = 1;
+
 		if (catcierge_get_back_light_area(grb.matcher, grb.img, &roi))
 		{
 			fprintf(stderr, "Failed to find back light area\n");
