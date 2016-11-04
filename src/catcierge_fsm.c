@@ -500,7 +500,7 @@ static int catcierge_calculate_match_id(IplImage *img, match_state_t *m)
 	return 0;
 }
 
-static int caticerge_calculate_matchgroup_id(match_group_t *mg, IplImage *img)
+static int catcierge_calculate_matchgroup_id(match_group_t *mg, IplImage *img)
 {
 	char time_str[512];
 	assert(mg);
@@ -980,7 +980,7 @@ void catcierge_match_group_start(match_group_t *mg, IplImage *img)
 	mg->final_decision = 0;
 
 	// We base the matchgroup id on the obstruct image + timestamp.
-	caticerge_calculate_matchgroup_id(mg, img);
+	catcierge_calculate_matchgroup_id(mg, img);
 
 	CATLOG("\n");
 	log_printc(stdout, COLOR_YELLOW, "=== Match group id: %x%x%x%x%x ===\n",
