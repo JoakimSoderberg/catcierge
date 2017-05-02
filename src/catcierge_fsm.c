@@ -351,17 +351,39 @@ static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 	}
 }
 
+static void catcierge_setup_generic_camera(catcierge_grb_t *grb)
+{
+	// Let OpenCV find the camera.
+	grb->capture = cvCreateCameraCapture(grb->args.camera_index);
+	// TODO: Enable capturing from file using cvCreateFileCapture
+	// TODO: Make resolution here settable.
+	cvSetCaptureProperty(grb->capture, CV_CAP_PROP_FRAME_WIDTH, 320);
+	cvSetCaptureProperty(grb->capture, CV_CAP_PROP_FRAME_HEIGHT, 240);
+}
+
+#ifdef RPI
+static void catcierge_setup_rpi_camera(catcierge_grb_t *grb)
+{
+	// Default to the onboard camera on Raspberry Pi.
+	// (Note the call below does not really use the camera index atm)
+	grb->rpi_capture = raspiCamCvCreateCameraCaptureEx(grb->args.camera_index, &grb->args.rpi_settings);
+}
+#endif // RPI
+
 void catcierge_setup_camera(catcierge_grb_t *grb)
 {
 	assert(grb);
 
 	#ifdef RPI
-	grb->capture = raspiCamCvCreateCameraCaptureEx(0, &grb->args.rpi_settings);
-	#else
-	grb->capture = cvCreateCameraCapture(0);
-	cvSetCaptureProperty(grb->capture, CV_CAP_PROP_FRAME_WIDTH, 320);
-	cvSetCaptureProperty(grb->capture, CV_CAP_PROP_FRAME_HEIGHT, 240);
-	#endif
+	if (!grb->args.non_rpi_cam)
+	{
+		catcierge_setup_rpi_camera(grb);
+	}
+	else
+	#endif // RPI
+	{
+		catcierge_setup_generic_camera(grb);
+	}
 
 	if (grb->args.show)
 	{
@@ -377,10 +399,15 @@ void catcierge_destroy_camera(catcierge_grb_t *grb)
 	}
 
 	#ifdef RPI
-	raspiCamCvReleaseCapture(&grb->capture);
-	#else
-	cvReleaseCapture(&grb->capture);
-	#endif
+	if (!grb->args.non_rpi_cam)
+	{
+		raspiCamCvReleaseCapture(&grb->rpi_capture);
+	}
+	else
+	#endif // RPI
+	{
+		cvReleaseCapture(&grb->capture);
+	}
 }
 
 int catcierge_drop_root_privileges(const char *user)
@@ -475,10 +502,15 @@ IplImage *catcierge_get_frame(catcierge_grb_t *grb)
 	assert(grb);
 
 	#ifdef RPI
-	return raspiCamCvQueryFrame(grb->capture);
-	#else
-	return cvQueryFrame(grb->capture);
-	#endif	
+	if (!grb->args.non_rpi_cam)
+	{
+		return raspiCamCvQueryFrame(grb->rpi_capture);
+	}
+	else
+	#endif // RPI
+	{
+		return cvQueryFrame(grb->capture);
+	}
 }
 
 static int catcierge_calculate_match_id(IplImage *img, match_state_t *m)

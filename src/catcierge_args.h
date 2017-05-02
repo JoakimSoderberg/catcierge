@@ -126,7 +126,10 @@ typedef struct catcierge_args_s
 	char *rpi_config_path;
 	int show_camhelp;
 	RASPIVID_SETTINGS rpi_settings;
+	int non_rpi_cam;
 	#endif // RPI
+
+	int camera_index;
 
 	#ifdef WITH_ZMQ
 	int zmq;

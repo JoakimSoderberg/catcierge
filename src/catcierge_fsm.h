@@ -75,10 +75,10 @@ typedef struct catcierge_grb_s
 	int running;
 
 	#ifdef RPI
-	RaspiCamCvCapture *capture;
-	#else
-	CvCapture *capture;
+	RaspiCamCvCapture *rpi_capture;
 	#endif
+
+	CvCapture *capture;
 
 	IplImage *img; // The current camera frame.
 

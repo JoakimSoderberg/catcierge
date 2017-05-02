@@ -662,7 +662,25 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 			"--camhelp",
 			"Show extra raspberry pi camera help",
 			"b", &args->show_camhelp);
+
+	ret |= cargo_add_option(cargo, 0,
+			"--non_rpi_cam",
+			"Don't attempt to use the onboard RPI camera. "
+			"Instead let OpenCV search for the camera. "
+			"Use this if you want to use a USB webcam instead. "
+			"(On other platforms than Raspberry Pi this is default)",
+			"b", &args->non_rpi_cam);
 	#endif // RPI
+
+	ret |= cargo_add_option(cargo, 0,
+			"--camera_index",
+			"Zero-based index of the camera to use. Default value is 0."
+			#ifdef RPI
+			"\n(Note that this setting does nothing when using the built-in "
+			"Raspberry Pi camera)."
+			#endif // RPI
+			,
+			"i", &args->camera_index);
 
 	ret |= add_roi_options(cargo, args);
 	ret |= add_matcher_options(cargo, args);
@@ -756,6 +774,7 @@ void catcierge_args_init_vars(catcierge_args_t *args)
 
 	#ifdef RPI
 	{
+		// TODO: Make these settable.
 		RASPIVID_SETTINGS *settings = &args->rpi_settings;
 		settings->width = 320;
 		settings->height = 240;
