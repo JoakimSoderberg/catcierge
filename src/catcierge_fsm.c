@@ -351,44 +351,56 @@ static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 	}
 }
 
-static void catcierge_setup_generic_camera(catcierge_grb_t *grb)
+static int catcierge_setup_generic_camera(catcierge_grb_t *grb)
 {
 	// Let OpenCV find the camera.
-	grb->capture = cvCreateCameraCapture(grb->args.camera_index);
+	if (!(grb->capture = cvCreateCameraCapture(grb->args.camera_index)))
+	{
+		return -1;
+	}
 	// TODO: Enable capturing from file using cvCreateFileCapture
 	// TODO: Make resolution here settable.
 	cvSetCaptureProperty(grb->capture, CV_CAP_PROP_FRAME_WIDTH, 320);
 	cvSetCaptureProperty(grb->capture, CV_CAP_PROP_FRAME_HEIGHT, 240);
+
+	return 0;
 }
 
 #ifdef RPI
-static void catcierge_setup_rpi_camera(catcierge_grb_t *grb)
+static int catcierge_setup_rpi_camera(catcierge_grb_t *grb)
 {
 	// Default to the onboard camera on Raspberry Pi.
 	// (Note the call below does not really use the camera index atm)
-	grb->rpi_capture = raspiCamCvCreateCameraCaptureEx(grb->args.camera_index, &grb->args.rpi_settings);
+	if (!(grb->rpi_capture = raspiCamCvCreateCameraCaptureEx(
+			grb->args.camera_index, &grb->args.rpi_settings)))
+	{
+		return -1;
+	}
 }
 #endif // RPI
 
-void catcierge_setup_camera(catcierge_grb_t *grb)
+int catcierge_setup_camera(catcierge_grb_t *grb)
 {
+	int ret = 0;
 	assert(grb);
 
 	#ifdef RPI
 	if (!grb->args.non_rpi_cam)
 	{
-		catcierge_setup_rpi_camera(grb);
+		ret = catcierge_setup_rpi_camera(grb);
 	}
 	else
 	#endif // RPI
 	{
-		catcierge_setup_generic_camera(grb);
+		ret = catcierge_setup_generic_camera(grb);
 	}
 
-	if (grb->args.show)
+	if (!ret && grb->args.show)
 	{
 		cvNamedWindow("catcierge", 1);
 	}
+
+	return ret;
 }
 
 void catcierge_destroy_camera(catcierge_grb_t *grb)

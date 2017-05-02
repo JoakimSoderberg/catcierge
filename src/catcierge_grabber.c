@@ -276,7 +276,11 @@ int main(int argc, char **argv)
 	catcierge_init_rfid_readers(&grb);
 	#endif
 
-	catcierge_setup_camera(&grb);
+	if (catcierge_setup_camera(&grb))
+	{
+		CATERR("Failed to setup camera\n");
+		return -1;
+	}
 
 	#ifdef WITH_ZMQ
 	catcierge_zmq_init(&grb);

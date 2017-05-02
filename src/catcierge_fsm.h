@@ -135,7 +135,7 @@ void catcierge_grabber_destroy(catcierge_grb_t *grb);
 #ifdef WITH_RFID
 void catcierge_init_rfid_readers(catcierge_grb_t *grb);
 #endif
-void catcierge_setup_camera(catcierge_grb_t *grb);
+int catcierge_setup_camera(catcierge_grb_t *grb);
 void catcierge_set_state(catcierge_grb_t *grb, catcierge_state_func_t new_state);
 void catcierge_run_state(catcierge_grb_t *grb);
 int catcierge_drop_root_privileges(const char *user);
