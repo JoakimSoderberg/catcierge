@@ -101,7 +101,10 @@ static int add_fsm_tester_args(catcierge_args_t *args)
 
 	// This option is defined in the catcierge lib instead, since it
 	// uses variables internal to that. But we still group it with these settings.
+	#ifndef _WIN32
+	// TODO: base_time support in the lib is not supported on windows yet.
 	ret |= cargo_group_add_option(cargo, "fsm", "--base_time");
+	#endif // _WIN32
 
 	return ret;
 }

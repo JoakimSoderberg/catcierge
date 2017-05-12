@@ -1327,6 +1327,23 @@ int catcierge_state_keepopen(catcierge_grb_t *grb)
 	return 0;
 }
 
+static void catcierge_after_lockout(catcierge_grb_t *grb)
+{
+	catcierge_args_t *args;
+	assert(grb);
+	args = &grb->args;
+
+	if (args->no_unlock_after_lockout)
+	{
+		CATLOG("Not performing unlock since --no_unlock_after_lockout is enabled");
+	}
+	else
+	{
+		catcierge_do_unlock(grb);
+		catcierge_set_state(grb, catcierge_state_waiting);
+	}
+}
+
 int catcierge_state_lockout(catcierge_grb_t *grb)
 {
 	int frame_obstructed;
@@ -1351,8 +1368,7 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 		{
 			CATLOG("End of lockout! (timed out after %.2f seconds)\n",
 				catcierge_timer_get(&grb->lockout_timer));
-			catcierge_do_unlock(grb);
-			catcierge_set_state(grb, catcierge_state_waiting);
+			catcierge_after_lockout(grb);
 			return 0;
 		}
 	}
@@ -1387,8 +1403,7 @@ int catcierge_state_lockout(catcierge_grb_t *grb)
 		CATLOG("End of lockout! (timed out after %.2f seconds)\n",
 			catcierge_timer_get(&grb->lockout_timer));
 
-		catcierge_do_unlock(grb);
-		catcierge_set_state(grb, catcierge_state_waiting);
+		catcierge_after_lockout(grb);
 	}
 	return 0;
 }

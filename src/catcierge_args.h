@@ -59,6 +59,7 @@ typedef struct catcierge_args_s
 	int show_fps;
 	catcierge_lockout_method_t lockout_method;
 	int lockout_time;
+	int no_unlock_after_lockout;
 	double consecutive_lockout_delay;
 	int max_consecutive_lockout_count;
 	int lockout_dummy;

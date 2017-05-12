@@ -58,6 +58,18 @@ static int add_lockout_options(cargo_t cargo, catcierge_args_t *args)
 			DEFAULT_LOCKOUT_TIME);
 
 	ret |= cargo_add_option(cargo, 0,
+		"<lockout> --no_unlock_after_lockout",
+		"The default behavior is that the cat door is always open, and when "
+		"a prey is detected, the door is locked for a set time (set by --lockout), "
+		"and then unlocked.\n\n"
+		"However this is a problem if you are overriding the normal lockout mechanism "
+		"for example if you want to reverse that behavior, so that the cat door is "
+		"normally closed and only opens if the cat has no prey.\n\n"
+		"Use this option so if a prey is detected, we never unlock. "
+		"Not until a good match has been made again.",
+		"i", &args->no_unlock_after_lockout);
+
+	ret |= cargo_add_option(cargo, 0,
 			"<lockout> --lockout_error",
 			"Number of lockouts in a row that's allowed before we "
 			"consider it an error and quit the program. "
