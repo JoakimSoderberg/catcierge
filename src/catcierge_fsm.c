@@ -1340,8 +1340,9 @@ static void catcierge_after_lockout(catcierge_grb_t *grb)
 	else
 	{
 		catcierge_do_unlock(grb);
-		catcierge_set_state(grb, catcierge_state_waiting);
 	}
+	
+	catcierge_set_state(grb, catcierge_state_waiting);
 }
 
 int catcierge_state_lockout(catcierge_grb_t *grb)
