@@ -353,6 +353,8 @@ static void catcierge_cleanup_imgs(catcierge_grb_t *grb)
 
 static int catcierge_setup_generic_camera(catcierge_grb_t *grb)
 {
+	CATLOG("Using generic camera\n");
+
 	// Let OpenCV find the camera.
 	if (!(grb->capture = cvCreateCameraCapture(grb->args.camera_index)))
 	{
@@ -369,6 +371,8 @@ static int catcierge_setup_generic_camera(catcierge_grb_t *grb)
 #ifdef RPI
 static int catcierge_setup_rpi_camera(catcierge_grb_t *grb)
 {
+	CATLOG("Using RPI built-in camera\n");
+
 	// Default to the onboard camera on Raspberry Pi.
 	// (Note the call below does not really use the camera index atm)
 	if (!(grb->rpi_capture = raspiCamCvCreateCameraCaptureEx(
@@ -376,6 +380,8 @@ static int catcierge_setup_rpi_camera(catcierge_grb_t *grb)
 	{
 		return -1;
 	}
+
+	return 0;
 }
 #endif // RPI
 
