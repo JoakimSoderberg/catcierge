@@ -14,36 +14,42 @@ from email.mime.multipart import MIMEMultipart
 import mimetypes
 from pprint import pprint
 
+
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--images", metavar = "IMAGES", nargs = "+", 
-                    help = "The Catcierge match images to send.")
+    parser.add_argument("--images", metavar="IMAGES", nargs="+",
+                        help="The Catcierge match images to send.")
 
-    parser.add_argument("--to", metavar = "TO", nargs = "+", required=True,
-                    dest = "to_emails",
-                    help = "List of E-mail addresses to send notification to")
+    parser.add_argument("--to", metavar="TO", nargs="+", required=True,
+                        dest="to_emails",
+                        help="List of E-mail addresses to send notification to")
 
-    parser.add_argument("--from", dest = "from_email", metavar = "FROM", required=True,
-                    help = "E-mail to send from")
+    parser.add_argument("--from", dest="from_email", metavar="FROM", required=True,
+                        help="E-mail to send from")
 
-    parser.add_argument("--smtp", metavar = "SMTP", default = "smtp.gmail.com:587",
-                    help = "SMTP server to use. Defaults to gmail")
+    parser.add_argument("--smtp", metavar="SMTP", default="smtp.gmail.com:587",
+                        help="SMTP server to use. Defaults to gmail")
 
-    parser.add_argument("--password", metavar = "PASSW",
-                    help = "The password to use for SMTP")
+    parser.add_argument("--password", metavar="PASSW",
+                        help="The password to use for SMTP")
 
     parser.add_argument("--json", metavar="PATH", required=True,
-                    help="JSON containing image paths and descriptions.")
+                        help="JSON containing image paths and descriptions.")
 
     parser.add_argument("--extra", metavar="FILES", nargs="+", default=[],
-                    help="Extra files to attach.")
+                        help="Extra files to attach.")
 
     args = parser.parse_args()
 
     print("Json: %s" % args.json)
     with open(args.json) as f:
         j = json.load(f)
+
+    version = j["event_json_version"]
+
+    if version not in ("1.0", "1.1"):
+        raise Exception("This script needs to be updated to support Event v%s" % version)
 
     success = j["match_group_success"]
     status_str = "Ok" if success else "Prey Detected"
@@ -55,7 +61,7 @@ def main():
 
     # Create the container (outer) email message.
     msg = MIMEMultipart()
-    
+
     msg['Subject'] = 'Catcierge Detection {dir}: {status} '.format(dir=direction, status=status_str)
     msg['From'] = args.from_email
     msg['To'] = ', '.join(args.to_emails)
@@ -88,46 +94,49 @@ def main():
     for f in args.images:
         # Open the files in binary mode. Let the MIMEImage class automatically
         # guess the specific image type.
-        fp = open(f, 'rb')
-        img = MIMEImage(fp.read())
-        img.add_header('Content-ID', '<%s>' % basename(f))
-        fp.close()
-        msg.attach(img)
+        with open(f, 'rb') as fp:
+            img = MIMEImage(fp.read())
+            img.add_header('Content-ID', '<%s>' % basename(f))
+            fp.close()
+            msg.attach(img)
 
     # Attach extra files.
     for path in args.extra:
-        # Guess the content type based on the file's extension.  Encoding
-        # will be ignored, although we should check for simple things like
-        # gzip'd or compressed files.
-        ctype, encoding = mimetypes.guess_type(path)
-        if ctype is None or encoding is not None:
-            # No guess could be made, or the file is encoded (compressed), so
-            # use a generic bag-of-bits type.
-            ctype = 'application/octet-stream'
-        maintype, subtype = ctype.split('/', 1)
-        if maintype == 'text':
-            fp = open(path)
-            # Note: we should handle calculating the charset
-            atchmnt = MIMEText(fp.read(), _subtype=subtype)
-            fp.close()
-        elif maintype == 'image':
-            fp = open(path, 'rb')
-            atchmnt = MIMEImage(fp.read(), _subtype=subtype)
-            fp.close()
-        elif maintype == 'audio':
-            fp = open(path, 'rb')
-            atchmnt = MIMEAudio(fp.read(), _subtype=subtype)
-            fp.close()
-        else:
-            fp = open(path, 'rb')
-            atchmnt = MIMEBase(maintype, subtype)
-            atchmnt.set_payload(fp.read())
-            fp.close()
-            # Encode the payload using Base64
-            encoders.encode_base64(atchmnt)
-        # Set the filename parameter
-        atchmnt.add_header('Content-Disposition', 'attachment', filename=basename(path))
-        msg.attach(atchmnt)
+        try:
+            # Guess the content type based on the file's extension. Encoding
+            # will be ignored, although we should check for simple things like
+            # gzip'd or compressed files.
+            ctype, encoding = mimetypes.guess_type(path)
+            if ctype is None or encoding is not None:
+                # No guess could be made, or the file is encoded (compressed), so
+                # use a generic bag-of-bits type.
+                ctype = 'application/octet-stream'
+            maintype, subtype = ctype.split('/', 1)
+            if maintype == 'text':
+                fp = open(path)
+                # Note: we should handle calculating the charset
+                atchmnt = MIMEText(fp.read(), _subtype=subtype)
+                fp.close()
+            elif maintype == 'image':
+                fp = open(path, 'rb')
+                atchmnt = MIMEImage(fp.read(), _subtype=subtype)
+                fp.close()
+            elif maintype == 'audio':
+                fp = open(path, 'rb')
+                atchmnt = MIMEAudio(fp.read(), _subtype=subtype)
+                fp.close()
+            else:
+                fp = open(path, 'rb')
+                atchmnt = MIMEBase(maintype, subtype)
+                atchmnt.set_payload(fp.read())
+                fp.close()
+                # Encode the payload using Base64
+                encoders.encode_base64(atchmnt)
+            # Set the filename parameter
+            atchmnt.add_header('Content-Disposition', 'attachment', filename=basename(path))
+            msg.attach(atchmnt)
+        except ex as Exception:
+            print("Failed to attach %s: %s" % (path, ex))
 
     # Send the email via our own SMTP server.
     s = smtplib.SMTP(args.smtp)
@@ -137,4 +146,5 @@ def main():
     s.quit()
     print("Mail sent!")
 
-if __name__ == '__main__': main()
+if __name__ == '__main__':
+    main()

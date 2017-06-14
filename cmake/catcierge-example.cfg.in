@@ -8,7 +8,7 @@
 #
 # To make this your default config:
 #
-#   cp ${CATCIERGE_CONF_BASE_PATH}/catcierge-example.cfg ${CATCIERGE_CONF_PATH}
+#   sudo cp ${CATCIERGE_CONF_BASE_PATH}/catcierge-example.cfg ${CATCIERGE_CONF_PATH}
 #
 
 noanim=1
@@ -19,24 +19,48 @@ cascade=${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge.xml
 in_direction=right
 min_size=80x80
 
-# Save images
+# Save images.
 save=1
 save_obstruct=1
 save_steps=1
 
-# Image output paths
+# Image output paths.
 output_path=/home/catcierge/images/%match_group_start_time:&Y-&m-&d%
 match_output_path=%output_path%/%match_group_id%
 steps_output_path=%match_output_path%/%matchcur_idx%
 
+#
+# "Input templates" can be used to generate output files containing values of internal
+# catcierge variables at one or more events.
+#
+# The template used are defined like this:
+#   input=<path to template>
+#
+# The special variable %template_path:<name>% below is used to refer to the location
+# of the file generated from such a template, so they can be passed to scripts.
+#
+# If you look inside the template files you can find the name of it, and some other settings.
+# To see a list of events available, as well as other settings available inside of templates
+# run the command:
+#
+#   catcierge_grabber --eventhelp
+#
+# You can of course create your own custom templates for whatever format you like.
+# In the compose example below we first output a script, run it, and delete it after that.
+#
+
 # Input template for match_group_done event. Generates a json file describing the match.
 input=${CMAKE_INSTALL_PREFIX}/share/catcierge/templates/event.json
 
-# Input template for compose_script.sh that will run and upload.
+# Input template for compose_script.sh that will compose an image with the images
+# that shows each step of the matching algorithm.
+# Name of this is "compose_script" which is used below as %template_path:compose_script%
 input=${CMAKE_INSTALL_PREFIX}/share/catcierge/templates/compose_script.sh.in
 
 #
 # Examples of running scripts and passing the generated template to them.
+# You can pass internal catcierge variables to these using %varname%
+# For a full list see catcierge_grabber --cmdhelp
 #
 # NOTE! The scripts are executed in parallel, but started in the order they are listed
 #       If you want output from one script to be input to another,
@@ -44,27 +68,61 @@ input=${CMAKE_INSTALL_PREFIX}/share/catcierge/templates/compose_script.sh.in
 #       Or string them together with "script.sh && script2.sh"
 #
 
+
+
+
+####### Advanced fancy mail example #######
+
 # from_email, email_passw, to_email
 # Define the variables required by the compose_script
 uservar=to_email test@example.com
 uservar=from_email test2@example.com
 uservar=from_email_passw my_secret
 
+# If you look inside:
+#   ${CMAKE_INSTALL_PREFIX}/share/catcierge/templates/compose_script.sh.in
+# you can see that this script requires them, so if you omit them you'll get an
+# error on startup of catcierge_grabber.
+
 # This script uses the above user variables so we don't need to pass anything.
 # We don't want to keep it so remove it when done.
+# This will:
+# - Generate one combined image showing all match steps
+# - Zip all related files such as the generated event.json
+# - Mail the result to the specified mail.
 #match_group_done_cmd="%template_path:compose_script%" && rm "%template_path:compose_script%"
 
-# Create a debug version of the match images combined.
-#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:match_group_done_full%" --steps --output "%match_group_id%-combined-steps.png"
 
-# Normal version.
-#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:match_group_done_full%" --output "%match_group_id%-combined.png"
 
-# Post normal version to twitter.
-#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-twitter.py --json "%template_path:match_group_done_full%" %match_group_id%-combined.png
 
-# ZIP the related files.
-#match_group_done_cmd=zip -0 -r %match_group_id%.zip "%template_path:match_group_done_full%" %obstruct_full_path% %match_output_path%/
+####### Output composed image with debug #######
+#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:catcierge_event%" --steps --output "%match_group_id%-combined-steps.png"
 
-# Mail image and json.
-#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-sendmail-new.py --to some.dude@example.com another.dude@example.com --from cat@example.com --smtp the.server:587 --password secret --json "%template_path:match_group_done_full%" --images %match_group_id%-combined-steps.png --extra "%template_path:match_group_done_full%"
+
+
+
+####### Output composed image, no debug #######
+#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-compose.py --json "%template_path:catcierge_event%" --output "%match_group_id%-combined.png"
+
+
+
+
+####### Post the first match image to twitter #######
+# Reads other info from the JSON file.
+#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-twitter.py --json "%template_path:catcierge_event%" %match1_abs_full_path%
+
+
+
+
+####### ZIP the related files #######
+#match_group_done_cmd=zip -0 -r %match_group_id%.zip "%template_path:catcierge_event%" %obstruct_full_path% %match_output_path%/
+
+
+
+
+####### Mail the first match image + event json #######
+#match_group_done_cmd=python ${CMAKE_INSTALL_PREFIX}/share/catcierge/catcierge-sendmail-new.py --to some.dude@example.com another.dude@example.com --from cat@example.com --smtp the.server:587 --password secret --json "%template_path:catcierge_event%" --images %match1_abs_full_path% --extra "%template_path:catcierge_event%"
+
+
+# NOTE !! To re-iterate, the above scripts are run in PARALLEL not in sequence !!
+
