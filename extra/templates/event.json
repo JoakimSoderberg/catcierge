@@ -3,13 +3,13 @@
 %!rootpath %template_path:catcierge_event|dir%
 %!filename %match_group_id%.json
 {
-    "event_json_version": "1.0",
+    "event_json_version": "1.1",
     "id": "%match_group_id%",
     "rootpath": "%template_path:catcierge_event|dir%",
     "catcierge_type": "match_group_done",
     "start": "%match_group_start_time:@Y-@m-@dT@H:@M:@S.@f@z%",
     "end": "%match_group_end_time:@Y-@m-@dT@H:@M:@S.@f@z%",
-    "time_generated": "%time%",
+    "time_generated": "%time:@Y-@m-@dT@H:@M:@S.@f@z%",
     "timezone": "%time:@Z%",
     "timezone_utc_offset": "%time:@z%",
     "git_hash": "%git_hash%",
@@ -53,7 +53,7 @@
         "path": "%match$i$_path%",
         "success": %match$i$_success%,
         "result": %match$i$_result%,
-        "time": "%match$i$_time%",
+        "time": "%match$i$_time:@Y-@m-@dT@H:@M:@S.@f@z%",
         "description": "%match$i$_desc%",
         "direction": "%match$i$_direction%",
         "step_count": %match$i$_step_count%,
