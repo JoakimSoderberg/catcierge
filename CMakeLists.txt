@@ -567,6 +567,8 @@ message("                  (-DCATCIERGE_COVERALLS) ${CATCIERGE_COVERALLS}")
 message("                 Upload json to coverlls:")
 message("           (-DCATCIERGE_COVERALLS_UPLOAD) ${CATCIERGE_COVERALLS_UPLOAD}")
 message("   Compile with ZMQ support (-DWITH_ZMQ): ${WITH_ZMQ}")
+message("                             OpenCV Libs: ${OpenCV_LIBS}")
+message("                              OpenCV DIR: ${OpenCV_DIR}")
 message("-----------------------------------------------------------------")
 
 if (GIT_STATUS)
