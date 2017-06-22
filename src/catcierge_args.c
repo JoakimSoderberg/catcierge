@@ -554,6 +554,40 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 	return ret;
 }
 
+static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
+{
+	int ret = 0;
+
+	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
+		"  " sigusr_name " = " sigusr_description "\n"
+
+	ret |= cargo_add_group(cargo, 0, 
+			"sigusr", "Signal settings", 
+			"The program can receive signals that can be sent using the kill command.\n"
+			"  SIGUSR1\n"
+			"  SIGUSR2\n"
+			"These settings can be used to customize what happens when "
+			"catcierge receives these signals.\n\n"
+			"Available behaviors:\n"
+			#include "catcierge_sigusr.h"
+			);
+
+	ret |= cargo_add_option(cargo, 0,
+			"<sigusr> --sigusr1",
+			"Set the behavior when the SIGUSR1 signal is received.",
+			"s", &args->sigusr1_str);
+
+	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
+		, sigusr_name
+
+	ret |= cargo_add_validation(cargo, 0, "--sigusr1",
+			cargo_validate_choices(0, CARGO_STRING, 5
+				#include "catcierge_sigusr.h"
+				));
+
+	return ret;
+}
+
 // TODO: Add windows support.
 #ifndef _WIN32
 static int parse_base_time(cargo_t ctx, void *user, const char *optname,
@@ -706,6 +740,7 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= add_rfid_options(cargo, args);
 	#endif
 	ret |= add_command_options(cargo, args);
+	ret |= add_sigusr_options(cargo, args);
 
 	return ret;
 }
@@ -888,11 +923,12 @@ int catcierge_args_init(catcierge_args_t *args, const char *progname)
 	cargo_set_description(args->cargo,
 		"Catcierge saves you from cleaning the floor!");
 
-	cargo_set_epilog(args->cargo,
+	/*cargo_set_epilog(args->cargo,
 		"Signals:\n"
 		"The program can receive signals that can be sent using the kill command.\n"
-		" SIGUSR1 = Force the cat door to unlock\n"
-		" SIGUSR2 = Force the cat door to lock (for lock timeout)\n");
+		"You can customize behavior for these using --sigusr*."
+		" SIGUSR1\n"
+		" SIGUSR2\n");*/
 
 	ret = add_options(args->cargo, args);
 

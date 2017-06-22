@@ -117,6 +117,8 @@ int create_pid_file(const char *prog_name, const char *pid_path, int flags)
 
 static void sig_handler(int signo)
 {
+	catcierge_args_t *args = &grb.args;
+
 	switch (signo)
 	{
 		case SIGINT:
@@ -142,14 +144,18 @@ static void sig_handler(int signo)
 		#ifndef _WIN32
 		case SIGUSR1:
 		{
-			CATLOG("Received SIGUSR1, forcing unlock...\n");
+			CATLOG("Received SIGUSR1\n");
+
+			CATLOG("  Forcing unlock...\n");
+			// TODO: Use sigusr stuff instead.
 			catcierge_do_unlock(&grb);
 			catcierge_set_state(&grb, catcierge_state_waiting);
 			break;
 		}
 		case SIGUSR2:
 		{
-			CATLOG("Received SIGUSR2, forcing lockout...\n");
+			CATLOG("Received SIGUSR2\n");
+			CATLOG("  Forcing lockout...\n");
 			catcierge_state_transition_lockout(&grb);
 			break;
 		}
@@ -188,7 +194,7 @@ int main(int argc, char **argv)
 	fprintf(stderr, "-tainted");
 	#endif
 
-	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2016\n\n");
+	fprintf(stderr, ")\n(C) Joakim Soderberg 2013-2017\n\n");
 
 	fprintf(stderr, "Library versions:\n");
 	fprintf(stderr, " OpenCV v%d.%d.%d\n", CV_MAJOR_VERSION, CV_MINOR_VERSION, CV_SUBMINOR_VERSION);
