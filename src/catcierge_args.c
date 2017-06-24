@@ -554,12 +554,13 @@ static int add_command_options(cargo_t cargo, catcierge_args_t *args)
 	return ret;
 }
 
+#ifndef _WIN32
 static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 {
 	int ret = 0;
 
 	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
-		"  " sigusr_name " = " sigusr_description "\n"
+		"  " #sigusr_name " = " sigusr_description "\n"
 
 	ret |= cargo_add_group(cargo, 0, 
 			"sigusr", "Signal settings", 
@@ -578,7 +579,7 @@ static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 			"s", &args->sigusr1_str);
 
 	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
-		, sigusr_name
+		, #sigusr_name
 
 	ret |= cargo_add_validation(cargo, 0, "--sigusr1",
 			cargo_validate_choices(0, CARGO_STRING, 5
@@ -587,6 +588,7 @@ static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 
 	return ret;
 }
+#endif // _WIN32
 
 // TODO: Add windows support.
 #ifndef _WIN32
@@ -740,7 +742,9 @@ static int add_options(cargo_t cargo, catcierge_args_t *args)
 	ret |= add_rfid_options(cargo, args);
 	#endif
 	ret |= add_command_options(cargo, args);
+	#ifndef _WIN32
 	ret |= add_sigusr_options(cargo, args);
+	#endif
 
 	return ret;
 }
@@ -922,13 +926,6 @@ int catcierge_args_init(catcierge_args_t *args, const char *progname)
 
 	cargo_set_description(args->cargo,
 		"Catcierge saves you from cleaning the floor!");
-
-	/*cargo_set_epilog(args->cargo,
-		"Signals:\n"
-		"The program can receive signals that can be sent using the kill command.\n"
-		"You can customize behavior for these using --sigusr*."
-		" SIGUSR1\n"
-		" SIGUSR2\n");*/
 
 	ret = add_options(args->cargo, args);
 

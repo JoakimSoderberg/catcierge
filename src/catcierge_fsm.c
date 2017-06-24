@@ -1479,6 +1479,11 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 	return 0;
 }
 
+int catcierge_state_ignoring(catcierge_grb_t *grb)
+{
+	return 0;
+}
+
 int catcierge_state_waiting(catcierge_grb_t *grb)
 {
 	int frame_obstructed;

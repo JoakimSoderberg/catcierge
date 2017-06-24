@@ -354,6 +354,7 @@ set(LIB_HDR
 	"${PROJECT_SOURCE_DIR}/src/catcierge_template_matcher.h"
 	"${PROJECT_SOURCE_DIR}/src/catcierge_timer.h"
 	"${PROJECT_SOURCE_DIR}/src/catcierge_util.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_sigusr.h"
 	"${PROJECT_SOURCE_DIR}/src/uthash.h"
 	"${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h")
 

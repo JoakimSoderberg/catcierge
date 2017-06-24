@@ -113,6 +113,54 @@ int create_pid_file(const char *prog_name, const char *pid_path, int flags)
 
 	return fd;
 }
+
+
+static void catcierge_SIGUSR_NONE()
+{
+	CATLOG("Doing nothing...\n");
+}
+
+static void catcierge_SIGUSR_LOCK()
+{
+	CATLOG("  Forcing lockout...\n");
+	catcierge_state_transition_lockout(&grb);
+}
+
+static void catcierge_SIGUSR_UNLOCK()
+{
+	CATLOG("  Forcing unlock...\n");
+	catcierge_do_unlock(&grb);
+	catcierge_set_state(&grb, catcierge_state_waiting);
+}
+
+static void catcierge_SIGUSR_IGNORE()
+{
+	CATLOG("  Ignoring events until further notice...\n");
+	catcierge_set_state(&grb, catcierge_state_ignoring);
+}
+
+static void catcierge_SIGUSR_ATTENTION()
+{
+	CATLOG("  Stop ignoring events...\n");
+	catcierge_set_state(&grb, catcierge_state_waiting);
+}
+
+static void handle_sigusr(const char *behavior, int signo)
+{
+	catcierge_args_t *args = &grb->args;
+
+#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
+	if (!strcasecmp(behavior, #sigusr_name)) \
+	{										 \
+		catcierge_##sigusr_enum_name();		 \
+	}										 \
+	else
+
+	#include "catcierge_sigusr.h"
+	{
+		CATERR("Error, unknown sigusr state...");
+	}
+}
 #endif // _WIN32
 
 static void sig_handler(int signo)
@@ -145,18 +193,13 @@ static void sig_handler(int signo)
 		case SIGUSR1:
 		{
 			CATLOG("Received SIGUSR1\n");
-
-			CATLOG("  Forcing unlock...\n");
-			// TODO: Use sigusr stuff instead.
-			catcierge_do_unlock(&grb);
-			catcierge_set_state(&grb, catcierge_state_waiting);
+			handle_sigusr(grb, args->sigusr1_str);
 			break;
 		}
 		case SIGUSR2:
 		{
 			CATLOG("Received SIGUSR2\n");
-			CATLOG("  Forcing lockout...\n");
-			catcierge_state_transition_lockout(&grb);
+			handle_sigusr(grb, args->sigusr2_str);
 			break;
 		}
 		#endif // _WIN32
