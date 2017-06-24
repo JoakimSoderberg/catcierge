@@ -145,10 +145,8 @@ static void catcierge_SIGUSR_ATTENTION()
 	catcierge_set_state(&grb, catcierge_state_waiting);
 }
 
-static void handle_sigusr(const char *behavior, int signo)
+static void handle_sigusr(const char *behavior)
 {
-	catcierge_args_t *args = &grb->args;
-
 #define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
 	if (!strcasecmp(behavior, #sigusr_name)) \
 	{										 \
@@ -193,13 +191,13 @@ static void sig_handler(int signo)
 		case SIGUSR1:
 		{
 			CATLOG("Received SIGUSR1\n");
-			handle_sigusr(grb, args->sigusr1_str);
+			handle_sigusr(args->sigusr1_str);
 			break;
 		}
 		case SIGUSR2:
 		{
 			CATLOG("Received SIGUSR2\n");
-			handle_sigusr(grb, args->sigusr2_str);
+			handle_sigusr(args->sigusr2_str);
 			break;
 		}
 		#endif // _WIN32

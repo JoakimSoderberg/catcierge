@@ -586,6 +586,19 @@ static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 				#include "catcierge_sigusr.h"
 				));
 
+	ret |= cargo_add_option(cargo, 0,
+			"<sigusr> --sigusr2",
+			"Set the behavior when the SIGUSR2 signal is received.",
+			"s", &args->sigusr2_str);
+
+	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
+		, #sigusr_name
+
+	ret |= cargo_add_validation(cargo, 0, "--sigusr2",
+			cargo_validate_choices(0, CARGO_STRING, 5
+				#include "catcierge_sigusr.h"
+				));
+
 	return ret;
 }
 #endif // _WIN32
