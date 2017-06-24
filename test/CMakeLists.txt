@@ -75,10 +75,8 @@ endif()
 
 if (CATCIERGE_WITH_MEMCHECK)
 	if (WIN32)
-		cmake_policy(PUSH)
-		#cmake_policy(SET CMP0053 OLD) # Allow () in the var
-		find_program(DRMEMORY_PROGRAM NAMES drmemory.exe PATHS "$ENV{ProgramFiles(x86)}/Dr. Memory/bin")
-		cmake_policy(POP)
+		set(PROGRAMFILESVAR "ProgramFiles(x86)")  # cmake --help-policy CMP0053 why we need to do this.
+		find_program(DRMEMORY_PROGRAM NAMES drmemory.exe PATHS "$ENV{${PROGRAMFILESVAR}}/Dr. Memory/bin")
 
 		if (NOT EXISTS "${DRMEMORY_PROGRAM}")
 			message(WARNING "Dr. Memory not found! Tests will be run without memory check. Turn this warning off by installing Dr. Memory or settings -DCATCIERGE_WITH_MEMCHECK=OFF")
