@@ -570,7 +570,7 @@ static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 			"These settings can be used to customize what happens when "
 			"catcierge receives these signals.\n\n"
 			"Available behaviors:\n"
-			#include "catcierge_sigusr.h"
+			#include "catcierge_sigusr_types.h"
 			);
 
 	ret |= cargo_add_option(cargo, 0,
@@ -583,7 +583,7 @@ static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 
 	ret |= cargo_add_validation(cargo, 0, "--sigusr1",
 			cargo_validate_choices(0, CARGO_STRING, 5
-				#include "catcierge_sigusr.h"
+				#include "catcierge_sigusr_types.h"
 				));
 
 	ret |= cargo_add_option(cargo, 0,
@@ -596,7 +596,7 @@ static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 
 	ret |= cargo_add_validation(cargo, 0, "--sigusr2",
 			cargo_validate_choices(0, CARGO_STRING, 5
-				#include "catcierge_sigusr.h"
+				#include "catcierge_sigusr_types.h"
 				));
 
 	return ret;

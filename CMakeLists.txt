@@ -340,6 +340,7 @@ set(LIB_SRC
 	"${PROJECT_SOURCE_DIR}/src/catcierge_timer.c"
 	"${PROJECT_SOURCE_DIR}/src/catcierge_fsm.c"
 	"${PROJECT_SOURCE_DIR}/src/catcierge_output.c"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_sigusr.c"
 	"${PROJECT_SOURCE_DIR}/src/cargo/cargo.c"
 	"${PROJECT_SOURCE_DIR}/src/cargo_ini.c")
 
@@ -355,6 +356,7 @@ set(LIB_HDR
 	"${PROJECT_SOURCE_DIR}/src/catcierge_timer.h"
 	"${PROJECT_SOURCE_DIR}/src/catcierge_util.h"
 	"${PROJECT_SOURCE_DIR}/src/catcierge_sigusr.h"
+	"${PROJECT_SOURCE_DIR}/src/catcierge_sigusr_types.h"
 	"${PROJECT_SOURCE_DIR}/src/uthash.h"
 	"${CMAKE_CURRENT_BINARY_DIR}/catcierge_config.h")
 

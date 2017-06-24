@@ -37,14 +37,6 @@ typedef enum catcierge_event_e
 	#include "catcierge_events.h"
 } catcierge_event_t;
 
-#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description)	\
-	sigusr_enum_name,
-
-typedef enum catcierge_sigusr_behavior_e
-{
-	#include "catcierge_sigusr.h"
-} catcierge_sigusr_behavior_t;
-
 typedef struct catcierge_output_var_s
 {
 	char *name;

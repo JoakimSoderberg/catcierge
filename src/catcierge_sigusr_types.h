@@ -16,6 +16,18 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Catcierge.  If not, see <http://www.gnu.org/licenses/>.
 //
+// Note tthis file should only include calls to CATCIERGE_SIGUSR_BEHAVIOR
+// since it is meant to be included in multiple files.
+//
 
+#ifndef CATCIERGE_SIGUSR_BEHAVIOR
+#error "CATCIERGE_SIGUSR_BEHAVIOR must be defined when " __file__ " is included"
+#endif
 
-void catcierge_handle_sigusr(catcierge_grb_t *grb, const char *behavior);
+CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_NONE, none, "Nothing is peformed")
+CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_LOCK, lock, "Lock the cat door for lockout time")
+CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_UNLOCK, unlock, "Unlock the cat door")
+CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_IGNORE, ignore, "Ignores any events, until 'attention'")
+CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_ATTENTION, attention, "Stops ignoring events")
+
+#undef CATCIERGE_SIGUSR_BEHAVIOR

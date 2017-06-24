@@ -93,6 +93,7 @@ const char *catcierge_get_state_string(catcierge_state_func_t state)
 	if (state == catcierge_state_matching) return "Matching";
 	if (state == catcierge_state_keepopen) return "Keep open";
 	if (state == catcierge_state_lockout) return "Lockout";
+	if (state == catcierge_state_ignoring) return "Ignoring";
 
 	return "Initial";
 }
