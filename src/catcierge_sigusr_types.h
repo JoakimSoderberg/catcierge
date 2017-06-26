@@ -24,10 +24,10 @@
 #error "CATCIERGE_SIGUSR_BEHAVIOR must be defined when " __file__ " is included"
 #endif
 
-CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_NONE, none, "Nothing is peformed")
-CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_LOCK, lock, "Lock the cat door for lockout time")
-CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_UNLOCK, unlock, "Unlock the cat door")
-CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_IGNORE, ignore, "Ignores any events, until 'attention'")
-CATCIERGE_SIGUSR_BEHAVIOR(SIGUSR_ATTENTION, attention, "Stops ignoring events")
+CATCIERGE_SIGUSR_BEHAVIOR(none, "Nothing is peformed")
+CATCIERGE_SIGUSR_BEHAVIOR(lock, "Lock the cat door for lockout time")
+CATCIERGE_SIGUSR_BEHAVIOR(unlock, "Unlock the cat door")
+CATCIERGE_SIGUSR_BEHAVIOR(ignore, "Ignores any events, until 'attention'")
+CATCIERGE_SIGUSR_BEHAVIOR(attention, "Stops ignoring events")
 
 #undef CATCIERGE_SIGUSR_BEHAVIOR

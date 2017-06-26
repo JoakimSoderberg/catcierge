@@ -559,7 +559,7 @@ static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 {
 	int ret = 0;
 
-	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
+	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_name, sigusr_description) \
 		"  " #sigusr_name " = " sigusr_description "\n"
 
 	ret |= cargo_add_group(cargo, 0, 
@@ -578,7 +578,7 @@ static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 			"Set the behavior when the SIGUSR1 signal is received.",
 			"s", &args->sigusr1_str);
 
-	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
+	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_name, sigusr_description) \
 		, #sigusr_name
 
 	ret |= cargo_add_validation(cargo, 0, "--sigusr1",
@@ -591,7 +591,7 @@ static int add_sigusr_options(cargo_t cargo, catcierge_args_t *args)
 			"Set the behavior when the SIGUSR2 signal is received.",
 			"s", &args->sigusr2_str);
 
-	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
+	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_name, sigusr_description) \
 		, #sigusr_name
 
 	ret |= cargo_add_validation(cargo, 0, "--sigusr2",
@@ -922,6 +922,11 @@ void catcierge_args_destroy_vars(catcierge_args_t *args)
 	catcierge_template_matcher_args_destroy(&args->templ);
 
 	catcierge_xfree_list(&args->user_vars, &args->user_var_count);
+
+	#ifndef _WIN32
+	catcierge_xfree(&args->sigusr1_str);
+	catcierge_xfree(&args->sigusr2_str);
+	#endif // _WIN32
 }
 
 int catcierge_args_init(catcierge_args_t *args, const char *progname)

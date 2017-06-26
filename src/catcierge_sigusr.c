@@ -21,47 +21,48 @@
 #include "catcierge_log.h"
 
 
-static void catcierge_SIGUSR_NONE(catcierge_grb_t *grb)
+static void catcierge_sigusr_none(catcierge_grb_t *grb)
 {
-	CATLOG("Doing nothing...\n");
+	CATLOG("  Doing nothing...\n");
 }
 
-static void catcierge_SIGUSR_LOCK(catcierge_grb_t *grb)
+static void catcierge_sigusr_lock(catcierge_grb_t *grb)
 {
 	CATLOG("  Forcing lockout...\n");
 	catcierge_state_transition_lockout(grb);
 }
 
-static void catcierge_SIGUSR_UNLOCK(catcierge_grb_t *grb)
+static void catcierge_sigusr_unlock(catcierge_grb_t *grb)
 {
 	CATLOG("  Forcing unlock...\n");
 	catcierge_do_unlock(grb);
 	catcierge_set_state(grb, catcierge_state_waiting);
 }
 
-static void catcierge_SIGUSR_IGNORE(catcierge_grb_t *grb)
+static void catcierge_sigusr_ignore(catcierge_grb_t *grb)
 {
 	CATLOG("  Ignoring events until further notice...\n");
 	catcierge_set_state(grb, catcierge_state_ignoring);
 }
 
-static void catcierge_SIGUSR_ATTENTION(catcierge_grb_t *grb)
+static void catcierge_sigusr_attention(catcierge_grb_t *grb)
 {
-	CATLOG("  Stop ignoring events...\n");
+	CATLOG("  Stopped ignoring events...\n");
 	catcierge_set_state(grb, catcierge_state_waiting);
 }
 
 void catcierge_handle_sigusr(catcierge_grb_t *grb, const char *behavior)
 {
-#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_enum_name, sigusr_name, sigusr_description) \
-	if (!strcasecmp(behavior, #sigusr_name)) \
-	{										 \
-		catcierge_##sigusr_enum_name(grb);		 \
-	}										 \
-	else
+	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_name, sigusr_description) \
+		if (!strcasecmp(behavior, #sigusr_name)) \
+		{									 	 \
+			CATLOG("SIGUSR: " #sigusr_name);	 \
+			catcierge_sigusr_##sigusr_name(grb); \
+		}										 \
+		else
 
 	#include "catcierge_sigusr_types.h"
 	{
-		CATERR("Error, unknown sigusr state...");
+		CATERR("Error, unknown sigusr behavior (this is probably a bug)...\n");
 	}
 }
