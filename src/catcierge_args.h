@@ -123,6 +123,11 @@ typedef struct catcierge_args_s
 	int backlight_gpio_pin;
 	int backlight_enable;
 
+	#ifndef _WIN32
+	char *sigusr1_str;
+	char *sigusr2_str;
+	#endif // _WIN32
+
 	#ifdef RPI
 	char *rpi_config_path;
 	int show_camhelp;

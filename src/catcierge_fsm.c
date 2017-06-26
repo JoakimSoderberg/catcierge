@@ -93,6 +93,7 @@ const char *catcierge_get_state_string(catcierge_state_func_t state)
 	if (state == catcierge_state_matching) return "Matching";
 	if (state == catcierge_state_keepopen) return "Keep open";
 	if (state == catcierge_state_lockout) return "Lockout";
+	if (state == catcierge_state_ignoring) return "Ignoring";
 
 	return "Initial";
 }
@@ -1476,6 +1477,11 @@ int catcierge_state_matching(catcierge_grb_t *grb)
 		catcierge_decide_lock_status(grb);
 	}
 
+	return 0;
+}
+
+int catcierge_state_ignoring(catcierge_grb_t *grb)
+{
 	return 0;
 }
 
