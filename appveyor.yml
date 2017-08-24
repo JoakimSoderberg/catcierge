@@ -1,7 +1,6 @@
 branches:
   except:
     - gh-pages
-image: Visual Studio 2017
 install:
   # TODO: Install CZMQ
   - cinst OpenCV -version 2.4.13
@@ -13,7 +12,7 @@ build_script:
   - cd build
   - dir c:\tools
   - cmake --help
-  - cmake -G "Visual Studio 15 2017" -DWITH_ZMQ=OFF -DCMAKE_BUILD_TYPE=Release -DOpenCV_DIR=c:\tools\opencv\build ..
+  - cmake -G "Visual Studio 12 2013" -DWITH_ZMQ=OFF -DCMAKE_BUILD_TYPE=Release -DOpenCV_DIR=c:\tools\opencv\build ..
   - cmake --build . --config Release
   - ctest --output-on-failure
 
