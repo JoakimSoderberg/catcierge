@@ -11,8 +11,9 @@ build_script:
   - git submodule update --init
   - md build
   - cd build
+  - dir c:\tools
   - cmake --help
-  - cmake -G "Visual Studio 12 2013" -DWITH_ZMQ=OFF -DCMAKE_BUILD_TYPE=Release -DOpenCV_DIR=c:\OpenCV249\opencv\build ..
+  - cmake -G "Visual Studio 15 2017" -DWITH_ZMQ=OFF -DCMAKE_BUILD_TYPE=Release -DOpenCV_DIR=c:\tools\OpenCV2413\opencv\build ..
   - cmake --build . --config Release
   - ctest --output-on-failure
 

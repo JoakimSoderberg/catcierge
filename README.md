@@ -1,5 +1,4 @@
 [![Travis Build Status][travis_img]][travis]
-[![Drone.io Build Status][drone_img]][drone]
 [![Circle CI][circleci_img]][circleci]
 [![Appveyor Build status][appveyor_img]][appveyor]
 [![Coveralls Status][coveralls_img]][coveralls]
@@ -24,7 +23,6 @@ Build status
 | Service               | Status                                                                                                                                                     |
 |-----------------------|----------------------------------------------------------|
 | Travis-CI (Linux/OSX) | [![Travis Build Status][travis_img]][travis]             |
-| Drone.io (Linux)      | [![Drone.io Build Status][drone_img]][drone]             |
 | CircleCI (Linux)      | [![Circle CI][circleci_img]][circleci]                   |
 | Appveyor (Windows)    | [![Appveyor Build status][appveyor_img]][appveyor]       |
 | Unit Test Coverage    | [![Coverage Status][coveralls_img]][coveralls]           |
@@ -309,8 +307,6 @@ $ docker run
 
 [travis_img]: https://travis-ci.org/JoakimSoderberg/catcierge.png
 [travis]: https://travis-ci.org/JoakimSoderberg/catcierge
-[drone_img]: https://drone.io/github.com/JoakimSoderberg/catcierge/status.png
-[drone]: https://drone.io/github.com/JoakimSoderberg/catcierge/latest
 [circleci_img]: https://circleci.com/gh/JoakimSoderberg/catcierge.svg?style=svg
 [circleci]: https://circleci.com/gh/JoakimSoderberg/catcierge
 [appveyor_img]: https://ci.appveyor.com/api/projects/status/6aq2tpajh1nmy6b3
