@@ -1,7 +1,7 @@
 branches:
   except:
     - gh-pages
-
+image: Visual Studio 2017
 install:
   # TODO: Install CZMQ
   - cinst OpenCV -version 2.4.13
