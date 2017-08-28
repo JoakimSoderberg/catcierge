@@ -506,6 +506,7 @@ static char *run_catcierge_parse_test()
 	PARSE_ARGV_START(0, &args, "catcierge", "--haar", "--uservar", "abc 123");
 	PARSE_ARGV_END();
 
+	#ifndef _WIN32
 	#define CATCIERGE_SIGUSR_BEHAVIOR(sigusr_name, sigusr_description)					\
 		PARSE_ARGV_START(0, &args, "catcierge", "--haar", "--sigusr1", #sigusr_name);	\
 		PARSE_ARGV_END();
@@ -515,6 +516,7 @@ static char *run_catcierge_parse_test()
 		PARSE_ARGV_START(0, &args, "catcierge", "--haar", "--sigusr2", #sigusr_name);	\
 		PARSE_ARGV_END();
 	#include "catcierge_sigusr_types.h"
+	#endif // !_WIN32
 
 	return NULL;
 }
