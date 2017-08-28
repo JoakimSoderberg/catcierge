@@ -26,7 +26,7 @@ before_install:
 install:
   - if [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xlinux ] && [ ! -d "/tmp/opencv-2.4.10/build" ]; then cd /tmp && curl -L -O http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.4.10/opencv-2.4.10.zip && unzip -o opencv-2.4.10.zip && cd opencv-2.4.10 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_DOCS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_opencv_java=OFF -DBUILD_JASPER=ON -DWITH_JASPER=ON -DBUILD_ZLIB=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DWITH_OPENEXR=OFF -DBUILD_PNG=ON -DWITH_PNG=ON -DWITH_TIFF=ON -DBUILD_TIFF=ON -DWITH_WEBP=OFF -DWITH_JPEG=ON -DBUILD_JPEG=ON .. && make; fi
   - if [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xlinux ]; then cd /tmp && curl -L -O https://github.com/linux-test-project/lcov/archive/v1.11.zip && unzip -o v1.11.zip; fi
-  - if [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xosx ]; then brew update && brew tap homebrew/science && brew install opencv --env=std; fi
+  - if [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xosx ]; then brew update && brew tap homebrew/science && brew link --overwrite numpy && brew install opencv --env=std; fi
 script:
   # Only run coverage on Linux/gcc.
   - if [ x$CAT_METHOD == xcoverage ] && [ "$COVERITY_SCAN_BRANCH" != 1 ] && [ x$TRAVIS_OS_NAME == xlinux ]; then cd $TRAVIS_BUILD_DIR && ls /tmp/lcov-1.11 && mkdir build && cd build && cmake -DRPI=0 -DCMAKE_PROGRAM_PATH=/tmp/lcov-1.11/bin -DOpenCV_DIR=/tmp/opencv-2.4.10/build $CMAKE_ARGS .. && make && make coveralls; fi
