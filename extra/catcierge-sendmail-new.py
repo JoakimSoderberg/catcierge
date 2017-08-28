@@ -92,13 +92,16 @@ def main():
     msg.attach(MIMEText(msg_html, 'html'))
 
     for f in args.images:
-        # Open the files in binary mode. Let the MIMEImage class automatically
-        # guess the specific image type.
-        with open(f, 'rb') as fp:
-            img = MIMEImage(fp.read())
-            img.add_header('Content-ID', '<%s>' % basename(f))
-            fp.close()
-            msg.attach(img)
+        try:
+            # Open the files in binary mode. Let the MIMEImage class automatically
+            # guess the specific image type.
+            with open(f, 'rb') as fp:
+                img = MIMEImage(fp.read())
+                img.add_header('Content-ID', '<%s>' % basename(f))
+                fp.close()
+                msg.attach(img)
+        except ex as Exception:
+            print "Failed to open image %s: %s" % (f, ex)
 
     # Attach extra files.
     for path in args.extra:

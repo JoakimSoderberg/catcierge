@@ -11,4 +11,4 @@ python /usr/local/share/catcierge/catcierge-compose.py --json "%template_path:ca
 zip -q -0 -r %output_path%/%match_group_id%.zip "%template_path:catcierge_event%" %obstruct_path% %match_output_path%/
 
 # Send mail.
-python /usr/local/share/catcierge/catcierge-sendmail-new.py --to %to_email% --from %from_email% --password %from_email_passw% --json "%template_path:catcierge_event%" --images %output_path%/%match_group_id%-combined-steps.png --extra %output_path%/%match_group_id%.zip
+python /usr/local/share/catcierge/catcierge-sendmail-new.py --to %to_email% --from %from_email% --password %from_email_passw% --json "%template_path:catcierge_event%" --images "%output_path%/%match_group_id%-combined-steps.png" "%match1_path" --extra "%output_path%/%match_group_id%.zip"

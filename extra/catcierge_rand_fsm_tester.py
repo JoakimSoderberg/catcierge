@@ -13,20 +13,20 @@ Example command line (Get a random fail match group):
 python ../extra/catcierge_rand_fsm_tester.py 
 	--exe_path bin/catcierge_fsm_tester 
 	--image_dir ../examples/real/all/
-	--extra_args 
-		"--input ../extra/templates/[event]event_%time%.json 
-		 --output_path ~/higgs/catcierge_images/%match_group_id%
-		 --match_output_path %output_path%/%matchcur_id%
-		 --steps_output_path %match_output_path%/steps
-		 --zmq --new_execute 
-		 --save
-		 --save_steps
-		 --save_obstruct
-		 --delay 1
-		 --base_time 2014-02-02.14:00:33" 
 	--fail
 
-python ../extra/catcierge_rand_fsm_tester.py --exe_path bin/catcierge_fsm_tester --image_dir ../examples/real/all/ --extra_args "--input ../extra/templates/[event]event_%time%.json --output_path ~/higgs/catcierge_images/%match_group_id% --match_output_path %output_path%/%matchcur_id% --steps_output_path %match_output_path%/steps --zmq --new_execute --save --save_steps --save_obstruct --delay 1" --fail
+	--input ../extra/templates/event.json 
+	 --output_path ~/higgs/catcierge_images/%match_group_id%
+	 --match_output_path %output_path%/%matchcur_id%
+	 --steps_output_path %match_output_path%/steps
+	 --zmq
+	 --save
+	 --save_steps
+	 --save_obstruct
+	 --delay 1
+	 --base_time 2017-08-02T14:00:33" 
+
+python ../extra/catcierge_rand_fsm_tester.py --exe_path bin/catcierge_fsm_tester --image_dir ../examples/real/all/ --input ../extra/templates/event.json --output_path ~/higgs/catcierge_images/%match_group_id% --match_output_path %output_path%/%matchcur_id% --steps_output_path %match_output_path%/steps --zmq --save --save_steps --save_obstruct --delay 1 --base_time 2017-08-02T14:00:33 --fail
 
 """
 
