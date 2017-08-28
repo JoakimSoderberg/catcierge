@@ -1228,6 +1228,16 @@ void catcierge_fsm_start(catcierge_grb_t *grb)
 
 void catcierge_zmq_destroy(catcierge_grb_t *grb)
 {
+	#if (ZMQ_VERSION >= ZMQ_MAKE_VERSION (4, 0, 0))
+
+	if (grb->zmq_pub)
+	{
+		zsock_destroy(grb->zmq_pub);
+		grb->zmq_pub = NULL;
+	}
+
+	#else // ZMQ_VERSION < 4.0.0
+
 	if (grb->zmq_ctx && grb->zmq_pub)
 	{
 		zsocket_destroy(grb->zmq_ctx, grb->zmq_pub);
@@ -1239,6 +1249,7 @@ void catcierge_zmq_destroy(catcierge_grb_t *grb)
 		zctx_destroy(&grb->zmq_ctx);
 		grb->zmq_ctx = NULL;
 	}
+	#endif // ZMQ_VERSION < 4.0.0
 }
 
 int catcierge_zmq_init(catcierge_grb_t *grb)
@@ -1251,25 +1262,43 @@ int catcierge_zmq_init(catcierge_grb_t *grb)
 		return 0;
 	}
 
-	if (!(grb->zmq_ctx = zctx_new()))
+	// Breaking API changes in ZMQ 4.0.0
+	#if (ZMQ_VERSION >= ZMQ_MAKE_VERSION (4, 0, 0))
 	{
-		CATERR("Failed to create ZMQ context\n");
-		return -1;
-	}
+		char endpoint[1024];
 
-	if (!(grb->zmq_pub = zsocket_new(grb->zmq_ctx, ZMQ_PUB)))
-	{
-		CATERR("Failed to create ZMQ publisher socket\n");
-		goto fail;
-	}
-
-	if (zsocket_bind(grb->zmq_pub, "%s://%s:%d",
-		args->zmq_transport, args->zmq_iface, args->zmq_port) < 0)
-	{
-		CATERR("Failed to bind to ZMQ publisher to %s://%s:%d\n",
+		snprintf(endpoint, sizeof(endpoint) - 1, "%s://%s:%d",
 			args->zmq_transport, args->zmq_iface, args->zmq_port);
-		goto fail;
+
+		if (!(grb->zmq_pub = zsock_new_pub(endpoint)))
+		{
+			CATERR("Failed to create ZMQ publisher socket\n");
+			goto fail;
+		}
 	}
+	#else // ZMQ_VERSION < 4.0.0
+	{
+		if (!(grb->zmq_ctx = zctx_new()))
+		{
+			CATERR("Failed to create ZMQ context\n");
+			return -1;
+		}
+
+		if (!(grb->zmq_pub = zsocket_new(grb->zmq_ctx, ZMQ_PUB)))
+		{
+			CATERR("Failed to create ZMQ publisher socket\n");
+			goto fail;
+		}
+
+		if (zsocket_bind(grb->zmq_pub, "%s://%s:%d",
+			args->zmq_transport, args->zmq_iface, args->zmq_port) < 0)
+		{
+			CATERR("Failed to bind to ZMQ publisher to %s://%s:%d\n",
+				args->zmq_transport, args->zmq_iface, args->zmq_port);
+			goto fail;
+		}
+	}
+	#endif // ZMQ_VERSION < 4.0.0
 
 	CATLOG("ZMQ publish to %s://%s:%d\n",
 			args->zmq_transport, args->zmq_iface, args->zmq_port);

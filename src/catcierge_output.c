@@ -2293,7 +2293,7 @@ int catcierge_output_generate_templates(catcierge_output_t *ctx,
 		if (grb->args.zmq && grb->zmq_pub && !t->settings.nozmq)
 		{
 			CATLOG("ZMQ Publish topic %s, %d bytes\n", t->settings.topic, strlen(output));
-			zstr_sendfm(grb->zmq_pub, t->settings.topic);
+			zstr_sendm(grb->zmq_pub, t->settings.topic);
 			zstr_send(grb->zmq_pub, output);
 		}
 		#endif // WITH_ZMQ
