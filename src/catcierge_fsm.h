@@ -116,7 +116,7 @@ typedef struct catcierge_grb_s
 
 	#ifdef WITH_ZMQ
 	#if (ZMQ_VERSION < ZMQ_MAKE_VERSION (4, 0, 0))
-	void *zmq_ctx;
+	zctx_t *zmq_ctx;
 	#endif
 	void *zmq_pub;	// ZMQ publisher.
 	#endif // WITH_ZMQ
